@@ -1,7 +1,7 @@
 import { useState } from "react";
 import FadeIn from "./FadeIn";
 import { toast } from "sonner";
-import { Info, Upload } from "lucide-react";
+import { Info } from "lucide-react";
 
 const structures = [
   {
@@ -31,27 +31,18 @@ const ContactForm = () => {
     name: "",
     email: "",
     idea: "",
-    whyNow: "",
-    distribution: "",
     structure: "Revenue Share",
   });
   const [activeStructure, setActiveStructure] = useState(0);
-  const [fileName, setFileName] = useState<string | null>(null);
 
   const update = (field: string, value: string) =>
     setForm((f) => ({ ...f, [field]: value }));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Submitted. We review selectively — top fits hear back within 3 business days.");
-    setForm({ name: "", email: "", idea: "", whyNow: "", distribution: "", structure: "Revenue Share" });
+    toast.success("Submitted. Most ideas get a response within 24 hours.");
+    setForm({ name: "", email: "", idea: "", structure: "Revenue Share" });
     setActiveStructure(0);
-    setFileName(null);
-  };
-
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    setFileName(file ? file.name : null);
   };
 
   const inputClass =
@@ -63,10 +54,10 @@ const ContactForm = () => {
         <div className="max-w-2xl mx-auto">
           <FadeIn>
             <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-4">
-              Pitch your idea.
+              Got an idea? Let's build it.
             </h2>
             <p className="font-mono text-sm text-muted-foreground leading-relaxed mb-10">
-              We review selectively. Top fits respond within 3 business days.
+              Most ideas get a response within 24 hours.
             </p>
           </FadeIn>
 
@@ -94,33 +85,13 @@ const ContactForm = () => {
               </div>
 
               <textarea
-                placeholder="Company or idea — what are you building and for whom?"
+                placeholder="Tell us your idea — what are you building and for whom?"
                 required
-                rows={3}
+                rows={4}
                 value={form.idea}
                 onChange={(e) => update("idea", e.target.value)}
                 className={inputClass + " resize-none"}
-                aria-label="Company or idea"
-              />
-
-              <textarea
-                placeholder="Why now? What makes this the right moment?"
-                required
-                rows={2}
-                value={form.whyNow}
-                onChange={(e) => update("whyNow", e.target.value)}
-                className={inputClass + " resize-none"}
-                aria-label="Why now"
-              />
-
-              <input
-                type="text"
-                placeholder="Distribution edge — how will early users find this?"
-                required
-                value={form.distribution}
-                onChange={(e) => update("distribution", e.target.value)}
-                className={inputClass}
-                aria-label="Distribution edge"
+                aria-label="Your idea"
               />
 
               {/* Structure selector */}
@@ -149,35 +120,17 @@ const ContactForm = () => {
                   ))}
                 </div>
                 <div className="mt-3 p-3 bg-secondary/50 border border-border rounded-sm">
-                  <p className="font-mono text-xs text-foreground/60 leading-relaxed">
+                  <p className="font-mono text-xs text-foreground/70 leading-relaxed">
                     {structures[activeStructure].desc}
                   </p>
                 </div>
-              </div>
-
-              {/* Optional file upload */}
-              <div>
-                <label
-                  htmlFor="file-upload"
-                  className="flex items-center gap-2 font-mono text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
-                >
-                  <Upload size={14} />
-                  {fileName || "Attach a one-pager (optional)"}
-                </label>
-                <input
-                  id="file-upload"
-                  type="file"
-                  accept=".pdf,.doc,.docx,.txt"
-                  onChange={handleFile}
-                  className="hidden"
-                />
               </div>
 
               <button
                 type="submit"
                 className="w-full font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 hover:glow-accent transition-all duration-300"
               >
-                Submit Application →
+                Submit →
               </button>
             </form>
           </FadeIn>

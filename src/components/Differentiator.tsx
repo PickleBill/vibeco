@@ -6,7 +6,7 @@ const diffs = [
   {
     icon: Zap,
     title: "Faster than an agency",
-    desc: "No SOWs, no committee sign-offs. AI-native workflows compress months into focused 2–4 week sprints.",
+    desc: "From idea to live product in hours, not months. No SOWs, no committee sign-offs, no waiting.",
   },
   {
     icon: Brain,
@@ -56,7 +56,6 @@ const Differentiator = () => {
                     background: "radial-gradient(circle, hsl(243 76% 58% / 0.2), transparent)",
                   }}
                 />
-
                 <d.icon
                   size={20}
                   className={`mb-4 transition-colors duration-300 ${
@@ -66,7 +65,7 @@ const Differentiator = () => {
                 <h3 className="font-display text-lg font-bold text-foreground mb-2">
                   {d.title}
                 </h3>
-                <p className="font-mono text-sm text-muted-foreground leading-relaxed">
+                <p className="font-mono text-sm text-foreground/80 leading-relaxed">
                   {d.desc}
                 </p>
               </div>

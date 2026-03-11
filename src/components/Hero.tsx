@@ -4,7 +4,6 @@ import FadeIn from "./FadeIn";
 
 const HeroMockup = () => (
   <div className="relative w-full max-w-lg mx-auto lg:mx-0">
-    {/* Animated glow behind mockup */}
     <motion.div
       className="absolute -inset-8 rounded-full blur-3xl pointer-events-none"
       style={{
@@ -13,8 +12,6 @@ const HeroMockup = () => (
       animate={{ scale: [1, 1.05, 1], opacity: [0.6, 1, 0.6] }}
       transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
     />
-
-    {/* Browser frame */}
     <div className="relative bg-card border border-border rounded-lg shadow-deep overflow-hidden">
       <div className="flex items-center gap-1.5 px-4 py-3 border-b border-border">
         <div className="w-2.5 h-2.5 rounded-full bg-destructive/60" />
@@ -51,8 +48,6 @@ const HeroMockup = () => (
         </div>
       </div>
     </div>
-
-    {/* Floating notification card */}
     <motion.div
       className="absolute -bottom-6 -left-6 bg-card border border-border rounded-lg p-4 shadow-deep w-52"
       initial={{ opacity: 0, y: 12 }}
@@ -92,14 +87,13 @@ const Hero = () => (
           </FadeIn>
           <FadeIn delay={0.2}>
             <p className="font-mono text-base text-foreground/80 leading-relaxed mb-4 max-w-lg">
-              We partner with high-agency founders to ship testable,
-              revenue-oriented MVPs fast. Selective partnerships. Skin in the
-              game.
+              See your idea live in hours, not months. We build, test, and iterate
+              at a pace that will change how you think about software.
             </p>
           </FadeIn>
           <FadeIn delay={0.25}>
             <p className="font-mono text-sm text-muted-foreground leading-relaxed mb-8 max-w-lg">
-              Founder-operated&ensp;•&ensp;Product + GTM operator&ensp;•&ensp;Selective partnerships
+              Founder-operated&ensp;•&ensp;Hours to live product&ensp;•&ensp;Hands-on iteration partner
             </p>
           </FadeIn>
           <FadeIn delay={0.3}>

@@ -14,9 +14,9 @@ const steps = [
   {
     num: "02",
     title: "Rapid Build",
-    short: "AI-assisted, design-forward. Concept to testable MVP in weeks.",
+    short: "AI-native workflows. Conversation to live, testable product in hours.",
     detail:
-      "Full-stack product development, responsive design, analytics, and launch infrastructure. Every decision optimized for learning speed and commercial signal.",
+      "AI-native workflows let us go from conversation to live, testable product in hours. Not a mockup — a real, deployed application you can share with customers today.",
   },
   {
     num: "03",
@@ -40,7 +40,7 @@ const Model = () => {
           <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-6">
             Built for alignment.
           </h2>
-          <p className="font-mono text-sm text-muted-foreground mb-16 max-w-xl">
+          <p className="font-mono text-sm text-foreground/80 mb-16 max-w-xl">
             Selective, founder-grade partnerships. Not a services menu — a shared
             bet on things worth building.
           </p>
@@ -59,7 +59,6 @@ const Model = () => {
                       : "border-border hover:border-primary/30"
                   }`}
                 >
-                  {/* Glow orb */}
                   <div
                     className={`absolute -top-16 -right-16 w-32 h-32 rounded-full blur-3xl transition-opacity duration-500 pointer-events-none ${
                       isOpen ? "opacity-100" : "opacity-0"
@@ -69,10 +68,9 @@ const Model = () => {
                         "radial-gradient(circle, hsl(243 76% 58% / 0.2), transparent)",
                     }}
                   />
-
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-6">
-                      <span className="font-display text-4xl font-black text-primary/15 leading-none">
+                      <span className="font-display text-4xl font-black text-primary/20 leading-none">
                         {s.num}
                       </span>
                       <div>
@@ -91,7 +89,6 @@ const Model = () => {
                       }`}
                     />
                   </div>
-
                   <AnimatePresence>
                     {isOpen && (
                       <motion.div
@@ -101,7 +98,7 @@ const Model = () => {
                         transition={{ duration: 0.3 }}
                         className="overflow-hidden"
                       >
-                        <p className="font-mono text-sm text-foreground/60 leading-relaxed mt-4 ml-16 border-t border-border pt-4">
+                        <p className="font-mono text-sm text-foreground/80 leading-relaxed mt-4 ml-16 border-t border-border pt-4">
                           {s.detail}
                         </p>
                       </motion.div>

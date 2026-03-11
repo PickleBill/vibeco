@@ -6,14 +6,16 @@ const Thesis = () => (
       <div className="max-w-3xl mx-auto">
         <FadeIn>
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-black text-foreground leading-tight mb-8">
-            Code is cheap. Wrong direction is expensive.
+            The only bottleneck is the speed of your ideas.
           </h2>
         </FadeIn>
         <FadeIn delay={0.1}>
-          <p className="font-mono text-base text-foreground/70 leading-relaxed max-w-2xl">
-            The modern bottleneck is no longer whether software can be built. It's
-            whether the right thing gets tested, shipped, and learned from before
-            time and capital disappear. We help founders compress that cycle.
+          <p className="font-mono text-base text-foreground/80 leading-relaxed max-w-2xl">
+            What used to take months and hundreds of thousands of dollars now
+            happens in hours. We work shoulder-to-shoulder with you to rapidly
+            build, test, and refine — until the product is live, real, and
+            generating signal. The iteration cycle is so fast, the only limit is
+            how quickly you can think.
           </p>
         </FadeIn>
       </div>
