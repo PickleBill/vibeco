@@ -44,7 +44,7 @@ const ContactForm = () => {
             <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-4">
               Have a real wedge? Let's talk.
             </h2>
-            <p className="font-mono text-xs text-muted-foreground leading-relaxed mb-12">
+            <p className="font-mono text-sm text-muted-foreground leading-relaxed mb-12">
               We review selectively. The best fits are domain experts with urgency,
               distribution, and a credible monetization path.
             </p>
