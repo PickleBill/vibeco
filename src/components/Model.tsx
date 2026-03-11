@@ -28,7 +28,7 @@ const Model = () => (
         <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-6">
           Built for alignment.
         </h2>
-        <p className="font-mono text-xs text-muted-foreground mb-16 max-w-xl">
+        <p className="font-mono text-sm text-muted-foreground mb-16 max-w-xl">
           This model is selective and intended for founders with real domain
           conviction and a credible path to distribution.
         </p>
