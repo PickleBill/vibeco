@@ -1,12 +1,13 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 import FadeIn from "./FadeIn";
 import { Zap, Brain, TrendingUp, Target } from "lucide-react";
 
 const diffs = [
   {
     icon: Zap,
-    title: "Faster than humanly possible",
-    desc: "From idea to live product in minutes, not months. No SOWs, no committee sign-offs, no waiting. Just shipping.",
+    title: "Unbelievably fast",
+    desc: "From idea to live product in hours, not months. No proposals, no committee sign-offs, no waiting. Just shipping.",
   },
   {
     icon: Brain,
@@ -16,12 +17,12 @@ const diffs = [
   {
     icon: TrendingUp,
     title: "Skin in the game",
-    desc: "Revenue share, advisory equity, and hybrid models. We eat what we kill. Your win is our win.",
+    desc: "Revenue share, equity, hybrid models. We bet on the same outcome you do. Your win is our win.",
   },
   {
     icon: Target,
-    title: "GTM-ready on day one",
-    desc: "Every product ships with monetization hooks, analytics, and distribution infrastructure baked in. Not bolted on later.",
+    title: "Ready for real customers from day one",
+    desc: "Every product ships with the tools to make money, track results, and reach people — baked in, not bolted on.",
   },
 ];
 
@@ -56,12 +57,17 @@ const Differentiator = () => {
                     background: "radial-gradient(circle, hsl(243 76% 58% / 0.2), transparent)",
                   }}
                 />
-                <d.icon
-                  size={20}
-                  className={`mb-4 transition-colors duration-300 ${
-                    hoveredIndex === i ? "text-primary" : "text-muted-foreground"
-                  }`}
-                />
+                <motion.div
+                  animate={hoveredIndex === i ? { scale: [1, 1.2, 1], rotate: [0, 5, 0] } : { scale: 1, rotate: 0 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <d.icon
+                    size={20}
+                    className={`mb-4 transition-colors duration-300 ${
+                      hoveredIndex === i ? "text-primary" : "text-muted-foreground"
+                    }`}
+                  />
+                </motion.div>
                 <h3 className="font-display text-lg font-bold text-foreground mb-2">
                   {d.title}
                 </h3>

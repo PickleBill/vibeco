@@ -32,14 +32,14 @@ const Hero = () => {
             </FadeIn>
             <FadeIn delay={0.2}>
               <p className="font-mono text-base text-foreground/80 leading-relaxed mb-4 max-w-lg">
-                We don't do decks, timelines, or hand-wringing. You describe it, we
-                build it — often before you finish your coffee. The only bottleneck
-                is how fast you can think.
+                You describe it, we build it — powered by AI, driven by obsession.
+                No dev team needed. No six-figure budget. Just your idea and our
+                hands on the keyboard.
               </p>
             </FadeIn>
             <FadeIn delay={0.25}>
               <p className="font-mono text-sm text-muted-foreground leading-relaxed mb-8 max-w-lg">
-                Founder-operated&ensp;•&ensp;Minutes to live product&ensp;•&ensp;Hands-on iteration partner
+                Creator-led&ensp;•&ensp;AI-powered&ensp;•&ensp;Live in hours, not months
               </p>
             </FadeIn>
             <FadeIn delay={0.3}>

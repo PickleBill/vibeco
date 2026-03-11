@@ -2,10 +2,10 @@ import { Helmet, HelmetProvider } from "react-helmet-async";
 import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
 import Thesis from "../components/Thesis";
+import EverydayFounders from "../components/EverydayFounders";
 import Services from "../components/Services";
 import Model from "../components/Model";
 import Fit from "../components/Fit";
-import EverydayFounders from "../components/EverydayFounders";
 import Builds from "../components/Builds";
 import ProjectShowcase from "../components/ProjectShowcase";
 import Differentiator from "../components/Differentiator";
@@ -19,7 +19,7 @@ const jsonLd = {
   "@type": "Organization",
   name: "VibeCo",
   description:
-    "AI-native product studio for high-conviction founders. Selective partnerships, rapid MVP execution, shared upside.",
+    "AI-powered product studio that turns your ideas into real, live software — fast. For creators, experts, and founders of all kinds.",
   url: "https://vibeco.dev",
 };
 
@@ -39,23 +39,23 @@ const faqJsonLd = {
       name: "How does VibeCo's partnership model work?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "VibeCo offers four partnership structures: Revenue Share (we build it, you sell it — we take a percentage of ARR), Advisory Equity ($0–$3k upfront + 0.5–2% equity), Hybrid (reduced fee plus smaller equity/revenue share), and Paid MVP Build (flat-fee, scope-locked engagement).",
+        text: "VibeCo offers flexible partnership structures: Revenue Share (we build it, you sell it — we earn as you grow), Advisory Equity (we invest our time for a small stake), Hybrid (reduced fee plus smaller equity or revenue share), and Paid Build (flat fee, you own 100%).",
       },
     },
     {
       "@type": "Question",
-      name: "How fast can VibeCo build an MVP?",
+      name: "How fast can VibeCo build a product?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Using AI-native workflows, VibeCo compresses typical development timelines from months to focused 2–4 week sprints. Every decision is optimized for learning speed and commercial signal.",
+        text: "Using AI-powered workflows, VibeCo can take an idea from conversation to live, working product in hours — not months. Every decision is optimized for speed and real-world feedback.",
       },
     },
     {
       "@type": "Question",
-      name: "What kind of founders does VibeCo work with?",
+      name: "Do I need to be technical to work with VibeCo?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "VibeCo partners with high-agency founders who have deep domain expertise, a credible distribution edge, and serious intent to test, sell, and iterate quickly. This includes both tech and non-tech founders across industries.",
+        text: "Not at all. VibeCo works with creators, experts, and business owners across every industry. You bring the idea and the knowledge of your customers — we handle all the technology.",
       },
     },
   ],
@@ -65,29 +65,29 @@ const Index = () => {
   return (
     <HelmetProvider>
       <Helmet>
-        <title>VibeCo — AI-Native Product Builds for Founders with Real Conviction</title>
+        <title>VibeCo — Your Idea, Built and Live in Hours</title>
         <meta
           name="description"
-          content="VibeCo is a founder-led AI product studio that builds sharp, testable MVPs for high-conviction founders. Selective partnerships, rapid execution, shared upside."
+          content="VibeCo is an AI-powered product studio that turns your ideas into real software — fast. No dev team needed. For creators, experts, and founders of all kinds."
         />
         <link rel="canonical" href="https://vibeco.dev" />
 
         {/* Open Graph */}
         <meta property="og:type" content="website" />
-        <meta property="og:title" content="VibeCo — Turn Conviction into Software" />
+        <meta property="og:title" content="VibeCo — Your Idea, Built and Live in Hours" />
         <meta
           property="og:description"
-          content="AI-native product studio for high-conviction founders. Selective partnerships, rapid MVP execution, shared upside."
+          content="AI-powered product studio. Describe your idea, we build it — often the same day. For creators, experts, and founders of all kinds."
         />
         <meta property="og:url" content="https://vibeco.dev" />
         <meta property="og:site_name" content="VibeCo" />
 
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="VibeCo — Turn Conviction into Software" />
+        <meta name="twitter:title" content="VibeCo — Your Idea, Built and Live in Hours" />
         <meta
           name="twitter:description"
-          content="AI-native product studio. Selective partnerships. Skin in the game."
+          content="AI-powered product studio. Your idea, live in hours. No code needed."
         />
 
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
@@ -100,10 +100,10 @@ const Index = () => {
         <main>
           <Hero />
           <Thesis />
+          <EverydayFounders />
           <Services />
           <Model />
           <Fit />
-          <EverydayFounders />
           <Builds />
           <ProjectShowcase />
           <Differentiator />

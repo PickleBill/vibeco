@@ -26,7 +26,7 @@ const Footer = () => {
               VibeCo
             </a>
             <p className="font-mono text-sm text-muted-foreground mt-1">
-              AI-native product builds for founders with real conviction.
+              Turning ideas into products — powered by AI, driven by people.
             </p>
           </div>
           <div className="flex gap-6">

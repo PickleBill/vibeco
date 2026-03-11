@@ -7,22 +7,22 @@ const structures = [
   {
     value: "Revenue Share",
     label: "Revenue Share",
-    desc: "We build it, you sell it. We take a percentage of first-year ARR as the product grows. Zero upfront cost.",
+    desc: "We build it, you sell it. We earn as you earn. Zero upfront cost.",
   },
   {
     value: "Advisory Equity",
     label: "Advisory Equity",
-    desc: "We contribute build hours in exchange for 0.5–2% advisory equity. Best for early-stage founders with strong conviction.",
+    desc: "We invest our time for a small piece of the upside. Best for early-stage ideas with real potential.",
   },
   {
     value: "Hybrid",
     label: "Hybrid",
-    desc: "A reduced build fee ($0–$3k) plus a smaller equity or revenue share. Balances risk with sustainable engagement.",
+    desc: "A reduced build fee plus a smaller stake. Balances risk for both sides.",
   },
   {
     value: "Paid MVP Build",
     label: "Paid Build",
-    desc: "Flat-fee engagement for founders who want speed and quality without equity dilution. Scope-locked, timeline-driven.",
+    desc: "Flat fee, fast timeline. You own 100%. Simple.",
   },
 ];
 
@@ -54,7 +54,7 @@ const ContactForm = () => {
         <div className="max-w-2xl mx-auto">
           <FadeIn>
             <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-4">
-              Got an idea? Let's build it.
+              Tell us your idea.
             </h2>
             <p className="font-mono text-sm text-muted-foreground leading-relaxed mb-10">
               Most ideas get a response within 24 hours.
@@ -85,7 +85,7 @@ const ContactForm = () => {
               </div>
 
               <textarea
-                placeholder="Tell us your idea — what are you building and for whom?"
+                placeholder="What's the idea? What problem does it solve, and for whom?"
                 required
                 rows={4}
                 value={form.idea}

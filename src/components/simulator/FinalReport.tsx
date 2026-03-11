@@ -13,6 +13,7 @@ import {
   Download,
   ImageIcon,
   ArrowLeft,
+  Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import html2canvas from "html2canvas";
@@ -37,6 +38,60 @@ const sectionMeta = [
   { key: "investor_perspective", label: "Investor Perspective & Next Steps", icon: Eye },
   { key: "customer_perspective", label: "Customer Perspective", icon: MessageSquare },
 ] as const;
+
+// Simple hash for deterministic scores
+const hashStr = (s: string) => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+};
+
+const TeaserScores = ({ brief }: { brief: BriefData }) => {
+  const scores = [
+    { label: "Market", value: 60 + (hashStr(brief.problem) % 30) },
+    { label: "Product", value: 55 + (hashStr(JSON.stringify(brief.core_features)) % 35) },
+    { label: "Revenue", value: 60 + (hashStr(brief.revenue_model) % 30) },
+    { label: "Timing", value: 50 + (hashStr(brief.industry_trends) % 35) },
+  ];
+
+  return (
+    <div className="flex items-center gap-6 justify-center py-3">
+      {scores.map((s, i) => (
+        <motion.div
+          key={s.label}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.3 + i * 0.1 }}
+          className="flex flex-col items-center gap-1"
+        >
+          <div className="relative w-10 h-10">
+            <svg viewBox="0 0 36 36" className="w-10 h-10 -rotate-90">
+              <path
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="hsl(var(--muted))"
+                strokeWidth="2.5"
+              />
+              <motion.path
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="hsl(var(--primary))"
+                strokeWidth="2.5"
+                initial={{ strokeDasharray: "0, 100" }}
+                animate={{ strokeDasharray: `${s.value}, 100` }}
+                transition={{ delay: 0.5 + i * 0.15, duration: 0.8 }}
+              />
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center font-mono text-[9px] font-bold text-foreground">
+              {s.value}
+            </span>
+          </div>
+          <span className="font-mono text-[8px] text-muted-foreground">{s.label}</span>
+        </motion.div>
+      ))}
+    </div>
+  );
+};
 
 const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage }: Props) => {
   const [email, setEmail] = useState("");
@@ -65,11 +120,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage }: Props)
       });
 
       const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
@@ -122,28 +173,64 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage }: Props)
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="max-w-md mx-auto"
+          className="max-w-lg mx-auto"
         >
-          {conceptImage && (
-            <div className="mb-6 rounded-lg overflow-hidden border border-primary/20"
-              style={{ boxShadow: "0 0 30px hsl(var(--primary) / 0.1)" }}
-            >
+          {/* Visual teaser — blurred preview strip */}
+          <div className="mb-6 rounded-lg overflow-hidden border border-primary/20 relative"
+            style={{ boxShadow: "0 0 30px hsl(var(--primary) / 0.1)" }}
+          >
+            {conceptImage && (
               <img
                 src={conceptImage}
                 alt="AI concept visualization"
-                className="w-full h-40 object-cover opacity-80"
+                className="w-full h-36 object-cover"
+                style={{ filter: "blur(6px) brightness(0.7)" }}
               />
-            </div>
-          )}
+            )}
+            <div className={`${conceptImage ? "" : "pt-4"} px-5 pb-4 bg-card/80 backdrop-blur-sm`}>
+              {/* Viability scores teaser */}
+              <TeaserScores brief={brief} />
 
-          <div className="p-6 rounded-lg bg-card/60 backdrop-blur-sm border border-primary/30 mb-6"
+              {/* Blurred section previews */}
+              <div className="mt-3 space-y-2 relative">
+                {sectionMeta.slice(0, 3).map((section) => {
+                  const Icon = section.icon;
+                  const val = brief[section.key as keyof BriefData];
+                  const text = typeof val === "string" ? val : JSON.stringify(val);
+                  return (
+                    <div key={section.key} className="flex items-start gap-2">
+                      <Icon size={12} className="text-primary mt-0.5 shrink-0" />
+                      <p className="font-mono text-xs text-foreground/60 leading-relaxed truncate">
+                        <span className="font-bold text-foreground/80">{section.label}:</span>{" "}
+                        {text.slice(0, 60)}…
+                      </p>
+                    </div>
+                  );
+                })}
+                {/* Fade-out overlay */}
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-card/80 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Lock overlay */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/80 backdrop-blur-sm border border-primary/30">
+                <Lock size={12} className="text-primary" />
+                <span className="font-mono text-[10px] text-primary font-bold uppercase tracking-wider">
+                  Full Report Inside
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-5 rounded-lg bg-card/60 backdrop-blur-sm border border-primary/30 mb-5"
             style={{ boxShadow: "0 0 30px hsl(var(--primary) / 0.1)" }}
           >
-            <p className="font-mono text-sm text-foreground/80 mb-4 leading-relaxed">
-              <span className="text-primary font-bold">"{idea.slice(0, 80)}..."</span>
+            <p className="font-mono text-sm text-foreground/80 leading-relaxed">
+              <span className="text-primary font-bold">"{idea.slice(0, 80)}{idea.length > 80 ? "…" : ""}"</span>
               <br /><br />
               We've analyzed your idea across 7 dimensions and refined it through strategic questioning.
-              Your full report is ready.
+              Enter your email to unlock the full report.
             </p>
           </div>
 
@@ -166,7 +253,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage }: Props)
             </div>
           </form>
 
-          <div className="mt-6 text-center">
+          <div className="mt-5 text-center">
             <button
               onClick={() => navigate("/#contact")}
               className="font-mono text-xs text-primary hover:underline"

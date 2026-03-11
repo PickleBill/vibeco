@@ -29,8 +29,15 @@ const sections = [
   { key: "customer_perspective", label: "What Customers Would Say", icon: MessageSquare },
 ] as const;
 
-const FeatureStrengthBar = ({ index }: { index: number }) => {
-  const strength = Math.round(60 + Math.random() * 35);
+// Deterministic hash from string
+const hashStr = (s: string) => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+};
+
+const FeatureStrengthBar = ({ name, index }: { name: string; index: number }) => {
+  const strength = 60 + (hashStr(name + index) % 35);
   return (
     <div className="flex items-center gap-2 mt-1">
       <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
@@ -48,10 +55,10 @@ const FeatureStrengthBar = ({ index }: { index: number }) => {
 
 const BriefScoreVisual = ({ brief }: { brief: BriefData }) => {
   const scores = [
-    { label: "Market", value: 65 + Math.floor(brief.problem.length % 25) },
-    { label: "Product", value: 55 + Math.floor(brief.core_features.length * 12) },
-    { label: "Revenue", value: 60 + Math.floor(brief.revenue_model.length % 30) },
-    { label: "Timing", value: 50 + Math.floor(brief.industry_trends.length % 35) },
+    { label: "Market", value: 60 + (hashStr(brief.problem) % 30) },
+    { label: "Product", value: 55 + (hashStr(JSON.stringify(brief.core_features)) % 35) },
+    { label: "Revenue", value: 60 + (hashStr(brief.revenue_model) % 30) },
+    { label: "Timing", value: 50 + (hashStr(brief.industry_trends) % 35) },
   ];
 
   return (
@@ -194,7 +201,7 @@ const IdeaBrief = ({ brief, round, conceptImage }: Props) => (
                         <span className="font-mono text-sm text-muted-foreground">
                           {" "}— {feat.description}
                         </span>
-                        <FeatureStrengthBar index={fi} />
+                        <FeatureStrengthBar name={feat.name} index={fi} />
                       </div>
                     </div>
                   </div>

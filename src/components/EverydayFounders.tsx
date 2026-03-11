@@ -10,7 +10,7 @@ const personas = [
   },
   {
     icon: Scissors,
-    title: "Lawn Care / Service Pro",
+    title: "Service Pro",
     desc: "Automate scheduling, route planning, invoicing — and stop losing jobs to missed calls. Built in hours.",
   },
   {
@@ -21,7 +21,7 @@ const personas = [
   {
     icon: Briefcase,
     title: "Consultant / Expert",
-    desc: "Turn your methodology into a SaaS product — capture recurring revenue from your expertise. No code needed.",
+    desc: "Turn your methodology into a software product — capture recurring revenue from your expertise. No code needed.",
   },
 ];
 
@@ -37,14 +37,14 @@ const EverydayFounders = () => {
               Not just for tech founders
             </p>
             <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-6">
-              You don't need to code. You need to care.
+              You don't have to be a tech person. You just need a real idea.
             </h2>
           </FadeIn>
           <FadeIn delay={0.1}>
             <p className="font-mono text-base text-foreground/80 leading-relaxed">
-              The best products come from people who are obsessed with a problem —
-              not people who know React. Bring the obsession. We'll handle the rest
-              in hours, not months.
+              Some of the best software comes from people who've never written a
+              line of code. AI changed the game — and we're here to help you play
+              it.
             </p>
           </FadeIn>
         </div>

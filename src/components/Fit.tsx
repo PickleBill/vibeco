@@ -2,18 +2,18 @@ import FadeIn from "./FadeIn";
 import { Check, X } from "lucide-react";
 
 const good = [
-  "Deep industry expertise",
-  "Strong insight into a painful workflow or market gap",
-  "Existing audience, pipeline, or distribution edge",
-  "B2B SaaS, vertical AI, workflow tools, commerce tools",
-  "Serious intent to test, sell, and iterate quickly",
+  "You know your customers and their problems better than anyone",
+  "You have a strong insight into a painful workflow or gap in your industry",
+  "You already have an audience, client base, or way to get it in front of people",
+  "You're building tools that solve real problems for real businesses",
+  "You're ready to test, sell, and iterate — not just brainstorm",
 ];
 
 const bad = [
-  "Vague consumer ideas with no wedge",
-  "Founders looking for the cheapest build possible",
-  "Multi-sided marketplace concepts with no traction",
-  "Projects with unclear monetization or no urgency",
+  "Ideas without a clear customer or problem to solve",
+  "Looking for the cheapest build possible over the best one",
+  "Complex marketplace concepts with no traction yet",
+  "Projects with no clear way to make money or no urgency behind them",
   "People who want a vendor, not a thinking partner",
 ];
 
@@ -32,7 +32,7 @@ const Fit = () => (
         <FadeIn delay={0.05}>
           <div className="bg-card border border-border rounded-lg p-8">
             <h3 className="font-display text-xl font-bold text-foreground mb-6">
-              Good fit
+              Great for you if…
             </h3>
             <ul className="space-y-4">
               {good.map((item) => (
@@ -47,7 +47,7 @@ const Fit = () => (
         <FadeIn delay={0.1}>
           <div className="bg-card border border-border rounded-lg p-8">
             <h3 className="font-display text-xl font-bold text-foreground mb-6">
-              Not a fit
+              Probably not the right fit if…
             </h3>
             <ul className="space-y-4">
               {bad.map((item) => (

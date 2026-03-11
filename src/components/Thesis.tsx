@@ -11,9 +11,9 @@ const Thesis = () => (
         </FadeIn>
         <FadeIn delay={0.1}>
           <p className="font-mono text-base text-foreground/80 leading-relaxed max-w-2xl">
-            Months of dev cycles? Gone. Six-figure budgets? Irrelevant. You talk,
-            we build, you iterate. The loop is so tight it feels like magic — but
-            it's just what happens when you stop overthinking and start shipping.
+            What used to take a team of developers and months of runway? We do it
+            in hours with AI. You talk, we build, you show it to real people. It's
+            not magic — it's just what happens when great tools meet real conviction.
           </p>
         </FadeIn>
       </div>
