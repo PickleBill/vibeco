@@ -3,24 +3,24 @@ import FadeIn from "./FadeIn";
 
 const services = [
   {
-    title: "Rapid Product Build",
-    desc: "You describe it. We build it. Same conversation. Not a prototype — a live, deployed product with real users hitting it.",
-    detail: "Full-stack development, responsive design, database architecture, and production deployment — all before you finish your coffee.",
+    title: "We Build It. Fast.",
+    desc: "You describe it. We build it. Same conversation. Not a prototype — a live, deployed product with real people using it.",
+    detail: "Everything from the idea to the live product — design, tech, the whole stack — handled. Often before you finish your coffee.",
   },
   {
-    title: "MVP Strategy",
-    desc: "We scope, you describe, and we start building — often in the same conversation. No decks. No committees.",
-    detail: "Market sizing, competitive positioning, feature prioritization, and go-to-market planning baked in from minute one.",
+    title: "From Idea to Game Plan",
+    desc: "We scope it, pressure-test it, and start building — often in the same conversation. No decks. No committees.",
+    detail: "Who's the customer? What's the first version look like? How do we get it in front of people? We figure it out together, fast.",
   },
   {
-    title: "Launch Infrastructure",
-    desc: "Landing pages, onboarding flows, analytics, and SEO-ready foundations. Ship ready to learn, not ready to wait.",
-    detail: "SEO, analytics integration, email capture, A/B testing setup, and conversion optimization — all live on day one.",
+    title: "Ready to Launch, Day One",
+    desc: "Landing pages, onboarding flows, analytics, and SEO — all baked in from the start. Ship ready to learn, not ready to wait.",
+    detail: "SEO, analytics, email capture — all the growth stuff, baked in from day one. You launch and start learning immediately.",
   },
   {
-    title: "Growth Experimentation",
-    desc: "Iterate based on signal, not guesswork. We build the feedback loops that turn hunches into traction.",
-    detail: "User interviews, funnel analysis, feature iteration, and data-driven pivot recommendations. Move fast, learn faster.",
+    title: "Learn, Tweak, Grow",
+    desc: "Iterate based on real feedback, not guesswork. We build the loops that turn hunches into traction.",
+    detail: "Talk to users, read the data, tweak the product, repeat. Move fast, learn faster. That's how winners are built.",
   },
 ];
 

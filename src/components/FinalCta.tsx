@@ -10,13 +10,13 @@ const FinalCta = () => {
       <div className="max-w-7xl mx-auto px-6 lg:px-12 text-center">
         <FadeIn>
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-black text-foreground mb-6">
-            Stop planning. Start shipping.
+            Ready to make it real?
           </h2>
         </FadeIn>
         <FadeIn delay={0.1}>
           <p className="font-mono text-base text-foreground/80 mb-10 max-w-md mx-auto">
-            Your idea could be live before dinner. Not a wireframe. Not a mockup. A
-            real product your customers can use tonight.
+            Your idea could be live before dinner. Not a wireframe — a real
+            product your first customers can use tonight.
           </p>
         </FadeIn>
         <FadeIn delay={0.15}>

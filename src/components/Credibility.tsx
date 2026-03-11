@@ -1,8 +1,8 @@
 import FadeIn from "./FadeIn";
 
 const traits = [
-  "Founder-minded — we think in terms of leverage, distribution, and unit economics.",
-  "Product and market aware — design and growth are not afterthoughts.",
+  "Founder-minded — we think about what makes money, how to grow it, and how to get it in front of people.",
+  "Product and market aware — design and growth are not afterthoughts. They're built in from day one.",
   "Visually opinionated — craft matters. We ship things worth looking at.",
   "Biased toward shipping — ideas are cheap. Testable products are not.",
   "Willing to structure around upside — on the right opportunities, we put skin in the game.",
@@ -22,9 +22,9 @@ const Credibility = () => (
         </FadeIn>
         <FadeIn delay={0.1}>
           <p className="font-mono text-sm text-foreground/80 leading-relaxed mb-10">
-            VibeCo is led by a founder-operator who has built, shipped, and iterated
-            across multiple product domains. This isn't a services play — it's a
-            thinking partnership for people building things that matter.
+            VibeCo is led by a builder who has shipped products across multiple
+            industries. This isn't a services play — it's a thinking partnership
+            for people creating things that matter.
           </p>
         </FadeIn>
         <ul className="space-y-4">

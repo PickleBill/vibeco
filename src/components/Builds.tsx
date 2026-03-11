@@ -1,26 +1,31 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 import FadeIn from "./FadeIn";
+import { TrendingUp } from "lucide-react";
 
 const projects = [
   {
     name: "Courtana",
     thesis: "Competitive racquet sports lack accessible, real-time performance analytics for amateur players.",
     built: "AI-powered async coaching platform — upload match footage, receive instant shot-by-shot analysis with improvement plans.",
-    kpi: "68% of beta users returned within 7 days for a second analysis session.",
+    kpi: "68%",
+    kpiLabel: "7-day return rate",
     color: "from-primary/20 to-primary/5",
   },
   {
     name: "GreenPaws",
     thesis: "Local lawn care is a high-frequency, high-loyalty vertical with zero modern booking infrastructure.",
-    built: "Premium service platform with instant quoting, automated scheduling, and before/after showcases for Raleigh & Wake County.",
-    kpi: "3.2x higher booking conversion vs. the operator's previous contact-form-only site.",
+    built: "Premium service platform with instant quoting, automated scheduling, and before/after showcases.",
+    kpi: "3.2×",
+    kpiLabel: "booking conversion lift",
     color: "from-primary/15 to-primary/5",
   },
   {
     name: "Unicorse",
     thesis: "Luxury real estate sellers need data-driven market intelligence, not generic listing pages.",
     built: "Seller-focused platform with live market comps, AI-generated home valuations, and premium listing experience.",
-    kpi: "Average session duration 4x longer than the previous site; 22% lead-form completion rate.",
+    kpi: "4×",
+    kpiLabel: "avg. session duration",
     color: "from-primary/10 to-primary/5",
   },
 ];
@@ -90,19 +95,30 @@ const Builds = () => {
                       {p.built}
                     </p>
                   </div>
+                  {/* Animated result card on hover */}
                   <div
                     className={`overflow-hidden transition-all duration-500 ${
-                      hoveredIndex === i ? "max-h-24 opacity-100" : "max-h-0 opacity-0"
+                      hoveredIndex === i ? "max-h-32 opacity-100" : "max-h-0 opacity-0"
                     }`}
                   >
-                    <div className="border-t border-border pt-3">
-                      <p className="font-mono text-[10px] text-primary uppercase tracking-widest mb-1">
-                        Test Signal
-                      </p>
-                      <p className="font-mono text-sm text-primary leading-relaxed">
-                        {p.kpi}
-                      </p>
-                    </div>
+                    <motion.div
+                      initial={false}
+                      animate={hoveredIndex === i ? { y: 0, opacity: 1 } : { y: 8, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="border-t border-border pt-4 flex items-center gap-4"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                        <TrendingUp size={18} className="text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-display text-2xl font-black text-primary leading-none">
+                          {p.kpi}
+                        </p>
+                        <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider mt-1">
+                          {p.kpiLabel}
+                        </p>
+                      </div>
+                    </motion.div>
                   </div>
                 </div>
               </div>
