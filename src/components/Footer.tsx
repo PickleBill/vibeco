@@ -6,7 +6,7 @@ const Footer = () => (
           <p className="font-display text-lg font-black text-foreground tracking-tight">
             VibeCo
           </p>
-          <p className="font-mono text-xs text-muted-foreground mt-1">
+          <p className="font-mono text-sm text-muted-foreground mt-1">
             AI-native product builds for founders with real conviction.
           </p>
         </div>
