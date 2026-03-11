@@ -44,7 +44,7 @@ const Navbar = () => {
           ))}
           <a
             href="#contact"
-            className="font-mono text-xs bg-primary text-primary-foreground px-4 py-2 rounded-sm hover:opacity-90 transition-opacity"
+            className="font-mono text-sm bg-primary text-primary-foreground px-4 py-2 rounded-sm hover:opacity-90 transition-opacity"
           >
             Pitch Your Idea
           </a>
