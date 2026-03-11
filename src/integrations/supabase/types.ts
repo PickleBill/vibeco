@@ -49,6 +49,7 @@ export type Database = {
           id: string
           idea: string
           logo_image_url: string | null
+          lovable_prompt: string | null
           rounds: Json
         }
         Insert: {
@@ -58,6 +59,7 @@ export type Database = {
           id?: string
           idea: string
           logo_image_url?: string | null
+          lovable_prompt?: string | null
           rounds?: Json
         }
         Update: {
@@ -67,6 +69,7 @@ export type Database = {
           id?: string
           idea?: string
           logo_image_url?: string | null
+          lovable_prompt?: string | null
           rounds?: Json
         }
         Relationships: []
