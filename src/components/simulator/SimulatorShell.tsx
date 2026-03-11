@@ -170,6 +170,16 @@ const SimulatorShell = () => {
     callSimulator("refine", undefined, currentRound + 1);
   };
 
+  const handleSkipToFinal = (answers: Record<number, { selected: string[]; freeText?: string }>) => {
+    // Save whatever answers exist, then force final round
+    setRounds((prev) => {
+      const updated = [...prev];
+      updated[updated.length - 1] = { ...updated[updated.length - 1], answers };
+      return updated;
+    });
+    callSimulator("refine", undefined, 3);
+  };
+
   const handleUnlock = async (email: string) => {
     setUnlockEmail(email);
     setUnlocked(true);
@@ -317,6 +327,7 @@ const SimulatorShell = () => {
               <FollowUpQuestions
                 questions={latestRound.questions}
                 onSubmit={handleAnswersSubmit}
+                onSkipToFinal={handleSkipToFinal}
                 isLoading={isLoading}
                 round={currentRound}
               />

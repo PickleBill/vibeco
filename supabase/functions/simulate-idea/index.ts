@@ -121,6 +121,7 @@ CRITICAL SPECIFICITY RULES — READ THE USER'S IDEA CAREFULLY:
 IMPORTANT: Set is_final to false. This is the first round — you MUST generate follow-up questions. Do NOT include lovable_prompt.
 
 For follow-up questions:
+- Generate exactly 2 strategic follow-up questions (not 3 or 4 — only 2).
 - Each question must reference the user's specific idea by name or concept.
 - Options must represent genuinely different strategic directions for THIS product.
 - Never ask generic startup questions. Every question should feel tailored to this exact business.`;
@@ -145,8 +146,9 @@ ${isLastRound ? `This is the FINAL round. Set is_final to true. Generate the mos
 - Revenue projections based on the pricing model they refined
 - The follow_up_questions array must be empty.
 - Your final brief must synthesize ALL the user's choices across rounds into a cohesive, actionable plan.
+- Even if the user skipped questions or provided minimal answers, still generate the most comprehensive brief possible based on what you have.
 
-ALSO generate the lovable_prompt field: Write a comprehensive, ready-to-paste prompt (800-1500 words) that someone could paste into Lovable to one-shot create a beautiful landing page for this product. Include specific hero copy, feature descriptions with the user's refined details, target audience messaging, pricing section based on their chosen model, visual direction (suggest specific color palette, typography mood, layout style), and compelling CTA copy. Write it as a direct instruction to an AI app builder.` : `This is round ${round} of 3. Set is_final to false. Do NOT include lovable_prompt. Ask 3-4 NEW questions that dig deeper based on their specific choices. Reference what they chose and explore implications.`}`;
+ALSO generate the lovable_prompt field: Write a comprehensive, ready-to-paste prompt (800-1500 words) that someone could paste into Lovable to one-shot create a beautiful landing page for this product. Include specific hero copy, feature descriptions with the user's refined details, target audience messaging, pricing section based on their chosen model, visual direction (suggest specific color palette, typography mood, layout style), and compelling CTA copy. Write it as a direct instruction to an AI app builder.` : `This is round ${round} of 3. Set is_final to false. Do NOT include lovable_prompt. Ask exactly 3 NEW follow-up questions that dig deeper based on their specific choices. Reference what they chose and explore implications.`}`;
       userContent = `Full conversation history:\n\n${history}\n\nGenerate a${isLastRound ? " final comprehensive" : "n updated"} brief. Every section must reference the original idea and incorporate their choices.`;
     }
 
