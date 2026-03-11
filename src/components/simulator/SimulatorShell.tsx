@@ -44,7 +44,10 @@ const SimulatorShell = () => {
       history += `Problem: ${r.brief.problem}\n`;
       history += `Target Customer: ${r.brief.target_customer}\n`;
       history += `Features: ${r.brief.core_features.map((f) => f.name).join(", ")}\n`;
-      history += `Revenue: ${r.brief.revenue_model}\n\n`;
+      history += `Revenue: ${r.brief.revenue_model}\n`;
+      history += `Industry: ${r.brief.industry_trends}\n`;
+      history += `Investor View: ${r.brief.investor_perspective}\n`;
+      history += `Customer View: ${r.brief.customer_perspective}\n\n`;
       if (r.answers) {
         history += `User answers:\n`;
         r.questions.forEach((q, qi) => {
@@ -122,22 +125,40 @@ const SimulatorShell = () => {
     <div className="min-h-screen bg-background pt-20 pb-16">
       <div className="max-w-4xl mx-auto px-6">
         {/* Round indicator */}
-        {rounds.length > 0 && (
-          <div className="flex items-center justify-center gap-2 mb-8">
+        {rounds.length > 0 && phase !== "input" && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center justify-center gap-3 mb-10"
+          >
             {Array.from({ length: totalRounds }).map((_, i) => (
-              <div
-                key={i}
-                className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
-                  i < rounds.length
-                    ? "bg-primary scale-110"
-                    : "bg-muted-foreground/30"
-                }`}
-              />
+              <div key={i} className="flex items-center gap-3">
+                <div className="flex flex-col items-center gap-1">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center font-mono text-xs font-bold transition-all duration-500 ${
+                      i < rounds.length
+                        ? "bg-primary text-primary-foreground"
+                        : i === rounds.length && phase === "analyzing"
+                        ? "bg-primary/30 text-primary border border-primary/50"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {i + 1}
+                  </div>
+                  <span className="font-mono text-[9px] text-muted-foreground">
+                    {i === 0 ? "Analyze" : i === 1 ? "Refine" : "Finalize"}
+                  </span>
+                </div>
+                {i < totalRounds - 1 && (
+                  <div
+                    className={`w-12 h-px transition-colors duration-500 ${
+                      i < rounds.length - 1 ? "bg-primary" : "bg-border"
+                    }`}
+                  />
+                )}
+              </div>
             ))}
-            <span className="ml-3 font-mono text-xs text-muted-foreground">
-              Round {Math.min(rounds.length, totalRounds)} / {totalRounds}
-            </span>
-          </div>
+          </motion.div>
         )}
 
         <AnimatePresence mode="wait">
@@ -155,28 +176,41 @@ const SimulatorShell = () => {
               exit={{ opacity: 0 }}
               className="flex flex-col items-center justify-center py-32"
             >
-              <motion.div
-                className="w-24 h-24 rounded-full mb-8"
-                style={{
-                  background: "radial-gradient(circle, hsl(var(--primary) / 0.4), transparent 70%)",
-                }}
-                animate={{ scale: [1, 1.4, 1], opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              />
+              <div className="relative mb-8">
+                <motion.div
+                  className="w-24 h-24 rounded-full"
+                  style={{
+                    background: "radial-gradient(circle, hsl(var(--primary) / 0.4), transparent 70%)",
+                  }}
+                  animate={{ scale: [1, 1.4, 1], opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <motion.div
+                  className="absolute inset-0 w-24 h-24 rounded-full border border-primary/20"
+                  animate={{ scale: [1, 1.8], opacity: [0.6, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
+                />
+              </div>
               <p className="font-mono text-sm text-muted-foreground animate-pulse">
-                {rounds.length === 0 ? "Analyzing your idea..." : "Refining your brief..."}
+                {rounds.length === 0 ? "Analyzing your idea..." : "Deepening the analysis..."}
+              </p>
+              <p className="font-mono text-[10px] text-muted-foreground/50 mt-2">
+                This takes about 10-15 seconds
               </p>
             </motion.div>
           )}
 
           {phase === "brief" && latestRound && (
             <motion.div key={`brief-${currentRound}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <IdeaBrief brief={latestRound.brief} round={currentRound} />
+              {/* Questions FIRST — above the brief */}
               <FollowUpQuestions
                 questions={latestRound.questions}
                 onSubmit={handleAnswersSubmit}
                 isLoading={isLoading}
+                round={currentRound}
               />
+              {/* Brief below */}
+              <IdeaBrief brief={latestRound.brief} round={currentRound} />
             </motion.div>
           )}
 

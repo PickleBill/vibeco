@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Sparkles } from "lucide-react";
 
 const navLinks = [
-  { label: "Simulator", href: "/simulate" },
   { label: "Thesis", href: "#thesis" },
   { label: "Services", href: "#services" },
   { label: "Model", href: "#model" },
@@ -30,7 +29,7 @@ const Navbar = () => {
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 lg:px-12 flex items-center justify-between h-16">
-        <a href="#" className="font-display text-lg font-black text-foreground tracking-tight">
+        <a href="/" className="font-display text-lg font-black text-foreground tracking-tight">
           VibeCo
         </a>
 
@@ -45,6 +44,22 @@ const Navbar = () => {
               {link.label}
             </a>
           ))}
+
+          {/* Glowing Simulator pill */}
+          <a
+            href="/simulate"
+            className="relative group font-mono text-sm px-4 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/40 hover:bg-primary/20 transition-all duration-300 flex items-center gap-1.5"
+          >
+            <motion.div
+              className="absolute inset-0 rounded-full pointer-events-none"
+              style={{ boxShadow: "0 0 14px hsl(var(--primary) / 0.25)" }}
+              animate={{ opacity: [0.4, 0.8, 0.4] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <Sparkles size={13} />
+            Simulator
+          </a>
+
           <a
             href="#contact"
             className="font-mono text-sm bg-primary text-primary-foreground px-4 py-2 rounded-sm hover:opacity-90 transition-opacity"
@@ -82,6 +97,14 @@ const Navbar = () => {
                 {link.label}
               </a>
             ))}
+            <a
+              href="/simulate"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2 py-3 font-mono text-sm text-primary"
+            >
+              <Sparkles size={13} />
+              AI Idea Simulator
+            </a>
             <a
               href="#contact"
               onClick={() => setMobileOpen(false)}
