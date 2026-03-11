@@ -37,9 +37,10 @@ const SimulatorShell = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [conceptImage, setConceptImage] = useState<string | null>(null);
   const [logoImage, setLogoImage] = useState<string | null>(null);
+  const [unlocked, setUnlocked] = useState(false);
+  const [unlockEmail, setUnlockEmail] = useState("");
 
   const generateImages = async (ideaText: string) => {
-    // Fire and forget — don't block the main flow
     try {
       const [conceptRes, logoRes] = await Promise.allSettled([
         supabase.functions.invoke("generate-idea-image", {
@@ -86,13 +87,13 @@ const SimulatorShell = () => {
     return history;
   };
 
-  const callSimulator = async (type: "initial" | "refine", round?: number) => {
+  const callSimulator = async (type: "initial" | "refine", ideaText?: string, round?: number) => {
     setIsLoading(true);
     setPhase("analyzing");
     try {
       const body: Record<string, unknown> =
         type === "initial"
-          ? { type: "initial", idea }
+          ? { type: "initial", idea: ideaText || idea }
           : { type: "refine", history: buildHistory(currentRound - 1), round };
 
       const { data, error } = await supabase.functions.invoke("simulate-idea", { body });
@@ -124,9 +125,8 @@ const SimulatorShell = () => {
 
   const handleIdeaSubmit = (text: string) => {
     setIdea(text);
-    // Start image generation in parallel (non-blocking)
     generateImages(text);
-    callSimulator("initial");
+    callSimulator("initial", text);
   };
 
   const handleAnswersSubmit = (answers: Record<number, { selected: string[]; freeText?: string }>) => {
@@ -135,7 +135,28 @@ const SimulatorShell = () => {
       updated[updated.length - 1] = { ...updated[updated.length - 1], answers };
       return updated;
     });
-    callSimulator("refine", currentRound + 1);
+    callSimulator("refine", undefined, currentRound + 1);
+  };
+
+  const handleUnlock = async (email: string) => {
+    setUnlockEmail(email);
+    setUnlocked(true);
+    try {
+      await (supabase.from as any)("simulator_captures").insert({
+        email: email.trim(),
+        idea: idea.trim(),
+        rounds: rounds.map((r: any) => ({
+          brief: r.brief,
+          questions: r.questions,
+          answers: r.answers || null,
+        })),
+        concept_image_url: conceptImage || null,
+        logo_image_url: logoImage || null,
+      });
+    } catch (err) {
+      console.error("Early capture error:", err);
+    }
+    toast.success("Saved! Your full report will be unlocked at the end.");
   };
 
   const handleRestart = () => {
@@ -145,6 +166,8 @@ const SimulatorShell = () => {
     setIdea("");
     setConceptImage(null);
     setLogoImage(null);
+    setUnlocked(false);
+    setUnlockEmail("");
   };
 
   const latestRound = rounds[rounds.length - 1];
@@ -231,15 +254,19 @@ const SimulatorShell = () => {
 
           {phase === "brief" && latestRound && (
             <motion.div key={`brief-${currentRound}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              {/* Questions FIRST — above the brief */}
               <FollowUpQuestions
                 questions={latestRound.questions}
                 onSubmit={handleAnswersSubmit}
                 isLoading={isLoading}
                 round={currentRound}
               />
-              {/* Brief below */}
-              <IdeaBrief brief={latestRound.brief} round={currentRound} conceptImage={conceptImage} />
+              <IdeaBrief
+                brief={latestRound.brief}
+                round={currentRound}
+                conceptImage={conceptImage}
+                unlocked={unlocked}
+                onUnlock={handleUnlock}
+              />
             </motion.div>
           )}
 
@@ -252,6 +279,8 @@ const SimulatorShell = () => {
                 conceptImage={conceptImage}
                 logoImage={logoImage}
                 rounds={rounds}
+                unlocked={unlocked}
+                unlockEmail={unlockEmail}
               />
             </motion.div>
           )}

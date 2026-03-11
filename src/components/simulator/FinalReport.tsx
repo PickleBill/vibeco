@@ -16,7 +16,6 @@ import {
   Lock,
 } from "lucide-react";
 import { toast } from "sonner";
-import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +34,8 @@ interface Props {
   conceptImage?: string | null;
   logoImage?: string | null;
   rounds: RoundState[];
+  unlocked?: boolean;
+  unlockEmail?: string;
 }
 
 const sectionMeta = [
@@ -47,7 +48,6 @@ const sectionMeta = [
   { key: "customer_perspective", label: "Customer Perspective", icon: MessageSquare },
 ] as const;
 
-// Simple hash for deterministic scores
 const hashStr = (s: string) => {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
@@ -101,13 +101,172 @@ const TeaserScores = ({ brief }: { brief: BriefData }) => {
   );
 };
 
-const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds }: Props) => {
-  const [email, setEmail] = useState("");
-  const [showReport, setShowReport] = useState(false);
+/* ─── Structured PDF Export ─── */
+const generateStructuredPDF = (
+  brief: BriefData,
+  idea: string,
+  rounds: RoundState[],
+  scores: { label: string; value: number }[]
+) => {
+  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pw = pdf.internal.pageSize.getWidth();
+  const ph = pdf.internal.pageSize.getHeight();
+  const margin = 20;
+  const contentW = pw - margin * 2;
+  let y = 0;
+
+  const addHeader = () => {
+    pdf.setFillColor(17, 17, 17);
+    pdf.rect(0, 0, pw, ph, "F");
+    pdf.setFontSize(8);
+    pdf.setTextColor(120, 120, 200);
+    pdf.text("VibeCo AI Report", margin, 12);
+    const pageNum = `Page ${pdf.getNumberOfPages()}`;
+    pdf.text(pageNum, pw - margin - pdf.getTextWidth(pageNum), 12);
+    pdf.setDrawColor(50, 50, 60);
+    pdf.line(margin, 15, pw - margin, 15);
+  };
+
+  const ensureSpace = (need: number) => {
+    if (y + need > ph - 15) {
+      pdf.addPage();
+      addHeader();
+      y = 25;
+    }
+  };
+
+  const writeWrapped = (text: string, x: number, maxW: number, size: number, color: [number, number, number]) => {
+    pdf.setFontSize(size);
+    pdf.setTextColor(...color);
+    const lines = pdf.splitTextToSize(text, maxW);
+    lines.forEach((line: string) => {
+      ensureSpace(size * 0.5);
+      pdf.text(line, x, y);
+      y += size * 0.45;
+    });
+    y += 2;
+  };
+
+  // Page 1: Cover
+  addHeader();
+  y = 50;
+  pdf.setFontSize(28);
+  pdf.setTextColor(230, 230, 240);
+  const titleLines = pdf.splitTextToSize(idea, contentW);
+  titleLines.forEach((line: string) => {
+    pdf.text(line, margin, y);
+    y += 12;
+  });
+  y += 10;
+  pdf.setFontSize(10);
+  pdf.setTextColor(120, 120, 140);
+  pdf.text(`Generated ${new Date().toLocaleDateString()} · ${rounds.length} rounds of analysis`, margin, y);
+  y += 20;
+
+  // Scores
+  scores.forEach((s) => {
+    pdf.setFontSize(10);
+    pdf.setTextColor(180, 180, 200);
+    pdf.text(`${s.label}:`, margin, y);
+    // Score bar
+    pdf.setFillColor(40, 40, 50);
+    pdf.roundedRect(margin + 25, y - 3.5, 60, 5, 2, 2, "F");
+    pdf.setFillColor(120, 120, 200);
+    pdf.roundedRect(margin + 25, y - 3.5, 60 * (s.value / 100), 5, 2, 2, "F");
+    pdf.setTextColor(200, 200, 220);
+    pdf.text(`${s.value}`, margin + 90, y);
+    y += 9;
+  });
+
+  // Page 2+: Sections
+  pdf.addPage();
+  addHeader();
+  y = 25;
+
+  sectionMeta.forEach((section) => {
+    ensureSpace(20);
+    pdf.setFontSize(12);
+    pdf.setTextColor(120, 120, 200);
+    pdf.text(section.label.toUpperCase(), margin, y);
+    y += 7;
+    pdf.setDrawColor(60, 60, 80);
+    pdf.line(margin, y - 2, margin + contentW, y - 2);
+    y += 2;
+
+    const val = brief[section.key as keyof BriefData];
+    if (section.key === "core_features" && Array.isArray(val)) {
+      (val as BriefData["core_features"]).forEach((feat, fi) => {
+        ensureSpace(12);
+        // Feature strength bar
+        const strength = 60 + (hashStr(feat.name + fi) % 35);
+        pdf.setFontSize(10);
+        pdf.setTextColor(210, 210, 225);
+        pdf.text(`${fi + 1}. ${feat.name}`, margin + 2, y);
+        y += 5;
+        writeWrapped(feat.description, margin + 6, contentW - 6, 9, [160, 160, 175]);
+        // Strength bar
+        pdf.setFillColor(40, 40, 50);
+        pdf.roundedRect(margin + 6, y - 1, 50, 3, 1, 1, "F");
+        pdf.setFillColor(100, 100, 180);
+        pdf.roundedRect(margin + 6, y - 1, 50 * (strength / 100), 3, 1, 1, "F");
+        pdf.setFontSize(7);
+        pdf.setTextColor(130, 130, 150);
+        pdf.text(`${strength}%`, margin + 60, y + 1.5);
+        y += 7;
+      });
+    } else {
+      writeWrapped(val as string, margin + 2, contentW - 2, 9.5, [200, 200, 215]);
+    }
+    y += 5;
+  });
+
+  // Round-by-round summary
+  if (rounds.length > 1) {
+    pdf.addPage();
+    addHeader();
+    y = 25;
+    pdf.setFontSize(14);
+    pdf.setTextColor(120, 120, 200);
+    pdf.text("REFINEMENT JOURNEY", margin, y);
+    y += 10;
+
+    rounds.forEach((r, ri) => {
+      ensureSpace(15);
+      pdf.setFontSize(11);
+      pdf.setTextColor(200, 200, 220);
+      pdf.text(`Round ${ri + 1}`, margin, y);
+      y += 6;
+      if (r.answers) {
+        r.questions.forEach((q, qi) => {
+          const a = r.answers![qi];
+          if (a) {
+            writeWrapped(`Q: ${q.question}`, margin + 4, contentW - 4, 8.5, [150, 150, 165]);
+            writeWrapped(`A: ${a.selected.join(", ")}${a.freeText ? ` — ${a.freeText}` : ""}`, margin + 4, contentW - 4, 8.5, [180, 180, 200]);
+          }
+        });
+      }
+      y += 4;
+    });
+  }
+
+  const fileName = `VibeCo-Report-${idea.slice(0, 30).replace(/[^a-zA-Z0-9]/g, "-")}.pdf`;
+  pdf.save(fileName);
+};
+
+const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, unlocked, unlockEmail }: Props) => {
+  const [email, setEmail] = useState(unlockEmail || "");
+  const [showReport, setShowReport] = useState(!!unlocked);
   const [isExporting, setIsExporting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  const scores = [
+    { label: "Market", value: 60 + (hashStr(brief.problem) % 30) },
+    { label: "Product", value: 55 + (hashStr(JSON.stringify(brief.core_features)) % 35) },
+    { label: "Revenue", value: 60 + (hashStr(brief.revenue_model) % 30) },
+    { label: "Timing", value: 50 + (hashStr(brief.industry_trends) % 35) },
+  ];
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,7 +289,6 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds }
       toast.success("You're in! Here's your full report.");
     } catch (err) {
       console.error("Simulator capture error:", err);
-      // Still show report even if save fails
       setShowReport(true);
       toast.success("Here's your full report.");
     } finally {
@@ -138,40 +296,10 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds }
     }
   };
 
-  const handleDownloadPDF = async () => {
-    if (!reportRef.current) return;
+  const handleDownloadPDF = () => {
     setIsExporting(true);
-
     try {
-      const canvas = await html2canvas(reportRef.current, {
-        backgroundColor: "#0a0a0f",
-        scale: 2,
-        useCORS: true,
-        logging: false,
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const scaledWidth = imgWidth * ratio;
-      const scaledHeight = imgHeight * ratio;
-
-      const pageContentHeight = pdfHeight - 20;
-      const totalScaledPages = Math.ceil(scaledHeight / pageContentHeight);
-
-      for (let page = 0; page < totalScaledPages; page++) {
-        if (page > 0) pdf.addPage();
-        const yOffset = -(page * pageContentHeight) + 10;
-        pdf.addImage(imgData, "PNG", (pdfWidth - scaledWidth) / 2, yOffset, scaledWidth, scaledHeight);
-      }
-
-      const fileName = `VibeCo-Report-${idea.slice(0, 30).replace(/[^a-zA-Z0-9]/g, "-")}.pdf`;
-      pdf.save(fileName);
+      generateStructuredPDF(brief, idea, rounds, scores);
       toast.success("PDF downloaded!");
     } catch (err) {
       console.error("PDF export error:", err);
@@ -206,7 +334,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds }
           transition={{ delay: 0.2 }}
           className="max-w-lg mx-auto"
         >
-          {/* Visual teaser — blurred preview strip */}
+          {/* Visual teaser */}
           <div className="mb-6 rounded-lg overflow-hidden border border-primary/20 relative"
             style={{ boxShadow: "0 0 30px hsl(var(--primary) / 0.1)" }}
           >
@@ -219,10 +347,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds }
               />
             )}
             <div className={`${conceptImage ? "" : "pt-4"} px-5 pb-4 bg-card/80 backdrop-blur-sm`}>
-              {/* Viability scores teaser */}
               <TeaserScores brief={brief} />
-
-              {/* Blurred section previews */}
               <div className="mt-3 space-y-2 relative">
                 {sectionMeta.slice(0, 3).map((section) => {
                   const Icon = section.icon;
@@ -238,12 +363,9 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds }
                     </div>
                   );
                 })}
-                {/* Fade-out overlay */}
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-card/80 pointer-events-none" />
               </div>
             </div>
-
-            {/* Lock overlay */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/80 backdrop-blur-sm border border-primary/30">
                 <Lock size={12} className="text-primary" />

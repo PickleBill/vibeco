@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   AlertTriangle,
@@ -10,6 +11,8 @@ import {
   Target,
   Zap,
   ImageIcon,
+  Mail,
+  Sparkles,
 } from "lucide-react";
 import type { BriefData } from "./SimulatorShell";
 
@@ -17,6 +20,8 @@ interface Props {
   brief: BriefData;
   round: number;
   conceptImage?: string | null;
+  unlocked?: boolean;
+  onUnlock?: (email: string) => void;
 }
 
 const sections = [
@@ -29,7 +34,6 @@ const sections = [
   { key: "customer_perspective", label: "What Customers Would Say", icon: MessageSquare },
 ] as const;
 
-// Deterministic hash from string
 const hashStr = (s: string) => {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
@@ -101,7 +105,73 @@ const BriefScoreVisual = ({ brief }: { brief: BriefData }) => {
   );
 };
 
-const IdeaBrief = ({ brief, round, conceptImage }: Props) => (
+/* Progressive email unlock banner */
+const EmailUnlockBanner = ({
+  round,
+  onUnlock,
+}: {
+  round: number;
+  onUnlock: (email: string) => void;
+}) => {
+  const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.includes("@")) return;
+    setSubmitting(true);
+    onUnlock(email);
+  };
+
+  // Round 1: subtle link-style. Round 2+: more prominent card.
+  const isProminent = round >= 2;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.6 }}
+      className={`mt-8 rounded-lg border transition-all ${
+        isProminent
+          ? "p-5 border-primary/30 bg-primary/5"
+          : "p-4 border-border/30 bg-card/30"
+      }`}
+      style={isProminent ? { boxShadow: "0 0 24px hsl(var(--primary) / 0.1)" } : {}}
+    >
+      <div className="flex items-center gap-2 mb-2">
+        {isProminent ? (
+          <Sparkles size={14} className="text-primary" />
+        ) : (
+          <Mail size={12} className="text-muted-foreground" />
+        )}
+        <span className={`font-mono text-xs ${isProminent ? "text-primary font-bold" : "text-muted-foreground"}`}>
+          {isProminent
+            ? "Save your progress & unlock the full report"
+            : "Want to save this analysis?"}
+        </span>
+      </div>
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <input
+          type="email"
+          placeholder="your@email.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="flex-1 px-3 py-2 rounded-sm bg-background/50 border border-border/50 font-mono text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50"
+        />
+        <button
+          type="submit"
+          disabled={submitting}
+          className="flex items-center gap-1.5 bg-primary text-primary-foreground font-mono text-xs px-4 py-2 rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+        >
+          <Mail size={12} />
+          {isProminent ? "Unlock" : "Save"}
+        </button>
+      </form>
+    </motion.div>
+  );
+};
+
+const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock }: Props) => (
   <div className="mb-12">
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -124,7 +194,6 @@ const IdeaBrief = ({ brief, round, conceptImage }: Props) => (
       </p>
     </motion.div>
 
-    {/* Concept image */}
     {conceptImage && (
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -147,7 +216,6 @@ const IdeaBrief = ({ brief, round, conceptImage }: Props) => (
       </motion.div>
     )}
 
-    {/* Score visuals */}
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -216,6 +284,11 @@ const IdeaBrief = ({ brief, round, conceptImage }: Props) => (
         );
       })}
     </div>
+
+    {/* Progressive email unlock banner */}
+    {!unlocked && onUnlock && (
+      <EmailUnlockBanner round={round} onUnlock={onUnlock} />
+    )}
   </div>
 );
 
