@@ -38,7 +38,7 @@ const Fit = () => (
               {good.map((item) => (
                 <li key={item} className="flex items-start gap-3">
                   <Check size={14} className="text-primary mt-0.5 shrink-0" />
-                  <span className="font-mono text-xs text-foreground/70">{item}</span>
+                  <span className="font-mono text-sm text-foreground/70">{item}</span>
                 </li>
               ))}
             </ul>
