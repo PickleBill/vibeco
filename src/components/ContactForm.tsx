@@ -1,23 +1,23 @@
 import { useState } from "react";
 import FadeIn from "./FadeIn";
 import { toast } from "sonner";
-import { Info } from "lucide-react";
+import { Info, Upload } from "lucide-react";
 
 const structures = [
   {
     value: "Revenue Share",
     label: "Revenue Share",
-    desc: "We build it, you sell it. We take a percentage of revenue as the product grows. Zero upfront cost, fully aligned incentives.",
+    desc: "We build it, you sell it. We take a percentage of first-year ARR as the product grows. Zero upfront cost.",
   },
   {
     value: "Advisory Equity",
     label: "Advisory Equity",
-    desc: "We contribute build hours in exchange for a small equity stake. Best for early-stage founders with strong conviction and traction potential.",
+    desc: "We contribute build hours in exchange for 0.5–2% advisory equity. Best for early-stage founders with strong conviction.",
   },
   {
     value: "Hybrid",
     label: "Hybrid",
-    desc: "A reduced build fee plus a smaller equity or revenue share. Balances skin-in-the-game with sustainable engagement.",
+    desc: "A reduced build fee ($0–$3k) plus a smaller equity or revenue share. Balances risk with sustainable engagement.",
   },
   {
     value: "Paid MVP Build",
@@ -31,18 +31,27 @@ const ContactForm = () => {
     name: "",
     email: "",
     idea: "",
+    whyNow: "",
+    distribution: "",
     structure: "Revenue Share",
   });
   const [activeStructure, setActiveStructure] = useState(0);
+  const [fileName, setFileName] = useState<string | null>(null);
 
   const update = (field: string, value: string) =>
     setForm((f) => ({ ...f, [field]: value }));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Submitted. We'll review and follow up if there's a fit.");
-    setForm({ name: "", email: "", idea: "", structure: "Revenue Share" });
+    toast.success("Submitted. We review selectively — top fits hear back within 3 business days.");
+    setForm({ name: "", email: "", idea: "", whyNow: "", distribution: "", structure: "Revenue Share" });
     setActiveStructure(0);
+    setFileName(null);
+  };
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    setFileName(file ? file.name : null);
   };
 
   const inputClass =
@@ -57,7 +66,7 @@ const ContactForm = () => {
               Pitch your idea.
             </h2>
             <p className="font-mono text-sm text-muted-foreground leading-relaxed mb-10">
-              Keep it short. We'll follow up if there's a fit.
+              We review selectively. Top fits respond within 3 business days.
             </p>
           </FadeIn>
 
@@ -83,20 +92,41 @@ const ContactForm = () => {
                   aria-label="Email"
                 />
               </div>
+
               <textarea
-                placeholder="What's the idea? What problem does it solve and why now?"
+                placeholder="Company or idea — what are you building and for whom?"
                 required
-                rows={4}
+                rows={3}
                 value={form.idea}
                 onChange={(e) => update("idea", e.target.value)}
                 className={inputClass + " resize-none"}
-                aria-label="Your idea"
+                aria-label="Company or idea"
+              />
+
+              <textarea
+                placeholder="Why now? What makes this the right moment?"
+                required
+                rows={2}
+                value={form.whyNow}
+                onChange={(e) => update("whyNow", e.target.value)}
+                className={inputClass + " resize-none"}
+                aria-label="Why now"
+              />
+
+              <input
+                type="text"
+                placeholder="Distribution edge — how will early users find this?"
+                required
+                value={form.distribution}
+                onChange={(e) => update("distribution", e.target.value)}
+                className={inputClass}
+                aria-label="Distribution edge"
               />
 
               {/* Structure selector */}
               <div>
-                <label className="font-mono text-sm text-muted-foreground mb-3 block flex items-center gap-1.5">
-                  How should we work together?
+                <label className="font-mono text-sm text-muted-foreground mb-3 flex items-center gap-1.5">
+                  Preferred partnership structure
                   <Info size={14} className="text-primary/50" />
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -118,7 +148,6 @@ const ContactForm = () => {
                     </button>
                   ))}
                 </div>
-                {/* Description reveal */}
                 <div className="mt-3 p-3 bg-secondary/50 border border-border rounded-sm">
                   <p className="font-mono text-xs text-foreground/60 leading-relaxed">
                     {structures[activeStructure].desc}
@@ -126,11 +155,29 @@ const ContactForm = () => {
                 </div>
               </div>
 
+              {/* Optional file upload */}
+              <div>
+                <label
+                  htmlFor="file-upload"
+                  className="flex items-center gap-2 font-mono text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                >
+                  <Upload size={14} />
+                  {fileName || "Attach a one-pager (optional)"}
+                </label>
+                <input
+                  id="file-upload"
+                  type="file"
+                  accept=".pdf,.doc,.docx,.txt"
+                  onChange={handleFile}
+                  className="hidden"
+                />
+              </div>
+
               <button
                 type="submit"
                 className="w-full font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 hover:glow-accent transition-all duration-300"
               >
-                Send It →
+                Submit Application →
               </button>
             </form>
           </FadeIn>

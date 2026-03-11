@@ -1,38 +1,71 @@
+<!-- This site must be exported to static HTML via CI for SEO prerendering. -->
 import { motion } from "framer-motion";
 import FadeIn from "./FadeIn";
 
 const HeroMockup = () => (
   <div className="relative w-full max-w-lg mx-auto lg:mx-0">
-    <div className="bg-card border border-border rounded-lg shadow-deep overflow-hidden">
+    {/* Animated glow behind mockup */}
+    <motion.div
+      className="absolute -inset-8 rounded-full blur-3xl pointer-events-none"
+      style={{
+        background: "radial-gradient(circle, hsl(243 76% 58% / 0.15), transparent 70%)",
+      }}
+      animate={{ scale: [1, 1.05, 1], opacity: [0.6, 1, 0.6] }}
+      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+    />
+
+    {/* Browser frame */}
+    <div className="relative bg-card border border-border rounded-lg shadow-deep overflow-hidden">
       <div className="flex items-center gap-1.5 px-4 py-3 border-b border-border">
-        <div className="w-2.5 h-2.5 rounded-full bg-muted-foreground/30" />
-        <div className="w-2.5 h-2.5 rounded-full bg-muted-foreground/30" />
-        <div className="w-2.5 h-2.5 rounded-full bg-muted-foreground/30" />
-        <div className="ml-4 h-5 w-48 bg-secondary rounded-sm" />
+        <div className="w-2.5 h-2.5 rounded-full bg-destructive/60" />
+        <div className="w-2.5 h-2.5 rounded-full bg-accent/40" />
+        <div className="w-2.5 h-2.5 rounded-full bg-primary/40" />
+        <div className="ml-4 h-5 w-48 bg-secondary rounded-sm flex items-center px-2">
+          <span className="font-mono text-[9px] text-muted-foreground">app.yourstartup.io/dashboard</span>
+        </div>
       </div>
       <div className="p-6 space-y-4">
-        <div className="h-3 w-3/4 bg-secondary rounded-sm" />
-        <div className="h-3 w-1/2 bg-secondary rounded-sm" />
-        <div className="grid grid-cols-3 gap-3 mt-6">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-secondary rounded-sm p-4 space-y-2">
-              <div className="h-2 w-full bg-muted-foreground/20 rounded-sm" />
-              <div className="h-6 w-2/3 bg-primary/20 rounded-sm" />
+        <div className="flex items-center justify-between">
+          <div className="h-3 w-28 bg-secondary rounded-sm" />
+          <div className="h-6 w-16 bg-primary/30 rounded-sm" />
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: "MRR", value: "$4.2k" },
+            { label: "Users", value: "312" },
+            { label: "NPS", value: "72" },
+          ].map((m) => (
+            <div key={m.label} className="bg-secondary rounded-sm p-3 space-y-1">
+              <p className="font-mono text-[9px] text-muted-foreground uppercase">{m.label}</p>
+              <p className="font-display text-sm font-bold text-foreground">{m.value}</p>
             </div>
           ))}
         </div>
-        <div className="flex gap-3 mt-4">
+        <div className="space-y-2">
+          <div className="h-2 w-full bg-secondary rounded-sm" />
+          <div className="h-2 w-4/5 bg-secondary rounded-sm" />
+        </div>
+        <div className="flex gap-3">
           <div className="h-8 flex-1 bg-primary/15 rounded-sm" />
           <div className="h-8 w-20 bg-primary rounded-sm" />
         </div>
       </div>
     </div>
-    <div className="absolute -bottom-6 -left-6 bg-card border border-border rounded-lg p-4 shadow-deep w-48">
-      <div className="h-2 w-16 bg-primary/30 rounded-sm mb-3" />
-      <div className="h-2 w-full bg-secondary rounded-sm mb-2" />
+
+    {/* Floating notification card */}
+    <motion.div
+      className="absolute -bottom-6 -left-6 bg-card border border-border rounded-lg p-4 shadow-deep w-52"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.8, duration: 0.5 }}
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+        <span className="font-mono text-[10px] text-primary">Live signal</span>
+      </div>
+      <div className="h-2 w-full bg-secondary rounded-sm mb-1.5" />
       <div className="h-2 w-3/4 bg-secondary rounded-sm" />
-    </div>
-    <div className="absolute -top-12 -right-12 w-40 h-40 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+    </motion.div>
   </div>
 );
 
@@ -59,14 +92,14 @@ const Hero = () => (
           </FadeIn>
           <FadeIn delay={0.2}>
             <p className="font-mono text-base text-foreground/80 leading-relaxed mb-4 max-w-lg">
-              We build sharp, testable AI products for founders who need real market
-              feedback fast — not six months from now.
+              We partner with high-agency founders to ship testable,
+              revenue-oriented MVPs fast. Selective partnerships. Skin in the
+              game.
             </p>
           </FadeIn>
           <FadeIn delay={0.25}>
             <p className="font-mono text-sm text-muted-foreground leading-relaxed mb-8 max-w-lg">
-              Selective partnerships. High-agency founders. MVPs built with speed,
-              taste, and commercial discipline.
+              Founder-operated&ensp;•&ensp;Product + GTM operator&ensp;•&ensp;Selective partnerships
             </p>
           </FadeIn>
           <FadeIn delay={0.3}>

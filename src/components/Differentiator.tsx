@@ -1,26 +1,27 @@
 import { useState } from "react";
 import FadeIn from "./FadeIn";
+import { Zap, Brain, TrendingUp, Target } from "lucide-react";
 
 const diffs = [
   {
-    title: "Faster than a traditional agency",
-    desc: "No bloated timelines or committee decisions. We ship MVPs in weeks.",
-    detail: "AI-native workflows compress months of development into focused 2-4 week sprints.",
+    icon: Zap,
+    title: "Faster than an agency",
+    desc: "No SOWs, no committee sign-offs. AI-native workflows compress months into focused 2–4 week sprints.",
   },
   {
-    title: "More thoughtful than a no-code freelancer",
-    desc: "Real architecture, real design, real product thinking — not drag-and-drop guesswork.",
-    detail: "Production-grade code, scalable infrastructure, and design systems that grow with you.",
+    icon: Brain,
+    title: "More product-driven than freelancers",
+    desc: "Real architecture, real design systems, real product thinking — not drag-and-drop guesswork.",
   },
   {
-    title: "More aligned than a fixed-fee shop",
-    desc: "We structure for shared outcomes. When you win, we win.",
-    detail: "Revenue share, advisory equity, and hybrid models that put real skin in the game.",
+    icon: TrendingUp,
+    title: "Aligned with upside",
+    desc: "Revenue share, advisory equity, and hybrid models. We structure for shared outcomes, not billable hours.",
   },
   {
-    title: "More commercially grounded than AI demo builders",
-    desc: "We build for markets, not for demos. Every feature earns its place.",
-    detail: "Every product ships with monetization hooks, analytics, and distribution infrastructure.",
+    icon: Target,
+    title: "GTM-aware from day one",
+    desc: "Every product ships with monetization hooks, analytics, and distribution infrastructure baked in.",
   },
 ];
 
@@ -56,22 +57,18 @@ const Differentiator = () => {
                   }}
                 />
 
+                <d.icon
+                  size={20}
+                  className={`mb-4 transition-colors duration-300 ${
+                    hoveredIndex === i ? "text-primary" : "text-muted-foreground"
+                  }`}
+                />
                 <h3 className="font-display text-lg font-bold text-foreground mb-2">
                   {d.title}
                 </h3>
                 <p className="font-mono text-sm text-muted-foreground leading-relaxed">
                   {d.desc}
                 </p>
-
-                <div
-                  className={`overflow-hidden transition-all duration-500 ${
-                    hoveredIndex === i ? "max-h-16 opacity-100 mt-3" : "max-h-0 opacity-0 mt-0"
-                  }`}
-                >
-                  <p className="font-mono text-xs text-primary/70 leading-relaxed border-t border-border pt-3">
-                    {d.detail}
-                  </p>
-                </div>
               </div>
             </FadeIn>
           ))}
