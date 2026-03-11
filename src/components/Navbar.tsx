@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const navLinks = [
   { label: "How It Works", href: "#model" },
-  { label: "Builds", href: "#builds" },
+  { label: "Builds", href: "#projects" },
   { label: "Contact", href: "#contact" },
 ];
 
