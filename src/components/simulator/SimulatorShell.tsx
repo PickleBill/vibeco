@@ -274,7 +274,7 @@ const SimulatorShell = () => {
                 {i < totalRounds - 1 && (
                   <div
                     className={`w-12 h-px transition-colors duration-500 ${
-                      i < rounds.length - 1 ? "bg-primary" : "bg-border"
+                      i < rounds.length - 1 || (phase === "final" && i < rounds.length) ? "bg-primary" : "bg-border"
                     }`}
                   />
                 )}
