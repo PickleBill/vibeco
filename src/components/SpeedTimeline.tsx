@@ -92,11 +92,11 @@ const SpeedTimeline = () => {
       let step = 0;
       const interval = setInterval(() => {
         step++;
-        const val = Math.min(step * 2, 100);
+        const val = Math.min(step, 100);
         setSliderValue(val);
         setActiveEra(Math.min(Math.floor(val / 25), 4));
         if (val >= 100) clearInterval(interval);
-      }, 40);
+      }, 80);
       return () => clearInterval(interval);
     }, 400);
     return () => clearTimeout(timer);
