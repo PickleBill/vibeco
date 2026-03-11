@@ -5,69 +5,76 @@ import { useNavigate } from "react-router-dom";
 
 const projects = [
   {
-    name: "Courtana Coach",
-    desc: "AI pickleball coaching platform with video analysis and drill builder.",
+    name: "NauticSim",
+    desc: "LNG carrier digital twin simulator for decarbonization, CII compliance, and voyage optimization.",
+    url: "https://naughtydata.lovable.app",
+    category: "Maritime / Energy",
+    thumbnail: "/builds/nauticsim.png",
+  },
+  {
+    name: "HeadsUp",
+    desc: "ML-powered edge cameras that prevent injuries and eliminate unplanned downtime in industrial facilities.",
+    url: "https://headsuptime.lovable.app",
+    category: "Industrial Safety",
+    thumbnail: "/builds/headsup.png",
+  },
+  {
+    name: "Courtana",
+    desc: "AI-powered async coaching platform — delivers your methodology to every student, every session.",
     url: "https://courtanacoach.lovable.app",
     category: "Sports Tech",
+    thumbnail: "/builds/courtana.png",
   },
   {
-    name: "NaughtyData",
-    desc: "Privacy-first data analytics dashboard with real-time monitoring.",
-    url: "https://naughtydata.lovable.app",
-    category: "Analytics",
-  },
-  {
-    name: "FactFudge",
-    desc: "AI-powered fact-checking game that tests media literacy.",
-    url: "https://factfudge.lovable.app",
-    category: "EdTech",
-  },
-  {
-    name: "Moore Mental",
-    desc: "Mental health resource platform with guided self-assessment tools.",
-    url: "https://mooremental.lovable.app",
-    category: "Health",
-  },
-  {
-    name: "HeadsUp Time",
-    desc: "Screen time awareness tool helping families set healthy digital habits.",
-    url: "https://headsuptime.lovable.app",
-    category: "Wellness",
-  },
-  {
-    name: "Unicorse",
-    desc: "Spatial design and room planning tool with 3D visualization.",
+    name: "RAUM",
+    desc: "Luxury real estate platform with home valuations, neighborhood intelligence, and premium marketing.",
     url: "https://unicorse.lovable.app",
-    category: "Design",
+    category: "Real Estate",
+    thumbnail: "/builds/raum.png",
+  },
+  {
+    name: "PicklePro Draft",
+    desc: "Talent scouting and brand growth platform for pickleball's rising stars and mentors.",
+    url: "https://audition.lovable.app",
+    category: "Sports / Creator",
+    thumbnail: "/builds/picklepro.png",
   },
   {
     name: "The Load",
-    desc: "Gamified household task app for couples — draft chores like fantasy sports.",
+    desc: "Gamified household task draft for couples — score brownie points and settle the score.",
     url: "https://theload.lovable.app",
     category: "Lifestyle",
+    thumbnail: "/builds/theload.png",
+  },
+  {
+    name: "FactFudge",
+    desc: "The Site About Nothing — AI serves real and fake facts on any topic. You guess which is which.",
+    url: "https://factfudge.lovable.app",
+    category: "Entertainment",
+    thumbnail: "/builds/factfudge.png",
   },
   {
     name: "Green Paws",
-    desc: "Premium lawn care platform with service booking and before/after showcases.",
+    desc: "Premium lawn care platform for Raleigh & Wake County with service booking and before/after showcases.",
     url: "https://greenpaws.lovable.app",
     category: "Local Services",
+    thumbnail: "/builds/greenpaws.png",
   },
   {
     name: "Raleigh Crafting",
-    desc: "Local crafting community hub with event booking and supply sourcing.",
+    desc: "Handmade resin art, creative workshops, pop-up markets, and hosted craft experiences.",
     url: "https://raleighcrafting.lovable.app",
     category: "Community",
+    thumbnail: "/builds/raleighcrafting.png",
   },
   {
-    name: "Audition",
-    desc: "Casting and audition management platform for talent and producers.",
-    url: "https://audition.lovable.app",
-    category: "Entertainment",
+    name: "Moore Life & Wellness",
+    desc: "Compassionate virtual therapy practice for teens and adults across North Carolina.",
+    url: "https://mooremental.lovable.app",
+    category: "Health & Wellness",
+    thumbnail: "/builds/moorelife.png",
   },
 ];
-
-const getThumbnailUrl = (url: string) =>
-  `https://image.thum.io/get/width/640/crop/400/noanimate/${url}`;
 
 const ProjectShowcase = () => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -126,7 +133,7 @@ const ProjectShowcase = () => {
                 {/* Thumbnail */}
                 <div className="relative aspect-[16/10] bg-muted overflow-hidden">
                   <img
-                    src={getThumbnailUrl(project.url)}
+                    src={project.thumbnail}
                     alt={`${project.name} screenshot`}
                     loading="lazy"
                     className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
