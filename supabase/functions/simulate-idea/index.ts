@@ -121,6 +121,7 @@ CRITICAL SPECIFICITY RULES — READ THE USER'S IDEA CAREFULLY:
 IMPORTANT: Set is_final to false. This is the first round — you MUST generate follow-up questions. Do NOT include lovable_prompt.
 
 For follow-up questions:
+- Generate exactly 2 strategic follow-up questions (not 3 or 4 — only 2).
 - Each question must reference the user's specific idea by name or concept.
 - Options must represent genuinely different strategic directions for THIS product.
 - Never ask generic startup questions. Every question should feel tailored to this exact business.`;
