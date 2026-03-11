@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Sparkles } from "lucide-react";
+import { Menu, X, Sparkles, User } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const navLinks = [
   { label: "How It Works", href: "#model" },
@@ -12,6 +13,7 @@ const navLinks = [
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -19,6 +21,16 @@ const Navbar = () => {
     const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleNavClick = (href: string) => {
@@ -29,6 +41,11 @@ const Navbar = () => {
       const el = document.querySelector(href);
       el?.scrollIntoView({ behavior: "smooth" });
     }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
   };
 
   return (
@@ -58,7 +75,7 @@ const Navbar = () => {
             </button>
           ))}
 
-          {/* Glowing Simulator pill */}
+          {/* Simulator pill */}
           <a
             href="/simulate"
             onClick={(e) => { e.preventDefault(); navigate("/simulate"); }}
@@ -73,6 +90,26 @@ const Navbar = () => {
             <Sparkles size={12} />
             Simulator
           </a>
+
+          {/* Auth */}
+          {user ? (
+            <button
+              onClick={handleSignOut}
+              className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+            >
+              <User size={12} />
+              Sign Out
+            </button>
+          ) : (
+            <a
+              href="/auth"
+              onClick={(e) => { e.preventDefault(); navigate("/auth"); }}
+              className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+            >
+              <User size={12} />
+              Sign In
+            </a>
+          )}
 
           <button
             onClick={() => handleNavClick("#contact")}
@@ -118,6 +155,23 @@ const Navbar = () => {
               <Sparkles size={13} />
               AI Idea Simulator
             </a>
+            {user ? (
+              <button
+                onClick={() => { handleSignOut(); setMobileOpen(false); }}
+                className="block py-3 font-mono text-sm text-muted-foreground hover:text-foreground w-full text-left"
+              >
+                Sign Out
+              </button>
+            ) : (
+              <a
+                href="/auth"
+                onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/auth"); }}
+                className="flex items-center gap-2 py-3 font-mono text-sm text-muted-foreground hover:text-foreground"
+              >
+                <User size={13} />
+                Sign In
+              </a>
+            )}
             <button
               onClick={() => handleNavClick("#contact")}
               className="block mt-2 font-mono text-sm bg-primary text-primary-foreground px-4 py-2 rounded-sm text-center w-full"

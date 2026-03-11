@@ -146,6 +146,13 @@ const Model = () => {
             ))}
           </div>
         </FadeIn>
+
+        {/* Builder ethos */}
+        <FadeIn delay={0.5}>
+          <p className="text-center font-mono text-xs text-muted-foreground mt-10 tracking-wide">
+            Skin in the game · Builder, not vendor · Biased toward shipping
+          </p>
+        </FadeIn>
       </div>
     </section>
   );

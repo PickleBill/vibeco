@@ -9,12 +9,15 @@ const FinalCta = () => {
     <section className="py-32 border-t border-border">
       <div className="max-w-7xl mx-auto px-6 lg:px-12 text-center">
         <FadeIn>
+          <p className="font-mono text-xs text-primary tracking-[0.3em] uppercase mb-4">
+            good vibes, instantly.
+          </p>
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-black text-foreground mb-6">
-            Ready to make it real?
+            Let's bring yours to life.
           </h2>
         </FadeIn>
         <FadeIn delay={0.1}>
-          <p className="font-mono text-base text-foreground/80 mb-10 max-w-md mx-auto">
+          <p className="font-mono text-base text-muted-foreground mb-10 max-w-md mx-auto">
             Your idea could be live before dinner. Not a wireframe — a real
             product your first customers can use tonight.
           </p>
