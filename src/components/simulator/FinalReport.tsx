@@ -114,10 +114,10 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds }
     if (!email.includes("@")) return;
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from("simulator_captures").insert({
+      const { error } = await (supabase.from as any)("simulator_captures").insert({
         email: email.trim(),
         idea: idea.trim(),
-        rounds: rounds.map((r) => ({
+        rounds: rounds.map((r: any) => ({
           brief: r.brief,
           questions: r.questions,
           answers: r.answers || null,
