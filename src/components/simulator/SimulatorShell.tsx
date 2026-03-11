@@ -173,15 +173,15 @@ const SimulatorShell = () => {
     setUnlockEmail(email);
     setUnlocked(true);
     try {
-      await (supabase.from as any)("simulator_captures").upsert({
+      await supabase.from("simulator_captures").upsert({
         id: sessionId,
         email: email.trim(),
         idea: idea.trim(),
-        rounds: rounds.map((r: any) => ({
+        rounds: rounds.map((r) => ({
           brief: r.brief,
           questions: r.questions,
           answers: r.answers || null,
-        })),
+        })) as unknown as import("@/integrations/supabase/types").Json,
         concept_image_url: conceptImage || null,
         logo_image_url: logoImage || null,
       }, { onConflict: "id" });
