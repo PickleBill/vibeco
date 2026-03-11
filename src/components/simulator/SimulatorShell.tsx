@@ -66,7 +66,7 @@ const SimulatorShell = () => {
       }
     };
     saveSession();
-  }, [rounds, unlockEmail]);
+  }, [rounds, unlockEmail, lovablePrompt]);
 
   const generateImages = async (ideaText: string) => {
     try {
