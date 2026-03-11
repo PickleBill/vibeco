@@ -18,8 +18,8 @@ const toolSchema = {
         brief: {
           type: "object",
           properties: {
-            problem: { type: "string", description: "The core problem or opportunity" },
-            target_customer: { type: "string", description: "Who this is for" },
+            problem: { type: "string", description: "The core problem or opportunity — be extremely specific to this exact idea, reference the actual product/service described" },
+            target_customer: { type: "string", description: "A vivid, named persona that maps directly to the idea. Include their name, daily reality, specific frustrations, and why THIS product would change their life. Reference the actual product." },
             core_features: {
               type: "array",
               items: {
@@ -31,12 +31,12 @@ const toolSchema = {
                 required: ["name", "description"],
                 additionalProperties: false,
               },
-              description: "3-5 core features",
+              description: "3-5 core features uniquely tailored to this specific idea",
             },
-            revenue_model: { type: "string", description: "How this makes money" },
-            industry_trends: { type: "string", description: "Relevant market trends and competitors" },
-            investor_perspective: { type: "string", description: "What investors would ask/think" },
-            customer_perspective: { type: "string", description: "What target customers would say" },
+            revenue_model: { type: "string", description: "Specific pricing and monetization strategy for THIS product" },
+            industry_trends: { type: "string", description: "Name real, specific competitors and market dynamics relevant to this exact space" },
+            investor_perspective: { type: "string", description: "What a smart VC would push back on about THIS specific idea" },
+            customer_perspective: { type: "string", description: "Direct quotes from the target persona about THIS product — what they'd love and what would make them hesitate" },
           },
           required: [
             "problem",
@@ -72,7 +72,7 @@ const toolSchema = {
             required: ["question", "options", "allow_multiple"],
             additionalProperties: false,
           },
-          description: "3-4 strategic follow-up questions",
+          description: "3-4 strategic follow-up questions deeply specific to this idea",
         },
         is_final: {
           type: "boolean",
@@ -99,25 +99,32 @@ serve(async (req) => {
     let userContent: string;
 
     if (type === "initial") {
-      systemPrompt = `You are VibeCo's AI Idea Simulator — a sharp, edgy startup advisor who analyzes raw ideas and turns them into structured business briefs. Be direct, insightful, and a little provocative. Don't sugarcoat. Find the real opportunity in every idea. Think like a founder who's shipped 10 products and an investor who's seen 1000 pitches. Use punchy language.
+      systemPrompt = `You are VibeCo's AI Idea Simulator — a sharp, edgy startup advisor who analyzes raw ideas and turns them into structured business briefs. Be direct, insightful, and a little provocative. Don't sugarcoat. Find the real opportunity in every idea. Think like a founder who's shipped 10 products and an investor who's seen 1000 pitches.
 
-When generating the brief:
-- Problem: Cut to the real pain point. Be specific.
-- Target Customer: Name a real persona, not a demographic blob.
-- Core Features: 3-5 features that matter on day one. No bloat.
-- Revenue Model: Be specific about pricing and monetization.
-- Industry Trends: Name real competitors and market dynamics.
-- Investor Perspective: What a smart VC would push back on.
-- Customer Perspective: What early users would love and hate.
+CRITICAL RULES FOR SPECIFICITY:
+- Every single field MUST reference the actual idea the user described. Never use generic startup language.
+- Target Customer: Create a vivid, named persona (e.g. "Meet 'Deadline Dave', a 34-year-old project manager at a 50-person agency who..."). The persona must be someone who would ACTUALLY use this specific product.
+- Problem: Reference the actual pain point that this specific product solves. Use concrete scenarios.
+- Core Features: Each feature must be uniquely designed for this product. Name them creatively with the product's domain language.
+- Revenue Model: Give specific dollar amounts and pricing tiers relevant to this market.
+- Industry Trends: Name REAL companies, REAL market data, REAL trends in this exact space.
+- Investor Perspective: Ask questions a VC would actually ask about THIS business, not generic startup questions.
+- Customer Perspective: Write as if you're quoting the actual target persona talking about THIS product.
 
-For follow-up questions: Ask 3-4 strategic questions that would meaningfully shape the product direction. Make options specific and thought-provoking, not generic. Each question should have 3-4 options.`;
-      userContent = `Analyze this idea and generate a structured brief with follow-up questions:\n\n"${idea}"`;
+For follow-up questions:
+- Ask 3-4 questions that are DEEPLY SPECIFIC to this exact idea.
+- Options should reference the actual product, its market, and its users by name.
+- Each question should have 3-4 options that represent genuinely different strategic directions for THIS product.
+- Questions should feel like a strategic conversation about THIS business, not a generic startup quiz.`;
+      userContent = `Analyze this idea and generate a hyper-specific structured brief with follow-up questions that reference the actual idea throughout:\n\n"${idea}"`;
     } else {
       const isLastRound = round >= 3;
-      systemPrompt = `You are VibeCo's AI Idea Simulator continuing a strategic refinement session. The user has answered your previous questions. Use their answers to dramatically deepen and sharpen the analysis. Be increasingly specific and strategic with each round.
+      systemPrompt = `You are VibeCo's AI Idea Simulator continuing a strategic refinement session. The user has answered your previous questions about their SPECIFIC idea.
 
-${isLastRound ? "This is the FINAL round. Set is_final to true. Generate the most comprehensive, actionable brief possible. The follow_up_questions array should be empty. Make every section rich and specific — this is the user's takeaway document. Add concrete next steps in the investor_perspective section." : `This is refinement round ${round} of 3. Generate an updated, deeper brief incorporating the user's choices. Ask 3-4 NEW follow-up questions that dig even deeper based on their direction. Questions should be more specific and strategic than the previous round.`}`;
-      userContent = `Here's the conversation so far:\n\n${history}\n\nGenerate an ${isLastRound ? "final comprehensive" : "updated"} brief based on everything discussed.`;
+CRITICAL: Every response must be deeply specific to the original idea. Reference the actual product, actual personas, actual market. Never fall back to generic startup advice.
+
+${isLastRound ? `This is the FINAL round. Set is_final to true. Generate the most comprehensive, actionable brief possible — every section must be deeply tailored to this exact idea with the refinements from all rounds incorporated. The follow_up_questions array should be empty. Include concrete next steps, specific metrics to track, and a 90-day action plan in the investor_perspective section.` : `This is refinement round ${round} of 3. Generate an updated, deeper brief incorporating the user's specific choices. Every section should evolve based on the direction they chose. Ask 3-4 NEW follow-up questions that dig even deeper — reference the specific choices they made and explore the implications for THIS product.`}`;
+      userContent = `Here's the full conversation about this specific idea:\n\n${history}\n\nGenerate an ${isLastRound ? "final comprehensive" : "updated"} brief that deeply incorporates all their specific choices. Every section must reference the actual idea and choices made.`;
     }
 
     const response = await fetch(
