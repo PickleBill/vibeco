@@ -111,12 +111,6 @@ const Navbar = () => {
             </a>
           )}
 
-          <button
-            onClick={() => handleNavClick("#contact")}
-            className="font-mono text-xs bg-primary text-primary-foreground px-5 py-2 rounded-sm hover:opacity-90 transition-opacity"
-          >
-            Pitch Your Idea
-          </button>
         </div>
 
         {/* Mobile toggle */}
