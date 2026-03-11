@@ -31,7 +31,7 @@ const ContactForm = () => {
   };
 
   const inputClass =
-    "w-full bg-secondary border border-border rounded-sm px-4 py-3 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors";
+    "w-full bg-secondary border border-border rounded-sm px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors";
 
   return (
     <section id="contact" className="py-32 border-t border-border">
