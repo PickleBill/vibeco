@@ -19,7 +19,14 @@ import { toast } from "sonner";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import { useNavigate } from "react-router-dom";
-import type { BriefData } from "./SimulatorShell";
+import { supabase } from "@/integrations/supabase/client";
+import type { BriefData, QuestionData } from "./SimulatorShell";
+
+interface RoundState {
+  brief: BriefData;
+  questions: QuestionData[];
+  answers?: Record<number, { selected: string[]; freeText?: string }>;
+}
 
 interface Props {
   brief: BriefData;
@@ -27,6 +34,7 @@ interface Props {
   onRestart: () => void;
   conceptImage?: string | null;
   logoImage?: string | null;
+  rounds: RoundState[];
 }
 
 const sectionMeta = [
@@ -93,18 +101,41 @@ const TeaserScores = ({ brief }: { brief: BriefData }) => {
   );
 };
 
-const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage }: Props) => {
+const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds }: Props) => {
   const [email, setEmail] = useState("");
   const [showReport, setShowReport] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.includes("@")) return;
-    setShowReport(true);
-    toast.success("You're in! Here's your full report.");
+    setIsSubmitting(true);
+    try {
+      const { error } = await (supabase.from as any)("simulator_captures").insert({
+        email: email.trim(),
+        idea: idea.trim(),
+        rounds: rounds.map((r: any) => ({
+          brief: r.brief,
+          questions: r.questions,
+          answers: r.answers || null,
+        })),
+        concept_image_url: conceptImage || null,
+        logo_image_url: logoImage || null,
+      });
+      if (error) throw error;
+      setShowReport(true);
+      toast.success("You're in! Here's your full report.");
+    } catch (err) {
+      console.error("Simulator capture error:", err);
+      // Still show report even if save fails
+      setShowReport(true);
+      toast.success("Here's your full report.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleDownloadPDF = async () => {
@@ -245,10 +276,11 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage }: Props)
               />
               <button
                 type="submit"
-                className="flex items-center gap-2 bg-primary text-primary-foreground font-mono text-sm px-5 py-3 rounded-sm hover:opacity-90 transition-opacity"
+                disabled={isSubmitting}
+                className="flex items-center gap-2 bg-primary text-primary-foreground font-mono text-sm px-5 py-3 rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 <Mail size={14} />
-                Unlock
+                {isSubmitting ? "..." : "Unlock"}
               </button>
             </div>
           </form>

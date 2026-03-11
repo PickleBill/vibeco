@@ -2,6 +2,7 @@ import { useState } from "react";
 import FadeIn from "./FadeIn";
 import { toast } from "sonner";
 import { Info } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const structures = [
   {
@@ -38,11 +39,28 @@ const ContactForm = () => {
   const update = (field: string, value: string) =>
     setForm((f) => ({ ...f, [field]: value }));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Submitted. Most ideas get a response within 24 hours.");
-    setForm({ name: "", email: "", idea: "", structure: "Revenue Share" });
-    setActiveStructure(0);
+    setIsSubmitting(true);
+    try {
+      const { error } = await (supabase.from as any)("contact_submissions").insert({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        idea: form.idea.trim(),
+        structure: form.structure,
+      });
+      if (error) throw error;
+      toast.success("Submitted. Most ideas get a response within 24 hours.");
+      setForm({ name: "", email: "", idea: "", structure: "Revenue Share" });
+      setActiveStructure(0);
+    } catch (err) {
+      console.error("Contact form error:", err);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const inputClass =
@@ -128,9 +146,10 @@ const ContactForm = () => {
 
               <button
                 type="submit"
-                className="w-full font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 hover:glow-accent transition-all duration-300"
+                disabled={isSubmitting}
+                className="w-full font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 hover:glow-accent transition-all duration-300 disabled:opacity-50"
               >
-                Submit →
+                {isSubmitting ? "Sending..." : "Submit →"}
               </button>
             </form>
           </FadeIn>
