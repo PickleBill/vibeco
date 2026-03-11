@@ -13,7 +13,7 @@ const Credibility = () => (
     <div className="max-w-7xl mx-auto px-6 lg:px-12">
       <div className="max-w-3xl">
         <FadeIn>
-          <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest mb-4">
+          <p className="font-mono text-sm text-muted-foreground uppercase tracking-widest mb-4">
             Operating style
           </p>
           <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-8">
