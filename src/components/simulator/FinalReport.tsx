@@ -12,10 +12,12 @@ import {
   RotateCcw,
   Download,
   ImageIcon,
+  ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
+import { useNavigate } from "react-router-dom";
 import type { BriefData } from "./SimulatorShell";
 
 interface Props {
@@ -41,6 +43,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage }: Props)
   const [showReport, setShowReport] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,8 +79,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage }: Props)
       const scaledWidth = imgWidth * ratio;
       const scaledHeight = imgHeight * ratio;
 
-      // If content is taller than one page, split across pages
-      const pageContentHeight = pdfHeight - 20; // 10mm margins
+      const pageContentHeight = pdfHeight - 20;
       const totalScaledPages = Math.ceil(scaledHeight / pageContentHeight);
 
       for (let page = 0; page < totalScaledPages; page++) {
@@ -122,7 +124,6 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage }: Props)
           transition={{ delay: 0.2 }}
           className="max-w-md mx-auto"
         >
-          {/* Concept image teaser */}
           {conceptImage && (
             <div className="mb-6 rounded-lg overflow-hidden border border-primary/20"
               style={{ boxShadow: "0 0 30px hsl(var(--primary) / 0.1)" }}
@@ -166,12 +167,12 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage }: Props)
           </form>
 
           <div className="mt-6 text-center">
-            <a
-              href="#contact"
+            <button
+              onClick={() => navigate("/#contact")}
               className="font-mono text-xs text-primary hover:underline"
             >
               Or talk to us about building this →
-            </a>
+            </button>
           </div>
         </motion.div>
       ) : (
@@ -180,7 +181,6 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage }: Props)
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
-          {/* Download button */}
           <div className="flex justify-end mb-4">
             <button
               onClick={handleDownloadPDF}
@@ -193,7 +193,6 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage }: Props)
           </div>
 
           <div ref={reportRef}>
-            {/* Logo + Header */}
             <div className="text-center mb-6 p-6">
               {logoImage && (
                 <motion.div
@@ -218,7 +217,6 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage }: Props)
               </h3>
             </div>
 
-            {/* Concept image in report */}
             {conceptImage && (
               <div className="mb-6 rounded-lg overflow-hidden border border-border/30">
                 <div className="relative">
@@ -282,18 +280,25 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage }: Props)
           </div>
 
           <div className="flex flex-wrap gap-4 justify-center">
-            <a
-              href="#contact"
-              className="font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity inline-block"
+            <button
+              onClick={() => navigate("/#contact")}
+              className="font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity"
             >
               Let's Build This →
-            </a>
+            </button>
             <button
               onClick={onRestart}
               className="flex items-center gap-2 font-mono text-sm border border-border text-foreground px-6 py-3 rounded-sm hover:border-primary/50 transition-colors"
             >
               <RotateCcw size={14} />
               Simulate Another Idea
+            </button>
+            <button
+              onClick={() => navigate("/")}
+              className="flex items-center gap-2 font-mono text-sm text-muted-foreground px-6 py-3 rounded-sm hover:text-foreground transition-colors"
+            >
+              <ArrowLeft size={14} />
+              Back to Home
             </button>
           </div>
         </motion.div>

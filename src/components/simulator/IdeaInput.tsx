@@ -15,6 +15,15 @@ const IdeaInput = ({ onSubmit }: Props) => {
     onSubmit(text.trim());
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (text.trim().length >= 10) {
+        onSubmit(text.trim());
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col items-center py-16">
       <motion.div
@@ -47,11 +56,17 @@ const IdeaInput = ({ onSubmit }: Props) => {
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="An app that lets dog owners find and book verified pet sitters in their neighborhood, with real-time GPS tracking during walks..."
             className="w-full min-h-[180px] p-6 rounded-lg bg-card/80 backdrop-blur-sm border border-border/60 text-foreground font-mono text-sm leading-relaxed placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 resize-none transition-all"
           />
-          <div className="absolute bottom-4 right-4 font-mono text-[10px] text-muted-foreground/40">
-            {text.length} chars
+          <div className="absolute bottom-4 right-4 flex items-center gap-3">
+            <span className="font-mono text-[10px] text-muted-foreground/40">
+              Press Enter to submit
+            </span>
+            <span className="font-mono text-[10px] text-muted-foreground/40">
+              {text.length} chars
+            </span>
           </div>
         </div>
 

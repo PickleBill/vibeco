@@ -18,8 +18,8 @@ const toolSchema = {
         brief: {
           type: "object",
           properties: {
-            problem: { type: "string", description: "The core problem or opportunity — be extremely specific to this exact idea, reference the actual product/service described" },
-            target_customer: { type: "string", description: "A vivid, named persona that maps directly to the idea. Include their name, daily reality, specific frustrations, and why THIS product would change their life. Reference the actual product." },
+            problem: { type: "string", description: "The core problem or opportunity — reference the EXACT product/service the user described. Use specific terminology from their idea." },
+            target_customer: { type: "string", description: "A vivid named persona who would use THIS EXACT product. Include their name (e.g. 'Meet Sarah Chen, a...'), job title, age, daily frustrations, and why THIS specific product changes their workflow. Must directly reference the user's idea." },
             core_features: {
               type: "array",
               items: {
@@ -31,12 +31,12 @@ const toolSchema = {
                 required: ["name", "description"],
                 additionalProperties: false,
               },
-              description: "3-5 core features uniquely tailored to this specific idea",
+              description: "3-5 features uniquely designed for THIS product. Name each feature with domain-specific language from the user's idea.",
             },
-            revenue_model: { type: "string", description: "Specific pricing and monetization strategy for THIS product" },
-            industry_trends: { type: "string", description: "Name real, specific competitors and market dynamics relevant to this exact space" },
-            investor_perspective: { type: "string", description: "What a smart VC would push back on about THIS specific idea" },
-            customer_perspective: { type: "string", description: "Direct quotes from the target persona about THIS product — what they'd love and what would make them hesitate" },
+            revenue_model: { type: "string", description: "Specific pricing tiers with dollar amounts for THIS product's market. Reference the actual product." },
+            industry_trends: { type: "string", description: "Name 2-3 REAL competing companies in this exact space, with real market data and trends. Reference the user's specific product category." },
+            investor_perspective: { type: "string", description: "What a smart VC would specifically push back on about THIS idea. Include concrete concerns and questions referencing the actual product." },
+            customer_perspective: { type: "string", description: "Direct quotes from the named target persona about THIS EXACT product — what excites them and what makes them hesitate. Use first person." },
           },
           required: [
             "problem",
@@ -72,7 +72,7 @@ const toolSchema = {
             required: ["question", "options", "allow_multiple"],
             additionalProperties: false,
           },
-          description: "3-4 strategic follow-up questions deeply specific to this idea",
+          description: "3-4 strategic follow-up questions that reference the user's exact idea, product name, and target market",
         },
         is_final: {
           type: "boolean",
@@ -99,34 +99,44 @@ serve(async (req) => {
     let userContent: string;
 
     if (type === "initial") {
-      systemPrompt = `You are VibeCo's AI Idea Simulator — a sharp, edgy startup advisor who analyzes raw ideas and turns them into structured business briefs. Be direct, insightful, and a little provocative. Don't sugarcoat. Find the real opportunity in every idea. Think like a founder who's shipped 10 products and an investor who's seen 1000 pitches.
+      systemPrompt = `You are VibeCo's AI Idea Simulator — a sharp, experienced startup advisor. Be direct and insightful.
 
-CRITICAL: YOU MUST RESPOND ONLY IN ENGLISH. All text in every field must be in English. No other languages.
+LANGUAGE RULE: RESPOND ONLY IN ENGLISH. Every single field must be in English. No Chinese, no other languages. English only.
 
-CRITICAL RULES FOR SPECIFICITY:
-- Every single field MUST reference the actual idea the user described. Never use generic startup language.
-- Target Customer: Create a vivid, named persona (e.g. "Meet 'Deadline Dave', a 34-year-old project manager at a 50-person agency who..."). The persona must be someone who would ACTUALLY use this specific product.
-- Problem: Reference the actual pain point that this specific product solves. Use concrete scenarios.
-- Core Features: Each feature must be uniquely designed for this product. Name them creatively with the product's domain language.
-- Revenue Model: Give specific dollar amounts and pricing tiers relevant to this market.
-- Industry Trends: Name REAL companies, REAL market data, REAL trends in this exact space.
-- Investor Perspective: Ask questions a VC would actually ask about THIS business, not generic startup questions.
-- Customer Perspective: Write as if you're quoting the actual target persona talking about THIS product.
+CRITICAL SPECIFICITY RULES — READ THE USER'S IDEA CAREFULLY:
+1. Read the user's idea word by word. Extract the specific product, service, industry, and use case they described.
+2. EVERY field in your response must directly reference their specific idea. If they said "dog walking app", every field talks about dog walking. If they said "AI recipe generator", every field talks about recipes and cooking.
+3. Target Customer: Create a named persona (e.g. "Meet 'Marcus Rivera', a 29-year-old...") who would ACTUALLY use this specific product. Their frustrations must relate to the exact problem the user's idea solves.
+4. Problem: Describe the pain point using the user's own terminology and product domain.
+5. Core Features: Each feature must use domain language from the user's idea. If it's a pet app, features reference pets. If it's a finance tool, features reference finances.
+6. Revenue Model: Give pricing that makes sense for THIS specific market with dollar amounts.
+7. Industry Trends: Name 2-3 REAL companies competing in this exact space.
+8. Investor Perspective: Ask questions a VC would ask about THIS specific business model.
+9. Customer Perspective: Write first-person quotes from the named persona about THIS product.
 
 For follow-up questions:
-- Ask 3-4 questions that are DEEPLY SPECIFIC to this exact idea.
-- Options should reference the actual product, its market, and its users by name.
-- Each question should have 3-4 options that represent genuinely different strategic directions for THIS product.
-- Questions should feel like a strategic conversation about THIS business, not a generic startup quiz.`;
-      userContent = `Analyze this idea and generate a hyper-specific structured brief with follow-up questions that reference the actual idea throughout:\n\n"${idea}"`;
+- Each question must reference the user's specific idea by name or concept.
+- Options must represent genuinely different strategic directions for THIS product.
+- Never ask generic startup questions. Every question should feel tailored to this exact business.`;
+      userContent = `Here is the user's idea. Read it carefully and generate an analysis that is 100% specific to what they described:\n\n"${idea}"`;
     } else {
       const isLastRound = round >= 3;
-      systemPrompt = `You are VibeCo's AI Idea Simulator continuing a strategic refinement session. The user has answered your previous questions about their SPECIFIC idea.
+      systemPrompt = `You are VibeCo's AI Idea Simulator continuing a refinement session.
 
-CRITICAL: YOU MUST RESPOND ONLY IN ENGLISH. All text in every field must be in English. No other languages.
+LANGUAGE RULE: RESPOND ONLY IN ENGLISH. Every single field must be in English. No Chinese, no other languages. English only.
 
-${isLastRound ? `This is the FINAL round. Set is_final to true. Generate the most comprehensive, actionable brief possible — every section must be deeply tailored to this exact idea with the refinements from all rounds incorporated. The follow_up_questions array should be empty. Include concrete next steps, specific metrics to track, and a 90-day action plan in the investor_perspective section.` : `This is refinement round ${round} of 3. Generate an updated, deeper brief incorporating the user's specific choices. Every section should evolve based on the direction they chose. Ask 3-4 NEW follow-up questions that dig even deeper — reference the specific choices they made and explore the implications for THIS product.`}`;
-      userContent = `Here's the full conversation about this specific idea:\n\n${history}\n\nGenerate an ${isLastRound ? "final comprehensive" : "updated"} brief that deeply incorporates all their specific choices. Every section must reference the actual idea and choices made.`;
+CRITICAL: Re-read the original idea and all previous rounds. Your updated analysis must:
+1. Directly reference the specific product/service from the original idea
+2. Incorporate the user's specific choices from previous rounds
+3. Evolve each section based on the direction they chose
+4. Keep the same named persona but deepen their story based on choices made
+
+${isLastRound ? `This is the FINAL round. Set is_final to true. Generate the most comprehensive brief possible with:
+- A concrete 90-day action plan with specific milestones
+- Specific metrics to track (CAC, LTV, churn targets)
+- Named competitors and differentiation strategy
+- The follow_up_questions array must be empty.` : `This is round ${round} of 3. Ask 3-4 NEW questions that dig deeper based on their specific choices. Reference what they chose and explore implications.`}`;
+      userContent = `Full conversation history:\n\n${history}\n\nGenerate a${isLastRound ? " final comprehensive" : "n updated"} brief. Every section must reference the original idea and incorporate their choices.`;
     }
 
     const response = await fetch(
@@ -162,7 +172,7 @@ ${isLastRound ? `This is the FINAL round. Set is_final to true. Generate the mos
         });
       }
       if (status === 402) {
-        return new Response(JSON.stringify({ error: "Credits exhausted. Please add funds." }), {
+        return new Response(JSON.stringify({ error: "Credits exhausted." }), {
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
