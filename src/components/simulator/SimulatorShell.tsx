@@ -35,6 +35,31 @@ const SimulatorShell = () => {
   const [currentRound, setCurrentRound] = useState(0);
   const [idea, setIdea] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [conceptImage, setConceptImage] = useState<string | null>(null);
+  const [logoImage, setLogoImage] = useState<string | null>(null);
+
+  const generateImages = async (ideaText: string) => {
+    // Fire and forget — don't block the main flow
+    try {
+      const [conceptRes, logoRes] = await Promise.allSettled([
+        supabase.functions.invoke("generate-idea-image", {
+          body: { idea: ideaText, type: "concept" },
+        }),
+        supabase.functions.invoke("generate-idea-image", {
+          body: { idea: ideaText, type: "logo" },
+        }),
+      ]);
+
+      if (conceptRes.status === "fulfilled" && conceptRes.value.data?.image_url) {
+        setConceptImage(conceptRes.value.data.image_url);
+      }
+      if (logoRes.status === "fulfilled" && logoRes.value.data?.image_url) {
+        setLogoImage(logoRes.value.data.image_url);
+      }
+    } catch (e) {
+      console.error("Image generation failed:", e);
+    }
+  };
 
   const buildHistory = (upToRound: number): string => {
     let history = `Original idea: "${idea}"\n\n`;
@@ -99,6 +124,8 @@ const SimulatorShell = () => {
 
   const handleIdeaSubmit = (text: string) => {
     setIdea(text);
+    // Start image generation in parallel (non-blocking)
+    generateImages(text);
     callSimulator("initial");
   };
 
@@ -116,6 +143,8 @@ const SimulatorShell = () => {
     setRounds([]);
     setCurrentRound(0);
     setIdea("");
+    setConceptImage(null);
+    setLogoImage(null);
   };
 
   const latestRound = rounds[rounds.length - 1];
@@ -210,13 +239,19 @@ const SimulatorShell = () => {
                 round={currentRound}
               />
               {/* Brief below */}
-              <IdeaBrief brief={latestRound.brief} round={currentRound} />
+              <IdeaBrief brief={latestRound.brief} round={currentRound} conceptImage={conceptImage} />
             </motion.div>
           )}
 
           {phase === "final" && latestRound && (
             <motion.div key="final" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <FinalReport brief={latestRound.brief} idea={idea} onRestart={handleRestart} />
+              <FinalReport
+                brief={latestRound.brief}
+                idea={idea}
+                onRestart={handleRestart}
+                conceptImage={conceptImage}
+                logoImage={logoImage}
+              />
             </motion.div>
           )}
         </AnimatePresence>

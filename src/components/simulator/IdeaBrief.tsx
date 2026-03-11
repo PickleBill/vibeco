@@ -9,26 +9,27 @@ import {
   MessageSquare,
   Target,
   Zap,
+  ImageIcon,
 } from "lucide-react";
 import type { BriefData } from "./SimulatorShell";
 
 interface Props {
   brief: BriefData;
   round: number;
+  conceptImage?: string | null;
 }
 
 const sections = [
-  { key: "problem", label: "Problem / Opportunity", icon: AlertTriangle, color: "hsl(var(--destructive))" },
-  { key: "target_customer", label: "Target Customer", icon: Users, color: "hsl(var(--primary))" },
-  { key: "core_features", label: "Core Features", icon: Layers, color: "hsl(var(--accent))" },
-  { key: "revenue_model", label: "Revenue Model", icon: DollarSign, color: "hsl(var(--primary))" },
-  { key: "industry_trends", label: "Industry & Competitors", icon: TrendingUp, color: "hsl(var(--accent))" },
-  { key: "investor_perspective", label: "What Investors Would Ask", icon: Eye, color: "hsl(var(--primary))" },
-  { key: "customer_perspective", label: "What Customers Would Say", icon: MessageSquare, color: "hsl(var(--accent))" },
+  { key: "problem", label: "Problem / Opportunity", icon: AlertTriangle },
+  { key: "target_customer", label: "Target Customer", icon: Users },
+  { key: "core_features", label: "Core Features", icon: Layers },
+  { key: "revenue_model", label: "Revenue Model", icon: DollarSign },
+  { key: "industry_trends", label: "Industry & Competitors", icon: TrendingUp },
+  { key: "investor_perspective", label: "What Investors Would Ask", icon: Eye },
+  { key: "customer_perspective", label: "What Customers Would Say", icon: MessageSquare },
 ] as const;
 
-// Mini visual: feature strength bars
-const FeatureStrengthBar = ({ index, total }: { index: number; total: number }) => {
+const FeatureStrengthBar = ({ index }: { index: number }) => {
   const strength = Math.round(60 + Math.random() * 35);
   return (
     <div className="flex items-center gap-2 mt-1">
@@ -45,7 +46,6 @@ const FeatureStrengthBar = ({ index, total }: { index: number; total: number }) 
   );
 };
 
-// Mini radar/score visual for the brief header
 const BriefScoreVisual = ({ brief }: { brief: BriefData }) => {
   const scores = [
     { label: "Market", value: 65 + Math.floor(brief.problem.length % 25) },
@@ -94,7 +94,7 @@ const BriefScoreVisual = ({ brief }: { brief: BriefData }) => {
   );
 };
 
-const IdeaBrief = ({ brief, round }: Props) => (
+const IdeaBrief = ({ brief, round, conceptImage }: Props) => (
   <div className="mb-12">
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -116,6 +116,29 @@ const IdeaBrief = ({ brief, round }: Props) => (
           : "Sharper analysis based on your choices. Keep refining above."}
       </p>
     </motion.div>
+
+    {/* Concept image */}
+    {conceptImage && (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.15 }}
+        className="mb-8 rounded-lg overflow-hidden border border-border/30"
+        style={{ boxShadow: "0 0 40px hsl(var(--primary) / 0.1)" }}
+      >
+        <div className="relative">
+          <img
+            src={conceptImage}
+            alt="AI-generated concept visualization"
+            className="w-full h-48 sm:h-64 object-cover"
+          />
+          <div className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-1 rounded bg-background/80 backdrop-blur-sm">
+            <ImageIcon size={10} className="text-primary" />
+            <span className="font-mono text-[9px] text-muted-foreground">AI Concept Art</span>
+          </div>
+        </div>
+      </motion.div>
+    )}
 
     {/* Score visuals */}
     <motion.div
@@ -171,7 +194,7 @@ const IdeaBrief = ({ brief, round }: Props) => (
                         <span className="font-mono text-sm text-muted-foreground">
                           {" "}— {feat.description}
                         </span>
-                        <FeatureStrengthBar index={fi} total={(value as BriefData["core_features"]).length} />
+                        <FeatureStrengthBar index={fi} />
                       </div>
                     </div>
                   </div>

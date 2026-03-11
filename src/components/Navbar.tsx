@@ -6,9 +6,7 @@ const navLinks = [
   { label: "Thesis", href: "#thesis" },
   { label: "Services", href: "#services" },
   { label: "Model", href: "#model" },
-  { label: "For Everyone", href: "#everyday" },
   { label: "Builds", href: "#builds" },
-  { label: "Projects", href: "#projects" },
   { label: "Contact", href: "#contact" },
 ];
 
@@ -34,12 +32,12 @@ const Navbar = () => {
         </a>
 
         {/* Desktop */}
-        <div className="hidden md:flex items-center gap-6">
+        <div className="hidden md:flex items-center gap-5">
           {navLinks.map((link) => (
             <a
               key={link.href}
               href={link.href}
-              className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
+              className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors duration-200"
             >
               {link.label}
             </a>
@@ -48,7 +46,7 @@ const Navbar = () => {
           {/* Glowing Simulator pill */}
           <a
             href="/simulate"
-            className="relative group font-mono text-sm px-4 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/40 hover:bg-primary/20 transition-all duration-300 flex items-center gap-1.5"
+            className="relative group font-mono text-xs px-3.5 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/40 hover:bg-primary/20 transition-all duration-300 flex items-center gap-1.5"
           >
             <motion.div
               className="absolute inset-0 rounded-full pointer-events-none"
@@ -56,13 +54,13 @@ const Navbar = () => {
               animate={{ opacity: [0.4, 0.8, 0.4] }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
             />
-            <Sparkles size={13} />
+            <Sparkles size={12} />
             Simulator
           </a>
 
           <a
             href="#contact"
-            className="font-mono text-sm bg-primary text-primary-foreground px-4 py-2 rounded-sm hover:opacity-90 transition-opacity"
+            className="font-mono text-xs bg-primary text-primary-foreground px-4 py-2 rounded-sm hover:opacity-90 transition-opacity"
           >
             Pitch Your Idea
           </a>
