@@ -244,23 +244,23 @@ const SimulatorShell = () => {
             className="flex items-center justify-center gap-3 mb-10"
           >
             {Array.from({ length: totalRounds }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="flex flex-col items-center gap-1">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center font-mono text-xs font-bold transition-all duration-500 ${
-                      i < rounds.length
-                        ? "bg-primary text-primary-foreground"
-                        : i === rounds.length && phase === "analyzing"
-                        ? "bg-primary/30 text-primary border border-primary/50"
-                        : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {i + 1}
+                <div key={i} className="flex items-center gap-3">
+                  <div className="flex flex-col items-center gap-1.5">
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center font-mono text-sm font-bold transition-all duration-500 ${
+                        i < rounds.length
+                          ? "bg-primary text-primary-foreground"
+                          : i === rounds.length && phase === "analyzing"
+                          ? "bg-primary/30 text-primary border border-primary/50"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {i + 1}
+                    </div>
+                    <span className="font-mono text-[10px] text-muted-foreground">
+                      {i === 0 ? "Analyze" : i === 1 ? "Refine" : "Finalize"}
+                    </span>
                   </div>
-                  <span className="font-mono text-[9px] text-muted-foreground">
-                    {i === 0 ? "Analyze" : i === 1 ? "Refine" : "Finalize"}
-                  </span>
-                </div>
                 {i < totalRounds - 1 && (
                   <div
                     className={`w-12 h-px transition-colors duration-500 ${

@@ -94,9 +94,9 @@ const Index = () => {
         <main>
           <Hero />
           <EverydayFounders />
+          <ProjectShowcase />
           <SpeedTimeline />
           <Model />
-          <ProjectShowcase />
           <Fit />
           <ContactForm />
           <FinalCta />

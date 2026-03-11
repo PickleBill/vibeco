@@ -25,21 +25,21 @@ const FinalCta = () => {
         <FadeIn delay={0.15}>
           <div className="flex flex-wrap gap-4 justify-center">
             <button
+              onClick={() => navigate("/simulate")}
+              className="group relative font-mono text-sm bg-primary text-primary-foreground px-10 py-4 rounded-sm hover:opacity-90 transition-all duration-300 inline-flex items-center gap-2"
+              style={{ boxShadow: "0 0 30px hsl(var(--primary) / 0.2)" }}
+            >
+              <Sparkles size={14} />
+              Simulate Your Idea
+            </button>
+            <button
               onClick={() => {
                 const el = document.querySelector("#contact");
                 el?.scrollIntoView({ behavior: "smooth" });
               }}
-              className="group relative font-mono text-sm bg-primary text-primary-foreground px-10 py-4 rounded-sm hover:opacity-90 transition-all duration-300 inline-block"
-              style={{ boxShadow: "0 0 30px hsl(var(--primary) / 0.2)" }}
-            >
-              Pitch Your Idea →
-            </button>
-            <button
-              onClick={() => navigate("/simulate")}
               className="font-mono text-sm border border-primary/40 text-primary px-8 py-4 rounded-sm hover:bg-primary/10 transition-all duration-300 inline-flex items-center gap-2"
             >
-              <Sparkles size={14} />
-              Try the AI Simulator
+              Or Pitch It Directly →
             </button>
           </div>
         </FadeIn>
