@@ -110,7 +110,7 @@ const SpeedTimeline = () => {
 
   const progress = sliderValue / 100;
   const svgHeight = 200;
-  const chartPadding = { top: 20, bottom: 30, left: 0, right: 0 };
+  const chartPadding = { top: 20, bottom: 30, left: 30, right: 10 };
   const chartHeight = svgHeight - chartPadding.top - chartPadding.bottom;
   const chartWidth = svgWidth - chartPadding.left - chartPadding.right;
 
