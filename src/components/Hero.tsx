@@ -162,16 +162,16 @@ const Hero = () => (
           <FadeIn delay={0.3}>
             <div className="flex flex-wrap gap-4">
               <a
-                href="#contact"
-                className="font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity inline-block"
+                href="/simulate"
+                className="font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity inline-flex items-center gap-2"
               >
-                Pitch Your Idea
+                ✦ Simulate Your Idea
               </a>
               <a
-                href="#builds"
+                href="#contact"
                 className="font-mono text-sm border border-border text-foreground px-6 py-3 rounded-sm hover:border-primary/50 hover:text-primary transition-colors inline-block"
               >
-                See Selected Builds
+                Pitch Your Idea
               </a>
             </div>
           </FadeIn>
