@@ -71,7 +71,7 @@ const Hero = () => (
             </p>
           </FadeIn>
           <FadeIn delay={0.25}>
-            <p className="font-mono text-xs text-muted-foreground leading-relaxed mb-8 max-w-lg">
+            <p className="font-mono text-sm text-muted-foreground leading-relaxed mb-8 max-w-lg">
               Selective partnerships. High-agency founders. MVPs built with speed,
               taste, and commercial discipline.
             </p>

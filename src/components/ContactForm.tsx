@@ -107,7 +107,7 @@ const ContactForm = () => {
                 aria-label="Distribution edge"
               />
               <div>
-                <label className="font-mono text-xs text-muted-foreground mb-2 block">
+                <label className="font-mono text-sm text-muted-foreground mb-2 block">
                   Preferred structure
                 </label>
                 <select

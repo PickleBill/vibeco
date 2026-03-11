@@ -28,7 +28,7 @@ const Footer = () => (
         </div>
       </div>
       <div className="mt-8 pt-6 border-t border-border">
-        <p className="font-mono text-[10px] text-muted-foreground">
+        <p className="font-mono text-xs text-muted-foreground">
           © {new Date().getFullYear()} VibeCo. All rights reserved.
         </p>
       </div>

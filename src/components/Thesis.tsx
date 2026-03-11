@@ -10,7 +10,7 @@ const Thesis = () => (
           </h2>
         </FadeIn>
         <FadeIn delay={0.1}>
-          <p className="font-mono text-sm text-foreground/70 leading-relaxed max-w-2xl">
+          <p className="font-mono text-base text-foreground/70 leading-relaxed max-w-2xl">
             The modern bottleneck is no longer whether software can be built. It's
             whether the right thing gets tested, shipped, and learned from before
             time and capital disappear. We help founders compress that cycle.
