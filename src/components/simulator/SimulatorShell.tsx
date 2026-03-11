@@ -48,7 +48,7 @@ const SimulatorShell = () => {
     if (rounds.length === 0) return;
     const saveSession = async () => {
       try {
-        await supabase.from("simulator_captures").upsert({
+        await (supabase.from("simulator_captures") as any).upsert({
           id: sessionId,
           email: unlockEmail || `anonymous-${sessionId.slice(0, 8)}`,
           idea: idea.trim() || "untitled",
@@ -56,16 +56,17 @@ const SimulatorShell = () => {
             brief: r.brief,
             questions: r.questions,
             answers: r.answers || null,
-          })) as unknown as import("@/integrations/supabase/types").Json,
+          })),
           concept_image_url: conceptImage || null,
           logo_image_url: logoImage || null,
+          lovable_prompt: lovablePrompt || null,
         }, { onConflict: "id" });
       } catch (err) {
         console.error("Auto-save error:", err);
       }
     };
     saveSession();
-  }, [rounds, unlockEmail]);
+  }, [rounds, unlockEmail, lovablePrompt]);
 
   const generateImages = async (ideaText: string) => {
     try {
@@ -173,7 +174,7 @@ const SimulatorShell = () => {
     setUnlockEmail(email);
     setUnlocked(true);
     try {
-      await supabase.from("simulator_captures").upsert({
+      await (supabase.from("simulator_captures") as any).upsert({
         id: sessionId,
         email: email.trim(),
         idea: idea.trim(),
@@ -181,9 +182,10 @@ const SimulatorShell = () => {
           brief: r.brief,
           questions: r.questions,
           answers: r.answers || null,
-        })) as unknown as import("@/integrations/supabase/types").Json,
+        })),
         concept_image_url: conceptImage || null,
         logo_image_url: logoImage || null,
+        lovable_prompt: lovablePrompt || null,
       }, { onConflict: "id" });
     } catch (err) {
       console.error("Capture error:", err);
