@@ -2,6 +2,7 @@ import { useState } from "react";
 import FadeIn from "./FadeIn";
 import { toast } from "sonner";
 import { Info } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const structures = [
   {
