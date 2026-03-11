@@ -167,10 +167,11 @@ const Navbar = () => {
               </a>
             )}
             <button
-              onClick={() => handleNavClick("#contact")}
-              className="block mt-2 font-mono text-sm bg-primary text-primary-foreground px-4 py-2 rounded-sm text-center w-full"
+              onClick={() => { setMobileOpen(false); navigate("/simulate"); }}
+              className="flex items-center justify-center gap-2 mt-2 font-mono text-sm bg-primary text-primary-foreground px-4 py-2.5 rounded-sm text-center w-full"
             >
-              Pitch Your Idea
+              <Sparkles size={14} />
+              Simulate Your Idea
             </button>
           </motion.div>
         )}

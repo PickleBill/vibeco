@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import FadeIn from "./FadeIn";
-import { Home, Scissors, Dumbbell, Briefcase } from "lucide-react";
+import { Home, Scissors, Dumbbell, Briefcase, Sparkles } from "lucide-react";
 
 const personas = [
   {

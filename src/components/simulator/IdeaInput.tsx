@@ -32,7 +32,7 @@ const IdeaInput = ({ onSubmit }: Props) => {
         transition={{ duration: 0.5 }}
         className="text-center mb-12"
       >
-        <p className="font-mono text-sm text-primary uppercase tracking-widest mb-4">
+        <p className="font-mono text-xs text-primary uppercase tracking-[0.3em] mb-4">
           AI Idea Simulator
         </p>
         <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-black text-foreground leading-tight mb-4">
@@ -40,8 +40,8 @@ const IdeaInput = ({ onSubmit }: Props) => {
           <br />
           <span className="text-gradient-accent">wildest idea.</span>
         </h1>
-        <p className="font-mono text-sm text-muted-foreground max-w-md mx-auto">
-          We'll turn it into a structured business brief, then refine it together through a few rounds of strategic questions.
+        <p className="font-mono text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+          We'll analyze it, ask smart questions, then generate a ready-to-build prompt.
         </p>
       </motion.div>
 
