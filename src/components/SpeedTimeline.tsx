@@ -110,7 +110,7 @@ const SpeedTimeline = () => {
 
   const progress = sliderValue / 100;
   const svgHeight = 200;
-  const chartPadding = { top: 20, bottom: 30, left: 0, right: 0 };
+  const chartPadding = { top: 20, bottom: 30, left: 30, right: 10 };
   const chartHeight = svgHeight - chartPadding.top - chartPadding.bottom;
   const chartWidth = svgWidth - chartPadding.left - chartPadding.right;
 
@@ -194,11 +194,14 @@ const SpeedTimeline = () => {
                 />
               ))}
 
-              {/* Cost bars (red, declining) */}
+              {/* Cost bars (red, declining) — compressed scale for visual clarity */}
               {visibleEras.map((era) => {
-                const barWidth = chartWidth / 5 * 0.6;
-                const barX = chartPadding.left + (era.id / 4) * chartWidth - barWidth / 2;
-                const barH = (era.costValue / 100) * chartHeight;
+                // Compress cost values so decline is visible: [100,70,45,20,3] → [100,78,58,38,15]
+                const compressedCost = 15 + (era.costValue / 100) * 85;
+                const barWidth = chartWidth / 5 * 0.55;
+                const spacing = chartWidth / (eras.length);
+                const barX = chartPadding.left + spacing * era.id + (spacing - barWidth) / 2;
+                const barH = (compressedCost / 100) * chartHeight;
                 const barY = chartPadding.top + chartHeight - barH;
                 return (
                   <motion.rect

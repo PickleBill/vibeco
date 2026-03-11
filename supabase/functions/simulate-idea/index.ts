@@ -78,6 +78,10 @@ const toolSchema = {
           type: "boolean",
           description: "True if this is the final consolidated report with no more questions",
         },
+        lovable_prompt: {
+          type: "string",
+          description: "ONLY for the final round (is_final=true). A comprehensive, ready-to-paste prompt for Lovable AI that would one-shot create a beautiful landing page for this product. Include: product name/concept, hero section copy, feature descriptions, target audience messaging, pricing section, testimonial style, visual direction (color palette, typography mood, layout style), and CTA copy. Write it as a direct instruction to an AI app builder. 800-1500 words.",
+        },
       },
       required: ["brief", "follow_up_questions", "is_final"],
       additionalProperties: false,
@@ -114,7 +118,7 @@ CRITICAL SPECIFICITY RULES — READ THE USER'S IDEA CAREFULLY:
 8. Investor Perspective: Ask questions a VC would ask about THIS specific business model.
 9. Customer Perspective: Write first-person quotes from the named persona about THIS product.
 
-IMPORTANT: Set is_final to false. This is the first round — you MUST generate follow-up questions.
+IMPORTANT: Set is_final to false. This is the first round — you MUST generate follow-up questions. Do NOT include lovable_prompt.
 
 For follow-up questions:
 - Each question must reference the user's specific idea by name or concept.
@@ -140,7 +144,9 @@ ${isLastRound ? `This is the FINAL round. Set is_final to true. Generate the mos
 - Named competitors and differentiation strategy
 - Revenue projections based on the pricing model they refined
 - The follow_up_questions array must be empty.
-- Your final brief must synthesize ALL the user's choices across rounds into a cohesive, actionable plan.` : `This is round ${round} of 3. Set is_final to false. Ask 3-4 NEW questions that dig deeper based on their specific choices. Reference what they chose and explore implications.`}`;
+- Your final brief must synthesize ALL the user's choices across rounds into a cohesive, actionable plan.
+
+ALSO generate the lovable_prompt field: Write a comprehensive, ready-to-paste prompt (800-1500 words) that someone could paste into Lovable to one-shot create a beautiful landing page for this product. Include specific hero copy, feature descriptions with the user's refined details, target audience messaging, pricing section based on their chosen model, visual direction (suggest specific color palette, typography mood, layout style), and compelling CTA copy. Write it as a direct instruction to an AI app builder.` : `This is round ${round} of 3. Set is_final to false. Do NOT include lovable_prompt. Ask 3-4 NEW questions that dig deeper based on their specific choices. Reference what they chose and explore implications.`}`;
       userContent = `Full conversation history:\n\n${history}\n\nGenerate a${isLastRound ? " final comprehensive" : "n updated"} brief. Every section must reference the original idea and incorporate their choices.`;
     }
 
@@ -200,6 +206,7 @@ ${isLastRound ? `This is the FINAL round. Set is_final to true. Generate the mos
     // SERVER-SIDE ENFORCEMENT: Never allow is_final on early rounds
     if (type === "initial" || (round && round < 3)) {
       result.is_final = false;
+      delete result.lovable_prompt; // Strip prompt from non-final rounds
       // Ensure follow-up questions exist for non-final rounds
       if (!result.follow_up_questions || result.follow_up_questions.length === 0) {
         result.follow_up_questions = [
