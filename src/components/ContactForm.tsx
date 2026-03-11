@@ -1,17 +1,39 @@
 import { useState } from "react";
 import FadeIn from "./FadeIn";
 import { toast } from "sonner";
+import { Info } from "lucide-react";
+
+const structures = [
+  {
+    value: "Revenue Share",
+    label: "Revenue Share",
+    desc: "We build it, you sell it. We take a percentage of revenue as the product grows. Zero upfront cost, fully aligned incentives.",
+  },
+  {
+    value: "Advisory Equity",
+    label: "Advisory Equity",
+    desc: "We contribute build hours in exchange for a small equity stake. Best for early-stage founders with strong conviction and traction potential.",
+  },
+  {
+    value: "Hybrid",
+    label: "Hybrid",
+    desc: "A reduced build fee plus a smaller equity or revenue share. Balances skin-in-the-game with sustainable engagement.",
+  },
+  {
+    value: "Paid MVP Build",
+    label: "Paid Build",
+    desc: "Flat-fee engagement for founders who want speed and quality without equity dilution. Scope-locked, timeline-driven.",
+  },
+];
 
 const ContactForm = () => {
   const [form, setForm] = useState({
     name: "",
     email: "",
-    company: "",
-    problem: "",
-    whyNow: "",
-    distribution: "",
+    idea: "",
     structure: "Revenue Share",
   });
+  const [activeStructure, setActiveStructure] = useState(0);
 
   const update = (field: string, value: string) =>
     setForm((f) => ({ ...f, [field]: value }));
@@ -19,15 +41,8 @@ const ContactForm = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     toast.success("Submitted. We'll review and follow up if there's a fit.");
-    setForm({
-      name: "",
-      email: "",
-      company: "",
-      problem: "",
-      whyNow: "",
-      distribution: "",
-      structure: "Revenue Share",
-    });
+    setForm({ name: "", email: "", idea: "", structure: "Revenue Share" });
+    setActiveStructure(0);
   };
 
   const inputClass =
@@ -38,15 +53,11 @@ const ContactForm = () => {
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
         <div className="max-w-2xl mx-auto">
           <FadeIn>
-            <p className="font-mono text-sm text-muted-foreground uppercase tracking-widest mb-4">
-              Get in touch
-            </p>
             <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-4">
-              Have a real wedge? Let's talk.
+              Pitch your idea.
             </h2>
-            <p className="font-mono text-sm text-muted-foreground leading-relaxed mb-12">
-              We review selectively. The best fits are domain experts with urgency,
-              distribution, and a credible monetization path.
+            <p className="font-mono text-sm text-muted-foreground leading-relaxed mb-10">
+              Keep it short. We'll follow up if there's a fit.
             </p>
           </FadeIn>
 
@@ -72,61 +83,54 @@ const ContactForm = () => {
                   aria-label="Email"
                 />
               </div>
-              <input
-                type="text"
-                placeholder="Company / Idea Name"
+              <textarea
+                placeholder="What's the idea? What problem does it solve and why now?"
                 required
-                value={form.company}
-                onChange={(e) => update("company", e.target.value)}
-                className={inputClass}
-                aria-label="Company or Idea Name"
-              />
-              <textarea
-                placeholder="What problem are you solving?"
-                required
-                rows={3}
-                value={form.problem}
-                onChange={(e) => update("problem", e.target.value)}
+                rows={4}
+                value={form.idea}
+                onChange={(e) => update("idea", e.target.value)}
                 className={inputClass + " resize-none"}
-                aria-label="What problem are you solving"
+                aria-label="Your idea"
               />
-              <textarea
-                placeholder="Why now?"
-                rows={2}
-                value={form.whyNow}
-                onChange={(e) => update("whyNow", e.target.value)}
-                className={inputClass + " resize-none"}
-                aria-label="Why now"
-              />
-              <textarea
-                placeholder="What distribution edge do you have?"
-                rows={2}
-                value={form.distribution}
-                onChange={(e) => update("distribution", e.target.value)}
-                className={inputClass + " resize-none"}
-                aria-label="Distribution edge"
-              />
+
+              {/* Structure selector */}
               <div>
-                <label className="font-mono text-sm text-muted-foreground mb-2 block">
-                  Preferred structure
+                <label className="font-mono text-sm text-muted-foreground mb-3 block flex items-center gap-1.5">
+                  How should we work together?
+                  <Info size={14} className="text-primary/50" />
                 </label>
-                <select
-                  value={form.structure}
-                  onChange={(e) => update("structure", e.target.value)}
-                  className={inputClass + " appearance-none cursor-pointer"}
-                  aria-label="Preferred structure"
-                >
-                  <option>Revenue Share</option>
-                  <option>Advisory Equity</option>
-                  <option>Hybrid</option>
-                  <option>Paid MVP Build</option>
-                </select>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {structures.map((s, i) => (
+                    <button
+                      key={s.value}
+                      type="button"
+                      onClick={() => {
+                        setActiveStructure(i);
+                        update("structure", s.value);
+                      }}
+                      className={`relative font-mono text-xs px-3 py-2.5 rounded-sm border transition-all duration-300 text-center ${
+                        activeStructure === i
+                          ? "border-primary/50 bg-primary/10 text-primary glow-accent-subtle"
+                          : "border-border bg-secondary text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+                {/* Description reveal */}
+                <div className="mt-3 p-3 bg-secondary/50 border border-border rounded-sm">
+                  <p className="font-mono text-xs text-foreground/60 leading-relaxed">
+                    {structures[activeStructure].desc}
+                  </p>
+                </div>
               </div>
+
               <button
                 type="submit"
-                className="w-full font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity"
+                className="w-full font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 hover:glow-accent transition-all duration-300"
               >
-                Pitch Your Idea
+                Send It →
               </button>
             </form>
           </FadeIn>
