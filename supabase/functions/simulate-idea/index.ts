@@ -101,6 +101,8 @@ serve(async (req) => {
     if (type === "initial") {
       systemPrompt = `You are VibeCo's AI Idea Simulator — a sharp, edgy startup advisor who analyzes raw ideas and turns them into structured business briefs. Be direct, insightful, and a little provocative. Don't sugarcoat. Find the real opportunity in every idea. Think like a founder who's shipped 10 products and an investor who's seen 1000 pitches.
 
+CRITICAL: YOU MUST RESPOND ONLY IN ENGLISH. All text in every field must be in English. No other languages.
+
 CRITICAL RULES FOR SPECIFICITY:
 - Every single field MUST reference the actual idea the user described. Never use generic startup language.
 - Target Customer: Create a vivid, named persona (e.g. "Meet 'Deadline Dave', a 34-year-old project manager at a 50-person agency who..."). The persona must be someone who would ACTUALLY use this specific product.
@@ -121,7 +123,7 @@ For follow-up questions:
       const isLastRound = round >= 3;
       systemPrompt = `You are VibeCo's AI Idea Simulator continuing a strategic refinement session. The user has answered your previous questions about their SPECIFIC idea.
 
-CRITICAL: Every response must be deeply specific to the original idea. Reference the actual product, actual personas, actual market. Never fall back to generic startup advice.
+CRITICAL: YOU MUST RESPOND ONLY IN ENGLISH. All text in every field must be in English. No other languages.
 
 ${isLastRound ? `This is the FINAL round. Set is_final to true. Generate the most comprehensive, actionable brief possible — every section must be deeply tailored to this exact idea with the refinements from all rounds incorporated. The follow_up_questions array should be empty. Include concrete next steps, specific metrics to track, and a 90-day action plan in the investor_perspective section.` : `This is refinement round ${round} of 3. Generate an updated, deeper brief incorporating the user's specific choices. Every section should evolve based on the direction they chose. Ask 3-4 NEW follow-up questions that dig even deeper — reference the specific choices they made and explore the implications for THIS product.`}`;
       userContent = `Here's the full conversation about this specific idea:\n\n${history}\n\nGenerate an ${isLastRound ? "final comprehensive" : "updated"} brief that deeply incorporates all their specific choices. Every section must reference the actual idea and choices made.`;
