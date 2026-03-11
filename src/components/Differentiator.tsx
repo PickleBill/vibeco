@@ -5,23 +5,23 @@ import { Zap, Brain, TrendingUp, Target } from "lucide-react";
 const diffs = [
   {
     icon: Zap,
-    title: "Faster than an agency",
-    desc: "From idea to live product in hours, not months. No SOWs, no committee sign-offs, no waiting.",
+    title: "Faster than humanly possible",
+    desc: "From idea to live product in minutes, not months. No SOWs, no committee sign-offs, no waiting. Just shipping.",
   },
   {
     icon: Brain,
-    title: "More product-driven than freelancers",
-    desc: "Real architecture, real design systems, real product thinking — not drag-and-drop guesswork.",
+    title: "Real product thinking, not templates",
+    desc: "Architecture, design systems, and product strategy — not drag-and-drop guesswork or cookie-cutter themes.",
   },
   {
     icon: TrendingUp,
-    title: "Aligned with upside",
-    desc: "Revenue share, advisory equity, and hybrid models. We structure for shared outcomes, not billable hours.",
+    title: "Skin in the game",
+    desc: "Revenue share, advisory equity, and hybrid models. We eat what we kill. Your win is our win.",
   },
   {
     icon: Target,
-    title: "GTM-aware from day one",
-    desc: "Every product ships with monetization hooks, analytics, and distribution infrastructure baked in.",
+    title: "GTM-ready on day one",
+    desc: "Every product ships with monetization hooks, analytics, and distribution infrastructure baked in. Not bolted on later.",
   },
 ];
 
@@ -33,7 +33,7 @@ const Differentiator = () => {
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
         <FadeIn>
           <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-16">
-            Why this is different.
+            Why this hits different.
           </h2>
         </FadeIn>
         <div className="grid sm:grid-cols-2 gap-6">

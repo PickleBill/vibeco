@@ -4,23 +4,23 @@ import FadeIn from "./FadeIn";
 const services = [
   {
     title: "Rapid Product Build",
-    desc: "Concept to live product in hours. AI-native execution at a pace that has to be seen to be believed.",
-    detail: "Full-stack development, responsive design, database architecture, and production deployment — all in the same session.",
+    desc: "You describe it. We build it. Same conversation. Not a prototype — a live, deployed product with real users hitting it.",
+    detail: "Full-stack development, responsive design, database architecture, and production deployment — all before you finish your coffee.",
   },
   {
     title: "MVP Strategy",
-    desc: "We scope, you describe, and we start building — often in the same conversation.",
+    desc: "We scope, you describe, and we start building — often in the same conversation. No decks. No committees.",
     detail: "Market sizing, competitive positioning, feature prioritization, and go-to-market planning baked in from minute one.",
   },
   {
     title: "Launch Infrastructure",
-    desc: "Landing pages, onboarding flows, analytics, and SEO-ready foundations. Ship ready to learn.",
-    detail: "SEO, analytics integration, email capture, A/B testing setup, and conversion optimization.",
+    desc: "Landing pages, onboarding flows, analytics, and SEO-ready foundations. Ship ready to learn, not ready to wait.",
+    detail: "SEO, analytics integration, email capture, A/B testing setup, and conversion optimization — all live on day one.",
   },
   {
     title: "Growth Experimentation",
-    desc: "Iterate based on signal, not guesswork. We build the feedback loops that drive real traction.",
-    detail: "User interviews, funnel analysis, feature iteration, and data-driven pivot recommendations.",
+    desc: "Iterate based on signal, not guesswork. We build the feedback loops that turn hunches into traction.",
+    detail: "User interviews, funnel analysis, feature iteration, and data-driven pivot recommendations. Move fast, learn faster.",
   },
 ];
 
@@ -32,10 +32,10 @@ const Services = () => {
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
         <FadeIn>
           <p className="font-mono text-sm text-muted-foreground uppercase tracking-widest mb-4">
-            What we do
+            What happens when you show up
           </p>
           <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-16">
-            Precision, not volume.
+            You talk. We build. You iterate.
           </h2>
         </FadeIn>
         <div className="grid sm:grid-cols-2 gap-6">
