@@ -258,7 +258,7 @@ const SimulatorShell = () => {
                   <div className="flex flex-col items-center gap-1.5">
                     <div
                       className={`w-10 h-10 rounded-full flex items-center justify-center font-mono text-sm font-bold transition-all duration-500 ${
-                        i < rounds.length
+                        i < rounds.length || (phase === "final" && i === rounds.length - 1)
                           ? "bg-primary text-primary-foreground"
                           : i === rounds.length && phase === "analyzing"
                           ? "bg-primary/30 text-primary border border-primary/50"
@@ -274,7 +274,7 @@ const SimulatorShell = () => {
                 {i < totalRounds - 1 && (
                   <div
                     className={`w-12 h-px transition-colors duration-500 ${
-                      i < rounds.length - 1 ? "bg-primary" : "bg-border"
+                      i < rounds.length - 1 || (phase === "final" && i < rounds.length) ? "bg-primary" : "bg-border"
                     }`}
                   />
                 )}
