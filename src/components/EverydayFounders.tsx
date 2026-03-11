@@ -76,19 +76,20 @@ const EverydayFounders = () => {
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <button
+                onClick={() => navigate("/simulate")}
+                className="font-mono text-sm bg-primary text-primary-foreground px-8 py-3 rounded-sm hover:opacity-90 transition-opacity inline-flex items-center gap-2"
+              >
+                <Sparkles size={14} />
+                Try the AI Simulator
+              </button>
+              <button
                 onClick={() => {
                   const el = document.querySelector("#contact");
                   el?.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="font-mono text-sm bg-primary text-primary-foreground px-8 py-3 rounded-sm hover:opacity-90 transition-opacity"
-              >
-                Tell Us Your Idea
-              </button>
-              <button
-                onClick={() => navigate("/simulate")}
                 className="font-mono text-sm border border-border text-foreground px-8 py-3 rounded-sm hover:border-primary/50 hover:text-primary transition-colors"
               >
-                Or Try the Simulator →
+                Or Pitch Your Idea →
               </button>
             </div>
           </div>
