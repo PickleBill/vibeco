@@ -20,7 +20,7 @@ const Footer = () => (
             <a
               key={link.href}
               href={link.href}
-              className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               {link.label}
             </a>
