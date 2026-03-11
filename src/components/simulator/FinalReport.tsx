@@ -19,7 +19,14 @@ import { toast } from "sonner";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import { useNavigate } from "react-router-dom";
-import type { BriefData } from "./SimulatorShell";
+import { supabase } from "@/integrations/supabase/client";
+import type { BriefData, QuestionData } from "./SimulatorShell";
+
+interface RoundState {
+  brief: BriefData;
+  questions: QuestionData[];
+  answers?: Record<number, { selected: string[]; freeText?: string }>;
+}
 
 interface Props {
   brief: BriefData;
@@ -27,6 +34,7 @@ interface Props {
   onRestart: () => void;
   conceptImage?: string | null;
   logoImage?: string | null;
+  rounds: RoundState[];
 }
 
 const sectionMeta = [
