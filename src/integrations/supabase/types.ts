@@ -14,7 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      contact_submissions: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          idea: string
+          name: string
+          structure: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          idea: string
+          name: string
+          structure?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          idea?: string
+          name?: string
+          structure?: string
+        }
+        Relationships: []
+      }
+      simulator_captures: {
+        Row: {
+          concept_image_url: string | null
+          created_at: string
+          email: string
+          id: string
+          idea: string
+          logo_image_url: string | null
+          rounds: Json
+        }
+        Insert: {
+          concept_image_url?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          idea: string
+          logo_image_url?: string | null
+          rounds?: Json
+        }
+        Update: {
+          concept_image_url?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          idea?: string
+          logo_image_url?: string | null
+          rounds?: Json
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
