@@ -9,7 +9,7 @@ const FinalCta = () => (
         </h2>
       </FadeIn>
       <FadeIn delay={0.1}>
-        <p className="font-mono text-sm text-muted-foreground mb-10 max-w-md mx-auto">
+        <p className="font-mono text-base text-muted-foreground mb-10 max-w-md mx-auto">
           Not every idea deserves a company. But the right idea deserves a real
           test.
         </p>
@@ -17,9 +17,9 @@ const FinalCta = () => (
       <FadeIn delay={0.15}>
         <a
           href="#contact"
-          className="font-mono text-sm bg-primary text-primary-foreground px-8 py-3 rounded-sm hover:opacity-90 transition-opacity inline-block"
+          className="group relative font-mono text-sm bg-primary text-primary-foreground px-10 py-4 rounded-sm hover:opacity-90 transition-all duration-300 inline-block hover:glow-accent"
         >
-          Pitch Your Idea
+          Pitch Your Idea →
         </a>
       </FadeIn>
     </div>
