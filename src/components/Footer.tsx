@@ -6,7 +6,7 @@ const Footer = () => (
           <p className="font-display text-lg font-black text-foreground tracking-tight">
             VibeCo
           </p>
-          <p className="font-mono text-xs text-muted-foreground mt-1">
+          <p className="font-mono text-sm text-muted-foreground mt-1">
             AI-native product builds for founders with real conviction.
           </p>
         </div>
@@ -20,7 +20,7 @@ const Footer = () => (
             <a
               key={link.href}
               href={link.href}
-              className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               {link.label}
             </a>
@@ -28,7 +28,7 @@ const Footer = () => (
         </div>
       </div>
       <div className="mt-8 pt-6 border-t border-border">
-        <p className="font-mono text-[10px] text-muted-foreground">
+        <p className="font-mono text-xs text-muted-foreground">
           © {new Date().getFullYear()} VibeCo. All rights reserved.
         </p>
       </div>

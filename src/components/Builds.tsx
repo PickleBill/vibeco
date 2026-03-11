@@ -28,7 +28,7 @@ const Builds = () => (
   <section id="builds" className="py-32 border-t border-border">
     <div className="max-w-7xl mx-auto px-6 lg:px-12">
       <FadeIn>
-        <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest mb-4">
+        <p className="font-mono text-sm text-muted-foreground uppercase tracking-widest mb-4">
           Selected Builds
         </p>
         <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-16">
@@ -36,12 +36,10 @@ const Builds = () => (
         </h2>
       </FadeIn>
 
-      {/* Horizontal scroll on desktop */}
       <div className="flex gap-6 overflow-x-auto pb-4 -mx-6 px-6 snap-x snap-mandatory lg:grid lg:grid-cols-3 lg:overflow-visible lg:mx-0 lg:px-0">
         {projects.map((p, i) => (
           <FadeIn key={p.name} delay={i * 0.1}>
             <div className="min-w-[320px] lg:min-w-0 snap-start group bg-card border border-border rounded-lg overflow-hidden hover:border-primary/30 transition-all duration-300">
-              {/* Mockup area */}
               <div className={`h-48 bg-gradient-to-br ${p.color} flex items-center justify-center relative`}>
                 <div className="w-3/4 bg-background/60 border border-border rounded-md p-4 shadow-deep">
                   <div className="h-2 w-1/2 bg-secondary rounded-sm mb-2" />
@@ -59,26 +57,26 @@ const Builds = () => (
                 </h3>
                 <div className="space-y-3">
                   <div>
-                    <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
+                    <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest mb-1">
                       Thesis
                     </p>
-                    <p className="font-mono text-xs text-foreground/70 leading-relaxed">
+                    <p className="font-mono text-sm text-foreground/70 leading-relaxed">
                       {p.thesis}
                     </p>
                   </div>
                   <div>
-                    <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
+                    <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest mb-1">
                       What was built
                     </p>
-                    <p className="font-mono text-xs text-foreground/70 leading-relaxed">
+                    <p className="font-mono text-sm text-foreground/70 leading-relaxed">
                       {p.built}
                     </p>
                   </div>
                   <div>
-                    <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
+                    <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest mb-1">
                       Why the wedge mattered
                     </p>
-                    <p className="font-mono text-xs text-foreground/70 leading-relaxed">
+                    <p className="font-mono text-sm text-foreground/70 leading-relaxed">
                       {p.wedge}
                     </p>
                   </div>

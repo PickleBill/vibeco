@@ -31,20 +31,20 @@ const ContactForm = () => {
   };
 
   const inputClass =
-    "w-full bg-secondary border border-border rounded-sm px-4 py-3 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors";
+    "w-full bg-secondary border border-border rounded-sm px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors";
 
   return (
     <section id="contact" className="py-32 border-t border-border">
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
         <div className="max-w-2xl mx-auto">
           <FadeIn>
-            <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest mb-4">
+            <p className="font-mono text-sm text-muted-foreground uppercase tracking-widest mb-4">
               Get in touch
             </p>
             <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-4">
               Have a real wedge? Let's talk.
             </h2>
-            <p className="font-mono text-xs text-muted-foreground leading-relaxed mb-12">
+            <p className="font-mono text-sm text-muted-foreground leading-relaxed mb-12">
               We review selectively. The best fits are domain experts with urgency,
               distribution, and a credible monetization path.
             </p>
@@ -107,7 +107,7 @@ const ContactForm = () => {
                 aria-label="Distribution edge"
               />
               <div>
-                <label className="font-mono text-xs text-muted-foreground mb-2 block">
+                <label className="font-mono text-sm text-muted-foreground mb-2 block">
                   Preferred structure
                 </label>
                 <select

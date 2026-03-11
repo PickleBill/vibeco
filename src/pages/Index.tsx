@@ -5,7 +5,9 @@ import Thesis from "../components/Thesis";
 import Services from "../components/Services";
 import Model from "../components/Model";
 import Fit from "../components/Fit";
+import EverydayFounders from "../components/EverydayFounders";
 import Builds from "../components/Builds";
+import ProjectShowcase from "../components/ProjectShowcase";
 import Differentiator from "../components/Differentiator";
 import Credibility from "../components/Credibility";
 import ContactForm from "../components/ContactForm";
@@ -50,7 +52,9 @@ const Index = () => {
           <Services />
           <Model />
           <Fit />
+          <EverydayFounders />
           <Builds />
+          <ProjectShowcase />
           <Differentiator />
           <Credibility />
           <ContactForm />

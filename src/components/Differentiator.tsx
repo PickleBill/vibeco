@@ -31,10 +31,10 @@ const Differentiator = () => (
         {diffs.map((d, i) => (
           <FadeIn key={d.title} delay={i * 0.08}>
             <div>
-              <h3 className="font-display text-base font-bold text-foreground mb-2">
+              <h3 className="font-display text-lg font-bold text-foreground mb-2">
                 {d.title}
               </h3>
-              <p className="font-mono text-xs text-muted-foreground leading-relaxed">
+              <p className="font-mono text-sm text-muted-foreground leading-relaxed">
                 {d.desc}
               </p>
             </div>
