@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Download } from "lucide-react";
 import IdeaInput from "./IdeaInput";
 import IdeaBrief from "./IdeaBrief";
 import FollowUpQuestions from "./FollowUpQuestions";
-import FinalReport from "./FinalReport";
+import FinalReport, { generateStructuredPDF, computeScores } from "./FinalReport";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -39,6 +40,32 @@ const SimulatorShell = () => {
   const [logoImage, setLogoImage] = useState<string | null>(null);
   const [unlocked, setUnlocked] = useState(false);
   const [unlockEmail, setUnlockEmail] = useState("");
+  const [lovablePrompt, setLovablePrompt] = useState<string | null>(null);
+  const [sessionId] = useState(() => crypto.randomUUID());
+
+  // Auto-save session on every round completion (even without email)
+  useEffect(() => {
+    if (rounds.length === 0) return;
+    const saveSession = async () => {
+      try {
+        await (supabase.from as any)("simulator_captures").upsert({
+          id: sessionId,
+          email: unlockEmail || `anonymous-${sessionId.slice(0, 8)}`,
+          idea: idea.trim() || "untitled",
+          rounds: rounds.map((r) => ({
+            brief: r.brief,
+            questions: r.questions,
+            answers: r.answers || null,
+          })),
+          concept_image_url: conceptImage || null,
+          logo_image_url: logoImage || null,
+        }, { onConflict: "id" });
+      } catch (err) {
+        console.error("Auto-save error:", err);
+      }
+    };
+    saveSession();
+  }, [rounds, unlockEmail]);
 
   const generateImages = async (ideaText: string) => {
     try {
@@ -106,6 +133,10 @@ const SimulatorShell = () => {
         questions: data.follow_up_questions || [],
       };
 
+      if (data.lovable_prompt) {
+        setLovablePrompt(data.lovable_prompt);
+      }
+
       if (data.is_final) {
         setRounds((prev) => [...prev, newRound]);
         setPhase("final");
@@ -142,7 +173,8 @@ const SimulatorShell = () => {
     setUnlockEmail(email);
     setUnlocked(true);
     try {
-      await (supabase.from as any)("simulator_captures").insert({
+      await (supabase.from as any)("simulator_captures").upsert({
+        id: sessionId,
         email: email.trim(),
         idea: idea.trim(),
         rounds: rounds.map((r: any) => ({
@@ -152,9 +184,9 @@ const SimulatorShell = () => {
         })),
         concept_image_url: conceptImage || null,
         logo_image_url: logoImage || null,
-      });
+      }, { onConflict: "id" });
     } catch (err) {
-      console.error("Early capture error:", err);
+      console.error("Capture error:", err);
     }
     toast.success("Saved! Your full report will be unlocked at the end.");
   };
@@ -168,6 +200,15 @@ const SimulatorShell = () => {
     setLogoImage(null);
     setUnlocked(false);
     setUnlockEmail("");
+    setLovablePrompt(null);
+  };
+
+  const handleDownloadPDF = () => {
+    const latestBrief = rounds[rounds.length - 1]?.brief;
+    if (!latestBrief) return;
+    const scores = computeScores(latestBrief);
+    generateStructuredPDF(latestBrief, idea, rounds, scores, lovablePrompt);
+    toast.success("PDF downloaded!");
   };
 
   const latestRound = rounds[rounds.length - 1];
@@ -176,6 +217,23 @@ const SimulatorShell = () => {
   return (
     <div className="min-h-screen bg-background pt-20 pb-16">
       <div className="max-w-4xl mx-auto px-6">
+        {/* Persistent download button when unlocked */}
+        {unlocked && rounds.length > 0 && phase !== "input" && phase !== "analyzing" && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="fixed bottom-6 right-6 z-50"
+          >
+            <button
+              onClick={handleDownloadPDF}
+              className="flex items-center gap-2 font-mono text-xs px-4 py-2.5 rounded-sm bg-primary text-primary-foreground shadow-lg hover:opacity-90 transition-opacity"
+            >
+              <Download size={14} />
+              Download PDF
+            </button>
+          </motion.div>
+        )}
+
         {/* Round indicator */}
         {rounds.length > 0 && phase !== "input" && (
           <motion.div
@@ -281,6 +339,8 @@ const SimulatorShell = () => {
                 rounds={rounds}
                 unlocked={unlocked}
                 unlockEmail={unlockEmail}
+                lovablePrompt={lovablePrompt}
+                sessionId={sessionId}
               />
             </motion.div>
           )}

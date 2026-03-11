@@ -14,6 +14,8 @@ import {
   ImageIcon,
   ArrowLeft,
   Lock,
+  Copy,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
@@ -36,6 +38,8 @@ interface Props {
   rounds: RoundState[];
   unlocked?: boolean;
   unlockEmail?: string;
+  lovablePrompt?: string | null;
+  sessionId?: string;
 }
 
 const sectionMeta = [
@@ -54,13 +58,15 @@ const hashStr = (s: string) => {
   return Math.abs(h);
 };
 
+export const computeScores = (brief: BriefData) => [
+  { label: "Market", value: 60 + (hashStr(brief.problem) % 30) },
+  { label: "Product", value: 55 + (hashStr(JSON.stringify(brief.core_features)) % 35) },
+  { label: "Revenue", value: 60 + (hashStr(brief.revenue_model) % 30) },
+  { label: "Timing", value: 50 + (hashStr(brief.industry_trends) % 35) },
+];
+
 const TeaserScores = ({ brief }: { brief: BriefData }) => {
-  const scores = [
-    { label: "Market", value: 60 + (hashStr(brief.problem) % 30) },
-    { label: "Product", value: 55 + (hashStr(JSON.stringify(brief.core_features)) % 35) },
-    { label: "Revenue", value: 60 + (hashStr(brief.revenue_model) % 30) },
-    { label: "Timing", value: 50 + (hashStr(brief.industry_trends) % 35) },
-  ];
+  const scores = computeScores(brief);
 
   return (
     <div className="flex items-center gap-6 justify-center py-3">
@@ -102,11 +108,12 @@ const TeaserScores = ({ brief }: { brief: BriefData }) => {
 };
 
 /* ─── Structured PDF Export ─── */
-const generateStructuredPDF = (
+export const generateStructuredPDF = (
   brief: BriefData,
   idea: string,
   rounds: RoundState[],
-  scores: { label: string; value: number }[]
+  scores: { label: string; value: number }[],
+  lovablePrompt?: string | null
 ) => {
   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pw = pdf.internal.pageSize.getWidth();
@@ -168,7 +175,6 @@ const generateStructuredPDF = (
     pdf.setFontSize(10);
     pdf.setTextColor(180, 180, 200);
     pdf.text(`${s.label}:`, margin, y);
-    // Score bar
     pdf.setFillColor(40, 40, 50);
     pdf.roundedRect(margin + 25, y - 3.5, 60, 5, 2, 2, "F");
     pdf.setFillColor(120, 120, 200);
@@ -197,14 +203,12 @@ const generateStructuredPDF = (
     if (section.key === "core_features" && Array.isArray(val)) {
       (val as BriefData["core_features"]).forEach((feat, fi) => {
         ensureSpace(12);
-        // Feature strength bar
         const strength = 60 + (hashStr(feat.name + fi) % 35);
         pdf.setFontSize(10);
         pdf.setTextColor(210, 210, 225);
         pdf.text(`${fi + 1}. ${feat.name}`, margin + 2, y);
         y += 5;
         writeWrapped(feat.description, margin + 6, contentW - 6, 9, [160, 160, 175]);
-        // Strength bar
         pdf.setFillColor(40, 40, 50);
         pdf.roundedRect(margin + 6, y - 1, 50, 3, 1, 1, "F");
         pdf.setFillColor(100, 100, 180);
@@ -249,31 +253,39 @@ const generateStructuredPDF = (
     });
   }
 
+  // Lovable Prompt page (if available)
+  if (lovablePrompt) {
+    pdf.addPage();
+    addHeader();
+    y = 25;
+    pdf.setFontSize(14);
+    pdf.setTextColor(120, 120, 200);
+    pdf.text("LOVABLE PROMPT — ONE-SHOT LANDING PAGE", margin, y);
+    y += 10;
+    writeWrapped(lovablePrompt, margin, contentW, 9, [190, 190, 205]);
+  }
+
   const fileName = `VibeCo-Report-${idea.slice(0, 30).replace(/[^a-zA-Z0-9]/g, "-")}.pdf`;
   pdf.save(fileName);
 };
 
-const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, unlocked, unlockEmail }: Props) => {
+const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId }: Props) => {
   const [email, setEmail] = useState(unlockEmail || "");
   const [showReport, setShowReport] = useState(!!unlocked);
   const [isExporting, setIsExporting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [copied, setCopied] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  const scores = [
-    { label: "Market", value: 60 + (hashStr(brief.problem) % 30) },
-    { label: "Product", value: 55 + (hashStr(JSON.stringify(brief.core_features)) % 35) },
-    { label: "Revenue", value: 60 + (hashStr(brief.revenue_model) % 30) },
-    { label: "Timing", value: 50 + (hashStr(brief.industry_trends) % 35) },
-  ];
+  const scores = computeScores(brief);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.includes("@")) return;
     setIsSubmitting(true);
     try {
-      const { error } = await (supabase.from as any)("simulator_captures").insert({
+      const upsertData: Record<string, unknown> = {
         email: email.trim(),
         idea: idea.trim(),
         rounds: rounds.map((r: any) => ({
@@ -283,7 +295,10 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
         })),
         concept_image_url: conceptImage || null,
         logo_image_url: logoImage || null,
-      });
+      };
+      if (sessionId) upsertData.id = sessionId;
+
+      const { error } = await (supabase.from as any)("simulator_captures").upsert(upsertData, { onConflict: "id" });
       if (error) throw error;
       setShowReport(true);
       toast.success("You're in! Here's your full report.");
@@ -299,13 +314,25 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
   const handleDownloadPDF = () => {
     setIsExporting(true);
     try {
-      generateStructuredPDF(brief, idea, rounds, scores);
+      generateStructuredPDF(brief, idea, rounds, scores, lovablePrompt);
       toast.success("PDF downloaded!");
     } catch (err) {
       console.error("PDF export error:", err);
       toast.error("Failed to generate PDF. Try again.");
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleCopyPrompt = async () => {
+    if (!lovablePrompt) return;
+    try {
+      await navigator.clipboard.writeText(lovablePrompt);
+      setCopied(true);
+      toast.success("Prompt copied to clipboard!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Failed to copy. Try selecting the text manually.");
     }
   };
 
@@ -519,6 +546,36 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
               </div>
             </div>
           </div>
+
+          {/* Lovable Prompt — subtle, at the bottom */}
+          {lovablePrompt && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 }}
+              className="mb-8"
+            >
+              <div className="border border-border/30 rounded-lg overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/20">
+                  <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+                    One-shot prompt — paste into Lovable to build your landing page
+                  </span>
+                  <button
+                    onClick={handleCopyPrompt}
+                    className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-muted/50"
+                  >
+                    {copied ? <Check size={12} className="text-primary" /> : <Copy size={12} />}
+                    {copied ? "Copied" : "Copy"}
+                  </button>
+                </div>
+                <div className="p-4 max-h-40 overflow-y-auto">
+                  <pre className="font-mono text-[11px] text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                    {lovablePrompt}
+                  </pre>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           <div className="flex flex-wrap gap-4 justify-center">
             <button
