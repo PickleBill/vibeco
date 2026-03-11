@@ -27,10 +27,24 @@ const Footer = () => (
           ))}
         </div>
       </div>
-      <div className="mt-8 pt-6 border-t border-border">
+      <div className="mt-8 pt-6 border-t border-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <p className="font-mono text-xs text-muted-foreground">
           © {new Date().getFullYear()} VibeCo. All rights reserved.
         </p>
+        <div className="flex gap-4">
+          <a
+            href="/robots.txt"
+            className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            robots.txt
+          </a>
+          <a
+            href="/sitemap.xml"
+            className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            sitemap.xml
+          </a>
+        </div>
       </div>
     </div>
   </footer>
