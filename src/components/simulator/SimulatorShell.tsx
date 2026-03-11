@@ -174,7 +174,7 @@ const SimulatorShell = () => {
     setUnlockEmail(email);
     setUnlocked(true);
     try {
-      await supabase.from("simulator_captures").upsert({
+      await (supabase.from("simulator_captures") as any).upsert({
         id: sessionId,
         email: email.trim(),
         idea: idea.trim(),
@@ -182,9 +182,10 @@ const SimulatorShell = () => {
           brief: r.brief,
           questions: r.questions,
           answers: r.answers || null,
-        })) as unknown as import("@/integrations/supabase/types").Json,
+        })),
         concept_image_url: conceptImage || null,
         logo_image_url: logoImage || null,
+        lovable_prompt: lovablePrompt || null,
       }, { onConflict: "id" });
     } catch (err) {
       console.error("Capture error:", err);
