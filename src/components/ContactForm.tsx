@@ -45,7 +45,7 @@ const ContactForm = () => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from("contact_submissions").insert({
+      const { error } = await (supabase.from as any)("contact_submissions").insert({
         name: form.name.trim(),
         email: form.email.trim(),
         idea: form.idea.trim(),
