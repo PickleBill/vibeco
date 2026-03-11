@@ -1,4 +1,4 @@
-<!-- This site must be exported to static HTML via CI for SEO prerendering. -->
+// This site must be exported to static HTML via CI for SEO prerendering.
 import { motion } from "framer-motion";
 import FadeIn from "./FadeIn";
 
