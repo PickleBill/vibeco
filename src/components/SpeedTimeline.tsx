@@ -11,8 +11,10 @@ const eras = [
     icon: Building2,
     time: "3–5 years",
     cost: "$1M+",
+    costValue: 100,
+    timeValue: 95,
+    opportunityValue: 5,
     desc: "Entire buildings, dedicated teams, millions in hardware. Software was a luxury only corporations could afford.",
-    color: "hsl(var(--muted-foreground))",
   },
   {
     id: 1,
@@ -21,8 +23,10 @@ const eras = [
     icon: Server,
     time: "6–12 months",
     cost: "$100K+",
+    costValue: 70,
+    timeValue: 70,
+    opportunityValue: 15,
     desc: "Outsourced dev teams, six-figure budgets, on-premise servers. Startups were born but slowly.",
-    color: "hsl(var(--muted-foreground))",
   },
   {
     id: 2,
@@ -31,8 +35,10 @@ const eras = [
     icon: Cloud,
     time: "3–6 months",
     cost: "$50K+",
+    costValue: 45,
+    timeValue: 45,
+    opportunityValue: 35,
     desc: "AWS, lean methodology, seed rounds. Faster — but still required engineers and runway.",
-    color: "hsl(var(--muted-foreground))",
   },
   {
     id: 3,
@@ -41,8 +47,10 @@ const eras = [
     icon: Wand2,
     time: "Weeks–Months",
     cost: "$5K+",
+    costValue: 20,
+    timeValue: 25,
+    opportunityValue: 65,
     desc: "DIY tools democratized building, but you hit walls fast. Still limited, still slow for real products.",
-    color: "hsl(var(--muted-foreground))",
   },
   {
     id: 4,
@@ -51,27 +59,12 @@ const eras = [
     icon: Zap,
     time: "Hours",
     cost: "$0 upfront",
+    costValue: 3,
+    timeValue: 5,
+    opportunityValue: 95,
     desc: "One conversation. Live today. AI handles the stack — you bring the idea. Welcome to VibeCo.",
-    color: "hsl(var(--primary))",
   },
 ];
-
-// Generate the inverse exponential curve points
-const generateCurvePoints = (width: number, height: number, progress: number) => {
-  const points: string[] = [];
-  const steps = 100;
-  const maxX = Math.floor(steps * progress);
-
-  for (let i = 0; i <= maxX; i++) {
-    const x = (i / steps) * width;
-    // Inverse exponential: starts high, drops dramatically
-    const t = i / steps;
-    const y = height * 0.1 + height * 0.8 * Math.exp(-4 * t);
-    points.push(`${x},${y}`);
-  }
-
-  return points.length > 1 ? `M ${points.join(" L ")}` : "";
-};
 
 const SpeedTimeline = () => {
   const [activeEra, setActiveEra] = useState(0);
@@ -116,7 +109,41 @@ const SpeedTimeline = () => {
   };
 
   const progress = sliderValue / 100;
-  const svgHeight = 160;
+  const svgHeight = 200;
+  const chartPadding = { top: 20, bottom: 30, left: 0, right: 0 };
+  const chartHeight = svgHeight - chartPadding.top - chartPadding.bottom;
+  const chartWidth = svgWidth - chartPadding.left - chartPadding.right;
+
+  // Interpolate values based on slider progress
+  const getInterpolatedValue = (key: "costValue" | "timeValue" | "opportunityValue") => {
+    const idx = progress * 4;
+    const lo = Math.floor(idx);
+    const hi = Math.min(lo + 1, 4);
+    const t = idx - lo;
+    return eras[lo][key] * (1 - t) + eras[hi][key] * t;
+  };
+
+  // Generate smooth curve points for a metric
+  const generateLine = (key: "timeValue" | "opportunityValue") => {
+    const steps = 100;
+    const maxStep = Math.floor(steps * progress);
+    const points: string[] = [];
+    for (let i = 0; i <= maxStep; i++) {
+      const t = i / steps;
+      const idx = t * 4;
+      const lo = Math.floor(idx);
+      const hi = Math.min(lo + 1, 4);
+      const frac = idx - lo;
+      const val = eras[lo][key] * (1 - frac) + eras[hi][key] * frac;
+      const x = chartPadding.left + (i / steps) * chartWidth;
+      const y = chartPadding.top + chartHeight * (1 - val / 100);
+      points.push(`${x},${y}`);
+    }
+    return points.length > 1 ? `M ${points.join(" L ")}` : "";
+  };
+
+  // Cost bars — one per era, only shown up to current progress
+  const visibleEras = eras.filter((_, i) => i <= Math.floor(progress * 4 + 0.1));
 
   return (
     <section ref={sectionRef} className="py-32 border-t border-border overflow-hidden">
@@ -130,17 +157,22 @@ const SpeedTimeline = () => {
         </FadeIn>
         <FadeIn delay={0.1}>
           <p className="font-mono text-sm text-muted-foreground mb-16 max-w-lg">
-            Drag the slider to see how fast product development has become.
+            Drag the slider to see how cost collapsed and opportunity exploded.
           </p>
         </FadeIn>
 
-        {/* SVG Curve */}
+        {/* Chart */}
         <FadeIn delay={0.15}>
-          <div className="relative mb-4">
-            {/* Y-axis label */}
-            <p className="font-mono text-[10px] text-muted-foreground mb-2 uppercase tracking-widest">
-              Time to launch ↓
-            </p>
+          <div className="relative mb-2">
+            {/* Y-axis labels */}
+            <div className="flex justify-between mb-1 px-1">
+              <span className="font-mono text-[10px] text-destructive uppercase tracking-widest flex items-center gap-1">
+                Cost ↓
+              </span>
+              <span className="font-mono text-[10px] uppercase tracking-widest flex items-center gap-1" style={{ color: "hsl(142 70% 45%)" }}>
+                Opportunity ↑
+              </span>
+            </div>
             <svg
               ref={svgRef}
               viewBox={`0 0 ${svgWidth} ${svgHeight}`}
@@ -152,50 +184,105 @@ const SpeedTimeline = () => {
               {[0.25, 0.5, 0.75].map((t) => (
                 <line
                   key={t}
-                  x1={t * svgWidth}
-                  y1={0}
-                  x2={t * svgWidth}
-                  y2={svgHeight}
+                  x1={chartPadding.left + t * chartWidth}
+                  y1={chartPadding.top}
+                  x2={chartPadding.left + t * chartWidth}
+                  y2={chartPadding.top + chartHeight}
                   stroke="hsl(var(--border))"
                   strokeWidth={1}
                   strokeDasharray="4 4"
                 />
               ))}
-              {/* The curve */}
+
+              {/* Cost bars (red, declining) */}
+              {visibleEras.map((era) => {
+                const barWidth = chartWidth / 5 * 0.6;
+                const barX = chartPadding.left + (era.id / 4) * chartWidth - barWidth / 2;
+                const barH = (era.costValue / 100) * chartHeight;
+                const barY = chartPadding.top + chartHeight - barH;
+                return (
+                  <motion.rect
+                    key={`cost-${era.id}`}
+                    x={barX}
+                    y={barY}
+                    width={barWidth}
+                    height={barH}
+                    rx={3}
+                    fill="hsl(var(--destructive) / 0.25)"
+                    stroke="hsl(var(--destructive) / 0.5)"
+                    strokeWidth={1}
+                    initial={{ height: 0, y: chartPadding.top + chartHeight }}
+                    animate={{ height: barH, y: barY }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                  />
+                );
+              })}
+
+              {/* Time to market line (muted) */}
               <motion.path
-                d={generateCurvePoints(svgWidth, svgHeight, progress)}
+                d={generateLine("timeValue")}
                 fill="none"
-                stroke="hsl(var(--primary))"
-                strokeWidth={3}
+                stroke="hsl(var(--muted-foreground) / 0.5)"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeDasharray="6 4"
+              />
+
+              {/* Opportunity line (bold ascending, green) */}
+              <motion.path
+                d={generateLine("opportunityValue")}
+                fill="none"
+                stroke="hsl(142 70% 45%)"
+                strokeWidth={3.5}
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
-              {/* Glow path */}
+              {/* Opportunity glow */}
               <motion.path
-                d={generateCurvePoints(svgWidth, svgHeight, progress)}
+                d={generateLine("opportunityValue")}
                 fill="none"
-                stroke="hsl(var(--primary) / 0.3)"
-                strokeWidth={8}
+                stroke="hsl(142 70% 45% / 0.25)"
+                strokeWidth={10}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 filter="blur(4px)"
               />
-              {/* End dot */}
-              {progress > 0.05 && (
-                <motion.circle
-                  cx={progress * svgWidth}
-                  cy={
-                    svgHeight * 0.1 +
-                    svgHeight * 0.8 * Math.exp(-4 * progress)
-                  }
-                  r={6}
-                  fill="hsl(var(--primary))"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: [1, 1.3, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                />
-              )}
+
+              {/* Opportunity end dot */}
+              {progress > 0.05 && (() => {
+                const val = getInterpolatedValue("opportunityValue");
+                const cx = chartPadding.left + progress * chartWidth;
+                const cy = chartPadding.top + chartHeight * (1 - val / 100);
+                return (
+                  <motion.circle
+                    cx={cx}
+                    cy={cy}
+                    r={6}
+                    fill="hsl(142 70% 45%)"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: [1, 1.3, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  />
+                );
+              })()}
             </svg>
+          </div>
+
+          {/* Legend */}
+          <div className="flex items-center justify-center gap-6 mb-4">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: "hsl(var(--destructive) / 0.4)" }} />
+              <span className="font-mono text-[10px] text-muted-foreground">Cost</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-5 h-0.5 rounded" style={{ backgroundColor: "hsl(var(--muted-foreground) / 0.5)", borderStyle: "dashed" }} />
+              <span className="font-mono text-[10px] text-muted-foreground">Time to Market</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-5 h-1 rounded" style={{ backgroundColor: "hsl(142 70% 45%)" }} />
+              <span className="font-mono text-[10px] text-muted-foreground">Market Opportunity</span>
+            </div>
           </div>
         </FadeIn>
 
@@ -208,7 +295,7 @@ const SpeedTimeline = () => {
               max={100}
               value={sliderValue}
               onChange={handleSliderChange}
-              className="w-full h-2 rounded-full appearance-none cursor-pointer bg-muted"
+              className="timeline-slider w-full h-2 rounded-full appearance-none cursor-pointer"
               style={{
                 background: `linear-gradient(to right, hsl(var(--primary)) 0%, hsl(var(--primary)) ${sliderValue}%, hsl(var(--muted)) ${sliderValue}%, hsl(var(--muted)) 100%)`,
               }}
@@ -276,7 +363,7 @@ const SpeedTimeline = () => {
                   <span className="font-mono text-[10px] text-primary">
                     {era.time}
                   </span>
-                  <span className="font-mono text-[10px] text-muted-foreground">
+                  <span className="font-mono text-[10px] text-destructive">
                     {era.cost}
                   </span>
                 </div>

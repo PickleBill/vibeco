@@ -114,6 +114,8 @@ CRITICAL SPECIFICITY RULES — READ THE USER'S IDEA CAREFULLY:
 8. Investor Perspective: Ask questions a VC would ask about THIS specific business model.
 9. Customer Perspective: Write first-person quotes from the named persona about THIS product.
 
+IMPORTANT: Set is_final to false. This is the first round — you MUST generate follow-up questions.
+
 For follow-up questions:
 - Each question must reference the user's specific idea by name or concept.
 - Options must represent genuinely different strategic directions for THIS product.
@@ -127,15 +129,18 @@ LANGUAGE RULE: RESPOND ONLY IN ENGLISH. Every single field must be in English. N
 
 CRITICAL: Re-read the original idea and all previous rounds. Your updated analysis must:
 1. Directly reference the specific product/service from the original idea
-2. Incorporate the user's specific choices from previous rounds
-3. Evolve each section based on the direction they chose
+2. Incorporate the user's specific choices from previous rounds — mention their exact selections by name
+3. Evolve each section based on the direction they chose — the brief should be DRAMATICALLY different from Round 1
 4. Keep the same named persona but deepen their story based on choices made
+5. Every section must reflect the cumulative refinements from all previous rounds
 
 ${isLastRound ? `This is the FINAL round. Set is_final to true. Generate the most comprehensive brief possible with:
 - A concrete 90-day action plan with specific milestones
 - Specific metrics to track (CAC, LTV, churn targets)
 - Named competitors and differentiation strategy
-- The follow_up_questions array must be empty.` : `This is round ${round} of 3. Ask 3-4 NEW questions that dig deeper based on their specific choices. Reference what they chose and explore implications.`}`;
+- Revenue projections based on the pricing model they refined
+- The follow_up_questions array must be empty.
+- Your final brief must synthesize ALL the user's choices across rounds into a cohesive, actionable plan.` : `This is round ${round} of 3. Set is_final to false. Ask 3-4 NEW questions that dig deeper based on their specific choices. Reference what they chose and explore implications.`}`;
       userContent = `Full conversation history:\n\n${history}\n\nGenerate a${isLastRound ? " final comprehensive" : "n updated"} brief. Every section must reference the original idea and incorporate their choices.`;
     }
 
@@ -191,6 +196,28 @@ ${isLastRound ? `This is the FINAL round. Set is_final to true. Generate the mos
     }
 
     const result = JSON.parse(toolCall.function.arguments);
+
+    // SERVER-SIDE ENFORCEMENT: Never allow is_final on early rounds
+    if (type === "initial" || (round && round < 3)) {
+      result.is_final = false;
+      // Ensure follow-up questions exist for non-final rounds
+      if (!result.follow_up_questions || result.follow_up_questions.length === 0) {
+        result.follow_up_questions = [
+          {
+            question: "What's the most important aspect of this idea to explore next?",
+            options: [
+              { label: "Go-to-market strategy", description: "How to acquire your first 100 users" },
+              { label: "Technical feasibility", description: "What it takes to build the MVP" },
+              { label: "Competitive moat", description: "How to stay ahead of copycats" },
+            ],
+            allow_multiple: false,
+          },
+        ];
+      }
+    } else if (round && round >= 3) {
+      result.is_final = true;
+      result.follow_up_questions = [];
+    }
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
