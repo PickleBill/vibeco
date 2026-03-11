@@ -3,7 +3,6 @@ import FadeIn from "./FadeIn";
 
 const HeroMockup = () => (
   <div className="relative w-full max-w-lg mx-auto lg:mx-0">
-    {/* Browser frame */}
     <div className="bg-card border border-border rounded-lg shadow-deep overflow-hidden">
       <div className="flex items-center gap-1.5 px-4 py-3 border-b border-border">
         <div className="w-2.5 h-2.5 rounded-full bg-muted-foreground/30" />
@@ -28,22 +27,17 @@ const HeroMockup = () => (
         </div>
       </div>
     </div>
-
-    {/* Floating card */}
     <div className="absolute -bottom-6 -left-6 bg-card border border-border rounded-lg p-4 shadow-deep w-48">
       <div className="h-2 w-16 bg-primary/30 rounded-sm mb-3" />
       <div className="h-2 w-full bg-secondary rounded-sm mb-2" />
       <div className="h-2 w-3/4 bg-secondary rounded-sm" />
     </div>
-
-    {/* Accent glow */}
     <div className="absolute -top-12 -right-12 w-40 h-40 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
   </div>
 );
 
 const Hero = () => (
   <section className="relative min-h-screen flex items-center pt-16 overflow-hidden">
-    {/* Scan line bg effect */}
     <div className="absolute inset-0 pointer-events-none">
       <div className="absolute top-1/4 left-0 w-full h-px bg-border/30" />
       <div className="absolute top-2/4 left-0 w-full h-px bg-border/20" />
@@ -52,10 +46,9 @@ const Hero = () => (
 
     <div className="max-w-7xl mx-auto px-6 lg:px-12 w-full">
       <div className="grid lg:grid-cols-2 gap-16 lg:gap-12 items-center">
-        {/* Left */}
         <div>
           <FadeIn>
-            <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest mb-6">
+            <p className="font-mono text-sm text-muted-foreground uppercase tracking-widest mb-6">
               AI-native product studio
             </p>
           </FadeIn>
@@ -94,7 +87,6 @@ const Hero = () => (
           </FadeIn>
         </div>
 
-        {/* Right */}
         <FadeIn delay={0.35} className="hidden lg:block">
           <HeroMockup />
         </FadeIn>

@@ -22,7 +22,7 @@ const Model = () => (
   <section id="model" className="py-32 border-t border-border">
     <div className="max-w-7xl mx-auto px-6 lg:px-12">
       <FadeIn>
-        <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest mb-4">
+        <p className="font-mono text-sm text-muted-foreground uppercase tracking-widest mb-4">
           How the model works
         </p>
         <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-6">
@@ -41,10 +41,10 @@ const Model = () => (
                 {s.num}
               </span>
               <div className="pt-10">
-                <h3 className="font-display text-lg font-bold text-foreground mb-3">
+                <h3 className="font-display text-xl font-bold text-foreground mb-3">
                   {s.title}
                 </h3>
-                <p className="font-mono text-xs text-muted-foreground leading-relaxed">
+                <p className="font-mono text-sm text-muted-foreground leading-relaxed">
                   {s.desc}
                 </p>
               </div>
