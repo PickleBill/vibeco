@@ -5,22 +5,22 @@ const personas = [
   {
     icon: Home,
     title: "Real Estate Agent",
-    desc: "Build a client matching tool, automated follow-ups, or a neighborhood insights dashboard.",
+    desc: "Build a client matching tool, automated follow-ups, or a neighborhood insights dashboard — live by tomorrow.",
   },
   {
     icon: Scissors,
     title: "Lawn Care / Service Pro",
-    desc: "Automate scheduling, route planning, invoicing — and stop losing jobs to missed calls.",
+    desc: "Automate scheduling, route planning, invoicing — and stop losing jobs to missed calls. Built in hours.",
   },
   {
     icon: Dumbbell,
     title: "Fitness Coach",
-    desc: "Create a personalized training app, meal tracker, or client progress portal.",
+    desc: "Create a personalized training app, meal tracker, or client progress portal — your clients use it tonight.",
   },
   {
     icon: Briefcase,
     title: "Consultant / Expert",
-    desc: "Turn your methodology into a SaaS product — capture recurring revenue from your expertise.",
+    desc: "Turn your methodology into a SaaS product — capture recurring revenue from your expertise. No code needed.",
   },
 ];
 
@@ -33,14 +33,14 @@ const EverydayFounders = () => (
             Not just for tech founders
           </p>
           <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-6">
-            Not a tech founder? Even better.
+            You don't need to code. You need to care.
           </h2>
         </FadeIn>
         <FadeIn delay={0.1}>
           <p className="font-mono text-base text-foreground/80 leading-relaxed">
-            Describe your idea over coffee. See it live before lunch. Iterate by
-            end of day. That's not a pitch — it's how we actually work. You bring
-            the domain knowledge and the customers. We handle the rest, fast.
+            The best products come from people who are obsessed with a problem —
+            not people who know React. Bring the obsession. We'll handle the rest
+            in hours, not months.
           </p>
         </FadeIn>
       </div>
@@ -68,7 +68,7 @@ const EverydayFounders = () => (
         <div className="mt-12 text-center">
           <p className="font-mono text-sm text-muted-foreground mb-6">
             You don't need a pitch deck. You just need a real problem and the
-            drive to test a solution.
+            guts to test a solution.
           </p>
           <a
             href="#contact"
