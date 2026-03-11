@@ -276,10 +276,11 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds }
               />
               <button
                 type="submit"
-                className="flex items-center gap-2 bg-primary text-primary-foreground font-mono text-sm px-5 py-3 rounded-sm hover:opacity-90 transition-opacity"
+                disabled={isSubmitting}
+                className="flex items-center gap-2 bg-primary text-primary-foreground font-mono text-sm px-5 py-3 rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 <Mail size={14} />
-                Unlock
+                {isSubmitting ? "..." : "Unlock"}
               </button>
             </div>
           </form>

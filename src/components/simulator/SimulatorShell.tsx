@@ -251,6 +251,7 @@ const SimulatorShell = () => {
                 onRestart={handleRestart}
                 conceptImage={conceptImage}
                 logoImage={logoImage}
+                rounds={rounds}
               />
             </motion.div>
           )}

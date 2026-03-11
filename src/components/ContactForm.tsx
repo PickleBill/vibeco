@@ -146,9 +146,10 @@ const ContactForm = () => {
 
               <button
                 type="submit"
-                className="w-full font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 hover:glow-accent transition-all duration-300"
+                disabled={isSubmitting}
+                className="w-full font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 hover:glow-accent transition-all duration-300 disabled:opacity-50"
               >
-                Submit →
+                {isSubmitting ? "Sending..." : "Submit →"}
               </button>
             </form>
           </FadeIn>
