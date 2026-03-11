@@ -21,7 +21,7 @@ const Credibility = () => (
           </h2>
         </FadeIn>
         <FadeIn delay={0.1}>
-          <p className="font-mono text-sm text-foreground/70 leading-relaxed mb-10">
+          <p className="font-mono text-sm text-foreground/80 leading-relaxed mb-10">
             VibeCo is led by a founder-operator who has built, shipped, and iterated
             across multiple product domains. This isn't a services play — it's a
             thinking partnership for people building things that matter.
@@ -32,7 +32,7 @@ const Credibility = () => (
             <FadeIn key={i} delay={0.15 + i * 0.05}>
               <li className="flex items-start gap-3">
                 <span className="w-1 h-1 rounded-full bg-primary mt-2 shrink-0" />
-                <span className="font-mono text-sm text-foreground/60 leading-relaxed">
+                <span className="font-mono text-sm text-foreground/80 leading-relaxed">
                   {t}
                 </span>
               </li>

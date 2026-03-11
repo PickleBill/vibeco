@@ -3,14 +3,14 @@ import FadeIn from "./FadeIn";
 
 const services = [
   {
-    title: "MVP Strategy",
-    desc: "Scope the smallest version worth shipping. We identify the core wedge and strip everything else.",
-    detail: "Market sizing, competitive positioning, feature prioritization, and go-to-market planning.",
+    title: "Rapid Product Build",
+    desc: "Concept to live product in hours. AI-native execution at a pace that has to be seen to be believed.",
+    detail: "Full-stack development, responsive design, database architecture, and production deployment — all in the same session.",
   },
   {
-    title: "Rapid Product Build",
-    desc: "AI-assisted, design-forward execution. From concept to testable product in weeks, not quarters.",
-    detail: "Full-stack development, responsive design, database architecture, and deployment infrastructure.",
+    title: "MVP Strategy",
+    desc: "We scope, you describe, and we start building — often in the same conversation.",
+    detail: "Market sizing, competitive positioning, feature prioritization, and go-to-market planning baked in from minute one.",
   },
   {
     title: "Launch Infrastructure",
@@ -50,7 +50,6 @@ const Services = () => {
                 onMouseEnter={() => setHoveredIndex(i)}
                 onMouseLeave={() => setHoveredIndex(null)}
               >
-                {/* Glow orb */}
                 <div
                   className={`absolute -top-16 -right-16 w-32 h-32 rounded-full blur-3xl transition-opacity duration-500 pointer-events-none ${
                     hoveredIndex === i ? "opacity-100" : "opacity-0"
@@ -59,21 +58,18 @@ const Services = () => {
                     background: "radial-gradient(circle, hsl(243 76% 58% / 0.2), transparent)",
                   }}
                 />
-
                 <h3 className="font-display text-xl font-bold text-foreground mb-3">
                   {s.title}
                 </h3>
                 <p className="font-mono text-sm text-muted-foreground leading-relaxed">
                   {s.desc}
                 </p>
-
-                {/* Hover detail reveal */}
                 <div
                   className={`overflow-hidden transition-all duration-500 ${
                     hoveredIndex === i ? "max-h-20 opacity-100 mt-3" : "max-h-0 opacity-0 mt-0"
                   }`}
                 >
-                  <p className="font-mono text-xs text-primary/70 leading-relaxed border-t border-border pt-3">
+                  <p className="font-mono text-xs text-primary leading-relaxed border-t border-border pt-3">
                     {s.detail}
                   </p>
                 </div>

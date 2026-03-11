@@ -52,7 +52,6 @@ const Builds = () => {
                 onMouseEnter={() => setHoveredIndex(i)}
                 onMouseLeave={() => setHoveredIndex(null)}
               >
-                {/* Glow orb */}
                 <div
                   className={`absolute -top-20 -right-20 w-40 h-40 rounded-full blur-3xl transition-opacity duration-500 pointer-events-none ${
                     hoveredIndex === i ? "opacity-100" : "opacity-0"
@@ -61,7 +60,6 @@ const Builds = () => {
                     background: "radial-gradient(circle, hsl(243 76% 58% / 0.25), transparent)",
                   }}
                 />
-
                 <div className={`h-32 bg-gradient-to-br ${p.color} flex items-center justify-center`}>
                   <div className="w-3/4 bg-background/60 border border-border rounded-md p-3 shadow-deep">
                     <div className="h-2 w-1/2 bg-secondary rounded-sm mb-2" />
@@ -72,7 +70,6 @@ const Builds = () => {
                     </div>
                   </div>
                 </div>
-
                 <div className="p-6 space-y-4">
                   <div>
                     <p className="font-mono text-[10px] text-primary uppercase tracking-widest mb-2">
@@ -81,7 +78,7 @@ const Builds = () => {
                     <h3 className="font-display text-xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors">
                       {p.name}
                     </h3>
-                    <p className="font-mono text-sm text-foreground/70 leading-relaxed">
+                    <p className="font-mono text-sm text-foreground/80 leading-relaxed">
                       {p.thesis}
                     </p>
                   </div>
@@ -89,12 +86,10 @@ const Builds = () => {
                     <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
                       What we shipped
                     </p>
-                    <p className="font-mono text-sm text-foreground/70 leading-relaxed">
+                    <p className="font-mono text-sm text-foreground/80 leading-relaxed">
                       {p.built}
                     </p>
                   </div>
-
-                  {/* KPI reveal on hover */}
                   <div
                     className={`overflow-hidden transition-all duration-500 ${
                       hoveredIndex === i ? "max-h-24 opacity-100" : "max-h-0 opacity-0"
@@ -104,7 +99,7 @@ const Builds = () => {
                       <p className="font-mono text-[10px] text-primary uppercase tracking-widest mb-1">
                         Test Signal
                       </p>
-                      <p className="font-mono text-sm text-primary/80 leading-relaxed">
+                      <p className="font-mono text-sm text-primary leading-relaxed">
                         {p.kpi}
                       </p>
                     </div>

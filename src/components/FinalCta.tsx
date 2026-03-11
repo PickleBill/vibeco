@@ -9,9 +9,9 @@ const FinalCta = () => (
         </h2>
       </FadeIn>
       <FadeIn delay={0.1}>
-        <p className="font-mono text-base text-muted-foreground mb-10 max-w-md mx-auto">
-          Not every idea deserves a company. But the right idea deserves a real
-          test.
+        <p className="font-mono text-base text-foreground/80 mb-10 max-w-md mx-auto">
+          Your idea could be live by tomorrow. Not a mockup. Not a wireframe. A
+          real product.
         </p>
       </FadeIn>
       <FadeIn delay={0.15}>

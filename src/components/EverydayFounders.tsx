@@ -37,10 +37,10 @@ const EverydayFounders = () => (
           </h2>
         </FadeIn>
         <FadeIn delay={0.1}>
-          <p className="font-mono text-base text-foreground/70 leading-relaxed">
-            The best software ideas come from people deep in an industry who see
-            broken workflows every day. You bring the domain knowledge and the
-            customers — we handle the tech and explore what's possible. Fast.
+          <p className="font-mono text-base text-foreground/80 leading-relaxed">
+            Describe your idea over coffee. See it live before lunch. Iterate by
+            end of day. That's not a pitch — it's how we actually work. You bring
+            the domain knowledge and the customers. We handle the rest, fast.
           </p>
         </FadeIn>
       </div>
