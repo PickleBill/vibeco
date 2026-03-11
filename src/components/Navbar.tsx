@@ -75,20 +75,20 @@ const Navbar = () => {
             </button>
           ))}
 
-          {/* Simulator pill */}
+          {/* Simulator CTA */}
           <a
             href="/simulate"
             onClick={(e) => { e.preventDefault(); navigate("/simulate"); }}
-            className="relative group font-mono text-xs px-4 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/40 hover:bg-primary/20 transition-all duration-300 flex items-center gap-1.5"
+            className="relative font-mono text-sm font-bold px-5 py-2.5 rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-all duration-300 flex items-center gap-2"
           >
             <motion.div
-              className="absolute inset-0 rounded-full pointer-events-none"
-              style={{ boxShadow: "0 0 16px hsl(var(--primary) / 0.3)" }}
-              animate={{ opacity: [0.3, 0.7, 0.3] }}
+              className="absolute inset-0 rounded-md pointer-events-none"
+              style={{ boxShadow: "0 0 24px hsl(var(--primary) / 0.4)" }}
+              animate={{ opacity: [0.4, 0.8, 0.4] }}
               transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
             />
-            <Sparkles size={12} />
-            Simulator
+            <Sparkles size={14} />
+            Simulate Your Idea
           </a>
 
           {/* Auth */}

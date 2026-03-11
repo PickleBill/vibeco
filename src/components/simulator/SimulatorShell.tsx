@@ -327,6 +327,7 @@ const SimulatorShell = () => {
               <FollowUpQuestions
                 questions={latestRound.questions}
                 onSubmit={handleAnswersSubmit}
+                onSkipToFinal={handleSkipToFinal}
                 isLoading={isLoading}
                 round={currentRound}
               />
