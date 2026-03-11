@@ -65,7 +65,7 @@ const Hero = () => (
             </h1>
           </FadeIn>
           <FadeIn delay={0.2}>
-            <p className="font-mono text-sm text-foreground/80 leading-relaxed mb-4 max-w-lg">
+            <p className="font-mono text-base text-foreground/80 leading-relaxed mb-4 max-w-lg">
               We build sharp, testable AI products for founders who need real market
               feedback fast — not six months from now.
             </p>
