@@ -7,6 +7,7 @@ import Index from "./pages/Index.tsx";
 import Simulate from "./pages/Simulate.tsx";
 import Auth from "./pages/Auth.tsx";
 import Report from "./pages/Report.tsx";
+import MySimulations from "./pages/MySimulations.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
