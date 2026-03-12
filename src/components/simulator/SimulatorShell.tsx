@@ -131,6 +131,17 @@ const SimulatorShell = () => {
         });
       }
     }
+
+    // Inject highlights so the AI prioritizes these in the lovable_prompt
+    if (highlights.size > 0) {
+      history += `\n--- USER HIGHLIGHTS (these areas resonated most — prioritize them in the lovable_prompt and deeper analysis) ---\n`;
+      highlights.forEach((key) => {
+        const label = sectionLabels[key] || key;
+        history += `✦ ${label}\n`;
+      });
+      history += `\n`;
+    }
+
     return history;
   };
 
