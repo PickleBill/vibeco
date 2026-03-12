@@ -170,6 +170,30 @@ const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, roun
                     </motion.button>
                   );
                 })}
+
+                {/* Key insight toggle for this question */}
+                {onToggleHighlight && (answers[qi]?.selected?.length || 0) > 0 && (
+                  (() => {
+                    const highlightKey = `q${qi}-round${round}`;
+                    const isHighlighted = highlights?.has(highlightKey);
+                    return (
+                      <motion.button
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        type="button"
+                        onClick={() => onToggleHighlight(highlightKey)}
+                        className={`col-span-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-mono text-[10px] transition-all duration-200 border ${
+                          isHighlighted
+                            ? "bg-primary/15 border-primary/40 text-primary"
+                            : "bg-muted/20 border-border/30 text-muted-foreground/50 hover:text-primary hover:border-primary/25"
+                        }`}
+                      >
+                        <Sparkles size={10} className={isHighlighted ? "fill-primary" : ""} />
+                        {isHighlighted ? "✦ Key insight" : "✦ This is key"}
+                      </motion.button>
+                    );
+                  })()
+                )}
               </div>
 
               <div className="ml-9 mt-3">
