@@ -574,6 +574,12 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
                           <h4 className="font-display text-xs font-bold text-foreground uppercase tracking-wide">
                             {section.label}
                           </h4>
+                          {highlights?.has(section.key) && (
+                            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/15 border border-primary/30 font-mono text-[8px] text-primary">
+                              <Sparkles size={8} className="fill-primary" />
+                              Highlighted
+                            </span>
+                          )}
                         </div>
                         {section.key === "core_features" && Array.isArray(value) ? (
                           <div className="grid gap-1.5 ml-5">
