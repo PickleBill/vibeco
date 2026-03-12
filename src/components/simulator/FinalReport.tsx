@@ -40,6 +40,9 @@ interface Props {
   unlockEmail?: string;
   lovablePrompt?: string | null;
   sessionId?: string;
+  landingPageHtml?: string | null;
+  onGenerateLandingPage?: () => Promise<void>;
+  isGeneratingLandingPage?: boolean;
 }
 
 const sectionMeta = [
