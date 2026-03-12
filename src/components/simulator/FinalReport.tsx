@@ -340,12 +340,12 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
       });
     }
 
-    try {
-      await navigator.clipboard.writeText(textToCopy);
+    const ok = await copyToClipboard(textToCopy);
+    if (ok) {
       setCopied(true);
       toast.success("Prompt copied!");
       setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } else {
       toast.error("Failed to copy.");
     }
   };
