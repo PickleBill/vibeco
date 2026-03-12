@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Sparkles, User } from "lucide-react";
+import { Menu, X, Sparkles, User, History } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -93,13 +93,23 @@ const Navbar = () => {
 
           {/* Auth */}
           {user ? (
-            <button
-              onClick={handleSignOut}
-              className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
-            >
-              <User size={12} />
-              Sign Out
-            </button>
+            <>
+              <a
+                href="/my-simulations"
+                onClick={(e) => { e.preventDefault(); navigate("/my-simulations"); }}
+                className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+              >
+                <History size={12} />
+                My Simulations
+              </a>
+              <button
+                onClick={handleSignOut}
+                className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+              >
+                <User size={12} />
+                Sign Out
+              </button>
+            </>
           ) : (
             <a
               href="/auth"
@@ -150,12 +160,22 @@ const Navbar = () => {
               AI Idea Simulator
             </a>
             {user ? (
-              <button
-                onClick={() => { handleSignOut(); setMobileOpen(false); }}
-                className="block py-3 font-mono text-sm text-muted-foreground hover:text-foreground w-full text-left"
-              >
-                Sign Out
-              </button>
+              <>
+                <a
+                  href="/my-simulations"
+                  onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/my-simulations"); }}
+                  className="flex items-center gap-2 py-3 font-mono text-sm text-muted-foreground hover:text-foreground"
+                >
+                  <History size={13} />
+                  My Simulations
+                </a>
+                <button
+                  onClick={() => { handleSignOut(); setMobileOpen(false); }}
+                  className="block py-3 font-mono text-sm text-muted-foreground hover:text-foreground w-full text-left"
+                >
+                  Sign Out
+                </button>
+              </>
             ) : (
               <a
                 href="/auth"
