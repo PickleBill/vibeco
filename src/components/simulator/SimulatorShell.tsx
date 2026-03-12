@@ -416,6 +416,7 @@ const SimulatorShell = () => {
                 lovablePrompt={lovablePrompt}
                 sessionId={sessionId}
                 highlights={highlights}
+                reportId={reportId}
               />
             </motion.div>
           )}

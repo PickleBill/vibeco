@@ -41,6 +41,42 @@ export type Database = {
         }
         Relationships: []
       }
+      idea_reports: {
+        Row: {
+          brief: Json
+          concept_image_url: string | null
+          created_at: string
+          highlights: string[] | null
+          id: string
+          idea: string
+          logo_image_url: string | null
+          lovable_prompt: string | null
+          rounds: Json
+        }
+        Insert: {
+          brief: Json
+          concept_image_url?: string | null
+          created_at?: string
+          highlights?: string[] | null
+          id?: string
+          idea: string
+          logo_image_url?: string | null
+          lovable_prompt?: string | null
+          rounds?: Json
+        }
+        Update: {
+          brief?: Json
+          concept_image_url?: string | null
+          created_at?: string
+          highlights?: string[] | null
+          id?: string
+          idea?: string
+          logo_image_url?: string | null
+          lovable_prompt?: string | null
+          rounds?: Json
+        }
+        Relationships: []
+      }
       simulator_captures: {
         Row: {
           concept_image_url: string | null
