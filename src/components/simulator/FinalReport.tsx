@@ -14,13 +14,11 @@ import {
   Download,
   ImageIcon,
   ArrowLeft,
-  Lock,
   Copy,
   Check,
   ChevronDown,
   Loader2,
   Sparkles,
-  ExternalLink,
   Share2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -47,6 +45,7 @@ interface Props {
   lovablePrompt?: string | null;
   sessionId?: string;
   highlights?: Set<string>;
+  onToggleHighlight?: (key: string) => void;
   reportId?: string | null;
 }
 
@@ -72,48 +71,6 @@ export const computeScores = (brief: BriefData) => [
   { label: "Revenue", value: 60 + (hashStr(brief.revenue_model) % 30) },
   { label: "Timing", value: 50 + (hashStr(brief.industry_trends) % 35) },
 ];
-
-const TeaserScores = ({ brief }: { brief: BriefData }) => {
-  const scores = computeScores(brief);
-
-  return (
-    <div className="flex items-center gap-6 justify-center py-3">
-      {scores.map((s, i) => (
-        <motion.div
-          key={s.label}
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.3 + i * 0.1 }}
-          className="flex flex-col items-center gap-1"
-        >
-          <div className="relative w-10 h-10">
-            <svg viewBox="0 0 36 36" className="w-10 h-10 -rotate-90">
-              <path
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                fill="none"
-                stroke="hsl(var(--muted))"
-                strokeWidth="2.5"
-              />
-              <motion.path
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                fill="none"
-                stroke="hsl(var(--primary))"
-                strokeWidth="2.5"
-                initial={{ strokeDasharray: "0, 100" }}
-                animate={{ strokeDasharray: `${s.value}, 100` }}
-                transition={{ delay: 0.5 + i * 0.15, duration: 0.8 }}
-              />
-            </svg>
-            <span className="absolute inset-0 flex items-center justify-center font-mono text-[9px] font-bold text-foreground">
-              {s.value}
-            </span>
-          </div>
-          <span className="font-mono text-[8px] text-muted-foreground">{s.label}</span>
-        </motion.div>
-      ))}
-    </div>
-  );
-};
 
 /* ─── Structured PDF Export ─── */
 export const generateStructuredPDF = (
@@ -273,9 +230,9 @@ export const generateStructuredPDF = (
   pdf.save(fileName);
 };
 
-const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights, reportId }: Props) => {
+const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights, onToggleHighlight, reportId }: Props) => {
   const [email, setEmail] = useState(unlockEmail || "");
-  const [showReport, setShowReport] = useState(!!unlocked);
+  const [showPrompt, setShowPrompt] = useState(!!unlocked);
   const [isExporting, setIsExporting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -289,18 +246,13 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
   const scores = computeScores(brief);
 
   const handleDeepDive = async (sectionKey: string) => {
-    // Toggle off if already expanded
     if (expandedSection === sectionKey) {
       setExpandedSection(null);
       return;
     }
-
     setExpandedSection(sectionKey);
-
-    // If already loaded, just show it
     if (deepDiveContent[sectionKey]) return;
 
-    // Fetch deep dive
     setDeepDiveLoading(sectionKey);
     try {
       const sectionLabel = sectionMeta.find((s) => s.key === sectionKey)?.label || sectionKey;
@@ -313,10 +265,8 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
           idea,
         },
       });
-
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-
       setDeepDiveContent((prev) => ({
         ...prev,
         [sectionKey]: data.deep_dive || "No additional analysis available.",
@@ -350,12 +300,12 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
 
       const { error } = await (supabase.from as any)("simulator_captures").upsert(upsertData, { onConflict: "id" });
       if (error) throw error;
-      setShowReport(true);
-      toast.success("You're in! Here's your full report.");
+      setShowPrompt(true);
+      toast.success("Saved! Your prompt and sharing tools are unlocked.");
     } catch (err) {
       console.error("Simulator capture error:", err);
-      setShowReport(true);
-      toast.success("Here's your full report.");
+      setShowPrompt(true);
+      toast.success("Unlocked!");
     } finally {
       setIsSubmitting(false);
     }
@@ -374,15 +324,44 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
     }
   };
 
-  const handleCopyPrompt = async () => {
+  const handleCopyPromptWithHighlights = async () => {
     if (!lovablePrompt) return;
+    let textToCopy = lovablePrompt;
+
+    if (highlights && highlights.size > 0) {
+      textToCopy += "\n\n---\n\n## Areas that resonate most with me:\n";
+      highlights.forEach((key) => {
+        const section = sectionMeta.find((s) => s.key === key);
+        if (!section) return;
+        const value = brief[section.key as keyof BriefData];
+        const text = typeof value === "string" ? value : (value as BriefData["core_features"]).map((f) => `${f.name}: ${f.description}`).join("\n");
+        textToCopy += `\n### ${section.label}\n${text}\n`;
+      });
+    }
+
     try {
-      await navigator.clipboard.writeText(lovablePrompt);
+      await navigator.clipboard.writeText(textToCopy);
       setCopied(true);
-      toast.success("Prompt copied to clipboard!");
+      toast.success("Prompt copied!");
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error("Failed to copy. Try selecting the text manually.");
+      toast.error("Failed to copy.");
+    }
+  };
+
+  const handleShareReport = async () => {
+    if (!reportId) {
+      toast.error("Report is still saving. Try again in a moment.");
+      return;
+    }
+    const shareUrl = `${window.location.origin}/report/${reportId}`;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setShareCopied(true);
+      toast.success("Share link copied!");
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      toast.error("Failed to copy link.");
     }
   };
 
@@ -391,7 +370,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-10"
+        className="text-center mb-8"
       >
         <p className="font-mono text-sm text-primary uppercase tracking-widest mb-3">
           Simulation Complete
@@ -399,397 +378,317 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
         <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-3">
           Your Breakout Idea
         </h2>
-        <p className="font-mono text-xs text-muted-foreground max-w-md mx-auto">
+        <p className="font-mono text-sm text-muted-foreground max-w-md mx-auto">
           Three rounds of refinement distilled into one actionable summary.
         </p>
       </motion.div>
 
-      {!showReport ? (
+      {/* Email banner at top — always visible until submitted */}
+      {!showPrompt && (
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="max-w-lg mx-auto"
+          className="mb-8 p-4 rounded-lg border border-primary/30 bg-primary/5"
+          style={{ boxShadow: "0 0 24px hsl(var(--primary) / 0.08)" }}
         >
-          {/* Visual teaser */}
-          <div className="mb-6 rounded-lg overflow-hidden border border-primary/20 relative"
-            style={{ boxShadow: "0 0 30px hsl(var(--primary) / 0.1)" }}
-          >
-            {conceptImage && (
-              <img
-                src={conceptImage}
-                alt="AI concept visualization"
-                className="w-full h-36 object-cover"
-                style={{ filter: "blur(6px) brightness(0.7)" }}
-              />
-            )}
-            <div className={`${conceptImage ? "" : "pt-4"} px-5 pb-4 bg-card/80 backdrop-blur-sm`}>
-              <TeaserScores brief={brief} />
-              <div className="mt-3 space-y-2 relative">
-                {sectionMeta.slice(0, 3).map((section) => {
-                  const Icon = section.icon;
-                  const val = brief[section.key as keyof BriefData];
-                  const text = typeof val === "string" ? val : JSON.stringify(val);
-                  return (
-                    <div key={section.key} className="flex items-start gap-2">
-                      <Icon size={12} className="text-primary mt-0.5 shrink-0" />
-                      <p className="font-mono text-xs text-foreground/60 leading-relaxed truncate">
-                        <span className="font-bold text-foreground/80">{section.label}:</span>{" "}
-                        {text.slice(0, 60)}…
-                      </p>
-                    </div>
-                  );
-                })}
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-card/80 pointer-events-none" />
-              </div>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex-1">
+              <p className="font-display text-sm font-bold text-foreground">Save your report & unlock the prompt</p>
+              <p className="font-mono text-xs text-muted-foreground mt-0.5">
+                Get your shareable link, PDF download, and one-shot Lovable prompt.
+              </p>
             </div>
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/80 backdrop-blur-sm border border-primary/30">
-                <Lock size={12} className="text-primary" />
-                <span className="font-mono text-[10px] text-primary font-bold uppercase tracking-wider">
-                  Full Report Inside
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-5 rounded-lg bg-card/60 backdrop-blur-sm border border-primary/30 mb-5"
-            style={{ boxShadow: "0 0 30px hsl(var(--primary) / 0.1)" }}
-          >
-            <p className="font-mono text-sm text-foreground/80 leading-relaxed">
-              <span className="text-primary font-bold">"{idea.slice(0, 80)}{idea.length > 80 ? "…" : ""}"</span>
-              <br /><br />
-              We've analyzed your idea across 7 dimensions and refined it through strategic questioning.
-              Enter your email to unlock the full report.
-            </p>
-          </div>
-
-          <form onSubmit={handleEmailSubmit}>
-            <div className="flex gap-2">
+            <form onSubmit={handleEmailSubmit} className="flex gap-2 w-full sm:w-auto">
               <input
                 type="email"
                 placeholder="your@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 px-4 py-3 rounded-sm bg-card/40 border border-border/50 font-mono text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
+                className="flex-1 sm:w-52 px-3 py-2 rounded-sm bg-background border border-border font-mono text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
               />
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex items-center gap-2 bg-primary text-primary-foreground font-mono text-sm px-5 py-3 rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="flex items-center gap-2 bg-primary text-primary-foreground font-mono text-sm px-4 py-2 rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50 whitespace-nowrap"
               >
                 <Mail size={14} />
                 {isSubmitting ? "..." : "Unlock"}
               </button>
-            </div>
-          </form>
-
-          <div className="mt-5 text-center">
-            <button
-              onClick={() => navigate("/#contact")}
-              className="font-mono text-xs text-primary hover:underline"
-            >
-              Or talk to us about building this →
-            </button>
+            </form>
           </div>
         </motion.div>
-      ) : (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          <div className="flex justify-end mb-4">
+      )}
+
+      {/* Full report — always visible */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+      >
+        {/* Action buttons */}
+        {showPrompt && (
+          <div className="flex flex-wrap gap-2 justify-end mb-4">
             <button
               onClick={handleDownloadPDF}
               disabled={isExporting}
               className="flex items-center gap-2 font-mono text-xs px-4 py-2 rounded-sm border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors disabled:opacity-50"
             >
               <Download size={14} />
-              {isExporting ? "Generating PDF..." : "Download PDF"}
+              {isExporting ? "Generating..." : "Download PDF"}
+            </button>
+            <button
+              onClick={handleShareReport}
+              className="flex items-center gap-2 font-mono text-xs px-4 py-2 rounded-sm border border-primary/40 text-primary hover:bg-primary/10 transition-colors"
+            >
+              {shareCopied ? <Check size={14} /> : <Share2 size={14} />}
+              {shareCopied ? "Link Copied!" : "Share Report"}
             </button>
           </div>
+        )}
 
-          <div ref={reportRef}>
-            <div className="text-center mb-6 p-6">
-              {logoImage && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="mb-4 flex justify-center"
+        <div ref={reportRef}>
+          <div className="text-center mb-6 p-6">
+            {logoImage && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mb-4 flex justify-center"
+              >
+                <div className="w-20 h-20 rounded-2xl overflow-hidden border border-primary/20 bg-card/60"
+                  style={{ boxShadow: "0 0 20px hsl(var(--primary) / 0.15)" }}
                 >
-                  <div className="w-20 h-20 rounded-2xl overflow-hidden border border-primary/20 bg-card/60"
-                    style={{ boxShadow: "0 0 20px hsl(var(--primary) / 0.15)" }}
-                  >
-                    <img
-                      src={logoImage}
-                      alt="AI-generated product mark"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </motion.div>
-              )}
-              <p className="font-mono text-[10px] text-primary uppercase tracking-widest mb-1">VibeCo AI Report</p>
-              <h3 className="font-display text-xl font-bold text-foreground">
-                {idea.slice(0, 60)}{idea.length > 60 ? "..." : ""}
-              </h3>
-            </div>
+                  <img src={logoImage} alt="AI-generated product mark" className="w-full h-full object-cover" />
+                </div>
+              </motion.div>
+            )}
+            <p className="font-mono text-xs text-primary uppercase tracking-widest mb-1">VibeCo AI Report</p>
+            <h3 className="font-display text-xl font-bold text-foreground">
+              {idea.slice(0, 60)}{idea.length > 60 ? "..." : ""}
+            </h3>
+          </div>
 
-            {conceptImage && (
-              <div className="mb-6 rounded-lg overflow-hidden border border-border/30">
-                <div className="relative">
-                  <img
-                    src={conceptImage}
-                    alt="Product concept"
-                    className="w-full h-48 sm:h-64 object-cover"
-                  />
-                  <div className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-1 rounded bg-background/80 backdrop-blur-sm">
-                    <ImageIcon size={10} className="text-primary" />
-                    <span className="font-mono text-[9px] text-muted-foreground">Product Vision</span>
-                  </div>
+          {conceptImage && (
+            <div className="mb-6 rounded-lg overflow-hidden border border-border/30">
+              <div className="relative">
+                <img src={conceptImage} alt="Product concept" className="w-full h-48 sm:h-64 object-cover" />
+                <div className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-1 rounded bg-background/80 backdrop-blur-sm">
+                  <ImageIcon size={10} className="text-primary" />
+                  <span className="font-mono text-[10px] text-muted-foreground">Product Vision</span>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            <div
-              className="p-px rounded-lg mb-8"
-              style={{
-                background: "linear-gradient(135deg, hsl(var(--primary) / 0.4), hsl(var(--accent) / 0.2))",
-              }}
-            >
-              <div className="p-8 rounded-lg bg-background">
-                <div className="grid gap-6">
-                  {sectionMeta.map((section, i) => {
-                    const Icon = section.icon;
-                    const value = brief[section.key as keyof BriefData];
-                    const isExpanded = expandedSection === section.key;
-                    const isLoadingThis = deepDiveLoading === section.key;
-                    const hasContent = !!deepDiveContent[section.key];
+          <div
+            className="p-px rounded-lg mb-8"
+            style={{
+              background: "linear-gradient(135deg, hsl(var(--primary) / 0.4), hsl(var(--accent) / 0.2))",
+            }}
+          >
+            <div className="p-6 sm:p-8 rounded-lg bg-background">
+              <div className="grid gap-6">
+                {sectionMeta.map((section, i) => {
+                  const Icon = section.icon;
+                  const value = brief[section.key as keyof BriefData];
+                  const isExpanded = expandedSection === section.key;
+                  const isLoadingThis = deepDiveLoading === section.key;
+                  const hasContent = !!deepDiveContent[section.key];
+                  const isHighlighted = highlights?.has(section.key);
 
-                    return (
-                      <motion.div
-                        key={section.key}
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 + i * 0.06 }}
-                      >
-                        <div className="flex items-center gap-2 mb-2">
-                          <Icon size={14} className="text-primary" />
-                          <h4 className="font-display text-xs font-bold text-foreground uppercase tracking-wide">
-                            {section.label}
-                          </h4>
-                          {highlights?.has(section.key) && (
-                            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/15 border border-primary/30 font-mono text-[8px] text-primary">
-                              <Sparkles size={8} className="fill-primary" />
-                              Highlighted
-                            </span>
-                          )}
-                        </div>
-                        {section.key === "core_features" && Array.isArray(value) ? (
-                          <div className="grid gap-1.5 ml-5">
-                            {(value as BriefData["core_features"]).map((feat, fi) => (
-                              <p key={fi} className="font-mono text-sm text-foreground/80">
-                                <span className="text-primary font-bold">{fi + 1}.</span>{" "}
-                                <span className="font-semibold">{feat.name}</span> — {feat.description}
-                              </p>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="font-mono text-sm text-foreground/80 leading-relaxed ml-5">
-                            {value as string}
-                          </p>
-                        )}
-
-                        {/* Deep Dive button */}
-                        <div className="flex justify-end mt-2">
+                  return (
+                    <motion.div
+                      key={section.key}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 + i * 0.06 }}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <Icon size={14} className="text-primary" />
+                        <h4 className="font-display text-sm font-bold text-foreground uppercase tracking-wide">
+                          {section.label}
+                        </h4>
+                        {/* Interactive highlight toggle */}
+                        {onToggleHighlight && (
                           <button
-                            onClick={() => handleDeepDive(section.key)}
-                            disabled={isLoadingThis}
-                            className={`flex items-center gap-1.5 font-mono text-[10px] transition-colors px-2 py-1 rounded disabled:opacity-50 ${
-                              highlights?.has(section.key)
-                                ? "text-primary hover:bg-primary/10 font-semibold"
-                                : "text-muted-foreground hover:text-primary hover:bg-muted/30"
+                            onClick={() => onToggleHighlight(section.key)}
+                            className={`flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-[10px] transition-all ${
+                              isHighlighted
+                                ? "bg-primary/20 border border-primary/40 text-primary"
+                                : "border border-border/50 text-muted-foreground hover:border-primary/30 hover:text-primary/80"
                             }`}
                           >
-                            {isLoadingThis ? (
-                              <Loader2 size={10} className="animate-spin" />
-                            ) : (
-                              <ChevronDown
-                                size={10}
-                                className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
-                              />
-                            )}
-                            {isLoadingThis
-                              ? "Analyzing..."
-                              : isExpanded
-                              ? "Collapse"
-                              : highlights?.has(section.key)
-                              ? "Deep dive ✦"
-                              : "Deep dive"}
+                            <Sparkles size={10} className={isHighlighted ? "fill-primary" : ""} />
+                            {isHighlighted ? "Resonates" : "This resonates"}
                           </button>
+                        )}
+                      </div>
+                      {section.key === "core_features" && Array.isArray(value) ? (
+                        <div className="grid gap-2 ml-5">
+                          {(value as BriefData["core_features"]).map((feat, fi) => (
+                            <p key={fi} className="font-mono text-base text-foreground/90 leading-relaxed">
+                              <span className="text-primary font-bold">{fi + 1}.</span>{" "}
+                              <span className="font-semibold">{feat.name}</span> — {feat.description}
+                            </p>
+                          ))}
                         </div>
+                      ) : (
+                        <p className="font-mono text-base text-foreground/90 leading-relaxed ml-5">
+                          {value as string}
+                        </p>
+                      )}
 
-                        {/* Deep Dive content */}
-                        <AnimatePresence>
-                          {isExpanded && (isLoadingThis || hasContent) && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: "auto" }}
-                              exit={{ opacity: 0, height: 0 }}
-                              transition={{ duration: 0.25 }}
-                              className="overflow-hidden"
-                            >
-                              <div className="mt-3 ml-5 pl-4 border-l-2 border-primary/30">
-                                {isLoadingThis && !hasContent ? (
-                                  <div className="space-y-2 py-2">
-                                    {[1, 2, 3, 4].map((n) => (
-                                      <div
-                                        key={n}
-                                        className="h-3 rounded bg-muted animate-pulse"
-                                        style={{ width: `${60 + n * 8}%` }}
-                                      />
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <div className="prose prose-sm prose-invert max-w-none py-2">
-                                    <ReactMarkdown
-                                      components={{
-                                        p: ({ children }) => (
-                                          <p className="font-mono text-xs text-foreground/70 leading-relaxed mb-2">
-                                            {children}
-                                          </p>
-                                        ),
-                                        ul: ({ children }) => (
-                                          <ul className="space-y-1.5 mb-2">{children}</ul>
-                                        ),
-                                        li: ({ children }) => (
-                                          <li className="font-mono text-xs text-foreground/70 leading-relaxed flex gap-2">
-                                            <span className="text-primary mt-0.5 shrink-0">•</span>
-                                            <span>{children}</span>
-                                          </li>
-                                        ),
-                                        strong: ({ children }) => (
-                                          <strong className="text-foreground/90 font-semibold">
-                                            {children}
-                                          </strong>
-                                        ),
-                                      }}
-                                    >
-                                      {deepDiveContent[section.key]}
-                                    </ReactMarkdown>
-                                  </div>
-                                )}
-                              </div>
-                            </motion.div>
+                      {/* Deep Dive button */}
+                      <div className="flex justify-end mt-2">
+                        <button
+                          onClick={() => handleDeepDive(section.key)}
+                          disabled={isLoadingThis}
+                          className={`flex items-center gap-1.5 font-mono text-xs transition-colors px-2 py-1 rounded disabled:opacity-50 ${
+                            isHighlighted
+                              ? "text-primary hover:bg-primary/10 font-semibold"
+                              : "text-muted-foreground hover:text-primary hover:bg-muted/30"
+                          }`}
+                        >
+                          {isLoadingThis ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <ChevronDown
+                              size={12}
+                              className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                            />
                           )}
-                        </AnimatePresence>
-                      </motion.div>
-                    );
-                  })}
-                </div>
+                          {isLoadingThis
+                            ? "Analyzing..."
+                            : isExpanded
+                            ? "Collapse"
+                            : isHighlighted
+                            ? "Deep dive ✦"
+                            : "Deep dive"}
+                        </button>
+                      </div>
+
+                      {/* Deep Dive content */}
+                      <AnimatePresence>
+                        {isExpanded && (isLoadingThis || hasContent) && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.25 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="mt-3 ml-5 pl-4 border-l-2 border-primary/30">
+                              {isLoadingThis && !hasContent ? (
+                                <div className="space-y-2 py-2">
+                                  {[1, 2, 3, 4].map((n) => (
+                                    <div
+                                      key={n}
+                                      className="h-3 rounded bg-muted animate-pulse"
+                                      style={{ width: `${60 + n * 8}%` }}
+                                    />
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="prose prose-sm prose-invert max-w-none py-2">
+                                  <ReactMarkdown
+                                    components={{
+                                      p: ({ children }) => (
+                                        <p className="font-mono text-sm text-foreground/80 leading-relaxed mb-2">
+                                          {children}
+                                        </p>
+                                      ),
+                                      ul: ({ children }) => (
+                                        <ul className="space-y-1.5 mb-2">{children}</ul>
+                                      ),
+                                      li: ({ children }) => (
+                                        <li className="font-mono text-sm text-foreground/80 leading-relaxed flex gap-2">
+                                          <span className="text-primary mt-0.5 shrink-0">•</span>
+                                          <span>{children}</span>
+                                        </li>
+                                      ),
+                                      strong: ({ children }) => (
+                                        <strong className="text-foreground font-semibold">
+                                          {children}
+                                        </strong>
+                                      ),
+                                    }}
+                                  >
+                                    {deepDiveContent[section.key]}
+                                  </ReactMarkdown>
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  );
+                })}
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Lovable Prompt — subtle, at the bottom */}
-          {lovablePrompt && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
-              className="mb-8"
-            >
-              {highlights && highlights.size > 0 && (
-                <div className="flex items-center gap-2 mb-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20">
-                  <Sparkles size={12} className="text-primary fill-primary" />
-                  <span className="font-mono text-[10px] text-primary">
-                    Personalized based on {highlights.size} area{highlights.size > 1 ? "s" : ""} you highlighted
-                  </span>
-                </div>
-              )}
-              <div className="border border-border/30 rounded-lg overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/20">
-                  <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
-                    One-shot prompt — paste into Lovable to build your landing page
-                  </span>
-                  <button
-                    onClick={handleCopyPrompt}
-                    className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-muted/50"
-                  >
-                    {copied ? <Check size={12} className="text-primary" /> : <Copy size={12} />}
-                    {copied ? "Copied" : "Copy"}
-                  </button>
-                </div>
-                <div className="p-4 max-h-40 overflow-y-auto">
-                  <pre className="font-mono text-[11px] text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                    {lovablePrompt}
-                  </pre>
-                </div>
+        {/* Lovable Prompt — visible after email unlock */}
+        {showPrompt && lovablePrompt && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="mb-8"
+          >
+            {highlights && highlights.size > 0 && (
+              <div className="flex items-center gap-2 mb-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20">
+                <Sparkles size={12} className="text-primary fill-primary" />
+                <span className="font-mono text-xs text-primary">
+                  Personalized based on {highlights.size} area{highlights.size > 1 ? "s" : ""} you highlighted
+                </span>
               </div>
-            </motion.div>
-          )}
-
-          {/* Primary CTAs */}
-          {lovablePrompt && (
-            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
-              <button
-                onClick={() => {
-                  const url = `https://lovable.dev/projects/create#prompt=${encodeURIComponent(lovablePrompt)}`;
-                  window.open(url, "_blank");
-                }}
-                className="flex items-center justify-center gap-2 font-mono text-sm bg-primary text-primary-foreground px-6 py-3.5 rounded-sm hover:opacity-90 transition-opacity"
-                style={{ boxShadow: "0 0 20px hsl(var(--primary) / 0.3)" }}
-              >
-                <Sparkles size={16} />
-                Build My Site in Lovable
-                <ExternalLink size={12} />
-              </button>
-              {reportId && (
+            )}
+            <div className="border border-border/30 rounded-lg overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/20">
+                <span className="font-mono text-xs text-muted-foreground uppercase tracking-wider">
+                  One-shot prompt — paste into Lovable to build your landing page
+                </span>
                 <button
-                  onClick={async () => {
-                    const shareUrl = `${window.location.origin}/report/${reportId}`;
-                    try {
-                      await navigator.clipboard.writeText(shareUrl);
-                      setShareCopied(true);
-                      toast.success("Share link copied!");
-                      setTimeout(() => setShareCopied(false), 2000);
-                    } catch {
-                      toast.error("Failed to copy link.");
-                    }
-                  }}
-                  className="flex items-center justify-center gap-2 font-mono text-sm border border-primary/40 text-primary px-6 py-3.5 rounded-sm hover:bg-primary/10 transition-colors"
+                  onClick={handleCopyPromptWithHighlights}
+                  className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-muted/50"
                 >
-                  {shareCopied ? <Check size={14} /> : <Share2 size={14} />}
-                  {shareCopied ? "Link Copied!" : "Share Report"}
+                  {copied ? <Check size={12} className="text-primary" /> : <Copy size={12} />}
+                  {copied ? "Copied" : highlights && highlights.size > 0 ? "Copy + highlights" : "Copy"}
                 </button>
-              )}
+              </div>
+              <div className="p-4 max-h-48 overflow-y-auto">
+                <pre className="font-mono text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                  {lovablePrompt}
+                </pre>
+              </div>
             </div>
-          )}
+          </motion.div>
+        )}
 
-          <div className="flex flex-wrap gap-4 justify-center">
-            <button
-              onClick={() => navigate("/#contact")}
-              className="font-mono text-sm border border-border text-foreground px-6 py-3 rounded-sm hover:border-primary/50 transition-colors"
-            >
-              Let's Build This →
-            </button>
-            <button
-              onClick={onRestart}
-              className="flex items-center gap-2 font-mono text-sm text-muted-foreground px-6 py-3 rounded-sm hover:text-foreground transition-colors"
-            >
-              <RotateCcw size={14} />
-              Simulate Another Idea
-            </button>
-            <button
-              onClick={() => navigate("/")}
-              className="flex items-center gap-2 font-mono text-sm text-muted-foreground px-6 py-3 rounded-sm hover:text-foreground transition-colors"
-            >
-              <ArrowLeft size={14} />
-              Back to Home
-            </button>
-          </div>
-        </motion.div>
-      )}
+        <div className="flex flex-wrap gap-4 justify-center">
+          <button
+            onClick={() => navigate("/#contact")}
+            className="font-mono text-sm border border-border text-foreground px-6 py-3 rounded-sm hover:border-primary/50 transition-colors"
+          >
+            Let's Build This →
+          </button>
+          <button
+            onClick={onRestart}
+            className="flex items-center gap-2 font-mono text-sm text-muted-foreground px-6 py-3 rounded-sm hover:text-foreground transition-colors"
+          >
+            <RotateCcw size={14} />
+            Simulate Another Idea
+          </button>
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 font-mono text-sm text-muted-foreground px-6 py-3 rounded-sm hover:text-foreground transition-colors"
+          >
+            <ArrowLeft size={14} />
+            Back to Home
+          </button>
+        </div>
+      </motion.div>
     </div>
   );
 };
