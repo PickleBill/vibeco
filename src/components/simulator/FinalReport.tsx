@@ -601,7 +601,11 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
                           <button
                             onClick={() => handleDeepDive(section.key)}
                             disabled={isLoadingThis}
-                            className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded hover:bg-muted/30 disabled:opacity-50"
+                            className={`flex items-center gap-1.5 font-mono text-[10px] transition-colors px-2 py-1 rounded disabled:opacity-50 ${
+                              highlights?.has(section.key)
+                                ? "text-primary hover:bg-primary/10 font-semibold"
+                                : "text-muted-foreground hover:text-primary hover:bg-muted/30"
+                            }`}
                           >
                             {isLoadingThis ? (
                               <Loader2 size={10} className="animate-spin" />
@@ -611,7 +615,13 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
                                 className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
                               />
                             )}
-                            {isLoadingThis ? "Analyzing..." : isExpanded ? "Collapse" : "Deep dive"}
+                            {isLoadingThis
+                              ? "Analyzing..."
+                              : isExpanded
+                              ? "Collapse"
+                              : highlights?.has(section.key)
+                              ? "Deep dive ✦"
+                              : "Deep dive"}
                           </button>
                         </div>
 
