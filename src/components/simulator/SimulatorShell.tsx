@@ -170,8 +170,50 @@ const SimulatorShell = () => {
       }
 
       if (data.is_final) {
+        const allRounds = [...rounds, newRound];
         setRounds((prev) => [...prev, newRound]);
         setPhase("final");
+
+        // Save/update idea_reports with the final lovable_prompt
+        try {
+          const latestBrief = newRound.brief;
+          const roundsData = allRounds.map((r) => ({
+            brief: r.brief,
+            questions: r.questions,
+            answers: r.answers || null,
+          }));
+
+          if (reportId) {
+            // Update existing report with lovable_prompt
+            await (supabase.from("idea_reports") as any)
+              .update({
+                brief: latestBrief,
+                rounds: roundsData,
+                lovable_prompt: data.lovable_prompt || null,
+                concept_image_url: conceptImage || null,
+                logo_image_url: logoImage || null,
+                highlights: Array.from(highlights),
+              })
+              .eq("id", reportId);
+          } else {
+            // Create new report
+            const { data: reportData } = await (supabase.from("idea_reports") as any)
+              .insert({
+                idea: idea.trim(),
+                brief: latestBrief,
+                rounds: roundsData,
+                lovable_prompt: data.lovable_prompt || null,
+                concept_image_url: conceptImage || null,
+                logo_image_url: logoImage || null,
+                highlights: Array.from(highlights),
+              })
+              .select("id")
+              .single();
+            if (reportData?.id) setReportId(reportData.id);
+          }
+        } catch (err) {
+          console.error("Report save error:", err);
+        }
       } else {
         setRounds((prev) => [...prev, newRound]);
         setCurrentRound((prev) => prev + 1);
