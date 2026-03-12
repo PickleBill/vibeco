@@ -41,6 +41,8 @@ const SimulatorShell = () => {
   const [unlocked, setUnlocked] = useState(false);
   const [unlockEmail, setUnlockEmail] = useState("");
   const [lovablePrompt, setLovablePrompt] = useState<string | null>(null);
+  const [landingPageHtml, setLandingPageHtml] = useState<string | null>(null);
+  const [isGeneratingLandingPage, setIsGeneratingLandingPage] = useState(false);
   const [sessionId] = useState(() => crypto.randomUUID());
 
   // Auto-save session on every round completion (even without email)
