@@ -22,6 +22,8 @@ interface Props {
   conceptImage?: string | null;
   unlocked?: boolean;
   onUnlock?: (email: string) => void;
+  highlights?: Set<string>;
+  onToggleHighlight?: (key: string) => void;
 }
 
 const sections = [
