@@ -45,6 +45,7 @@ interface Props {
   lovablePrompt?: string | null;
   sessionId?: string;
   highlights?: Set<string>;
+  reportId?: string | null;
 }
 
 const sectionMeta = [
