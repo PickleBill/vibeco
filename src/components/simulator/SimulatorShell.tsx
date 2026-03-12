@@ -183,6 +183,28 @@ const SimulatorShell = () => {
     callSimulator("refine", undefined, 3);
   };
 
+  const generateLandingPage = async (prompt?: string) => {
+    const promptToUse = prompt || lovablePrompt;
+    if (!promptToUse || isGeneratingLandingPage) return;
+    setIsGeneratingLandingPage(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-landing-page", {
+        body: { prompt: promptToUse },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.html) {
+        setLandingPageHtml(data.html);
+        toast.success("Landing page generated!");
+      }
+    } catch (e) {
+      console.error("Landing page generation error:", e);
+      toast.error(e instanceof Error ? e.message : "Failed to generate landing page");
+    } finally {
+      setIsGeneratingLandingPage(false);
+    }
+  };
+
   const handleUnlock = async (email: string) => {
     setUnlockEmail(email);
     setUnlocked(true);
@@ -199,6 +221,7 @@ const SimulatorShell = () => {
         concept_image_url: conceptImage || null,
         logo_image_url: logoImage || null,
         lovable_prompt: lovablePrompt || null,
+        landing_page_html: landingPageHtml || null,
       }, { onConflict: "id" });
     } catch (err) {
       console.error("Capture error:", err);
