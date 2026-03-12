@@ -358,6 +358,8 @@ const SimulatorShell = () => {
                 onSkipToFinal={handleSkipToFinal}
                 isLoading={isLoading}
                 round={currentRound}
+                highlights={highlights}
+                onToggleHighlight={toggleHighlight}
               />
               <IdeaBrief
                 brief={latestRound.brief}
@@ -365,6 +367,8 @@ const SimulatorShell = () => {
                 conceptImage={conceptImage}
                 unlocked={unlocked}
                 onUnlock={handleUnlock}
+                highlights={highlights}
+                onToggleHighlight={toggleHighlight}
               />
             </motion.div>
           )}
