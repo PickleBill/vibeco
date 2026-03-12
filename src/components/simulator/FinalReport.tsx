@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { jsPDF } from "jspdf";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { copyToClipboard } from "@/lib/copyToClipboard";
 import type { BriefData, QuestionData } from "./SimulatorShell";
 
 interface RoundState {
