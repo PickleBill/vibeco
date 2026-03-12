@@ -271,6 +271,7 @@ const SimulatorShell = () => {
     setUnlockEmail("");
     setLovablePrompt(null);
     setHighlights(new Set());
+    setReportId(null);
   };
 
   const handleDownloadPDF = () => {
