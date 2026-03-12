@@ -458,6 +458,7 @@ const SimulatorShell = () => {
                 lovablePrompt={lovablePrompt}
                 sessionId={sessionId}
                 highlights={highlights}
+                onToggleHighlight={toggleHighlight}
                 reportId={reportId}
               />
             </motion.div>
