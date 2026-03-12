@@ -93,13 +93,23 @@ const Navbar = () => {
 
           {/* Auth */}
           {user ? (
-            <button
-              onClick={handleSignOut}
-              className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
-            >
-              <User size={12} />
-              Sign Out
-            </button>
+            <>
+              <a
+                href="/my-simulations"
+                onClick={(e) => { e.preventDefault(); navigate("/my-simulations"); }}
+                className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+              >
+                <History size={12} />
+                My Simulations
+              </a>
+              <button
+                onClick={handleSignOut}
+                className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+              >
+                <User size={12} />
+                Sign Out
+              </button>
+            </>
           ) : (
             <a
               href="/auth"
