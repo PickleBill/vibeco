@@ -695,6 +695,14 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
               transition={{ delay: 0.8 }}
               className="mb-8"
             >
+              {highlights && highlights.size > 0 && (
+                <div className="flex items-center gap-2 mb-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20">
+                  <Sparkles size={12} className="text-primary fill-primary" />
+                  <span className="font-mono text-[10px] text-primary">
+                    Personalized based on {highlights.size} area{highlights.size > 1 ? "s" : ""} you highlighted
+                  </span>
+                </div>
+              )}
               <div className="border border-border/30 rounded-lg overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/20">
                   <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
