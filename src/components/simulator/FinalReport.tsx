@@ -20,6 +20,8 @@ import {
   ChevronDown,
   Loader2,
   Sparkles,
+  ExternalLink,
+  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
