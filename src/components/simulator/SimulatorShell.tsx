@@ -53,6 +53,7 @@ const SimulatorShell = () => {
   const [lovablePrompt, setLovablePrompt] = useState<string | null>(null);
   const [sessionId] = useState(() => crypto.randomUUID());
   const [highlights, setHighlights] = useState<Set<string>>(new Set());
+  const [reportId, setReportId] = useState<string | null>(null);
 
   const toggleHighlight = (key: string) => {
     setHighlights((prev) => {
