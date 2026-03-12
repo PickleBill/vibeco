@@ -279,6 +279,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
   const [isExporting, setIsExporting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [deepDiveContent, setDeepDiveContent] = useState<Record<string, string>>({});
   const [deepDiveLoading, setDeepDiveLoading] = useState<string | null>(null);
