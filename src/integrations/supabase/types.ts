@@ -48,6 +48,7 @@ export type Database = {
           email: string
           id: string
           idea: string
+          landing_page_html: string | null
           logo_image_url: string | null
           lovable_prompt: string | null
           rounds: Json
@@ -58,6 +59,7 @@ export type Database = {
           email: string
           id?: string
           idea: string
+          landing_page_html?: string | null
           logo_image_url?: string | null
           lovable_prompt?: string | null
           rounds?: Json
@@ -68,6 +70,7 @@ export type Database = {
           email?: string
           id?: string
           idea?: string
+          landing_page_html?: string | null
           logo_image_url?: string | null
           lovable_prompt?: string | null
           rounds?: Json
