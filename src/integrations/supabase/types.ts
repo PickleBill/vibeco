@@ -88,6 +88,7 @@ export type Database = {
           logo_image_url: string | null
           lovable_prompt: string | null
           rounds: Json
+          user_id: string | null
         }
         Insert: {
           concept_image_url?: string | null
@@ -99,6 +100,7 @@ export type Database = {
           logo_image_url?: string | null
           lovable_prompt?: string | null
           rounds?: Json
+          user_id?: string | null
         }
         Update: {
           concept_image_url?: string | null
@@ -110,6 +112,7 @@ export type Database = {
           logo_image_url?: string | null
           lovable_prompt?: string | null
           rounds?: Json
+          user_id?: string | null
         }
         Relationships: []
       }
