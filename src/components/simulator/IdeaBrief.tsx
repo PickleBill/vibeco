@@ -254,6 +254,21 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
             }`}
             style={isHighlighted ? { boxShadow: "0 0 20px hsl(var(--primary) / 0.1)" } : {}}
           >
+            {/* Highlight toggle */}
+            {onToggleHighlight && (
+              <button
+                onClick={() => onToggleHighlight(section.key)}
+                className={`absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-full font-mono text-[9px] transition-all duration-200 ${
+                  isHighlighted
+                    ? "bg-primary/20 text-primary border border-primary/30"
+                    : "bg-muted/30 text-muted-foreground/50 border border-transparent hover:text-primary hover:bg-primary/10"
+                }`}
+              >
+                <Sparkles size={10} className={isHighlighted ? "fill-primary" : ""} />
+                {isHighlighted ? "Resonates" : "This resonates"}
+              </button>
+            )}
+
             <div className="flex items-center gap-2.5 mb-3">
               <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center">
                 <Icon size={14} className="text-primary" />
@@ -262,7 +277,7 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
                 {section.label}
               </h3>
               {section.key === "target_customer" && (
-                <span className="ml-auto px-2 py-0.5 rounded-full bg-accent/10 border border-accent/20 font-mono text-[9px] text-accent">
+                <span className="ml-auto mr-16 px-2 py-0.5 rounded-full bg-accent/10 border border-accent/20 font-mono text-[9px] text-accent">
                   Persona
                 </span>
               )}
