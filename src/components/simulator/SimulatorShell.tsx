@@ -242,6 +242,7 @@ const SimulatorShell = () => {
     setUnlocked(false);
     setUnlockEmail("");
     setLovablePrompt(null);
+    setHighlights(new Set());
   };
 
   const handleDownloadPDF = () => {
