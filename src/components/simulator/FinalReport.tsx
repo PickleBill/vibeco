@@ -271,7 +271,7 @@ export const generateStructuredPDF = (
   pdf.save(fileName);
 };
 
-const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights }: Props) => {
+const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights, reportId }: Props) => {
   const [email, setEmail] = useState(unlockEmail || "");
   const [showReport, setShowReport] = useState(!!unlocked);
   const [isExporting, setIsExporting] = useState(false);
