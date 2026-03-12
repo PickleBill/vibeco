@@ -41,6 +41,8 @@ const SimulatorShell = () => {
   const [unlocked, setUnlocked] = useState(false);
   const [unlockEmail, setUnlockEmail] = useState("");
   const [lovablePrompt, setLovablePrompt] = useState<string | null>(null);
+  const [landingPageHtml, setLandingPageHtml] = useState<string | null>(null);
+  const [isGeneratingLandingPage, setIsGeneratingLandingPage] = useState(false);
   const [sessionId] = useState(() => crypto.randomUUID());
 
   // Auto-save session on every round completion (even without email)
@@ -60,13 +62,14 @@ const SimulatorShell = () => {
           concept_image_url: conceptImage || null,
           logo_image_url: logoImage || null,
           lovable_prompt: lovablePrompt || null,
+          landing_page_html: landingPageHtml || null,
         }, { onConflict: "id" });
       } catch (err) {
         console.error("Auto-save error:", err);
       }
     };
     saveSession();
-  }, [rounds, unlockEmail, lovablePrompt]);
+  }, [rounds, unlockEmail, lovablePrompt, landingPageHtml]);
 
   const generateImages = async (ideaText: string) => {
     try {
@@ -180,6 +183,28 @@ const SimulatorShell = () => {
     callSimulator("refine", undefined, 3);
   };
 
+  const generateLandingPage = async (prompt?: string) => {
+    const promptToUse = prompt || lovablePrompt;
+    if (!promptToUse || isGeneratingLandingPage) return;
+    setIsGeneratingLandingPage(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-landing-page", {
+        body: { prompt: promptToUse },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.html) {
+        setLandingPageHtml(data.html);
+        toast.success("Landing page generated!");
+      }
+    } catch (e) {
+      console.error("Landing page generation error:", e);
+      toast.error(e instanceof Error ? e.message : "Failed to generate landing page");
+    } finally {
+      setIsGeneratingLandingPage(false);
+    }
+  };
+
   const handleUnlock = async (email: string) => {
     setUnlockEmail(email);
     setUnlocked(true);
@@ -196,6 +221,7 @@ const SimulatorShell = () => {
         concept_image_url: conceptImage || null,
         logo_image_url: logoImage || null,
         lovable_prompt: lovablePrompt || null,
+        landing_page_html: landingPageHtml || null,
       }, { onConflict: "id" });
     } catch (err) {
       console.error("Capture error:", err);
@@ -213,6 +239,8 @@ const SimulatorShell = () => {
     setUnlocked(false);
     setUnlockEmail("");
     setLovablePrompt(null);
+    setLandingPageHtml(null);
+    setIsGeneratingLandingPage(false);
   };
 
   const handleDownloadPDF = () => {
@@ -354,6 +382,9 @@ const SimulatorShell = () => {
                 unlockEmail={unlockEmail}
                 lovablePrompt={lovablePrompt}
                 sessionId={sessionId}
+                landingPageHtml={landingPageHtml}
+                onGenerateLandingPage={() => generateLandingPage()}
+                isGeneratingLandingPage={isGeneratingLandingPage}
               />
             </motion.div>
           )}
