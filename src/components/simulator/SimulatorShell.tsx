@@ -53,6 +53,7 @@ const SimulatorShell = () => {
   const [lovablePrompt, setLovablePrompt] = useState<string | null>(null);
   const [sessionId] = useState(() => crypto.randomUUID());
   const [highlights, setHighlights] = useState<Set<string>>(new Set());
+  const [reportId, setReportId] = useState<string | null>(null);
 
   const toggleHighlight = (key: string) => {
     setHighlights((prev) => {
@@ -229,6 +230,33 @@ const SimulatorShell = () => {
     } catch (err) {
       console.error("Capture error:", err);
     }
+
+    // Save to idea_reports for shareable link
+    try {
+      const latestBrief = rounds[rounds.length - 1]?.brief;
+      if (latestBrief) {
+        const { data: reportData } = await (supabase.from("idea_reports") as any)
+          .insert({
+            idea: idea.trim(),
+            brief: latestBrief,
+            rounds: rounds.map((r) => ({
+              brief: r.brief,
+              questions: r.questions,
+              answers: r.answers || null,
+            })),
+            lovable_prompt: lovablePrompt || null,
+            concept_image_url: conceptImage || null,
+            logo_image_url: logoImage || null,
+            highlights: Array.from(highlights),
+          })
+          .select("id")
+          .single();
+        if (reportData?.id) setReportId(reportData.id);
+      }
+    } catch (err) {
+      console.error("Report save error:", err);
+    }
+
     toast.success("Saved! Your full report will be unlocked at the end.");
   };
 
@@ -243,6 +271,7 @@ const SimulatorShell = () => {
     setUnlockEmail("");
     setLovablePrompt(null);
     setHighlights(new Set());
+    setReportId(null);
   };
 
   const handleDownloadPDF = () => {
@@ -387,6 +416,7 @@ const SimulatorShell = () => {
                 lovablePrompt={lovablePrompt}
                 sessionId={sessionId}
                 highlights={highlights}
+                reportId={reportId}
               />
             </motion.div>
           )}

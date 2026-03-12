@@ -20,6 +20,8 @@ import {
   ChevronDown,
   Loader2,
   Sparkles,
+  ExternalLink,
+  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
@@ -45,6 +47,7 @@ interface Props {
   lovablePrompt?: string | null;
   sessionId?: string;
   highlights?: Set<string>;
+  reportId?: string | null;
 }
 
 const sectionMeta = [
@@ -270,12 +273,13 @@ export const generateStructuredPDF = (
   pdf.save(fileName);
 };
 
-const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights }: Props) => {
+const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights, reportId }: Props) => {
   const [email, setEmail] = useState(unlockEmail || "");
   const [showReport, setShowReport] = useState(!!unlocked);
   const [isExporting, setIsExporting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [deepDiveContent, setDeepDiveContent] = useState<Record<string, string>>({});
   const [deepDiveLoading, setDeepDiveLoading] = useState<string | null>(null);
@@ -725,16 +729,53 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
             </motion.div>
           )}
 
+          {/* Primary CTAs */}
+          {lovablePrompt && (
+            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
+              <button
+                onClick={() => {
+                  const url = `https://lovable.dev/projects/create#prompt=${encodeURIComponent(lovablePrompt)}`;
+                  window.open(url, "_blank");
+                }}
+                className="flex items-center justify-center gap-2 font-mono text-sm bg-primary text-primary-foreground px-6 py-3.5 rounded-sm hover:opacity-90 transition-opacity"
+                style={{ boxShadow: "0 0 20px hsl(var(--primary) / 0.3)" }}
+              >
+                <Sparkles size={16} />
+                Build My Site in Lovable
+                <ExternalLink size={12} />
+              </button>
+              {reportId && (
+                <button
+                  onClick={async () => {
+                    const shareUrl = `${window.location.origin}/report/${reportId}`;
+                    try {
+                      await navigator.clipboard.writeText(shareUrl);
+                      setShareCopied(true);
+                      toast.success("Share link copied!");
+                      setTimeout(() => setShareCopied(false), 2000);
+                    } catch {
+                      toast.error("Failed to copy link.");
+                    }
+                  }}
+                  className="flex items-center justify-center gap-2 font-mono text-sm border border-primary/40 text-primary px-6 py-3.5 rounded-sm hover:bg-primary/10 transition-colors"
+                >
+                  {shareCopied ? <Check size={14} /> : <Share2 size={14} />}
+                  {shareCopied ? "Link Copied!" : "Share Report"}
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-4 justify-center">
             <button
               onClick={() => navigate("/#contact")}
-              className="font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity"
+              className="font-mono text-sm border border-border text-foreground px-6 py-3 rounded-sm hover:border-primary/50 transition-colors"
             >
               Let's Build This →
             </button>
             <button
               onClick={onRestart}
-              className="flex items-center gap-2 font-mono text-sm border border-border text-foreground px-6 py-3 rounded-sm hover:border-primary/50 transition-colors"
+              className="flex items-center gap-2 font-mono text-sm text-muted-foreground px-6 py-3 rounded-sm hover:text-foreground transition-colors"
             >
               <RotateCcw size={14} />
               Simulate Another Idea
