@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import ReactMarkdown from "react-markdown";
 import {
   AlertTriangle,
   Users,
@@ -16,6 +17,8 @@ import {
   Lock,
   Copy,
   Check,
+  ChevronDown,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
@@ -40,9 +43,6 @@ interface Props {
   unlockEmail?: string;
   lovablePrompt?: string | null;
   sessionId?: string;
-  landingPageHtml?: string | null;
-  onGenerateLandingPage?: () => Promise<void>;
-  isGeneratingLandingPage?: boolean;
 }
 
 const sectionMeta = [
@@ -173,7 +173,6 @@ export const generateStructuredPDF = (
   pdf.text(`Generated ${new Date().toLocaleDateString()} · ${rounds.length} rounds of analysis`, margin, y);
   y += 20;
 
-  // Scores
   scores.forEach((s) => {
     pdf.setFontSize(10);
     pdf.setTextColor(180, 180, 200);
@@ -187,7 +186,6 @@ export const generateStructuredPDF = (
     y += 9;
   });
 
-  // Page 2+: Sections
   pdf.addPage();
   addHeader();
   y = 25;
@@ -227,7 +225,6 @@ export const generateStructuredPDF = (
     y += 5;
   });
 
-  // Round-by-round summary
   if (rounds.length > 1) {
     pdf.addPage();
     addHeader();
@@ -256,7 +253,6 @@ export const generateStructuredPDF = (
     });
   }
 
-  // Lovable Prompt page (if available)
   if (lovablePrompt) {
     pdf.addPage();
     addHeader();
@@ -272,17 +268,61 @@ export const generateStructuredPDF = (
   pdf.save(fileName);
 };
 
-const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, landingPageHtml, onGenerateLandingPage, isGeneratingLandingPage }: Props) => {
+const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId }: Props) => {
   const [email, setEmail] = useState(unlockEmail || "");
   const [showReport, setShowReport] = useState(!!unlocked);
   const [isExporting, setIsExporting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [showFullScreen, setShowFullScreen] = useState(false);
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [deepDiveContent, setDeepDiveContent] = useState<Record<string, string>>({});
+  const [deepDiveLoading, setDeepDiveLoading] = useState<string | null>(null);
   const reportRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   const scores = computeScores(brief);
+
+  const handleDeepDive = async (sectionKey: string) => {
+    // Toggle off if already expanded
+    if (expandedSection === sectionKey) {
+      setExpandedSection(null);
+      return;
+    }
+
+    setExpandedSection(sectionKey);
+
+    // If already loaded, just show it
+    if (deepDiveContent[sectionKey]) return;
+
+    // Fetch deep dive
+    setDeepDiveLoading(sectionKey);
+    try {
+      const sectionLabel = sectionMeta.find((s) => s.key === sectionKey)?.label || sectionKey;
+      const { data, error } = await supabase.functions.invoke("simulate-idea", {
+        body: {
+          type: "deep_dive",
+          section: sectionKey,
+          section_label: sectionLabel,
+          brief,
+          idea,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setDeepDiveContent((prev) => ({
+        ...prev,
+        [sectionKey]: data.deep_dive || "No additional analysis available.",
+      }));
+    } catch (e) {
+      console.error("Deep dive error:", e);
+      toast.error("Failed to generate deep dive. Try again.");
+      setExpandedSection(null);
+    } finally {
+      setDeepDiveLoading(null);
+    }
+  };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -516,6 +556,10 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
                   {sectionMeta.map((section, i) => {
                     const Icon = section.icon;
                     const value = brief[section.key as keyof BriefData];
+                    const isExpanded = expandedSection === section.key;
+                    const isLoadingThis = deepDiveLoading === section.key;
+                    const hasContent = !!deepDiveContent[section.key];
+
                     return (
                       <motion.div
                         key={section.key}
@@ -543,6 +587,80 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
                             {value as string}
                           </p>
                         )}
+
+                        {/* Deep Dive button */}
+                        <div className="flex justify-end mt-2">
+                          <button
+                            onClick={() => handleDeepDive(section.key)}
+                            disabled={isLoadingThis}
+                            className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded hover:bg-muted/30 disabled:opacity-50"
+                          >
+                            {isLoadingThis ? (
+                              <Loader2 size={10} className="animate-spin" />
+                            ) : (
+                              <ChevronDown
+                                size={10}
+                                className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                              />
+                            )}
+                            {isLoadingThis ? "Analyzing..." : isExpanded ? "Collapse" : "Deep dive"}
+                          </button>
+                        </div>
+
+                        {/* Deep Dive content */}
+                        <AnimatePresence>
+                          {isExpanded && (isLoadingThis || hasContent) && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.25 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="mt-3 ml-5 pl-4 border-l-2 border-primary/30">
+                                {isLoadingThis && !hasContent ? (
+                                  <div className="space-y-2 py-2">
+                                    {[1, 2, 3, 4].map((n) => (
+                                      <div
+                                        key={n}
+                                        className="h-3 rounded bg-muted animate-pulse"
+                                        style={{ width: `${60 + n * 8}%` }}
+                                      />
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="prose prose-sm prose-invert max-w-none py-2">
+                                    <ReactMarkdown
+                                      components={{
+                                        p: ({ children }) => (
+                                          <p className="font-mono text-xs text-foreground/70 leading-relaxed mb-2">
+                                            {children}
+                                          </p>
+                                        ),
+                                        ul: ({ children }) => (
+                                          <ul className="space-y-1.5 mb-2">{children}</ul>
+                                        ),
+                                        li: ({ children }) => (
+                                          <li className="font-mono text-xs text-foreground/70 leading-relaxed flex gap-2">
+                                            <span className="text-primary mt-0.5 shrink-0">•</span>
+                                            <span>{children}</span>
+                                          </li>
+                                        ),
+                                        strong: ({ children }) => (
+                                          <strong className="text-foreground/90 font-semibold">
+                                            {children}
+                                          </strong>
+                                        ),
+                                      }}
+                                    >
+                                      {deepDiveContent[section.key]}
+                                    </ReactMarkdown>
+                                  </div>
+                                )}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </motion.div>
                     );
                   })}
@@ -550,121 +668,6 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
               </div>
             </div>
           </div>
-
-          {/* AI Landing Page Preview */}
-          {lovablePrompt && showReport && (
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="mb-8"
-            >
-              <div
-                className="p-px rounded-lg"
-                style={{
-                  background: "linear-gradient(135deg, hsl(var(--primary) / 0.5), hsl(var(--accent) / 0.3), hsl(var(--primary) / 0.5))",
-                }}
-              >
-                <div className="rounded-lg bg-background p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <motion.div
-                      animate={{ rotate: [0, 15, -15, 0] }}
-                      transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                      className="text-lg"
-                    >
-                      ✨
-                    </motion.div>
-                    <h4 className="font-display text-sm font-bold text-foreground uppercase tracking-wide">
-                      Your Landing Page — Live Preview
-                    </h4>
-                  </div>
-
-                  {landingPageHtml ? (
-                    <>
-                      <div className="rounded-lg overflow-hidden border border-border/30 bg-card/30 mb-4">
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 border-b border-border/20">
-                          <div className="flex gap-1">
-                            <div className="w-2.5 h-2.5 rounded-full bg-destructive/60" />
-                            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
-                            <div className="w-2.5 h-2.5 rounded-full bg-green-500/60" />
-                          </div>
-                          <span className="font-mono text-[9px] text-muted-foreground">your-product.com</span>
-                        </div>
-                        <iframe
-                          srcDoc={landingPageHtml}
-                          title="Landing page preview"
-                          className="w-full h-[400px] sm:h-[500px] border-0"
-                          sandbox="allow-scripts"
-                        />
-                      </div>
-                      <div className="flex flex-wrap gap-3 items-center">
-                        <button
-                          onClick={() => setShowFullScreen(true)}
-                          className="flex items-center gap-2 font-mono text-xs px-4 py-2 rounded-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
-                        >
-                          <Layers size={14} />
-                          View Full Screen
-                        </button>
-                        <p className="font-mono text-[10px] text-muted-foreground">
-                          This is real, working HTML generated by AI. Ready to make it real?
-                        </p>
-                      </div>
-                    </>
-                  ) : isGeneratingLandingPage ? (
-                    <div className="flex flex-col items-center justify-center py-16 gap-4">
-                      <motion.div
-                        className="w-16 h-16 rounded-full"
-                        style={{
-                          background: "radial-gradient(circle, hsl(var(--primary) / 0.4), transparent 70%)",
-                        }}
-                        animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
-                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                      />
-                      <p className="font-mono text-xs text-muted-foreground animate-pulse">
-                        Building your landing page...
-                      </p>
-                      <p className="font-mono text-[10px] text-muted-foreground/50">
-                        This takes about 10-20 seconds
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="text-center py-10">
-                      <button
-                        onClick={onGenerateLandingPage}
-                        className="font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity"
-                      >
-                        ✨ Generate My Landing Page
-                      </button>
-                      <p className="font-mono text-[10px] text-muted-foreground mt-3">
-                        AI will create a fully responsive landing page from your analysis
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Full-screen modal */}
-          {showFullScreen && landingPageHtml && (
-            <div className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm flex flex-col">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-border/30">
-                <span className="font-mono text-xs text-muted-foreground">Landing Page Preview</span>
-                <button
-                  onClick={() => setShowFullScreen(false)}
-                  className="font-mono text-xs px-3 py-1.5 rounded-sm border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
-                >
-                  Close
-                </button>
-              </div>
-              <iframe
-                srcDoc={landingPageHtml}
-                title="Landing page full preview"
-                className="flex-1 w-full border-0"
-                sandbox="allow-scripts"
-              />
-            </div>
-          )}
 
           {/* Lovable Prompt — subtle, at the bottom */}
           {lovablePrompt && (

@@ -6,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const toolSchema = {
+const analysisToolSchema = {
   type: "function" as const,
   function: {
     name: "generate_idea_analysis",
@@ -89,21 +89,31 @@ const toolSchema = {
   },
 };
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+const deepDiveToolSchema = {
+  type: "function" as const,
+  function: {
+    name: "generate_deep_dive",
+    description: "Generate a detailed deep-dive analysis for a specific section of an idea report.",
+    parameters: {
+      type: "object",
+      properties: {
+        deep_dive: {
+          type: "string",
+          description: "Markdown-formatted deep-dive analysis with 4-6 bullet points, each 1-2 sentences. Include specific competitor names, market data estimates, risk factors, and actionable recommendations.",
+        },
+      },
+      required: ["deep_dive"],
+      additionalProperties: false,
+    },
+  },
+};
 
-  try {
-    const { type, idea, history, round } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+function buildAnalysisPrompts(type: string, idea: string, history?: string, round?: number) {
+  let systemPrompt: string;
+  let userContent: string;
 
-    let systemPrompt: string;
-    let userContent: string;
-
-    if (type === "initial") {
-      systemPrompt = `You are VibeCo's AI Idea Simulator — a sharp, experienced startup advisor. Be direct and insightful.
+  if (type === "initial") {
+    systemPrompt = `You are VibeCo's AI Idea Simulator — a sharp, experienced startup advisor. Be direct and insightful.
 
 LANGUAGE RULE: RESPOND ONLY IN ENGLISH. Every single field must be in English. No Chinese, no other languages. English only.
 
@@ -125,10 +135,10 @@ For follow-up questions:
 - Each question must reference the user's specific idea by name or concept.
 - Options must represent genuinely different strategic directions for THIS product.
 - Never ask generic startup questions. Every question should feel tailored to this exact business.`;
-      userContent = `Here is the user's idea. Read it carefully and generate an analysis that is 100% specific to what they described:\n\n"${idea}"`;
-    } else {
-      const isLastRound = round >= 3;
-      systemPrompt = `You are VibeCo's AI Idea Simulator continuing a refinement session.
+    userContent = `Here is the user's idea. Read it carefully and generate an analysis that is 100% specific to what they described:\n\n"${idea}"`;
+  } else {
+    const isLastRound = round! >= 3;
+    systemPrompt = `You are VibeCo's AI Idea Simulator continuing a refinement session.
 
 LANGUAGE RULE: RESPOND ONLY IN ENGLISH. Every single field must be in English. No Chinese, no other languages. English only.
 
@@ -149,8 +159,105 @@ ${isLastRound ? `This is the FINAL round. Set is_final to true. Generate the mos
 - Even if the user skipped questions or provided minimal answers, still generate the most comprehensive brief possible based on what you have.
 
 ALSO generate the lovable_prompt field: Write a comprehensive, ready-to-paste prompt (800-1500 words) that someone could paste into Lovable to one-shot create a beautiful landing page for this product. Include specific hero copy, feature descriptions with the user's refined details, target audience messaging, pricing section based on their chosen model, visual direction (suggest specific color palette, typography mood, layout style), and compelling CTA copy. Write it as a direct instruction to an AI app builder.` : `This is round ${round} of 3. Set is_final to false. Do NOT include lovable_prompt. Ask exactly 3 NEW follow-up questions that dig deeper based on their specific choices. Reference what they chose and explore implications.`}`;
-      userContent = `Full conversation history:\n\n${history}\n\nGenerate a${isLastRound ? " final comprehensive" : "n updated"} brief. Every section must reference the original idea and incorporate their choices.`;
+    userContent = `Full conversation history:\n\n${history}\n\nGenerate a${isLastRound ? " final comprehensive" : "n updated"} brief. Every section must reference the original idea and incorporate their choices.`;
+  }
+
+  return { systemPrompt, userContent };
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const body = await req.json();
+    const { type } = body;
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+    // ─── Deep Dive Handler ───
+    if (type === "deep_dive") {
+      const { section, section_label, brief, idea } = body;
+
+      const systemPrompt = `You are a strategic analyst providing a deep-dive on a specific aspect of a startup idea. Be specific, data-driven, and actionable.
+
+LANGUAGE RULE: RESPOND ONLY IN ENGLISH.
+
+You are analyzing the "${section_label}" section. Provide:
+- 4-6 bullet points of detailed analysis
+- Each bullet should be 1-2 sentences
+- Include specific competitor names, market size estimates, risk factors, or implementation recommendations as relevant
+- Reference the user's specific idea and product throughout
+- Use markdown formatting (bold for emphasis, bullet points)
+- Be more detailed and specific than the original brief — this is a DEEP DIVE`;
+
+      const briefContext = typeof brief === "object"
+        ? Object.entries(brief).map(([k, v]) => `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`).join("\n")
+        : String(brief);
+
+      const userContent = `Original idea: "${idea}"
+
+Current brief context:
+${briefContext}
+
+Provide a deep-dive analysis specifically on: ${section_label}`;
+
+      const response = await fetch(
+        "https://ai.gateway.lovable.dev/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3-flash-preview",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userContent },
+            ],
+            tools: [deepDiveToolSchema],
+            tool_choice: {
+              type: "function",
+              function: { name: "generate_deep_dive" },
+            },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const status = response.status;
+        const text = await response.text();
+        console.error("AI gateway error (deep_dive):", status, text);
+        if (status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limited. Try again in a moment." }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        return new Response(JSON.stringify({ error: "AI service error" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const data = await response.json();
+      const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+      if (!toolCall) {
+        console.error("No tool call in deep_dive response:", JSON.stringify(data));
+        return new Response(JSON.stringify({ error: "Failed to generate deep dive" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const result = JSON.parse(toolCall.function.arguments);
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
+
+    // ─── Standard Analysis Handler ───
+    const { idea, history, round } = body;
+    const { systemPrompt, userContent } = buildAnalysisPrompts(type, idea, history, round);
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -166,7 +273,7 @@ ALSO generate the lovable_prompt field: Write a comprehensive, ready-to-paste pr
             { role: "system", content: systemPrompt },
             { role: "user", content: userContent },
           ],
-          tools: [toolSchema],
+          tools: [analysisToolSchema],
           tool_choice: {
             type: "function",
             function: { name: "generate_idea_analysis" },
@@ -208,8 +315,7 @@ ALSO generate the lovable_prompt field: Write a comprehensive, ready-to-paste pr
     // SERVER-SIDE ENFORCEMENT: Never allow is_final on early rounds
     if (type === "initial" || (round && round < 3)) {
       result.is_final = false;
-      delete result.lovable_prompt; // Strip prompt from non-final rounds
-      // Ensure follow-up questions exist for non-final rounds
+      delete result.lovable_prompt;
       if (!result.follow_up_questions || result.follow_up_questions.length === 0) {
         result.follow_up_questions = [
           {
