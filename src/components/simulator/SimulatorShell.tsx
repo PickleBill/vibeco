@@ -386,6 +386,7 @@ const SimulatorShell = () => {
                 unlockEmail={unlockEmail}
                 lovablePrompt={lovablePrompt}
                 sessionId={sessionId}
+                highlights={highlights}
               />
             </motion.div>
           )}
