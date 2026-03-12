@@ -62,6 +62,7 @@ const SimulatorShell = () => {
           concept_image_url: conceptImage || null,
           logo_image_url: logoImage || null,
           lovable_prompt: lovablePrompt || null,
+          landing_page_html: landingPageHtml || null,
         }, { onConflict: "id" });
       } catch (err) {
         console.error("Auto-save error:", err);
