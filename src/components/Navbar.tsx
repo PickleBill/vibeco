@@ -160,12 +160,22 @@ const Navbar = () => {
               AI Idea Simulator
             </a>
             {user ? (
-              <button
-                onClick={() => { handleSignOut(); setMobileOpen(false); }}
-                className="block py-3 font-mono text-sm text-muted-foreground hover:text-foreground w-full text-left"
-              >
-                Sign Out
-              </button>
+              <>
+                <a
+                  href="/my-simulations"
+                  onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/my-simulations"); }}
+                  className="flex items-center gap-2 py-3 font-mono text-sm text-muted-foreground hover:text-foreground"
+                >
+                  <History size={13} />
+                  My Simulations
+                </a>
+                <button
+                  onClick={() => { handleSignOut(); setMobileOpen(false); }}
+                  className="block py-3 font-mono text-sm text-muted-foreground hover:text-foreground w-full text-left"
+                >
+                  Sign Out
+                </button>
+              </>
             ) : (
               <a
                 href="/auth"
