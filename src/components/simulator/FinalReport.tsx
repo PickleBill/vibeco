@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { jsPDF } from "jspdf";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { copyToClipboard } from "@/lib/copyToClipboard";
 import type { BriefData, QuestionData } from "./SimulatorShell";
 
 interface RoundState {
@@ -339,12 +340,12 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
       });
     }
 
-    try {
-      await navigator.clipboard.writeText(textToCopy);
+    const ok = await copyToClipboard(textToCopy);
+    if (ok) {
       setCopied(true);
       toast.success("Prompt copied!");
       setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } else {
       toast.error("Failed to copy.");
     }
   };
@@ -355,12 +356,12 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
       return;
     }
     const shareUrl = `${window.location.origin}/report/${reportId}`;
-    try {
-      await navigator.clipboard.writeText(shareUrl);
+    const ok = await copyToClipboard(shareUrl);
+    if (ok) {
       setShareCopied(true);
       toast.success("Share link copied!");
       setTimeout(() => setShareCopied(false), 2000);
-    } catch {
+    } else {
       toast.error("Failed to copy link.");
     }
   };

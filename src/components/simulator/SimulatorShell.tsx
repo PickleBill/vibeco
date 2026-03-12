@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Download } from "lucide-react";
 import IdeaInput from "./IdeaInput";
@@ -40,20 +40,97 @@ const sectionLabels: Record<string, string> = {
   customer_perspective: "Customer Perspective",
 };
 
+const DRAFT_KEY = "vibeco_simulator_draft";
+const DRAFT_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+interface DraftState {
+  phase: "input" | "analyzing" | "brief" | "final";
+  idea: string;
+  rounds: RoundState[];
+  currentRound: number;
+  highlights: string[];
+  conceptImage: string | null;
+  logoImage: string | null;
+  lovablePrompt: string | null;
+  unlocked: boolean;
+  unlockEmail: string;
+  reportId: string | null;
+  sessionId: string;
+  savedAt: number;
+}
+
+function saveDraft(state: DraftState) {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(state));
+  } catch {
+    // localStorage full or unavailable — silently ignore
+  }
+}
+
+function loadDraft(): DraftState | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const draft: DraftState = JSON.parse(raw);
+    if (Date.now() - draft.savedAt > DRAFT_TTL) {
+      localStorage.removeItem(DRAFT_KEY);
+      return null;
+    }
+    return draft;
+  } catch {
+    return null;
+  }
+}
+
+function clearDraft() {
+  try { localStorage.removeItem(DRAFT_KEY); } catch {}
+}
+
 const SimulatorShell = () => {
-  const [phase, setPhase] = useState<"input" | "analyzing" | "brief" | "final">("input");
-  const [rounds, setRounds] = useState<RoundState[]>([]);
-  const [currentRound, setCurrentRound] = useState(0);
-  const [idea, setIdea] = useState("");
+  // Try to restore draft on initial render
+  const [initialized, setInitialized] = useState(false);
+  const draft = !initialized ? loadDraft() : null;
+
+  const [phase, setPhase] = useState<"input" | "analyzing" | "brief" | "final">(draft?.phase === "analyzing" ? "brief" : draft?.phase || "input");
+  const [rounds, setRounds] = useState<RoundState[]>(draft?.rounds || []);
+  const [currentRound, setCurrentRound] = useState(draft?.currentRound || 0);
+  const [idea, setIdea] = useState(draft?.idea || "");
   const [isLoading, setIsLoading] = useState(false);
-  const [conceptImage, setConceptImage] = useState<string | null>(null);
-  const [logoImage, setLogoImage] = useState<string | null>(null);
-  const [unlocked, setUnlocked] = useState(false);
-  const [unlockEmail, setUnlockEmail] = useState("");
-  const [lovablePrompt, setLovablePrompt] = useState<string | null>(null);
-  const [sessionId] = useState(() => crypto.randomUUID());
-  const [highlights, setHighlights] = useState<Set<string>>(new Set());
-  const [reportId, setReportId] = useState<string | null>(null);
+  const [conceptImage, setConceptImage] = useState<string | null>(draft?.conceptImage || null);
+  const [logoImage, setLogoImage] = useState<string | null>(draft?.logoImage || null);
+  const [unlocked, setUnlocked] = useState(draft?.unlocked || false);
+  const [unlockEmail, setUnlockEmail] = useState(draft?.unlockEmail || "");
+  const [lovablePrompt, setLovablePrompt] = useState<string | null>(draft?.lovablePrompt || null);
+  const [sessionId] = useState(() => draft?.sessionId || crypto.randomUUID());
+  const [highlights, setHighlights] = useState<Set<string>>(new Set(draft?.highlights || []));
+  const [reportId, setReportId] = useState<string | null>(draft?.reportId || null);
+
+  useEffect(() => {
+    setInitialized(true);
+    if (draft) {
+      toast.info("Resumed your previous session.");
+    }
+  }, []);
+
+  // Persist state to localStorage on meaningful changes
+  useEffect(() => {
+    if (phase === "input" && rounds.length === 0) return;
+    saveDraft({
+      phase,
+      idea,
+      rounds,
+      currentRound,
+      highlights: Array.from(highlights),
+      conceptImage,
+      logoImage,
+      lovablePrompt,
+      unlocked,
+      unlockEmail,
+      reportId,
+      sessionId,
+      savedAt: Date.now(),
+    });
+  }, [phase, idea, rounds, currentRound, highlights, conceptImage, logoImage, lovablePrompt, unlocked, unlockEmail, reportId, sessionId]);
 
   const toggleHighlight = (key: string) => {
     setHighlights((prev) => {
@@ -64,10 +141,12 @@ const SimulatorShell = () => {
     });
   };
 
+  // Auto-save to simulator_captures (DB backup)
   useEffect(() => {
     if (rounds.length === 0) return;
     const saveSession = async () => {
       try {
+        const userId = (await supabase.auth.getSession()).data.session?.user?.id || null;
         await (supabase.from("simulator_captures") as any).upsert({
           id: sessionId,
           email: unlockEmail || `anonymous-${sessionId.slice(0, 8)}`,
@@ -80,6 +159,7 @@ const SimulatorShell = () => {
           concept_image_url: conceptImage || null,
           logo_image_url: logoImage || null,
           lovable_prompt: lovablePrompt || null,
+          ...(userId ? { user_id: userId } : {}),
         }, { onConflict: "id" });
       } catch (err) {
         console.error("Auto-save error:", err);
@@ -87,6 +167,29 @@ const SimulatorShell = () => {
     };
     saveSession();
   }, [rounds, unlockEmail, lovablePrompt]);
+
+  // Also update idea_reports when highlights or lovablePrompt change (if reportId exists)
+  const updateReport = useCallback(async () => {
+    if (!reportId) return;
+    try {
+      await (supabase.from("idea_reports") as any)
+        .update({
+          lovable_prompt: lovablePrompt || null,
+          highlights: Array.from(highlights),
+          concept_image_url: conceptImage || null,
+          logo_image_url: logoImage || null,
+        })
+        .eq("id", reportId);
+    } catch (err) {
+      console.error("Report update error:", err);
+    }
+  }, [reportId, lovablePrompt, highlights, conceptImage, logoImage]);
+
+  useEffect(() => {
+    if (reportId && phase === "final") {
+      updateReport();
+    }
+  }, [highlights, lovablePrompt, reportId, phase]);
 
   const generateImages = async (ideaText: string) => {
     try {
@@ -133,7 +236,6 @@ const SimulatorShell = () => {
       }
     }
 
-    // Inject highlights so the AI prioritizes these in the lovable_prompt
     if (highlights.size > 0) {
       history += `\n--- USER HIGHLIGHTS (these areas resonated most — prioritize them in the lovable_prompt and deeper analysis) ---\n`;
       highlights.forEach((key) => {
@@ -171,10 +273,10 @@ const SimulatorShell = () => {
 
       if (data.is_final) {
         const allRounds = [...rounds, newRound];
-        setRounds((prev) => [...prev, newRound]);
+        setRounds(allRounds);
         setPhase("final");
 
-        // Save/update idea_reports with the final lovable_prompt
+        // Save to idea_reports ONCE
         try {
           const latestBrief = newRound.brief;
           const roundsData = allRounds.map((r) => ({
@@ -184,7 +286,6 @@ const SimulatorShell = () => {
           }));
 
           if (reportId) {
-            // Update existing report with lovable_prompt
             await (supabase.from("idea_reports") as any)
               .update({
                 brief: latestBrief,
@@ -196,7 +297,6 @@ const SimulatorShell = () => {
               })
               .eq("id", reportId);
           } else {
-            // Create new report
             const { data: reportData } = await (supabase.from("idea_reports") as any)
               .insert({
                 idea: idea.trim(),
@@ -256,6 +356,7 @@ const SimulatorShell = () => {
     setUnlockEmail(email);
     setUnlocked(true);
     try {
+      const userId = (await supabase.auth.getSession()).data.session?.user?.id || null;
       await (supabase.from("simulator_captures") as any).upsert({
         id: sessionId,
         email: email.trim(),
@@ -268,41 +369,59 @@ const SimulatorShell = () => {
         concept_image_url: conceptImage || null,
         logo_image_url: logoImage || null,
         lovable_prompt: lovablePrompt || null,
+        ...(userId ? { user_id: userId } : {}),
       }, { onConflict: "id" });
     } catch (err) {
       console.error("Capture error:", err);
     }
 
-    // Save to idea_reports for shareable link
-    try {
-      const latestBrief = rounds[rounds.length - 1]?.brief;
-      if (latestBrief) {
-        const { data: reportData } = await (supabase.from("idea_reports") as any)
-          .insert({
-            idea: idea.trim(),
-            brief: latestBrief,
-            rounds: rounds.map((r) => ({
-              brief: r.brief,
-              questions: r.questions,
-              answers: r.answers || null,
-            })),
+    // If we already have a reportId, just update it; don't create a duplicate
+    if (reportId) {
+      try {
+        await (supabase.from("idea_reports") as any)
+          .update({
             lovable_prompt: lovablePrompt || null,
+            highlights: Array.from(highlights),
             concept_image_url: conceptImage || null,
             logo_image_url: logoImage || null,
-            highlights: Array.from(highlights),
           })
-          .select("id")
-          .single();
-        if (reportData?.id) setReportId(reportData.id);
+          .eq("id", reportId);
+      } catch (err) {
+        console.error("Report update error:", err);
       }
-    } catch (err) {
-      console.error("Report save error:", err);
+    } else {
+      // Create report if it doesn't exist yet (edge case: final phase insert failed earlier)
+      try {
+        const latestBrief = rounds[rounds.length - 1]?.brief;
+        if (latestBrief) {
+          const { data: reportData } = await (supabase.from("idea_reports") as any)
+            .insert({
+              idea: idea.trim(),
+              brief: latestBrief,
+              rounds: rounds.map((r) => ({
+                brief: r.brief,
+                questions: r.questions,
+                answers: r.answers || null,
+              })),
+              lovable_prompt: lovablePrompt || null,
+              concept_image_url: conceptImage || null,
+              logo_image_url: logoImage || null,
+              highlights: Array.from(highlights),
+            })
+            .select("id")
+            .single();
+          if (reportData?.id) setReportId(reportData.id);
+        }
+      } catch (err) {
+        console.error("Report save error:", err);
+      }
     }
 
-    toast.success("Saved! Your full report will be unlocked at the end.");
+    toast.success("Saved! Your full report is unlocked.");
   };
 
   const handleRestart = () => {
+    clearDraft();
     setPhase("input");
     setRounds([]);
     setCurrentRound(0);
