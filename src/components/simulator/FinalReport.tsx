@@ -668,12 +668,6 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
 
         <div className="flex flex-wrap gap-4 justify-center">
           <button
-            onClick={() => navigate("/#contact")}
-            className="font-mono text-sm border border-border text-foreground px-6 py-3 rounded-sm hover:border-primary/50 transition-colors"
-          >
-            Let's Build This →
-          </button>
-          <button
             onClick={onRestart}
             className="flex items-center gap-2 font-mono text-sm text-muted-foreground px-6 py-3 rounded-sm hover:text-foreground transition-colors"
           >
