@@ -43,6 +43,7 @@ interface Props {
   unlockEmail?: string;
   lovablePrompt?: string | null;
   sessionId?: string;
+  highlights?: Set<string>;
 }
 
 const sectionMeta = [
