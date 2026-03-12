@@ -382,6 +382,9 @@ const SimulatorShell = () => {
                 unlockEmail={unlockEmail}
                 lovablePrompt={lovablePrompt}
                 sessionId={sessionId}
+                landingPageHtml={landingPageHtml}
+                onGenerateLandingPage={() => generateLandingPage()}
+                isGeneratingLandingPage={isGeneratingLandingPage}
               />
             </motion.div>
           )}
