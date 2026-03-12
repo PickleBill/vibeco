@@ -19,6 +19,7 @@ import {
   Check,
   ChevronDown,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
@@ -43,6 +44,7 @@ interface Props {
   unlockEmail?: string;
   lovablePrompt?: string | null;
   sessionId?: string;
+  highlights?: Set<string>;
 }
 
 const sectionMeta = [
@@ -268,7 +270,7 @@ export const generateStructuredPDF = (
   pdf.save(fileName);
 };
 
-const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId }: Props) => {
+const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights }: Props) => {
   const [email, setEmail] = useState(unlockEmail || "");
   const [showReport, setShowReport] = useState(!!unlocked);
   const [isExporting, setIsExporting] = useState(false);
@@ -572,6 +574,12 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
                           <h4 className="font-display text-xs font-bold text-foreground uppercase tracking-wide">
                             {section.label}
                           </h4>
+                          {highlights?.has(section.key) && (
+                            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/15 border border-primary/30 font-mono text-[8px] text-primary">
+                              <Sparkles size={8} className="fill-primary" />
+                              Highlighted
+                            </span>
+                          )}
                         </div>
                         {section.key === "core_features" && Array.isArray(value) ? (
                           <div className="grid gap-1.5 ml-5">
@@ -593,7 +601,11 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
                           <button
                             onClick={() => handleDeepDive(section.key)}
                             disabled={isLoadingThis}
-                            className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded hover:bg-muted/30 disabled:opacity-50"
+                            className={`flex items-center gap-1.5 font-mono text-[10px] transition-colors px-2 py-1 rounded disabled:opacity-50 ${
+                              highlights?.has(section.key)
+                                ? "text-primary hover:bg-primary/10 font-semibold"
+                                : "text-muted-foreground hover:text-primary hover:bg-muted/30"
+                            }`}
                           >
                             {isLoadingThis ? (
                               <Loader2 size={10} className="animate-spin" />
@@ -603,7 +615,13 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
                                 className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
                               />
                             )}
-                            {isLoadingThis ? "Analyzing..." : isExpanded ? "Collapse" : "Deep dive"}
+                            {isLoadingThis
+                              ? "Analyzing..."
+                              : isExpanded
+                              ? "Collapse"
+                              : highlights?.has(section.key)
+                              ? "Deep dive ✦"
+                              : "Deep dive"}
                           </button>
                         </div>
 
@@ -677,6 +695,14 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
               transition={{ delay: 0.8 }}
               className="mb-8"
             >
+              {highlights && highlights.size > 0 && (
+                <div className="flex items-center gap-2 mb-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20">
+                  <Sparkles size={12} className="text-primary fill-primary" />
+                  <span className="font-mono text-[10px] text-primary">
+                    Personalized based on {highlights.size} area{highlights.size > 1 ? "s" : ""} you highlighted
+                  </span>
+                </div>
+              )}
               <div className="border border-border/30 rounded-lg overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/20">
                   <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">

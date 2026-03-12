@@ -30,6 +30,16 @@ interface RoundState {
   answers?: Record<number, { selected: string[]; freeText?: string }>;
 }
 
+const sectionLabels: Record<string, string> = {
+  problem: "Problem / Opportunity",
+  target_customer: "Target Customer",
+  core_features: "Core Features",
+  revenue_model: "Revenue Model",
+  industry_trends: "Industry & Competitors",
+  investor_perspective: "Investor Perspective",
+  customer_perspective: "Customer Perspective",
+};
+
 const SimulatorShell = () => {
   const [phase, setPhase] = useState<"input" | "analyzing" | "brief" | "final">("input");
   const [rounds, setRounds] = useState<RoundState[]>([]);
@@ -42,6 +52,16 @@ const SimulatorShell = () => {
   const [unlockEmail, setUnlockEmail] = useState("");
   const [lovablePrompt, setLovablePrompt] = useState<string | null>(null);
   const [sessionId] = useState(() => crypto.randomUUID());
+  const [highlights, setHighlights] = useState<Set<string>>(new Set());
+
+  const toggleHighlight = (key: string) => {
+    setHighlights((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (rounds.length === 0) return;
@@ -111,6 +131,17 @@ const SimulatorShell = () => {
         });
       }
     }
+
+    // Inject highlights so the AI prioritizes these in the lovable_prompt
+    if (highlights.size > 0) {
+      history += `\n--- USER HIGHLIGHTS (these areas resonated most — prioritize them in the lovable_prompt and deeper analysis) ---\n`;
+      highlights.forEach((key) => {
+        const label = sectionLabels[key] || key;
+        history += `✦ ${label}\n`;
+      });
+      history += `\n`;
+    }
+
     return history;
   };
 
@@ -211,6 +242,7 @@ const SimulatorShell = () => {
     setUnlocked(false);
     setUnlockEmail("");
     setLovablePrompt(null);
+    setHighlights(new Set());
   };
 
   const handleDownloadPDF = () => {
@@ -326,6 +358,8 @@ const SimulatorShell = () => {
                 onSkipToFinal={handleSkipToFinal}
                 isLoading={isLoading}
                 round={currentRound}
+                highlights={highlights}
+                onToggleHighlight={toggleHighlight}
               />
               <IdeaBrief
                 brief={latestRound.brief}
@@ -333,6 +367,8 @@ const SimulatorShell = () => {
                 conceptImage={conceptImage}
                 unlocked={unlocked}
                 onUnlock={handleUnlock}
+                highlights={highlights}
+                onToggleHighlight={toggleHighlight}
               />
             </motion.div>
           )}
@@ -350,6 +386,7 @@ const SimulatorShell = () => {
                 unlockEmail={unlockEmail}
                 lovablePrompt={lovablePrompt}
                 sessionId={sessionId}
+                highlights={highlights}
               />
             </motion.div>
           )}
