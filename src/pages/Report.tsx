@@ -72,12 +72,14 @@ const Report = () => {
 
   const handleCopyPrompt = async () => {
     if (!report?.lovable_prompt) return;
-    try {
-      await navigator.clipboard.writeText(report.lovable_prompt);
+    const ok = await copyToClipboard(report.lovable_prompt);
+    if (ok) {
       setCopied(true);
       toast.success("Prompt copied!");
       setTimeout(() => setCopied(false), 2000);
-    } catch { toast.error("Failed to copy."); }
+    } else {
+      toast.error("Failed to copy.");
+    }
   };
 
   if (loading) {
