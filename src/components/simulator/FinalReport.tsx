@@ -278,6 +278,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
   const [isExporting, setIsExporting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showFullScreen, setShowFullScreen] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
