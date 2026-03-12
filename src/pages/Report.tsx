@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { copyToClipboard } from "@/lib/copyToClipboard";
 
 const sectionMeta = [
   { key: "problem", label: "Problem / Opportunity", icon: AlertTriangle },
