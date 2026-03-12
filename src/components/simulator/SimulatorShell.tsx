@@ -69,7 +69,7 @@ const SimulatorShell = () => {
       }
     };
     saveSession();
-  }, [rounds, unlockEmail, lovablePrompt]);
+  }, [rounds, unlockEmail, lovablePrompt, landingPageHtml]);
 
   const generateImages = async (ideaText: string) => {
     try {
