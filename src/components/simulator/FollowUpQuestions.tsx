@@ -9,9 +9,11 @@ interface Props {
   onSkipToFinal: (answers: Record<number, { selected: string[]; freeText?: string }>) => void;
   isLoading: boolean;
   round: number;
+  highlights?: Set<string>;
+  onToggleHighlight?: (key: string) => void;
 }
 
-const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, round }: Props) => {
+const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, round, highlights, onToggleHighlight }: Props) => {
   const [answers, setAnswers] = useState<Record<number, { selected: string[]; freeText?: string }>>({});
 
   const toggleOption = (qIndex: number, label: string, allowMultiple: boolean) => {
