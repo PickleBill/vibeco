@@ -239,6 +239,8 @@ const SimulatorShell = () => {
     setUnlocked(false);
     setUnlockEmail("");
     setLovablePrompt(null);
+    setLandingPageHtml(null);
+    setIsGeneratingLandingPage(false);
   };
 
   const handleDownloadPDF = () => {
