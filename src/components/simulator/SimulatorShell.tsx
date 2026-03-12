@@ -30,6 +30,16 @@ interface RoundState {
   answers?: Record<number, { selected: string[]; freeText?: string }>;
 }
 
+const sectionLabels: Record<string, string> = {
+  problem: "Problem / Opportunity",
+  target_customer: "Target Customer",
+  core_features: "Core Features",
+  revenue_model: "Revenue Model",
+  industry_trends: "Industry & Competitors",
+  investor_perspective: "Investor Perspective",
+  customer_perspective: "Customer Perspective",
+};
+
 const SimulatorShell = () => {
   const [phase, setPhase] = useState<"input" | "analyzing" | "brief" | "final">("input");
   const [rounds, setRounds] = useState<RoundState[]>([]);
@@ -42,6 +52,16 @@ const SimulatorShell = () => {
   const [unlockEmail, setUnlockEmail] = useState("");
   const [lovablePrompt, setLovablePrompt] = useState<string | null>(null);
   const [sessionId] = useState(() => crypto.randomUUID());
+  const [highlights, setHighlights] = useState<Set<string>>(new Set());
+
+  const toggleHighlight = (key: string) => {
+    setHighlights((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (rounds.length === 0) return;
