@@ -531,9 +531,7 @@ const SimulatorShell = () => {
                   transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
                 />
               </div>
-              <p className="font-mono text-sm text-muted-foreground animate-pulse">
-                {rounds.length === 0 ? "Analyzing your idea..." : "Deepening the analysis..."}
-              </p>
+              <AnalyzingMessages isInitial={rounds.length === 0} />
               <p className="font-mono text-[10px] text-muted-foreground/50 mt-2">
                 This takes about 10-15 seconds
               </p>

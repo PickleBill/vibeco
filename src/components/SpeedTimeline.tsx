@@ -366,7 +366,7 @@ const SpeedTimeline = () => {
                   <span className="font-mono text-[10px] text-primary">
                     {era.time}
                   </span>
-                  <span className="font-mono text-[10px] text-destructive">
+                  <span className={`font-mono text-[10px] ${era.id === 4 ? "text-primary font-bold" : "text-destructive"}`}>
                     {era.cost}
                   </span>
                 </div>

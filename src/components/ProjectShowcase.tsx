@@ -5,11 +5,39 @@ import { useNavigate } from "react-router-dom";
 
 const projects = [
   {
+    name: "Courtana",
+    desc: "AI-powered async coaching platform — delivers your methodology to every student, every session.",
+    url: "https://courtanacoach.lovable.app",
+    category: "Sports Tech",
+    thumbnail: "/builds/courtana.png",
+  },
+  {
     name: "NauticSim",
     desc: "LNG carrier digital twin simulator for decarbonization, CII compliance, and voyage optimization.",
     url: "https://naughtydata.lovable.app",
     category: "Maritime / Energy",
     thumbnail: "/builds/nauticsim.png",
+  },
+  {
+    name: "LitiGator AI",
+    desc: "AI-powered mass arbitration intelligence — win more class action cases with predictive analytics.",
+    url: "https://litigator.lovable.app",
+    category: "Legal Tech",
+    thumbnail: "/builds/litigator.png",
+  },
+  {
+    name: "State Policy Partners",
+    desc: "Lobbying simplified — track legislation, manage advocacy campaigns, and connect with policymakers.",
+    url: "https://lobbyhobby.lovable.app",
+    category: "GovTech",
+    thumbnail: "/builds/statepolicy.png",
+  },
+  {
+    name: "SizzleAI",
+    desc: "AI sous chef — real-time computer vision watches your pan and guides you to a perfect meal, hands-free.",
+    url: "https://sous-chef-vision.lovable.app",
+    category: "Food Tech / AI",
+    thumbnail: "/builds/sizzleai.png",
   },
   {
     name: "HeadsUp",
@@ -19,11 +47,18 @@ const projects = [
     thumbnail: "/builds/headsup.png",
   },
   {
-    name: "Courtana",
-    desc: "AI-powered async coaching platform — delivers your methodology to every student, every session.",
-    url: "https://courtanacoach.lovable.app",
+    name: "Layup Lab",
+    desc: "AI basketball coach — analyze shooting form, track dribbling speed, and get personalized workouts.",
+    url: "https://layuplab.lovable.app",
     category: "Sports Tech",
-    thumbnail: "/builds/courtana.png",
+    thumbnail: "/builds/layuplab.png",
+  },
+  {
+    name: "Freakshow",
+    desc: "Next-gen haptic pickleball paddles with neural-grip sensors and pro performance tech.",
+    url: "https://freak-flow-hub.lovable.app",
+    category: "Sports / E-Commerce",
+    thumbnail: "/builds/freakshow.png",
   },
   {
     name: "RAUM",
@@ -31,6 +66,13 @@ const projects = [
     url: "https://unicorse.lovable.app",
     category: "Real Estate",
     thumbnail: "/builds/raum.png",
+  },
+  {
+    name: "Gutter Island",
+    desc: "Sovereign reality spectacle — 1,000 convicts, 1 island, zero laws. The ultimate entertainment concept.",
+    url: "https://island-sovereign-spectacle.lovable.app",
+    category: "Entertainment",
+    thumbnail: "/builds/gutterisland.png",
   },
   {
     name: "PicklePro Draft",
@@ -86,11 +128,16 @@ const ProjectShowcase = () => {
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 mb-16">
           <div className="max-w-2xl">
             <FadeIn>
-              <p className="font-mono text-xs text-primary tracking-[0.3em] uppercase mb-4">
-                Live Builds
-              </p>
+              <div className="flex items-center gap-3 mb-4">
+                <p className="font-mono text-xs text-primary tracking-[0.3em] uppercase">
+                  Live Builds
+                </p>
+                <span className="font-mono text-xs text-primary border border-primary/20 rounded-full px-3 py-1 bg-primary/5">
+                  {projects.length} live builds
+                </span>
+              </div>
               <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-4">
-                Shipped this month. Not mockups.
+                Shipped. Not mockups.
               </h2>
             </FadeIn>
             <FadeIn delay={0.1}>
@@ -112,7 +159,7 @@ const ProjectShowcase = () => {
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {projects.map((project, index) => (
-            <FadeIn key={project.name} delay={index * 0.05}>
+            <FadeIn key={project.name} delay={index * 0.03}>
               <a
                 href={project.url}
                 target="_blank"
@@ -137,6 +184,14 @@ const ProjectShowcase = () => {
                     alt={`${project.name} screenshot`}
                     loading="lazy"
                     className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                      e.currentTarget.parentElement!.classList.add("bg-primary/10", "flex", "items-center", "justify-center");
+                      const badge = document.createElement("span");
+                      badge.className = "font-display text-lg font-bold text-primary/40";
+                      badge.textContent = project.name;
+                      e.currentTarget.parentElement!.appendChild(badge);
+                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <div className="absolute top-3 left-3">
