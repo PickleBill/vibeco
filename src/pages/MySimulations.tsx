@@ -85,11 +85,15 @@ const MySimulations = () => {
             <div className="animate-pulse font-mono text-sm text-muted-foreground">Loading...</div>
           </div>
         ) : sessions.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="font-mono text-sm text-muted-foreground mb-4">No simulations yet.</p>
-            <Link to="/simulate" className="inline-flex items-center gap-2 font-mono text-sm text-primary hover:underline">
-              Start your first simulation <ArrowRight size={14} />
-            </Link>
+          <div className="text-center py-24">
+            <p className="font-mono text-muted-foreground text-sm mb-6">No simulations yet.</p>
+            <button
+              onClick={() => navigate("/simulate")}
+              className="font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity inline-flex items-center gap-2"
+            >
+              <Sparkles size={14} />
+              Run Your First Simulation
+            </button>
           </div>
         ) : (
           <div className="grid gap-4">
