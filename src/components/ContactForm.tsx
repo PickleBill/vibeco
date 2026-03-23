@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import FadeIn from "./FadeIn";
 import { toast } from "sonner";
 import { Info } from "lucide-react";
@@ -28,6 +29,7 @@ const structures = [
 ];
 
 const ContactForm = () => {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -35,11 +37,11 @@ const ContactForm = () => {
     structure: "Revenue Share",
   });
   const [activeStructure, setActiveStructure] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const update = (field: string, value: string) =>
     setForm((f) => ({ ...f, [field]: value }));
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,8 +55,7 @@ const ContactForm = () => {
       });
       if (error) throw error;
       toast.success("Submitted. Most ideas get a response within 24 hours.");
-      setForm({ name: "", email: "", idea: "", structure: "Revenue Share" });
-      setActiveStructure(0);
+      setSubmitted(true);
     } catch (err) {
       console.error("Contact form error:", err);
       toast.error("Something went wrong. Please try again.");
@@ -79,80 +80,100 @@ const ContactForm = () => {
             </p>
           </FadeIn>
 
-          <FadeIn delay={0.1}>
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="grid sm:grid-cols-2 gap-5">
-                <input
-                  type="text"
-                  placeholder="Name"
-                  required
-                  value={form.name}
-                  onChange={(e) => update("name", e.target.value)}
-                  className={inputClass}
-                  aria-label="Name"
-                />
-                <input
-                  type="email"
-                  placeholder="Email"
-                  required
-                  value={form.email}
-                  onChange={(e) => update("email", e.target.value)}
-                  className={inputClass}
-                  aria-label="Email"
-                />
+          {submitted ? (
+            <FadeIn>
+              <div className="text-center py-16">
+                <p className="font-mono text-primary text-sm tracking-widest uppercase mb-4">✦ Received.</p>
+                <h3 className="font-display text-3xl font-black text-foreground mb-4">
+                  We'll be in touch within 24 hours.
+                </h3>
+                <p className="font-mono text-sm text-muted-foreground mb-8">
+                  In the meantime — try the simulator to see your idea take shape.
+                </p>
+                <button
+                  onClick={() => navigate("/simulate")}
+                  className="font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity"
+                >
+                  ✦ Simulate Your Idea
+                </button>
               </div>
-
-              <textarea
-                placeholder="What's the idea? What problem does it solve, and for whom?"
-                required
-                rows={4}
-                value={form.idea}
-                onChange={(e) => update("idea", e.target.value)}
-                className={inputClass + " resize-none"}
-                aria-label="Your idea"
-              />
-
-              {/* Structure selector */}
-              <div>
-                <label className="font-mono text-sm text-muted-foreground mb-3 flex items-center gap-1.5">
-                  Preferred partnership structure
-                  <Info size={14} className="text-primary/50" />
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {structures.map((s, i) => (
-                    <button
-                      key={s.value}
-                      type="button"
-                      onClick={() => {
-                        setActiveStructure(i);
-                        update("structure", s.value);
-                      }}
-                      className={`relative font-mono text-xs px-3 py-2.5 rounded-sm border transition-all duration-300 text-center ${
-                        activeStructure === i
-                          ? "border-primary/50 bg-primary/10 text-primary glow-accent-subtle"
-                          : "border-border bg-secondary text-muted-foreground hover:border-primary/30 hover:text-foreground"
-                      }`}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
+            </FadeIn>
+          ) : (
+            <FadeIn delay={0.1}>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="grid sm:grid-cols-2 gap-5">
+                  <input
+                    type="text"
+                    placeholder="Name"
+                    required
+                    value={form.name}
+                    onChange={(e) => update("name", e.target.value)}
+                    className={inputClass}
+                    aria-label="Name"
+                  />
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    required
+                    value={form.email}
+                    onChange={(e) => update("email", e.target.value)}
+                    className={inputClass}
+                    aria-label="Email"
+                  />
                 </div>
-                <div className="mt-3 p-3 bg-secondary/50 border border-border rounded-sm">
-                  <p className="font-mono text-xs text-foreground/70 leading-relaxed">
-                    {structures[activeStructure].desc}
-                  </p>
-                </div>
-              </div>
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 hover:glow-accent transition-all duration-300 disabled:opacity-50"
-              >
-                {isSubmitting ? "Sending..." : "Submit →"}
-              </button>
-            </form>
-          </FadeIn>
+                <textarea
+                  placeholder="What's the idea? What problem does it solve, and for whom?"
+                  required
+                  rows={4}
+                  value={form.idea}
+                  onChange={(e) => update("idea", e.target.value)}
+                  className={inputClass + " resize-none"}
+                  aria-label="Your idea"
+                />
+
+                {/* Structure selector */}
+                <div>
+                  <label className="font-mono text-sm text-muted-foreground mb-3 flex items-center gap-1.5">
+                    Preferred partnership structure
+                    <Info size={14} className="text-primary/50" />
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {structures.map((s, i) => (
+                      <button
+                        key={s.value}
+                        type="button"
+                        onClick={() => {
+                          setActiveStructure(i);
+                          update("structure", s.value);
+                        }}
+                        className={`relative font-mono text-xs px-3 py-2.5 rounded-sm border transition-all duration-300 text-center ${
+                          activeStructure === i
+                            ? "border-primary/50 bg-primary/10 text-primary glow-accent-subtle"
+                            : "border-border bg-secondary text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                        }`}
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="mt-3 p-3 bg-secondary/50 border border-border rounded-sm">
+                    <p className="font-mono text-xs text-foreground/70 leading-relaxed">
+                      {structures[activeStructure].desc}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className={`w-full font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 hover:glow-accent transition-all duration-300 disabled:opacity-50 ${isSubmitting ? "animate-pulse" : ""}`}
+                >
+                  {isSubmitting ? "Sending..." : "Submit →"}
+                </button>
+              </form>
+            </FadeIn>
+          )}
         </div>
       </div>
     </section>

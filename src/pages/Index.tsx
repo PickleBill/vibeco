@@ -1,10 +1,14 @@
 import { Helmet, HelmetProvider } from "react-helmet-async";
 import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
+import StatsBar from "../components/StatsBar";
 import EverydayFounders from "../components/EverydayFounders";
+import Differentiator from "../components/Differentiator";
 import SpeedTimeline from "../components/SpeedTimeline";
-import Model from "../components/Model";
 import ProjectShowcase from "../components/ProjectShowcase";
+import Builds from "../components/Builds";
+import Model from "../components/Model";
+import Credibility from "../components/Credibility";
 import Fit from "../components/Fit";
 import ContactForm from "../components/ContactForm";
 import FinalCta from "../components/FinalCta";
@@ -76,6 +80,7 @@ const Index = () => {
         />
         <meta property="og:url" content="https://vibeco.dev" />
         <meta property="og:site_name" content="VibeCo" />
+        <meta property="og:image" content="https://vibeco.dev/og-image.png" />
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="VibeCo — Good Vibes, Instantly." />
@@ -83,6 +88,7 @@ const Index = () => {
           name="twitter:description"
           content="Bring your idea to life. AI-powered product studio — live in hours."
         />
+        <meta name="twitter:image" content="https://vibeco.dev/og-image.png" />
 
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
         <script type="application/ld+json">{JSON.stringify(websiteJsonLd)}</script>
@@ -93,10 +99,14 @@ const Index = () => {
         <Navbar />
         <main>
           <Hero />
+          <StatsBar />
           <EverydayFounders />
+          <Differentiator />
           <ProjectShowcase />
+          <Builds />
           <SpeedTimeline />
           <Model />
+          <Credibility />
           <Fit />
           <ContactForm />
           <FinalCta />

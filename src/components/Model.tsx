@@ -34,7 +34,7 @@ const steps = [
 ];
 
 const Model = () => {
-  const [expanded, setExpanded] = useState<number | null>(null);
+  const [expanded, setExpanded] = useState<number | null>(0);
 
   return (
     <section id="model" className="py-32 border-t border-border">

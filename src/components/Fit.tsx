@@ -52,7 +52,7 @@ const Fit = () => (
             <ul className="space-y-4">
               {bad.map((item) => (
                 <li key={item} className="flex items-start gap-3">
-                  <X size={16} className="text-muted-foreground mt-0.5 shrink-0" />
+                  <X size={16} className="text-destructive/60 mt-0.5 shrink-0" />
                   <span className="font-mono text-sm text-muted-foreground">{item}</span>
                 </li>
               ))}

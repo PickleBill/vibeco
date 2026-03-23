@@ -8,6 +8,30 @@ import FinalReport, { generateStructuredPDF, computeScores } from "./FinalReport
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+const analysisMessages = [
+  "Analyzing market size and competitive landscape...",
+  "Identifying your most likely early customers...",
+  "Generating investor perspective...",
+  "Mapping out core features...",
+  "Pressure-testing the revenue model...",
+  "Evaluating industry trends and timing...",
+];
+
+const AnalyzingMessages = ({ isInitial }: { isInitial: boolean }) => {
+  const [msgIndex, setMsgIndex] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMsgIndex((i) => (i + 1) % analysisMessages.length);
+    }, 2800);
+    return () => clearInterval(interval);
+  }, []);
+  return (
+    <p className="font-mono text-sm text-muted-foreground animate-pulse transition-opacity duration-500">
+      {isInitial ? analysisMessages[msgIndex] : "Deepening the analysis..."}
+    </p>
+  );
+};
+
 export interface BriefData {
   problem: string;
   target_customer: string;
@@ -531,9 +555,7 @@ const SimulatorShell = () => {
                   transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
                 />
               </div>
-              <p className="font-mono text-sm text-muted-foreground animate-pulse">
-                {rounds.length === 0 ? "Analyzing your idea..." : "Deepening the analysis..."}
-              </p>
+              <AnalyzingMessages isInitial={rounds.length === 0} />
               <p className="font-mono text-[10px] text-muted-foreground/50 mt-2">
                 This takes about 10-15 seconds
               </p>
