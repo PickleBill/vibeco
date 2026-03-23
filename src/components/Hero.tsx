@@ -60,6 +60,25 @@ const Hero = () => {
                   Pitch Your Idea
                 </button>
               </div>
+              <button
+                onClick={() => document.querySelector("#projects")?.scrollIntoView({ behavior: "smooth" })}
+                className="font-mono text-xs text-muted-foreground hover:text-primary transition-colors mt-3"
+              >
+                ↓ See what we've built
+              </button>
+              {/* Mobile stats strip */}
+              <div className="flex lg:hidden items-center gap-6 mt-8 pt-6 border-t border-border/30">
+                {[
+                  { value: "16+", label: "live builds" },
+                  { value: "< 48hrs", label: "avg to launch" },
+                  { value: "$0", label: "upfront on rev-share" },
+                ].map((s) => (
+                  <div key={s.label} className="text-center">
+                    <p className="font-display text-xl font-black text-primary">{s.value}</p>
+                    <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-wide">{s.label}</p>
+                  </div>
+                ))}
+              </div>
             </FadeIn>
           </div>
 

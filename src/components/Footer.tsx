@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
+import { Twitter, Linkedin } from "lucide-react";
 
 const Footer = () => {
   const navigate = useNavigate();
@@ -28,11 +29,14 @@ const Footer = () => {
             <p className="font-mono text-sm text-muted-foreground mt-1">
               Good vibes, instantly. Bringing ideas to life.
             </p>
+            <a href="https://vibeco.dev" className="font-mono text-xs text-primary/60 hover:text-primary transition-colors">
+              vibeco.dev
+            </a>
           </div>
-          <div className="flex gap-6">
+          <div className="flex items-center gap-6">
             {[
               { label: "How It Works", href: "#model" },
-              { label: "Builds", href: "#builds" },
+              { label: "Builds", href: "#projects" },
               { label: "Contact", href: "#contact" },
             ].map((link) => (
               <button
@@ -43,6 +47,26 @@ const Footer = () => {
                 {link.label}
               </button>
             ))}
+            <div className="flex items-center gap-3 ml-2 pl-4 border-l border-border">
+              <a
+                href="https://twitter.com/vibeco_dev"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Twitter"
+              >
+                <Twitter size={16} />
+              </a>
+              <a
+                href="https://linkedin.com/company/vibeco"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="LinkedIn"
+              >
+                <Linkedin size={16} />
+              </a>
+            </div>
           </div>
         </div>
         <div className="mt-8 pt-6 border-t border-border">
