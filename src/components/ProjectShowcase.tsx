@@ -12,13 +12,6 @@ const projects = [
     thumbnail: "/builds/courtana.png",
   },
   {
-    name: "NauticSim",
-    desc: "LNG carrier digital twin simulator for decarbonization, CII compliance, and voyage optimization.",
-    url: "https://naughtydata.lovable.app",
-    category: "Maritime / Energy",
-    thumbnail: "/builds/nauticsim.png",
-  },
-  {
     name: "LitiGator AI",
     desc: "AI-powered mass arbitration intelligence — win more class action cases with predictive analytics.",
     url: "https://litigator.lovable.app",
@@ -26,8 +19,15 @@ const projects = [
     thumbnail: "/builds/litigator.png",
   },
   {
+    name: "NauticSim",
+    desc: "LNG carrier digital twin simulator for decarbonization, CII compliance, and voyage optimization.",
+    url: "https://naughtydata.lovable.app",
+    category: "Maritime / Energy",
+    thumbnail: "/builds/nauticsim.png",
+  },
+  {
     name: "State Policy Partners",
-    desc: "Lobbying simplified — track legislation, manage advocacy campaigns, and connect with policymakers.",
+    desc: "Government affairs simplified — track legislation, manage advocacy campaigns, and connect with policymakers.",
     url: "https://lobbyhobby.lovable.app",
     category: "GovTech",
     thumbnail: "/builds/statepolicy.png",
@@ -47,13 +47,6 @@ const projects = [
     thumbnail: "/builds/headsup.png",
   },
   {
-    name: "Layup Lab",
-    desc: "AI basketball coach — analyze shooting form, track dribbling speed, and get personalized workouts.",
-    url: "https://layuplab.lovable.app",
-    category: "Sports Tech",
-    thumbnail: "/builds/layuplab.png",
-  },
-  {
     name: "Freakshow",
     desc: "Next-gen haptic pickleball paddles with neural-grip sensors and pro performance tech.",
     url: "https://freak-flow-hub.lovable.app",
@@ -66,13 +59,6 @@ const projects = [
     url: "https://unicorse.lovable.app",
     category: "Real Estate",
     thumbnail: "/builds/raum.png",
-  },
-  {
-    name: "Gutter Island",
-    desc: "Sovereign reality spectacle — 1,000 convicts, 1 island, zero laws. The ultimate entertainment concept.",
-    url: "https://island-sovereign-spectacle.lovable.app",
-    category: "Entertainment",
-    thumbnail: "/builds/gutterisland.png",
   },
   {
     name: "PicklePro Draft",

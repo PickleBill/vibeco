@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import FadeIn from "./FadeIn";
-import { Home, Scissors, Dumbbell, Briefcase, Sparkles } from "lucide-react";
+import { Home, Scissors, Dumbbell, Briefcase, Trophy, Sparkles } from "lucide-react";
 
 const personas = [
   {
@@ -22,6 +22,11 @@ const personas = [
     icon: Briefcase,
     title: "Consultant / Expert",
     desc: "Turn your methodology into a software product — capture recurring revenue from your expertise. No code needed.",
+  },
+  {
+    icon: Trophy,
+    title: "Sports Coach / Academy Owner",
+    desc: "Build a drill library, video analysis platform, or athlete progress tracker — turn your methodology into recurring revenue.",
   },
 ];
 
@@ -49,7 +54,7 @@ const EverydayFounders = () => {
           </FadeIn>
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {personas.map((p, i) => (
             <FadeIn key={p.title} delay={i * 0.08}>
               <div className="group bg-card border border-border rounded-lg p-8 hover:border-primary/30 hover:glow-accent-subtle transition-all duration-300">
@@ -80,7 +85,7 @@ const EverydayFounders = () => {
                 className="font-mono text-sm bg-primary text-primary-foreground px-8 py-3 rounded-sm hover:opacity-90 transition-opacity inline-flex items-center gap-2"
               >
                 <Sparkles size={14} />
-                Try the AI Simulator
+                Simulate Your Idea Free
               </button>
               <button
                 onClick={() => {
@@ -89,7 +94,7 @@ const EverydayFounders = () => {
                 }}
                 className="font-mono text-sm border border-border text-foreground px-8 py-3 rounded-sm hover:border-primary/50 hover:text-primary transition-colors"
               >
-                Or Pitch Your Idea →
+                Pitch It Directly →
               </button>
             </div>
           </div>

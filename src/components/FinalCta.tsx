@@ -6,7 +6,10 @@ const FinalCta = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="py-32 border-t border-border">
+    <section
+      className="py-32 border-t border-border"
+      style={{ background: "radial-gradient(ellipse 60% 40% at 50% 100%, hsl(var(--primary) / 0.06), transparent)" }}
+    >
       <div className="max-w-7xl mx-auto px-6 lg:px-12 text-center">
         <FadeIn>
           <p className="font-mono text-xs text-primary tracking-[0.3em] uppercase mb-4">
