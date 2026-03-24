@@ -37,6 +37,10 @@ const analysisToolSchema = {
             industry_trends: { type: "string", description: "Name 2-3 REAL competing companies in this exact space, with real market data and trends. Reference the user's specific product category." },
             investor_perspective: { type: "string", description: "What a smart VC would specifically push back on about THIS idea. Include concrete concerns and questions referencing the actual product." },
             customer_perspective: { type: "string", description: "Direct quotes from the named target persona about THIS EXACT product — what excites them and what makes them hesitate. Use first person." },
+            app_type: {
+              type: "string",
+              description: "The recommended app type for this product. One of: 'landing-page' (marketing site to capture leads), 'web-app' (users log in and use features), 'marketplace' (connects buyers and sellers), 'mobile-first' (designed primarily for phone use), 'e-commerce' (products for sale), 'saas-dashboard' (subscription tool with dashboard). Choose based on what makes sense for the user's idea.",
+            },
           },
           required: [
             "problem",
@@ -46,6 +50,7 @@ const analysisToolSchema = {
             "industry_trends",
             "investor_perspective",
             "customer_perspective",
+            "app_type",
           ],
           additionalProperties: false,
         },
@@ -80,7 +85,75 @@ const analysisToolSchema = {
         },
         lovable_prompt: {
           type: "string",
-          description: "ONLY for the final round (is_final=true). A comprehensive, ready-to-paste prompt for Lovable AI that would one-shot create a beautiful landing page for this product. Include: product name/concept, hero section copy, feature descriptions, target audience messaging, pricing section, testimonial style, visual direction (color palette, typography mood, layout style), and CTA copy. Write it as a direct instruction to an AI app builder. 800-1500 words.",
+          description: `ONLY for the final round (is_final=true). Generate a structured, actionable prompt that someone can paste directly into Lovable AI to build a complete app. This is NOT a creative brief — it is an engineering spec. Follow this EXACT structure:
+
+## [Product Name] — Lovable Build Prompt
+
+### CONTEXT
+2-3 sentences: what this product is, who it's for, what problem it solves.
+
+### APP TYPE & STRUCTURE
+- State the app type: landing page, dashboard, marketplace, SaaS tool, mobile-first web app, or e-commerce store
+- List every page/route (e.g. / homepage, /pricing, /dashboard)
+- For the main page, list all sections in exact top-to-bottom order (e.g. Navbar → Hero → Features → HowItWorks → Pricing → Testimonials → CTA → Footer)
+
+### DESIGN SYSTEM
+- Color palette: primary, secondary, accent, background, and text colors as hex values
+- Typography: heading font and body font suggestions
+- Style mood: 1 sentence (e.g. "dark mode with glassmorphism accents" or "clean white, rounded corners, playful")
+- Buttons: border-radius style, font weight, padding
+- Section spacing: consistent vertical padding between sections (e.g. py-24)
+
+### HERO SECTION
+- Headline: exact copy in quotes
+- Subheadline: exact copy in quotes
+- Primary CTA button: exact label → exact action (e.g. "Get Started" → scrolls to #pricing)
+- Secondary action if applicable
+- Mobile: what changes below 768px (stacked layout, smaller text, etc.)
+
+### [EACH ADDITIONAL SECTION]
+For every section of the app, specify:
+- Section name and id (e.g. Features id="features")
+- Layout: grid columns, card structure, etc.
+- Content: exact headings, descriptions, data for each item
+- Interactive elements: what every button, link, and clickable thing does on click
+- Mobile: how it adapts (columns stack, elements hide, etc.)
+
+### FORMS & INTERACTIVE ELEMENTS
+For every form:
+- List all fields with input type and placeholder text
+- Submit button label → what happens on submit
+- Success state: what the user sees after submission (NOT just a toast — show an inline confirmation message, redirect, or state change)
+- Error state: what happens on invalid input
+
+### FOOTER
+- Navigation links that match the section IDs defined above
+- Social media links if relevant
+- Legal links and copyright text
+
+### METADATA & SEO
+- Page title: exact text (NOT "Vite + React" or "Lovable Generated Project")
+- Meta description: exact text
+- OG image: use a gradient or solid color placeholder with the product name — NEVER use default Lovable or GPT-Engineer placeholder images
+
+### POST-BUILD VERIFICATION
+End with this exact checklist:
+- [ ] Every button and CTA has a real click handler — no buttons that do nothing
+- [ ] Every navigation link scrolls to or routes to a real destination
+- [ ] All forms show a visible success state after submission
+- [ ] Mobile layout works — no content hidden on mobile without an alternative
+- [ ] Page title and meta description are set to the actual product name
+- [ ] No "Lovable", "GPT-Engineer", or placeholder branding anywhere in the UI or metadata
+- [ ] All section IDs in the page match the href values in the navbar and footer links
+
+IMPORTANT RULES:
+- Be specific with ALL copy — never use placeholder text like "Lorem ipsum" or "[Your tagline here]"
+- Name every component conceptually (e.g. "PricingCard component with three tiers")
+- Specify exact section order on the page — Lovable needs to know the layout sequence
+- Every interactive element must have a defined action — what happens when you click it
+- Include mobile behavior for every visual section
+
+Total length: 800-1500 words. Prioritize specificity over comprehensiveness.`,
         },
       },
       required: ["brief", "follow_up_questions", "is_final"],
@@ -127,6 +200,7 @@ CRITICAL SPECIFICITY RULES — READ THE USER'S IDEA CAREFULLY:
 7. Industry Trends: Name 2-3 REAL companies competing in this exact space.
 8. Investor Perspective: Ask questions a VC would ask about THIS specific business model.
 9. Customer Perspective: Write first-person quotes from the named persona about THIS product.
+10. App Type: Recommend the most appropriate app format (landing page, web app, marketplace, mobile-first, e-commerce, or SaaS dashboard) based on the idea.
 
 IMPORTANT: Set is_final to false. This is the first round — you MUST generate follow-up questions. Do NOT include lovable_prompt.
 
@@ -158,7 +232,29 @@ ${isLastRound ? `This is the FINAL round. Set is_final to true. Generate the mos
 - Your final brief must synthesize ALL the user's choices across rounds into a cohesive, actionable plan.
 - Even if the user skipped questions or provided minimal answers, still generate the most comprehensive brief possible based on what you have.
 
-ALSO generate the lovable_prompt field: Write a comprehensive, ready-to-paste prompt (800-1500 words) that someone could paste into Lovable to one-shot create a beautiful landing page for this product. Include specific hero copy, feature descriptions with the user's refined details, target audience messaging, pricing section based on their chosen model, visual direction (suggest specific color palette, typography mood, layout style), and compelling CTA copy. Write it as a direct instruction to an AI app builder.` : `This is round ${round} of 3. Set is_final to false. Do NOT include lovable_prompt. Ask exactly 3 NEW follow-up questions that dig deeper based on their specific choices. Reference what they chose and explore implications.`}`;
+ALSO generate the lovable_prompt field. This is the most important output of the entire simulation. Follow these rules precisely:
+
+LOVABLE PROMPT ENGINEERING RULES:
+1. STRUCTURE OVER VIBES: Lovable needs engineering specs, not creative briefs. BAD: "A beautiful hero with warm colors." GOOD: "Hero section: h1 'Ship Faster with AI' centered, subheading 'From idea to production in days' in muted text below, CTA button 'Start Building' that scrolls to #pricing."
+2. EVERY BUTTON MUST DO SOMETHING: For each button, specify the exact action. "Get Started" → scrolls to #contact-form. "Learn More" → scrolls to #features. "Submit" → shows inline success message replacing the form. Never leave a button without a handler.
+3. MOBILE IS MANDATORY: For every section, state what changes below 768px. 3-column grids become single column. Large hero images hide or shrink. Text sizes reduce by one step.
+4. SECTION ORDER IS EXPLICIT: List sections in exact top-to-bottom page order. Lovable guesses wrong without this.
+5. ALL COPY IS REAL: Every headline, paragraph, button label, testimonial, and meta tag must use real copy derived from the user's actual product. Zero placeholders.
+6. FORMS NEED SUCCESS STATES: Every form must specify what the user sees AFTER submitting. Not just a toast notification — an inline confirmation message, a redirect, or a visual state change.
+7. MATCH NAV TO SECTIONS: Every navbar/footer link must use an href="#id" that matches an actual id="" on a section in the page. This prevents broken navigation.
+8. END WITH A SELF-CHECK: Include a verification checklist at the bottom telling Lovable to confirm buttons work, links resolve, mobile renders, and no default branding remains.
+
+Use the app_type from the brief to determine the prompt structure:
+- If landing-page: Single-page marketing site with Hero, Features, Social Proof, Pricing, CTA, Footer
+- If web-app: Include auth/login page, dashboard layout, sidebar nav, and at least one functional page
+- If marketplace: Include listing grid, search/filter, detail page, and contact/booking flow
+- If e-commerce: Include product grid, product detail, cart, and checkout flow
+- If saas-dashboard: Include login, dashboard with metric cards, sidebar with nav items, and one settings page
+- If mobile-first: Design everything for vertical scroll, touch targets 44px minimum, bottom nav bar
+
+The prompt must follow the structured template format defined in the tool schema. Prioritize the sections the user highlighted as resonating — give those 2x the detail and list them earlier in the prompt.
+
+Target: 800-1500 words total. Specific and actionable beats comprehensive and vague.` : `This is round ${round} of 3. Set is_final to false. Do NOT include lovable_prompt. Ask exactly 3 NEW follow-up questions that dig deeper based on their specific choices. Reference what they chose and explore implications.`}`;
     userContent = `Full conversation history:\n\n${history}\n\nGenerate a${isLastRound ? " final comprehensive" : "n updated"} brief. Every section must reference the original idea and incorporate their choices.`;
   }
 
