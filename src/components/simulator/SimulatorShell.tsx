@@ -40,6 +40,13 @@ export interface BriefData {
   industry_trends: string;
   investor_perspective: string;
   customer_perspective: string;
+  builder_intent?: string;
+  app_type?: string;
+  scale_assessment?: {
+    current_scale: string;
+    fits_intent: boolean;
+    recommendation: string;
+  };
 }
 
 export interface QuestionData {
@@ -73,6 +80,7 @@ interface DraftState {
   rounds: RoundState[];
   currentRound: number;
   highlights: string[];
+  antiHighlights: string[];
   conceptImage: string | null;
   logoImage: string | null;
   lovablePrompt: string | null;
@@ -111,7 +119,6 @@ function clearDraft() {
 }
 
 const SimulatorShell = () => {
-  // Try to restore draft on initial render
   const [initialized, setInitialized] = useState(false);
   const draft = !initialized ? loadDraft() : null;
 
@@ -127,7 +134,9 @@ const SimulatorShell = () => {
   const [lovablePrompt, setLovablePrompt] = useState<string | null>(draft?.lovablePrompt || null);
   const [sessionId] = useState(() => draft?.sessionId || crypto.randomUUID());
   const [highlights, setHighlights] = useState<Set<string>>(new Set(draft?.highlights || []));
+  const [antiHighlights, setAntiHighlights] = useState<Set<string>>(new Set(draft?.antiHighlights || []));
   const [reportId, setReportId] = useState<string | null>(draft?.reportId || null);
+  const [depthRecommendation, setDepthRecommendation] = useState<string | undefined>();
 
   useEffect(() => {
     setInitialized(true);
@@ -145,6 +154,7 @@ const SimulatorShell = () => {
       rounds,
       currentRound,
       highlights: Array.from(highlights),
+      antiHighlights: Array.from(antiHighlights),
       conceptImage,
       logoImage,
       lovablePrompt,
@@ -154,13 +164,34 @@ const SimulatorShell = () => {
       sessionId,
       savedAt: Date.now(),
     });
-  }, [phase, idea, rounds, currentRound, highlights, conceptImage, logoImage, lovablePrompt, unlocked, unlockEmail, reportId, sessionId]);
+  }, [phase, idea, rounds, currentRound, highlights, antiHighlights, conceptImage, logoImage, lovablePrompt, unlocked, unlockEmail, reportId, sessionId]);
 
   const toggleHighlight = (key: string) => {
     setHighlights((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
+      return next;
+    });
+    // Clear anti-highlight if setting positive
+    setAntiHighlights((prev) => {
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
+  };
+
+  const toggleAntiHighlight = (key: string) => {
+    setAntiHighlights((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+    // Clear positive highlight
+    setHighlights((prev) => {
+      const next = new Set(prev);
+      next.delete(key);
       return next;
     });
   };
@@ -244,11 +275,14 @@ const SimulatorShell = () => {
       history += `--- Round ${i + 1} Brief ---\n`;
       history += `Problem: ${r.brief.problem}\n`;
       history += `Target Customer: ${r.brief.target_customer}\n`;
-      history += `Features: ${r.brief.core_features.map((f) => f.name).join(", ")}\n`;
+      history += `Features (in user's priority order): ${r.brief.core_features.map((f, fi) => `${fi + 1}. ${f.name}`).join(", ")}\n`;
       history += `Revenue: ${r.brief.revenue_model}\n`;
       history += `Industry: ${r.brief.industry_trends}\n`;
       history += `Investor View: ${r.brief.investor_perspective}\n`;
-      history += `Customer View: ${r.brief.customer_perspective}\n\n`;
+      history += `Customer View: ${r.brief.customer_perspective}\n`;
+      if (r.brief.builder_intent) history += `Builder Intent: ${r.brief.builder_intent}\n`;
+      if (r.brief.scale_assessment) history += `Scale: ${r.brief.scale_assessment.current_scale} (${r.brief.scale_assessment.fits_intent ? "matches intent" : "mismatch"}) — ${r.brief.scale_assessment.recommendation}\n`;
+      history += `\n`;
       if (r.answers) {
         history += `User answers:\n`;
         r.questions.forEach((q, qi) => {
@@ -265,6 +299,15 @@ const SimulatorShell = () => {
       highlights.forEach((key) => {
         const label = sectionLabels[key] || key;
         history += `✦ ${label}\n`;
+      });
+      history += `\n`;
+    }
+
+    if (antiHighlights.size > 0) {
+      history += `\n--- USER FLAGS (these areas do NOT resonate — deprioritize or reframe in the lovable_prompt) ---\n`;
+      antiHighlights.forEach((key) => {
+        const label = sectionLabels[key] || key;
+        history += `✕ ${label}\n`;
       });
       history += `\n`;
     }
@@ -293,6 +336,11 @@ const SimulatorShell = () => {
 
       if (data.lovable_prompt) {
         setLovablePrompt(data.lovable_prompt);
+      }
+
+      // Store depth recommendation for follow-up UX
+      if (data.depth_recommendation) {
+        setDepthRecommendation(data.depth_recommendation);
       }
 
       if (data.is_final) {
@@ -376,6 +424,18 @@ const SimulatorShell = () => {
     callSimulator("refine", undefined, 3);
   };
 
+  const handleReorderFeatures = (newFeatures: BriefData["core_features"]) => {
+    setRounds((prev) => {
+      const updated = [...prev];
+      const lastIndex = updated.length - 1;
+      updated[lastIndex] = {
+        ...updated[lastIndex],
+        brief: { ...updated[lastIndex].brief, core_features: newFeatures },
+      };
+      return updated;
+    });
+  };
+
   const handleUnlock = async (email: string) => {
     setUnlockEmail(email);
     setUnlocked(true);
@@ -399,7 +459,6 @@ const SimulatorShell = () => {
       console.error("Capture error:", err);
     }
 
-    // If we already have a reportId, just update it; don't create a duplicate
     if (reportId) {
       try {
         await (supabase.from("idea_reports") as any)
@@ -414,7 +473,6 @@ const SimulatorShell = () => {
         console.error("Report update error:", err);
       }
     } else {
-      // Create report if it doesn't exist yet (edge case: final phase insert failed earlier)
       try {
         const latestBrief = rounds[rounds.length - 1]?.brief;
         if (latestBrief) {
@@ -456,7 +514,9 @@ const SimulatorShell = () => {
     setUnlockEmail("");
     setLovablePrompt(null);
     setHighlights(new Set());
+    setAntiHighlights(new Set());
     setReportId(null);
+    setDepthRecommendation(undefined);
   };
 
   const handleDownloadPDF = () => {
@@ -572,6 +632,7 @@ const SimulatorShell = () => {
                 round={currentRound}
                 highlights={highlights}
                 onToggleHighlight={toggleHighlight}
+                depthRecommendation={depthRecommendation}
               />
               <IdeaBrief
                 brief={latestRound.brief}
@@ -581,6 +642,8 @@ const SimulatorShell = () => {
                 onUnlock={handleUnlock}
                 highlights={highlights}
                 onToggleHighlight={toggleHighlight}
+                antiHighlights={antiHighlights}
+                onToggleAntiHighlight={toggleAntiHighlight}
               />
             </motion.div>
           )}
@@ -600,7 +663,10 @@ const SimulatorShell = () => {
                 sessionId={sessionId}
                 highlights={highlights}
                 onToggleHighlight={toggleHighlight}
+                antiHighlights={antiHighlights}
+                onToggleAntiHighlight={toggleAntiHighlight}
                 reportId={reportId}
+                onReorderFeatures={handleReorderFeatures}
               />
             </motion.div>
           )}

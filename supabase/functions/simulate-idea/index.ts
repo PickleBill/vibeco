@@ -41,6 +41,30 @@ const analysisToolSchema = {
               type: "string",
               description: "The recommended app type for this product. One of: 'landing-page' (marketing site to capture leads), 'web-app' (users log in and use features), 'marketplace' (connects buyers and sellers), 'mobile-first' (designed primarily for phone use), 'e-commerce' (products for sale), 'saas-dashboard' (subscription tool with dashboard). Choose based on what makes sense for the user's idea.",
             },
+            builder_intent: {
+              type: "string",
+              description: "Inferred or stated builder intent. One of: 'experiment' (testing an idea fast), 'community' (building for a specific group), 'lead-magnet' (capturing attention and signups), 'lifestyle' (sustainable income without venture scale), 'venture' (building something big with outside investment), 'fun' (tinkering, learning, building for self). If the user hasn't explicitly stated intent, infer the most likely one from their idea and answers. This shapes the tone of the entire brief.",
+            },
+            scale_assessment: {
+              type: "object",
+              properties: {
+                current_scale: {
+                  type: "string",
+                  enum: ["feature", "experiment", "product", "platform"],
+                  description: "What scale this idea is currently scoped at. 'feature' = too small to be standalone, 'experiment' = testable MVP with minimal scope, 'product' = full standalone product, 'platform' = multi-sided system that needs scale to work.",
+                },
+                fits_intent: {
+                  type: "boolean",
+                  description: "Whether the current scale matches the builder_intent. A 'platform' idea with 'fun' intent = false. A 'product' idea with 'venture' intent = true.",
+                },
+                recommendation: {
+                  type: "string",
+                  description: "1-2 sentences of actionable advice. If scale matches intent, affirm it. If not, suggest specifically how to scale up or scope down. Reference the actual product.",
+                },
+              },
+              required: ["current_scale", "fits_intent", "recommendation"],
+              additionalProperties: false,
+            },
           },
           required: [
             "problem",
@@ -51,6 +75,7 @@ const analysisToolSchema = {
             "investor_perspective",
             "customer_perspective",
             "app_type",
+            "builder_intent",
           ],
           additionalProperties: false,
         },
@@ -77,11 +102,16 @@ const analysisToolSchema = {
             required: ["question", "options", "allow_multiple"],
             additionalProperties: false,
           },
-          description: "3-4 strategic follow-up questions that reference the user's exact idea, product name, and target market",
+          description: "2-3 strategic follow-up questions that reference the user's exact idea, product name, and target market",
         },
         is_final: {
           type: "boolean",
           description: "True if this is the final consolidated report with no more questions",
+        },
+        depth_recommendation: {
+          type: "string",
+          enum: ["ready", "one-more-recommended"],
+          description: "For non-final rounds: 'ready' if the AI has enough context to generate a strong final brief and lovable_prompt now, or 'one-more-recommended' if another round of questions would meaningfully improve the output. Simple ideas should be 'ready' after round 1. Complex ideas should be 'one-more-recommended' until key strategic decisions are resolved.",
         },
         lovable_prompt: {
           type: "string",
@@ -201,6 +231,9 @@ CRITICAL SPECIFICITY RULES — READ THE USER'S IDEA CAREFULLY:
 8. Investor Perspective: Ask questions a VC would ask about THIS specific business model.
 9. Customer Perspective: Write first-person quotes from the named persona about THIS product.
 10. App Type: Recommend the most appropriate app format (landing page, web app, marketplace, mobile-first, e-commerce, or SaaS dashboard) based on the idea.
+11. Builder Intent: Infer the most likely intent from the user's idea. If it sounds like a side project, set builder_intent to 'fun' or 'experiment'. If it sounds like a business pitch, set it to 'venture' or 'lifestyle'. Then tailor your analysis accordingly — a 'fun' project doesn't need investor perspective depth; a 'venture' idea needs competitive moat analysis.
+12. Scale Assessment: Evaluate whether this idea's scope matches the builder's intent. A fun side project scoped as a two-sided marketplace is a mismatch. A venture idea scoped as a simple landing page might be undershooting. Be direct about the mismatch and suggest a specific adjustment.
+13. Depth Recommendation: If this idea is simple enough that you could generate an excellent brief and Lovable prompt right now, set depth_recommendation to 'ready'. If the idea has unresolved strategic complexity (two-sided dynamics, multiple revenue models, complex user flows), set it to 'one-more-recommended'. Err toward 'ready' for simple ideas.
 
 IMPORTANT: Set is_final to false. This is the first round — you MUST generate follow-up questions. Do NOT include lovable_prompt.
 
@@ -208,7 +241,10 @@ For follow-up questions:
 - Generate exactly 2 strategic follow-up questions (not 3 or 4 — only 2).
 - Each question must reference the user's specific idea by name or concept.
 - Options must represent genuinely different strategic directions for THIS product.
-- Never ask generic startup questions. Every question should feel tailored to this exact business.`;
+- Never ask generic startup questions. Every question should feel tailored to this exact business.
+- If the builder's intent is ambiguous from the idea text, one question SHOULD ask about intent (see rule 11).
+- If the app type is ambiguous (could be a landing page OR a full web app), consider asking about it as one of the questions. Use options like: "Marketing landing page", "Web app with user accounts", "Marketplace", "Mobile-first tool". Only ask if it's genuinely ambiguous.
+- You may optionally ask about visual direction if the product category could go multiple ways. Frame it as: "What vibe should [product name] have?" with 3-4 style options. Only include this if it adds value.`;
     userContent = `Here is the user's idea. Read it carefully and generate an analysis that is 100% specific to what they described:\n\n"${idea}"`;
   } else {
     const isLastRound = round! >= 3;
@@ -222,6 +258,9 @@ CRITICAL: Re-read the original idea and all previous rounds. Your updated analys
 3. Evolve each section based on the direction they chose — the brief should be DRAMATICALLY different from Round 1
 4. Keep the same named persona but deepen their story based on choices made
 5. Every section must reflect the cumulative refinements from all previous rounds
+6. If the user's builder_intent is 'fun' or 'experiment', keep the investor_perspective section light and encouraging — focus on "what to test first" rather than "what a VC would say." If the intent is 'venture', go deep on market size, CAC, and competitive moat. If 'lifestyle', focus on unit economics and sustainable revenue.
+7. Update the scale_assessment based on how the idea has evolved through the user's choices. If they've been scoping down through their answers, reflect that.
+8. Set depth_recommendation to 'ready' if you now have enough context for an excellent final brief, or 'one-more-recommended' if there's still meaningful ambiguity to resolve. After round 2, always set it to 'ready' unless the idea is genuinely complex.
 
 ${isLastRound ? `This is the FINAL round. Set is_final to true. Generate the most comprehensive brief possible with:
 - A concrete 90-day action plan with specific milestones
@@ -243,6 +282,7 @@ LOVABLE PROMPT ENGINEERING RULES:
 6. FORMS NEED SUCCESS STATES: Every form must specify what the user sees AFTER submitting. Not just a toast notification — an inline confirmation message, a redirect, or a visual state change.
 7. MATCH NAV TO SECTIONS: Every navbar/footer link must use an href="#id" that matches an actual id="" on a section in the page. This prevents broken navigation.
 8. END WITH A SELF-CHECK: Include a verification checklist at the bottom telling Lovable to confirm buttons work, links resolve, mobile renders, and no default branding remains.
+9. MATCH THE BUILDER'S INTENT: If the builder_intent is 'experiment' or 'fun', generate a simple landing page prompt — hero, 3 features, email capture, done. If 'venture' or 'lifestyle', generate a more complete app with pricing, testimonials, and detailed forms. If 'lead-magnet', emphasize conversion elements (email capture, social proof, urgency). The prompt complexity should match what the builder actually needs.
 
 Use the app_type from the brief to determine the prompt structure:
 - If landing-page: Single-page marketing site with Hero, Features, Social Proof, Pricing, CTA, Footer

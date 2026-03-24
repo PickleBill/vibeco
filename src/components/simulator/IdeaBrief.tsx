@@ -24,6 +24,8 @@ interface Props {
   onUnlock?: (email: string) => void;
   highlights?: Set<string>;
   onToggleHighlight?: (key: string) => void;
+  antiHighlights?: Set<string>;
+  onToggleAntiHighlight?: (key: string) => void;
 }
 
 const sections = [
@@ -107,6 +109,15 @@ const BriefScoreVisual = ({ brief }: { brief: BriefData }) => {
   );
 };
 
+const intentLabels: Record<string, string> = {
+  experiment: "🧪 Quick experiment",
+  community: "👥 Community project",
+  "lead-magnet": "🎯 Lead generation",
+  lifestyle: "☀️ Lifestyle business",
+  venture: "🚀 Venture-scale startup",
+  fun: "🎮 Just for fun",
+};
+
 /* Progressive email unlock banner */
 const EmailUnlockBanner = ({
   round,
@@ -125,7 +136,6 @@ const EmailUnlockBanner = ({
     onUnlock(email);
   };
 
-  // Round 1: subtle link-style. Round 2+: more prominent card.
   const isProminent = round >= 2;
 
   return (
@@ -173,7 +183,7 @@ const EmailUnlockBanner = ({
   );
 };
 
-const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights, onToggleHighlight }: Props) => (
+const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights, onToggleHighlight, antiHighlights, onToggleAntiHighlight }: Props) => (
   <div className="mb-12">
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -186,6 +196,16 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
           {round <= 1 ? "Initial Analysis" : `Refined · Round ${round}`}
         </span>
       </div>
+
+      {/* Builder intent badge */}
+      {brief.builder_intent && (
+        <div className="flex justify-center mb-3">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 font-mono text-[11px] text-accent">
+            Building for: {intentLabels[brief.builder_intent] || brief.builder_intent}
+          </span>
+        </div>
+      )}
+
       <h2 className="font-display text-2xl sm:text-3xl font-black text-foreground">
         {round <= 1 ? "Your Idea, Analyzed" : `Deeper Insights — Round ${round}`}
       </h2>
@@ -200,6 +220,44 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
         </p>
       )}
     </motion.div>
+
+    {/* Scale assessment callout */}
+    {brief.scale_assessment && (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className={`mb-6 p-4 rounded-lg border ${
+          brief.scale_assessment.fits_intent
+            ? "border-primary/30 bg-primary/5"
+            : "border-yellow-500/30 bg-yellow-500/5"
+        }`}
+      >
+        <div className="flex items-start gap-3">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm ${
+            brief.scale_assessment.fits_intent
+              ? "bg-primary/15 text-primary"
+              : "bg-yellow-500/15 text-yellow-500"
+          }`}>
+            {brief.scale_assessment.fits_intent ? "✓" : "⚖️"}
+          </div>
+          <div>
+            <p className={`font-mono text-xs font-bold ${
+              brief.scale_assessment.fits_intent ? "text-primary" : "text-yellow-500"
+            }`}>
+              Scale: {brief.scale_assessment.current_scale.charAt(0).toUpperCase() + brief.scale_assessment.current_scale.slice(1)}
+              {brief.scale_assessment.fits_intent
+                ? " — matches your intent"
+                : " — might not match your intent"
+              }
+            </p>
+            <p className="font-mono text-xs text-muted-foreground mt-1 leading-relaxed">
+              {brief.scale_assessment.recommendation}
+            </p>
+          </div>
+        </div>
+      </motion.div>
+    )}
 
     {conceptImage && (
       <motion.div
@@ -240,6 +298,7 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
         const Icon = section.icon;
         const value = brief[section.key as keyof BriefData];
         const isHighlighted = highlights?.has(section.key);
+        const isAntiHighlighted = antiHighlights?.has(section.key);
 
         return (
           <motion.div
@@ -250,23 +309,40 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
             className={`group relative p-5 rounded-lg bg-card/60 backdrop-blur-sm border transition-all duration-300 hover:bg-card/80 ${
               isHighlighted
                 ? "border-primary/40 bg-primary/5"
+                : isAntiHighlighted
+                ? "border-destructive/30 bg-destructive/5"
                 : "border-border/50 hover:border-primary/30"
             }`}
             style={isHighlighted ? { boxShadow: "0 0 20px hsl(var(--primary) / 0.1)" } : {}}
           >
-            {/* Highlight toggle */}
+            {/* Highlight toggles */}
             {onToggleHighlight && (
-              <button
-                onClick={() => onToggleHighlight(section.key)}
-                className={`absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-full font-mono text-[9px] transition-all duration-200 ${
-                  isHighlighted
-                    ? "bg-primary/20 text-primary border border-primary/30"
-                    : "bg-muted/30 text-muted-foreground/50 border border-transparent hover:text-primary hover:bg-primary/10"
-                }`}
-              >
-                <Sparkles size={10} className={isHighlighted ? "fill-primary" : ""} />
-                {isHighlighted ? "Resonates" : "This resonates"}
-              </button>
+              <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                <button
+                  onClick={() => onToggleHighlight(section.key)}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-full font-mono text-[9px] transition-all duration-200 ${
+                    isHighlighted
+                      ? "bg-primary/20 text-primary border border-primary/30"
+                      : "bg-muted/30 text-muted-foreground/50 border border-transparent hover:text-primary hover:bg-primary/10"
+                  }`}
+                >
+                  <Sparkles size={10} className={isHighlighted ? "fill-primary" : ""} />
+                  {isHighlighted ? "Resonates" : "This resonates"}
+                </button>
+                {onToggleAntiHighlight && (
+                  <button
+                    onClick={() => onToggleAntiHighlight(section.key)}
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-[10px] transition-all ${
+                      isAntiHighlighted
+                        ? "bg-destructive/15 border border-destructive/40 text-destructive"
+                        : "border border-border/50 text-muted-foreground/50 hover:border-destructive/30 hover:text-destructive/80"
+                    }`}
+                  >
+                    ✕
+                    {isAntiHighlighted ? "Flagged" : "Not quite"}
+                  </button>
+                )}
+              </div>
             )}
 
             <div className="flex items-center gap-2.5 mb-3">
@@ -305,7 +381,7 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
               </div>
             ) : (
               <p className="font-mono text-sm text-foreground/80 leading-relaxed">
-                {value as string}
+                {typeof value === "string" ? value : ""}
               </p>
             )}
           </motion.div>
