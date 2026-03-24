@@ -20,12 +20,16 @@ import {
   Loader2,
   Sparkles,
   Share2,
+  GripVertical,
 } from "lucide-react";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { copyToClipboard } from "@/lib/copyToClipboard";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import type { BriefData, QuestionData } from "./SimulatorShell";
 
 interface RoundState {
@@ -47,7 +51,10 @@ interface Props {
   sessionId?: string;
   highlights?: Set<string>;
   onToggleHighlight?: (key: string) => void;
+  antiHighlights?: Set<string>;
+  onToggleAntiHighlight?: (key: string) => void;
   reportId?: string | null;
+  onReorderFeatures?: (features: BriefData["core_features"]) => void;
 }
 
 const sectionMeta = [
@@ -72,6 +79,27 @@ export const computeScores = (brief: BriefData) => [
   { label: "Revenue", value: 60 + (hashStr(brief.revenue_model) % 30) },
   { label: "Timing", value: 50 + (hashStr(brief.industry_trends) % 35) },
 ];
+
+/* ─── Sortable Feature ─── */
+const SortableFeature = ({ feat, index, id }: { feat: { name: string; description: string }; index: number; id: string }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-start gap-2 group/feat">
+      <button {...attributes} {...listeners} className="mt-1.5 cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-primary transition-colors touch-none">
+        <GripVertical size={14} />
+      </button>
+      <p className="font-mono text-base text-foreground/90 leading-relaxed">
+        <span className="text-primary font-bold">{index + 1}.</span>{" "}
+        <span className="font-semibold">{feat.name}</span> — {feat.description}
+      </p>
+    </div>
+  );
+};
 
 /* ─── Structured PDF Export ─── */
 export const generateStructuredPDF = (
@@ -182,8 +210,8 @@ export const generateStructuredPDF = (
         pdf.text(`${strength}%`, margin + 60, y + 1.5);
         y += 7;
       });
-    } else {
-      writeWrapped(val as string, margin + 2, contentW - 2, 9.5, [200, 200, 215]);
+    } else if (typeof val === "string") {
+      writeWrapped(val, margin + 2, contentW - 2, 9.5, [200, 200, 215]);
     }
     y += 5;
   });
@@ -231,7 +259,7 @@ export const generateStructuredPDF = (
   pdf.save(fileName);
 };
 
-const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights, onToggleHighlight, reportId }: Props) => {
+const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights, onToggleHighlight, antiHighlights, onToggleAntiHighlight, reportId, onReorderFeatures }: Props) => {
   const [email, setEmail] = useState(unlockEmail || "");
   const [showPrompt, setShowPrompt] = useState(!!unlocked);
   const [isExporting, setIsExporting] = useState(false);
@@ -245,6 +273,11 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
   const navigate = useNavigate();
 
   const scores = computeScores(brief);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const handleDeepDive = async (sectionKey: string) => {
     if (expandedSection === sectionKey) {
@@ -335,8 +368,17 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
         const section = sectionMeta.find((s) => s.key === key);
         if (!section) return;
         const value = brief[section.key as keyof BriefData];
-        const text = typeof value === "string" ? value : (value as BriefData["core_features"]).map((f) => `${f.name}: ${f.description}`).join("\n");
+        const text = typeof value === "string" ? value : Array.isArray(value) ? (value as BriefData["core_features"]).map((f) => `${f.name}: ${f.description}`).join("\n") : "";
         textToCopy += `\n### ${section.label}\n${text}\n`;
+      });
+    }
+
+    if (antiHighlights && antiHighlights.size > 0) {
+      textToCopy += "\n\n## Areas to deprioritize or reframe:\n";
+      antiHighlights.forEach((key) => {
+        const section = sectionMeta.find((s) => s.key === key);
+        if (!section) return;
+        textToCopy += `- ${section.label}\n`;
       });
     }
 
@@ -363,6 +405,16 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
       setTimeout(() => setShareCopied(false), 2000);
     } else {
       toast.error("Failed to copy link.");
+    }
+  };
+
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id && onReorderFeatures) {
+      const features = brief.core_features;
+      const oldIndex = features.findIndex((_, i) => `feature-${i}` === active.id);
+      const newIndex = features.findIndex((_, i) => `feature-${i}` === over.id);
+      onReorderFeatures(arrayMove(features, oldIndex, newIndex));
     }
   };
 
@@ -480,6 +532,57 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
             </div>
           )}
 
+          {/* Scale assessment */}
+          {brief.scale_assessment && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`mb-6 p-4 rounded-lg border ${
+                brief.scale_assessment.fits_intent
+                  ? "border-primary/30 bg-primary/5"
+                  : "border-yellow-500/30 bg-yellow-500/5"
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm ${
+                  brief.scale_assessment.fits_intent
+                    ? "bg-primary/15 text-primary"
+                    : "bg-yellow-500/15 text-yellow-500"
+                }`}>
+                  {brief.scale_assessment.fits_intent ? "✓" : "⚖️"}
+                </div>
+                <div>
+                  <p className={`font-mono text-xs font-bold ${
+                    brief.scale_assessment.fits_intent ? "text-primary" : "text-yellow-500"
+                  }`}>
+                    Scale: {brief.scale_assessment.current_scale.charAt(0).toUpperCase() + brief.scale_assessment.current_scale.slice(1)}
+                    {brief.scale_assessment.fits_intent ? " — matches your intent" : " — might not match your intent"}
+                  </p>
+                  <p className="font-mono text-xs text-muted-foreground mt-1 leading-relaxed">
+                    {brief.scale_assessment.recommendation}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Builder intent badge */}
+          {brief.builder_intent && (
+            <div className="flex justify-center mb-4">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 font-mono text-[11px] text-accent">
+                Building for: {
+                  brief.builder_intent === 'experiment' ? '🧪 Quick experiment' :
+                  brief.builder_intent === 'community' ? '👥 Community project' :
+                  brief.builder_intent === 'lead-magnet' ? '🎯 Lead generation' :
+                  brief.builder_intent === 'lifestyle' ? '☀️ Lifestyle business' :
+                  brief.builder_intent === 'venture' ? '🚀 Venture-scale startup' :
+                  brief.builder_intent === 'fun' ? '🎮 Just for fun' :
+                  brief.builder_intent
+                }
+              </span>
+            </div>
+          )}
+
           <div
             className="p-px rounded-lg mb-8"
             style={{
@@ -495,6 +598,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
                   const isLoadingThis = deepDiveLoading === section.key;
                   const hasContent = !!deepDiveContent[section.key];
                   const isHighlighted = highlights?.has(section.key);
+                  const isAntiHighlighted = antiHighlights?.has(section.key);
 
                   return (
                     <motion.div
@@ -508,33 +612,69 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
                         <h4 className="font-display text-sm font-bold text-foreground uppercase tracking-wide">
                           {section.label}
                         </h4>
-                        {/* Interactive highlight toggle */}
+                        {/* Highlight toggles */}
                         {onToggleHighlight && (
-                          <button
-                            onClick={() => onToggleHighlight(section.key)}
-                            className={`flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-[10px] transition-all ${
-                              isHighlighted
-                                ? "bg-primary/20 border border-primary/40 text-primary"
-                                : "border border-border/50 text-muted-foreground hover:border-primary/30 hover:text-primary/80"
-                            }`}
-                          >
-                            <Sparkles size={10} className={isHighlighted ? "fill-primary" : ""} />
-                            {isHighlighted ? "Resonates" : "This resonates"}
-                          </button>
+                          <div className="flex items-center gap-1.5 ml-auto">
+                            <button
+                              onClick={() => onToggleHighlight(section.key)}
+                              className={`flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-[10px] transition-all ${
+                                isHighlighted
+                                  ? "bg-primary/20 border border-primary/40 text-primary"
+                                  : "border border-border/50 text-muted-foreground hover:border-primary/30 hover:text-primary/80"
+                              }`}
+                            >
+                              <Sparkles size={10} className={isHighlighted ? "fill-primary" : ""} />
+                              {isHighlighted ? "Resonates" : "This resonates"}
+                            </button>
+                            {onToggleAntiHighlight && (
+                              <button
+                                onClick={() => onToggleAntiHighlight(section.key)}
+                                className={`flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-[10px] transition-all ${
+                                  isAntiHighlighted
+                                    ? "bg-destructive/15 border border-destructive/40 text-destructive"
+                                    : "border border-border/50 text-muted-foreground hover:border-destructive/30 hover:text-destructive/80"
+                                }`}
+                              >
+                                ✕
+                                {isAntiHighlighted ? "Flagged" : "Not quite"}
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
+
+                      {/* Core features with drag reorder */}
                       {section.key === "core_features" && Array.isArray(value) ? (
-                        <div className="grid gap-2 ml-5">
-                          {(value as BriefData["core_features"]).map((feat, fi) => (
-                            <p key={fi} className="font-mono text-base text-foreground/90 leading-relaxed">
-                              <span className="text-primary font-bold">{fi + 1}.</span>{" "}
-                              <span className="font-semibold">{feat.name}</span> — {feat.description}
+                        <div className="ml-5">
+                          {onReorderFeatures ? (
+                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                              <SortableContext items={(value as BriefData["core_features"]).map((_, i) => `feature-${i}`)} strategy={verticalListSortingStrategy}>
+                                <div className="grid gap-2">
+                                  {(value as BriefData["core_features"]).map((feat, fi) => (
+                                    <SortableFeature key={`feature-${fi}`} feat={feat} index={fi} id={`feature-${fi}`} />
+                                  ))}
+                                </div>
+                              </SortableContext>
+                            </DndContext>
+                          ) : (
+                            <div className="grid gap-2">
+                              {(value as BriefData["core_features"]).map((feat, fi) => (
+                                <p key={fi} className="font-mono text-base text-foreground/90 leading-relaxed">
+                                  <span className="text-primary font-bold">{fi + 1}.</span>{" "}
+                                  <span className="font-semibold">{feat.name}</span> — {feat.description}
+                                </p>
+                              ))}
+                            </div>
+                          )}
+                          {onReorderFeatures && (
+                            <p className="font-mono text-[10px] text-muted-foreground/50 mt-2">
+                              Drag to reorder by priority · #1 gets hero placement in your Lovable prompt
                             </p>
-                          ))}
+                          )}
                         </div>
                       ) : (
                         <p className="font-mono text-base text-foreground/90 leading-relaxed ml-5">
-                          {value as string}
+                          {typeof value === "string" ? value : ""}
                         </p>
                       )}
 

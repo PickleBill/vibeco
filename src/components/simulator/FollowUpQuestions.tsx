@@ -11,9 +11,10 @@ interface Props {
   round: number;
   highlights?: Set<string>;
   onToggleHighlight?: (key: string) => void;
+  depthRecommendation?: string;
 }
 
-const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, round, highlights, onToggleHighlight }: Props) => {
+const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, round, highlights, onToggleHighlight, depthRecommendation }: Props) => {
   const [answers, setAnswers] = useState<Record<number, { selected: string[]; freeText?: string }>>({});
 
   const toggleOption = (qIndex: number, label: string, allowMultiple: boolean) => {
@@ -27,7 +28,6 @@ const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, roun
       } else {
         next = current.includes(label) ? [] : [label];
       }
-      // Clear free text when selecting an option
       return { ...prev, [qIndex]: { ...prev[qIndex], selected: next, freeText: prev[qIndex]?.freeText } };
     });
   };
@@ -35,7 +35,7 @@ const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, roun
   const setFreeText = (qIndex: number, text: string) => {
     setAnswers((prev) => ({
       ...prev,
-      [qIndex]: { selected: [], freeText: text },
+      [qIndex]: { selected: prev[qIndex]?.selected || [], freeText: text },
     }));
   };
 
@@ -43,15 +43,15 @@ const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, roun
     (a) => (a?.selected?.length || 0) > 0 || (a?.freeText?.trim()?.length || 0) > 0
   );
 
-  // Build final answers: if freeText is set, use it as the answer (clear selected)
   const buildFinalAnswers = () => {
     const final: Record<number, { selected: string[]; freeText?: string }> = {};
     questions.forEach((_, qi) => {
       const a = answers[qi];
-      if (a?.freeText?.trim()) {
-        final[qi] = { selected: [a.freeText.trim()], freeText: a.freeText.trim() };
-      } else if (a?.selected?.length) {
-        final[qi] = { selected: a.selected, freeText: a.freeText };
+      if (a?.selected?.length || a?.freeText?.trim()) {
+        final[qi] = {
+          selected: a.selected || [],
+          freeText: a.freeText?.trim() || undefined,
+        };
       }
     });
     return final;
@@ -82,7 +82,9 @@ const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, roun
         style={{ boxShadow: "0 0 30px hsl(var(--primary) / 0.15)" }}
       >
         <p className="font-mono text-xs text-muted-foreground mb-3">
-          Ready for your report? You can generate it now or answer the optional questions below to refine it.
+          {depthRecommendation === "ready"
+            ? "We have enough to generate a strong report. Generate now or optionally refine further below."
+            : "Answering the questions below will significantly improve your report. Or generate now if you're ready."}
         </p>
         <motion.button
           onClick={handleGenerateNow}
@@ -136,14 +138,14 @@ const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, roun
                     {q.question}
                   </p>
                   <span className="font-mono text-[10px] text-muted-foreground/60 mt-1 inline-block">
-                    {q.allow_multiple ? "Select any that apply · or write your own below" : "Pick one · or write your own below"}
+                    {q.allow_multiple ? "Select any that apply, write your own, or both" : "Pick what fits, write your own, or both"}
                   </span>
                 </div>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-2 ml-9">
                 {q.options.map((opt) => {
-                  const isSelected = answers[qi]?.selected?.includes(opt.label) && !hasFreeText;
+                  const isSelected = answers[qi]?.selected?.includes(opt.label);
                   return (
                     <motion.button
                       key={opt.label}
@@ -199,14 +201,14 @@ const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, roun
               <div className="ml-9 mt-3">
                 <textarea
                   rows={2}
-                  placeholder="Write your own answer..."
+                  placeholder="Add your own thoughts (counts as your answer with or without selecting above)..."
                   value={answers[qi]?.freeText || ""}
                   onChange={(e) => setFreeText(qi, e.target.value)}
                   className="w-full px-3 py-2.5 rounded-md bg-background/50 border border-border/30 font-mono text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 focus:bg-background/80 transition-colors resize-none"
                 />
                 {hasFreeText && (
                   <p className="font-mono text-[10px] text-primary mt-1">
-                    ✓ Your written answer will be used
+                    ✓ Your input will be included
                   </p>
                 )}
               </div>
