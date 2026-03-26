@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { jsPDF } from "jspdf";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import ThunderdomePanel from "./ThunderdomePanel";
 import { copyToClipboard } from "@/lib/copyToClipboard";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -768,6 +769,17 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
             </div>
           </div>
         </div>
+
+        {/* Thunderdome — appears after email unlock */}
+        {showPrompt && (
+          <ThunderdomePanel
+            brief={brief}
+            idea={idea}
+            reportId={reportId}
+            highlights={highlights}
+            antiHighlights={antiHighlights}
+          />
+        )}
 
         {/* Lovable Prompt — visible after email unlock */}
         {showPrompt && lovablePrompt && (

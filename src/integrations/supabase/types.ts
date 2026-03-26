@@ -41,39 +41,92 @@ export type Database = {
         }
         Relationships: []
       }
+      idea_perspectives: {
+        Row: {
+          challenge_questions: Json | null
+          created_at: string | null
+          id: string
+          persona: string
+          perspective: string
+          report_id: string | null
+          user_responses: Json | null
+        }
+        Insert: {
+          challenge_questions?: Json | null
+          created_at?: string | null
+          id?: string
+          persona: string
+          perspective: string
+          report_id?: string | null
+          user_responses?: Json | null
+        }
+        Update: {
+          challenge_questions?: Json | null
+          created_at?: string | null
+          id?: string
+          persona?: string
+          perspective?: string
+          report_id?: string | null
+          user_responses?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "idea_perspectives_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "idea_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       idea_reports: {
         Row: {
+          annotations: Json | null
           brief: Json
           concept_image_url: string | null
           created_at: string
+          expanded_ideas: Json | null
           highlights: string[] | null
           id: string
           idea: string
           logo_image_url: string | null
           lovable_prompt: string | null
+          prompt_versions: Json | null
           rounds: Json
+          thesis_statement: string | null
+          thunderdome_unlocked: boolean | null
         }
         Insert: {
+          annotations?: Json | null
           brief: Json
           concept_image_url?: string | null
           created_at?: string
+          expanded_ideas?: Json | null
           highlights?: string[] | null
           id?: string
           idea: string
           logo_image_url?: string | null
           lovable_prompt?: string | null
+          prompt_versions?: Json | null
           rounds?: Json
+          thesis_statement?: string | null
+          thunderdome_unlocked?: boolean | null
         }
         Update: {
+          annotations?: Json | null
           brief?: Json
           concept_image_url?: string | null
           created_at?: string
+          expanded_ideas?: Json | null
           highlights?: string[] | null
           id?: string
           idea?: string
           logo_image_url?: string | null
           lovable_prompt?: string | null
+          prompt_versions?: Json | null
           rounds?: Json
+          thesis_statement?: string | null
+          thunderdome_unlocked?: boolean | null
         }
         Relationships: []
       }
