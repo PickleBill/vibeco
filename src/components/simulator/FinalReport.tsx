@@ -770,6 +770,17 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
           </div>
         </div>
 
+        {/* Thunderdome — appears after email unlock */}
+        {showPrompt && (
+          <ThunderdomePanel
+            brief={brief}
+            idea={idea}
+            reportId={reportId}
+            highlights={highlights}
+            antiHighlights={antiHighlights}
+          />
+        )}
+
         {/* Lovable Prompt — visible after email unlock */}
         {showPrompt && lovablePrompt && (
           <motion.div
