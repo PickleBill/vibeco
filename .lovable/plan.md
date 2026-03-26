@@ -1,105 +1,81 @@
 
 
-## Plan: VibeCo Layer 3 — All 5 Prompts
+## Plan: VibeCo Thunderdome — Phase 2 Feature Suite
 
-Five interconnected upgrades to the simulator: follow-up UX cleanup, feature drag-reorder, builder intent, scale stress test, and dynamic question depth.
+A major post-brief experience adding persona perspectives, idea expansion/distillation, and prompt refinement. The user's spec is truncated (Prompt 4 code is cut off, Prompts 5-7 are missing), so this plan covers Prompts 1-4 fully and stubs the remaining tabs for future prompts.
 
-### Prompt 1: Follow-Up Question UX Cleanup
+### Important Note
+The spec message is truncated mid-way through Prompt 4's `ExpandContractPanel.tsx` code, and Prompts 5-7 (LivingBrief, Workspace, Multi-Prompt) are not included. This plan implements Prompts 1-4 completely and leaves clean extension points for the rest.
 
-**FollowUpQuestions.tsx**
-- Fix `setFreeText` to preserve selected options (line 36-39): keep `prev[qIndex]?.selected` instead of clearing to `[]`
-- Fix `buildFinalAnswers` (line 47-58): combine selected + freeText instead of replacing
-- Fix `isSelected` check (line 146): remove `&& !hasFreeText` condition
-- Update textarea placeholder and helper text copy
-- Update subtitle copy for both single/multi select modes
+### Step 1: Database Schema Updates
 
-**FinalReport.tsx**
-- Add "Not quite" toggle button next to existing "This resonates" button (lines 512-524)
-- New prop: `onToggleAntiHighlight`, `antiHighlights`
-- Style: red/destructive for anti-highlights vs green/primary for positive
+**Migration SQL:**
+- Create `idea_perspectives` table with columns: id, report_id (FK to idea_reports), persona (text with CHECK constraint), perspective, challenge_questions (JSONB), user_responses (JSONB), created_at, UNIQUE(report_id, persona)
+- Enable RLS with permissive SELECT/INSERT/UPDATE policies for anon+authenticated
+- Add 5 columns to `idea_reports`: `thunderdome_unlocked` (boolean, default false), `thesis_statement` (text), `prompt_versions` (JSONB, default []), `annotations` (JSONB, default []), `expanded_ideas` (JSONB, default [])
 
-**IdeaBrief.tsx**
-- Add same "Not quite" toggle alongside existing "This resonates" button
-- New props: `antiHighlights`, `onToggleAntiHighlight`
+### Step 2: Create 4 Edge Functions
 
-**SimulatorShell.tsx**
-- Add `antiHighlights` state (`Set<string>`)
-- Add `toggleAntiHighlight` function (mutually exclusive with highlights)
-- Update `toggleHighlight` to clear anti-highlights
-- Add anti-highlights to `buildHistory` context string
-- Add `antiHighlights` to draft save/restore
-- Pass props to FinalReport, IdeaBrief, FollowUpQuestions
+All use `google/gemini-2.5-pro` via Lovable AI gateway with tool calling for structured output.
 
-### Prompt 2: Feature Priority Drag-Reorder
+| Function | Purpose | Input | Output |
+|---|---|---|---|
+| `persona-perspective` | Generate one of 5 persona takes (skeptic, champion, competitor, customer, builder) | persona, brief, idea, builder_intent | perspective (markdown), challenge_questions, headline |
+| `expand-idea` | Generate 3 orthogonal idea variations | brief, idea | core_insight, 3 expansions with idea_text |
+| `distill-idea` | Force idea to core thesis | brief, idea, highlights, antiHighlights | one_feature, one_customer, one_revenue, thesis_statement, what_to_cut, mvp_scope |
+| `refine-prompt` | Regenerate lovable_prompt with Thunderdome context | brief, idea, original_prompt, perspectives, distillation, annotations, highlights | refined lovable_prompt, version_label, changes list |
 
-**Dependencies**: Install `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`
+Deploy all 4 after creation.
 
-**FinalReport.tsx**
-- Import dnd-kit components and `GripVertical` icon
-- Create `SortableFeature` component with drag handle
-- Replace core_features rendering with `DndContext` + `SortableContext` wrapper
-- Add sensors setup (PointerSensor, KeyboardSensor)
-- New prop: `onReorderFeatures`
+### Step 3: Create PerspectivesPanel Component
 
-**SimulatorShell.tsx**
-- Add `handleReorderFeatures` callback that updates last round's brief
-- Pass to FinalReport
-- Update `buildHistory` to include priority numbering in features
+New file: `src/components/simulator/PerspectivesPanel.tsx`
+- 5 persona cards (Skeptic/red, Champion/green, Competitor/amber, Customer/pink, Builder/blue)
+- Click to generate and display that persona's perspective via edge function
+- Shows loading state, markdown-rendered perspective, challenge questions
+- Saves to `idea_perspectives` table when reportId exists
+- Green dot indicator on already-generated personas
 
-### Prompt 3: Builder Intent Question
+### Step 4: Create ExpandContractPanel Component
 
-**simulate-idea/index.ts**
-- Add `builder_intent` to brief schema properties (experiment/community/lead-magnet/lifestyle/venture/fun)
-- Add to required array
-- Add rule 10 to initial round prompt about inferring intent
-- Add rule 6 to refinement prompt about tone adaptation
-- Add rule 9 to final round LOVABLE PROMPT ENGINEERING RULES about matching complexity to intent
+New file: `src/components/simulator/ExpandContractPanel.tsx`
+- **Expand mode**: Calls `expand-idea`, displays core_insight + 3 variation cards with title, pitch, potential badge, and "Explore this variation" button that navigates to /simulate with pre-filled idea
+- **Distill mode**: Calls `distill-idea`, displays thesis statement prominently, one_feature/one_customer/one_revenue cards, what_to_cut list with strikethrough, and MVP scope
+- Both modes have generate button + loading state + result display
 
-**SimulatorShell.tsx**
-- Add `builder_intent?: string` to `BriefData` interface
+### Step 5: Create ThunderdomePanel Container
 
-**IdeaBrief.tsx**
-- Display intent badge above the brief when `brief.builder_intent` exists
+New file: `src/components/simulator/ThunderdomePanel.tsx`
+- Tab navigation: Perspectives | Expand | Distill
+- Wraps PerspectivesPanel and ExpandContractPanel
+- Header with lightning bolt icon and "The Thunderdome" title
+- Receives brief, idea, reportId, highlights, antiHighlights as props
 
-### Prompt 4: Scale Stress Test
+### Step 6: Integrate into FinalReport
 
-**simulate-idea/index.ts**
-- Add `scale_assessment` object to brief schema (current_scale enum, fits_intent boolean, recommendation string) — NOT in required array
-- Add rule 11 to initial prompt, rule 7 to refinement prompt
+**Modified file: `src/components/simulator/FinalReport.tsx`**
+- Import ThunderdomePanel
+- Insert it between the brief sections grid (line ~769) and the Lovable prompt section (line ~772)
+- Only renders when `showPrompt` is true (email unlocked)
+- Pass brief, idea, reportId, highlights, antiHighlights
 
-**SimulatorShell.tsx**
-- Add `scale_assessment?` to `BriefData` interface
+### Files Summary
 
-**IdeaBrief.tsx**
-- Display scale assessment callout card when present (green for match, amber for mismatch)
-
-### Prompt 5: Dynamic Question Depth + App Type Questions
-
-**simulate-idea/index.ts**
-- Add `depth_recommendation` top-level property to analysisToolSchema (enum: "ready" | "one-more-recommended")
-- Add rule 12 to initial prompt, rule 8 to refinement prompt
-- Update follow-up question instructions to allow app type and visual direction questions when ambiguous
-
-**FollowUpQuestions.tsx**
-- Add `depthRecommendation?: string` prop
-- Update top CTA copy to reflect whether AI recommends generating now vs answering more
-
-**SimulatorShell.tsx**
-- Store `depthRecommendation` from API response
-- Pass to FollowUpQuestions
-
-### Files Modified
-
-| File | Changes |
+| File | Action |
 |---|---|
-| `supabase/functions/simulate-idea/index.ts` | builder_intent, scale_assessment, depth_recommendation in schema; rules 6-12 in prompts |
-| `src/components/simulator/SimulatorShell.tsx` | BriefData interface updates, antiHighlights state, reorder handler, depth recommendation state, draft save/restore |
-| `src/components/simulator/FollowUpQuestions.tsx` | Free text + selection coexistence, updated copy, depthRecommendation prop |
-| `src/components/simulator/FinalReport.tsx` | Anti-highlight toggles, drag-reorder features, new props |
-| `src/components/simulator/IdeaBrief.tsx` | Anti-highlight toggles, intent badge, scale assessment card |
-| `package.json` | Add @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities |
+| Database migration | New table + alter existing |
+| `supabase/functions/persona-perspective/index.ts` | Create |
+| `supabase/functions/expand-idea/index.ts` | Create |
+| `supabase/functions/distill-idea/index.ts` | Create |
+| `supabase/functions/refine-prompt/index.ts` | Create |
+| `src/components/simulator/PerspectivesPanel.tsx` | Create |
+| `src/components/simulator/ExpandContractPanel.tsx` | Create |
+| `src/components/simulator/ThunderdomePanel.tsx` | Create |
+| `src/components/simulator/FinalReport.tsx` | Modify (add ThunderdomePanel) |
 
-### Deployment
-- Deploy updated edge function after schema changes
-- All frontend changes are client-side only
+### What's Deferred (Prompts 5-7)
+- LivingBrief interactive markup layer
+- IdeaWorkspace persistent dashboard page
+- Multi-prompt generation with version history
+- These will build on the infrastructure created here
 
