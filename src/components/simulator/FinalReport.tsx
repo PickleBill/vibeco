@@ -251,7 +251,7 @@ export const generateStructuredPDF = (
     y = 25;
     pdf.setFontSize(14);
     pdf.setTextColor(120, 120, 200);
-    pdf.text("LOVABLE PROMPT — ONE-SHOT LANDING PAGE", margin, y);
+    pdf.text("YOUR LOVABLE PROMPT", margin, y);
     y += 10;
     writeWrapped(lovablePrompt, margin, contentW, 9, [190, 190, 205]);
   }
@@ -800,7 +800,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
             <div className="border border-border/30 rounded-lg overflow-hidden">
               <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/20">
                 <span className="font-mono text-xs text-muted-foreground uppercase tracking-wider">
-                  One-shot prompt — paste into Lovable to build your landing page
+                  Your Lovable Prompt — paste into Lovable to build your app
                 </span>
                 <button
                   onClick={handleCopyPromptWithHighlights}

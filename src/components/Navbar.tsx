@@ -100,7 +100,7 @@ const Navbar = () => {
                 className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
               >
                 <History size={12} />
-                My Simulations
+                Dashboard
               </a>
               <button
                 onClick={handleSignOut}
@@ -167,7 +167,7 @@ const Navbar = () => {
                   className="flex items-center gap-2 py-3 font-mono text-sm text-muted-foreground hover:text-foreground"
                 >
                   <History size={13} />
-                  My Simulations
+                  Dashboard
                 </a>
                 <button
                   onClick={() => { handleSignOut(); setMobileOpen(false); }}
