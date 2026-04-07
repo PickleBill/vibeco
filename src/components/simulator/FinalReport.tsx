@@ -251,7 +251,7 @@ export const generateStructuredPDF = (
     y = 25;
     pdf.setFontSize(14);
     pdf.setTextColor(120, 120, 200);
-    pdf.text("LOVABLE PROMPT — ONE-SHOT LANDING PAGE", margin, y);
+    pdf.text("YOUR LOVABLE PROMPT", margin, y);
     y += 10;
     writeWrapped(lovablePrompt, margin, contentW, 9, [190, 190, 205]);
   }
