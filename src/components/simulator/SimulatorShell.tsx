@@ -118,9 +118,14 @@ function clearDraft() {
   try { localStorage.removeItem(DRAFT_KEY); } catch {}
 }
 
-const SimulatorShell = () => {
+interface SimulatorShellProps {
+  resumeId?: string;
+}
+
+const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
   const [initialized, setInitialized] = useState(false);
-  const draft = !initialized ? loadDraft() : null;
+  const [resumeLoading, setResumeLoading] = useState(!!resumeId);
+  const draft = !initialized && !resumeId ? loadDraft() : null;
 
   const [phase, setPhase] = useState<"input" | "analyzing" | "brief" | "final">(draft?.phase === "analyzing" ? "brief" : draft?.phase || "input");
   const [rounds, setRounds] = useState<RoundState[]>(draft?.rounds || []);
@@ -138,9 +143,66 @@ const SimulatorShell = () => {
   const [reportId, setReportId] = useState<string | null>(draft?.reportId || null);
   const [depthRecommendation, setDepthRecommendation] = useState<string | undefined>();
 
+  // Resume from DB when resumeId is provided
+  useEffect(() => {
+    if (!resumeId) return;
+
+    (async () => {
+      try {
+        const { data: report, error } = await (supabase.from("idea_reports") as any)
+          .select("*")
+          .eq("id", resumeId)
+          .single();
+
+        if (error || !report) {
+          console.error("Resume error:", error);
+          toast.error("Could not load that simulation.");
+          setResumeLoading(false);
+          return;
+        }
+
+        // Reconstruct state from the report
+        const reportRounds = Array.isArray(report.rounds) ? report.rounds as RoundState[] : [];
+
+        setIdea(report.idea || "");
+        setRounds(reportRounds);
+        setCurrentRound(Math.max(0, reportRounds.length - 1));
+        setConceptImage(report.concept_image_url || null);
+        setLogoImage(report.logo_image_url || null);
+        setLovablePrompt(report.lovable_prompt || null);
+        setHighlights(new Set(report.highlights || []));
+        setReportId(report.id);
+
+        // Determine phase from data
+        if (report.lovable_prompt) {
+          setPhase("final");
+          setUnlocked(true);
+          // Try to get the email from simulator_captures
+          const { data: capture } = await (supabase.from("simulator_captures") as any)
+            .select("email")
+            .eq("report_id", report.id)
+            .limit(1)
+            .maybeSingle();
+          if (capture?.email) setUnlockEmail(capture.email);
+        } else if (reportRounds.length > 0) {
+          setPhase("brief");
+        } else {
+          setPhase("input");
+        }
+
+        toast.info("Resumed your simulation.");
+      } catch (err) {
+        console.error("Resume error:", err);
+        toast.error("Failed to resume simulation.");
+      } finally {
+        setResumeLoading(false);
+      }
+    })();
+  }, [resumeId]);
+
   useEffect(() => {
     setInitialized(true);
-    if (draft) {
+    if (draft && !resumeId) {
       toast.info("Resumed your previous session.");
     }
   }, []);
@@ -173,7 +235,6 @@ const SimulatorShell = () => {
       else next.add(key);
       return next;
     });
-    // Clear anti-highlight if setting positive
     setAntiHighlights((prev) => {
       const next = new Set(prev);
       next.delete(key);
@@ -188,7 +249,6 @@ const SimulatorShell = () => {
       else next.add(key);
       return next;
     });
-    // Clear positive highlight
     setHighlights((prev) => {
       const next = new Set(prev);
       next.delete(key);
@@ -196,12 +256,29 @@ const SimulatorShell = () => {
     });
   };
 
+  // Helper to get current user ID
+  const getUserId = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.user?.id || null;
+  };
+
+  // Helper to update report status
+  const updateReportStatus = async (id: string, status: string) => {
+    try {
+      await (supabase.from("idea_reports") as any)
+        .update({ status })
+        .eq("id", id);
+    } catch (err) {
+      console.error("Status update error:", err);
+    }
+  };
+
   // Auto-save to simulator_captures (DB backup)
   useEffect(() => {
     if (rounds.length === 0) return;
     const saveSession = async () => {
       try {
-        const userId = (await supabase.auth.getSession()).data.session?.user?.id || null;
+        const userId = await getUserId();
         await (supabase.from("simulator_captures") as any).upsert({
           id: sessionId,
           email: unlockEmail || `anonymous-${sessionId.slice(0, 8)}`,
@@ -215,6 +292,7 @@ const SimulatorShell = () => {
           logo_image_url: logoImage || null,
           lovable_prompt: lovablePrompt || null,
           ...(userId ? { user_id: userId } : {}),
+          ...(reportId ? { report_id: reportId } : {}),
         }, { onConflict: "id" });
       } catch (err) {
         console.error("Auto-save error:", err);
@@ -338,7 +416,6 @@ const SimulatorShell = () => {
         setLovablePrompt(data.lovable_prompt);
       }
 
-      // Store depth recommendation for follow-up UX
       if (data.depth_recommendation) {
         setDepthRecommendation(data.depth_recommendation);
       }
@@ -348,8 +425,9 @@ const SimulatorShell = () => {
         setRounds(allRounds);
         setPhase("final");
 
-        // Save to idea_reports ONCE
+        // Save to idea_reports
         try {
+          const userId = await getUserId();
           const latestBrief = newRound.brief;
           const roundsData = allRounds.map((r) => ({
             brief: r.brief,
@@ -366,6 +444,7 @@ const SimulatorShell = () => {
                 concept_image_url: conceptImage || null,
                 logo_image_url: logoImage || null,
                 highlights: Array.from(highlights),
+                status: data.lovable_prompt ? "prompt-ready" : "brief-complete",
               })
               .eq("id", reportId);
           } else {
@@ -378,6 +457,8 @@ const SimulatorShell = () => {
                 concept_image_url: conceptImage || null,
                 logo_image_url: logoImage || null,
                 highlights: Array.from(highlights),
+                status: data.lovable_prompt ? "prompt-ready" : "brief-complete",
+                ...(userId ? { user_id: userId } : {}),
               })
               .select("id")
               .single();
@@ -390,6 +471,41 @@ const SimulatorShell = () => {
         setRounds((prev) => [...prev, newRound]);
         setCurrentRound((prev) => prev + 1);
         setPhase("brief");
+
+        // Create/update report with in-progress status
+        try {
+          const userId = await getUserId();
+          const allRounds = [...rounds, newRound];
+          const roundsData = allRounds.map((r) => ({
+            brief: r.brief,
+            questions: r.questions,
+            answers: r.answers || null,
+          }));
+
+          if (reportId) {
+            await (supabase.from("idea_reports") as any)
+              .update({
+                brief: newRound.brief,
+                rounds: roundsData,
+                status: "in-progress",
+              })
+              .eq("id", reportId);
+          } else {
+            const { data: reportData } = await (supabase.from("idea_reports") as any)
+              .insert({
+                idea: idea.trim(),
+                brief: newRound.brief,
+                rounds: roundsData,
+                status: "in-progress",
+                ...(userId ? { user_id: userId } : {}),
+              })
+              .select("id")
+              .single();
+            if (reportData?.id) setReportId(reportData.id);
+          }
+        } catch (err) {
+          console.error("Early report save error:", err);
+        }
       }
     } catch (e: unknown) {
       console.error("Simulator error:", e);
@@ -440,7 +556,7 @@ const SimulatorShell = () => {
     setUnlockEmail(email);
     setUnlocked(true);
     try {
-      const userId = (await supabase.auth.getSession()).data.session?.user?.id || null;
+      const userId = await getUserId();
       await (supabase.from("simulator_captures") as any).upsert({
         id: sessionId,
         email: email.trim(),
@@ -454,6 +570,7 @@ const SimulatorShell = () => {
         logo_image_url: logoImage || null,
         lovable_prompt: lovablePrompt || null,
         ...(userId ? { user_id: userId } : {}),
+        ...(reportId ? { report_id: reportId } : {}),
       }, { onConflict: "id" });
     } catch (err) {
       console.error("Capture error:", err);
@@ -474,6 +591,7 @@ const SimulatorShell = () => {
       }
     } else {
       try {
+        const userId = await getUserId();
         const latestBrief = rounds[rounds.length - 1]?.brief;
         if (latestBrief) {
           const { data: reportData } = await (supabase.from("idea_reports") as any)
@@ -489,6 +607,8 @@ const SimulatorShell = () => {
               concept_image_url: conceptImage || null,
               logo_image_url: logoImage || null,
               highlights: Array.from(highlights),
+              status: lovablePrompt ? "prompt-ready" : "brief-complete",
+              ...(userId ? { user_id: userId } : {}),
             })
             .select("id")
             .single();
@@ -529,6 +649,22 @@ const SimulatorShell = () => {
 
   const latestRound = rounds[rounds.length - 1];
   const totalRounds = 3;
+
+  // Show loading state while resuming from DB
+  if (resumeLoading) {
+    return (
+      <div className="min-h-screen bg-background pt-20 pb-16">
+        <div className="max-w-4xl mx-auto px-6 flex flex-col items-center justify-center py-32">
+          <motion.div
+            className="w-16 h-16 rounded-full border-2 border-primary/30 border-t-primary"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          />
+          <p className="font-mono text-sm text-muted-foreground mt-6">Resuming your simulation...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pt-20 pb-16">
