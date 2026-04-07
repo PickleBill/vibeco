@@ -800,7 +800,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
             <div className="border border-border/30 rounded-lg overflow-hidden">
               <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/20">
                 <span className="font-mono text-xs text-muted-foreground uppercase tracking-wider">
-                  One-shot prompt — paste into Lovable to build your landing page
+                  Your Lovable Prompt — paste into Lovable to build your app
                 </span>
                 <button
                   onClick={handleCopyPromptWithHighlights}
