@@ -1,81 +1,116 @@
 
 
-## Plan: VibeCo Thunderdome — Phase 2 Feature Suite
+## Plan: User Dashboard and Idea Management UX Overhaul
 
-A major post-brief experience adding persona perspectives, idea expansion/distillation, and prompt refinement. The user's spec is truncated (Prompt 4 code is cut off, Prompts 5-7 are missing), so this plan covers Prompts 1-4 fully and stubs the remaining tabs for future prompts.
+### The Problem
 
-### Important Note
-The spec message is truncated mid-way through Prompt 4's `ExpandContractPanel.tsx` code, and Prompts 5-7 (LivingBrief, Workspace, Multi-Prompt) are not included. This plan implements Prompts 1-4 completely and leaves clean extension points for the rest.
+Right now, the user experience has several rough edges:
 
-### Step 1: Database Schema Updates
+1. **Two disconnected data stores**: `simulator_captures` stores session data (linked to users), `idea_reports` stores the public report (no user link). There's no FK between them, so the "My Simulations" page can't show Thunderdome status, thesis statements, or prompt versions.
 
-**Migration SQL:**
-- Create `idea_perspectives` table with columns: id, report_id (FK to idea_reports), persona (text with CHECK constraint), perspective, challenge_questions (JSONB), user_responses (JSONB), created_at, UNIQUE(report_id, persona)
-- Enable RLS with permissive SELECT/INSERT/UPDATE policies for anon+authenticated
-- Add 5 columns to `idea_reports`: `thunderdome_unlocked` (boolean, default false), `thesis_statement` (text), `prompt_versions` (JSONB, default []), `annotations` (JSONB, default []), `expanded_ideas` (JSONB, default [])
+2. **My Simulations is a flat list**: It shows idea text + date + "Complete" badge. No status progression, no Thunderdome indicators, no way to see what stage an idea is at.
 
-### Step 2: Create 4 Edge Functions
+3. **Resume flow is fragile**: It reconstructs state into localStorage and navigates to `/simulate`, which feels like starting over. There's no sense of "returning to your workspace."
 
-All use `google/gemini-2.5-pro` via Lovable AI gateway with tool calling for structured output.
+4. **The prompt section says "One-shot prompt"**: But with Thunderdome refinement, perspectives, and distillation, it's now an evolving artifact. The UI doesn't reflect that.
 
-| Function | Purpose | Input | Output |
-|---|---|---|---|
-| `persona-perspective` | Generate one of 5 persona takes (skeptic, champion, competitor, customer, builder) | persona, brief, idea, builder_intent | perspective (markdown), challenge_questions, headline |
-| `expand-idea` | Generate 3 orthogonal idea variations | brief, idea | core_insight, 3 expansions with idea_text |
-| `distill-idea` | Force idea to core thesis | brief, idea, highlights, antiHighlights | one_feature, one_customer, one_revenue, thesis_statement, what_to_cut, mvp_scope |
-| `refine-prompt` | Regenerate lovable_prompt with Thunderdome context | brief, idea, original_prompt, perspectives, distillation, annotations, highlights | refined lovable_prompt, version_label, changes list |
+5. **No connection between ideas**: Expand mode generates variations, but there's no way to see the lineage or navigate between related ideas.
 
-Deploy all 4 after creation.
+### Phased Approach
 
-### Step 3: Create PerspectivesPanel Component
+#### Phase A: Data Foundation (database + linking)
 
-New file: `src/components/simulator/PerspectivesPanel.tsx`
-- 5 persona cards (Skeptic/red, Champion/green, Competitor/amber, Customer/pink, Builder/blue)
-- Click to generate and display that persona's perspective via edge function
-- Shows loading state, markdown-rendered perspective, challenge questions
-- Saves to `idea_perspectives` table when reportId exists
-- Green dot indicator on already-generated personas
+Add `user_id` and `report_id` columns to connect the data model:
 
-### Step 4: Create ExpandContractPanel Component
+**Migration:**
+- Add `report_id UUID REFERENCES idea_reports(id)` to `simulator_captures` (nullable, for linking)
+- Add `user_id UUID` to `idea_reports` (nullable, so public sharing still works)
+- Add `status TEXT DEFAULT 'in-progress'` to `idea_reports` with values: `in-progress`, `brief-complete`, `thunderdome-active`, `prompt-ready`
+- Add `parent_idea_id UUID REFERENCES idea_reports(id)` to `idea_reports` (nullable, for expand-mode lineage)
 
-New file: `src/components/simulator/ExpandContractPanel.tsx`
-- **Expand mode**: Calls `expand-idea`, displays core_insight + 3 variation cards with title, pitch, potential badge, and "Explore this variation" button that navigates to /simulate with pre-filled idea
-- **Distill mode**: Calls `distill-idea`, displays thesis statement prominently, one_feature/one_customer/one_revenue cards, what_to_cut list with strikethrough, and MVP scope
-- Both modes have generate button + loading state + result display
+**SimulatorShell.tsx:**
+- When creating an `idea_reports` row, also store `user_id` from the current session
+- When creating/updating `simulator_captures`, store `report_id` to link them
+- Update the status field as the user progresses through phases
 
-### Step 5: Create ThunderdomePanel Container
+#### Phase B: My Simulations becomes an Idea Dashboard
 
-New file: `src/components/simulator/ThunderdomePanel.tsx`
-- Tab navigation: Perspectives | Expand | Distill
-- Wraps PerspectivesPanel and ExpandContractPanel
-- Header with lightning bolt icon and "The Thunderdome" title
-- Receives brief, idea, reportId, highlights, antiHighlights as props
+Replace the current flat list with a proper dashboard at `/my-simulations` (or rename to `/dashboard`):
 
-### Step 6: Integrate into FinalReport
+**Layout:**
+- Header with user greeting and "New Simulation" CTA
+- Ideas displayed as cards with richer metadata:
+  - Logo/concept image thumbnail
+  - Idea name (first line or extracted product name from brief)
+  - Status badge: `Analyzing` / `Brief Ready` / `Thunderdome` / `Prompt Ready`
+  - Builder intent badge (experiment, venture, etc.)
+  - Last modified date
+  - Perspectives count (e.g., "3/5 personas consulted")
+  - Thesis statement preview (if distilled)
+- Sort by: Recent / Status / Intent
+- Each card clicks through to `/simulate` with that idea loaded
 
-**Modified file: `src/components/simulator/FinalReport.tsx`**
-- Import ThunderdomePanel
-- Insert it between the brief sections grid (line ~769) and the Lovable prompt section (line ~772)
-- Only renders when `showPrompt` is true (email unlocked)
-- Pass brief, idea, reportId, highlights, antiHighlights
+**Empty state:** Keep current but improve copy — "Your ideas live here. Run your first simulation to get started."
 
-### Files Summary
+#### Phase C: Resume Flow Cleanup
 
-| File | Action |
+Instead of dumping state into localStorage and navigating:
+
+**SimulatorShell.tsx changes:**
+- Accept a `resumeId` URL parameter (e.g., `/simulate?id=abc-123`)
+- When `resumeId` is present, load state from `idea_reports` + `simulator_captures` directly instead of localStorage
+- Show a subtle "Resuming..." toast instead of reconstructing drafts
+- The simulator becomes stateful around the report ID — all saves go to the DB, localStorage is just a crash-recovery backup
+
+**Navigation:**
+- Dashboard cards link to `/simulate?id={report_id}` 
+- Direct report links (`/report/:id`) remain read-only for sharing
+
+#### Phase D: Progressive Disclosure in FinalReport
+
+Reorganize the post-brief experience to feel less overwhelming:
+
+**Collapsible sections approach:**
+- The brief sections grid stays as-is (it works well)
+- Below the brief, show a clear "What's Next" progression instead of dumping everything:
+  1. **Your Lovable Prompt** — always visible first, with "Refine with Thunderdome" teaser if not yet explored
+  2. **Stress Test** (Thunderdome) — collapsed by default, expands inline. Shows a progress indicator: "0/5 perspectives · Not yet distilled"
+  3. **Refined Prompt** — appears after any Thunderdome activity, showing version diff
+
+**Prompt section rename:**
+- Change "One-shot prompt" to "Your Lovable Prompt" 
+- Add version indicator when multiple versions exist (v1, v2, etc.)
+- Add a "Refine Prompt" button that calls `refine-prompt` after Thunderdome exploration
+
+#### Phase E: Navbar Polish
+
+- When logged in, change "My Simulations" to "Dashboard" in nav
+- Add a subtle idea count badge (e.g., "Dashboard (4)")
+- On `/simulate` page, show breadcrumb: Dashboard > [Idea Name] if resuming
+
+### Files Modified
+
+| File | Changes |
 |---|---|
-| Database migration | New table + alter existing |
-| `supabase/functions/persona-perspective/index.ts` | Create |
-| `supabase/functions/expand-idea/index.ts` | Create |
-| `supabase/functions/distill-idea/index.ts` | Create |
-| `supabase/functions/refine-prompt/index.ts` | Create |
-| `src/components/simulator/PerspectivesPanel.tsx` | Create |
-| `src/components/simulator/ExpandContractPanel.tsx` | Create |
-| `src/components/simulator/ThunderdomePanel.tsx` | Create |
-| `src/components/simulator/FinalReport.tsx` | Modify (add ThunderdomePanel) |
+| Database migration | Add user_id/report_id/status/parent_idea_id columns |
+| `src/pages/MySimulations.tsx` | Full rewrite as idea dashboard with status cards |
+| `src/components/simulator/SimulatorShell.tsx` | Accept resumeId param, DB-first state loading, status tracking |
+| `src/components/simulator/FinalReport.tsx` | Progressive disclosure, prompt versioning, "Refine" button |
+| `src/components/Navbar.tsx` | Dashboard rename, breadcrumbs |
+| `src/pages/Report.tsx` | Show Thunderdome status on shared reports (read-only) |
 
-### What's Deferred (Prompts 5-7)
-- LivingBrief interactive markup layer
-- IdeaWorkspace persistent dashboard page
-- Multi-prompt generation with version history
-- These will build on the infrastructure created here
+### What This Does NOT Change
+- The Thunderdome components themselves (Perspectives, Expand, Distill) — they work, we're just wrapping them better
+- The edge functions — no changes needed
+- The public report sharing flow — stays the same
+- The simulator flow itself (input → questions → brief → final) — unchanged
+
+### Recommended Build Order
+1. Phase A first (data foundation) — everything else depends on linked data
+2. Phase C next (resume flow) — this unblocks the dashboard
+3. Phase B (dashboard) — now cards can link to resumable simulations
+4. Phase D (progressive disclosure) — polish the post-brief experience
+5. Phase E (nav) — final touches
+
+This is a meaningful refactor but each phase is self-contained and testable. Want me to start with Phase A, or would you like to adjust the scope?
 
