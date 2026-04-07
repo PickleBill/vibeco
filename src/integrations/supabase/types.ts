@@ -91,10 +91,13 @@ export type Database = {
           idea: string
           logo_image_url: string | null
           lovable_prompt: string | null
+          parent_idea_id: string | null
           prompt_versions: Json | null
           rounds: Json
+          status: string | null
           thesis_statement: string | null
           thunderdome_unlocked: boolean | null
+          user_id: string | null
         }
         Insert: {
           annotations?: Json | null
@@ -107,10 +110,13 @@ export type Database = {
           idea: string
           logo_image_url?: string | null
           lovable_prompt?: string | null
+          parent_idea_id?: string | null
           prompt_versions?: Json | null
           rounds?: Json
+          status?: string | null
           thesis_statement?: string | null
           thunderdome_unlocked?: boolean | null
+          user_id?: string | null
         }
         Update: {
           annotations?: Json | null
@@ -123,12 +129,23 @@ export type Database = {
           idea?: string
           logo_image_url?: string | null
           lovable_prompt?: string | null
+          parent_idea_id?: string | null
           prompt_versions?: Json | null
           rounds?: Json
+          status?: string | null
           thesis_statement?: string | null
           thunderdome_unlocked?: boolean | null
+          user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "idea_reports_parent_idea_id_fkey"
+            columns: ["parent_idea_id"]
+            isOneToOne: false
+            referencedRelation: "idea_reports"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       simulator_captures: {
         Row: {
@@ -140,6 +157,7 @@ export type Database = {
           landing_page_html: string | null
           logo_image_url: string | null
           lovable_prompt: string | null
+          report_id: string | null
           rounds: Json
           user_id: string | null
         }
@@ -152,6 +170,7 @@ export type Database = {
           landing_page_html?: string | null
           logo_image_url?: string | null
           lovable_prompt?: string | null
+          report_id?: string | null
           rounds?: Json
           user_id?: string | null
         }
@@ -164,10 +183,19 @@ export type Database = {
           landing_page_html?: string | null
           logo_image_url?: string | null
           lovable_prompt?: string | null
+          report_id?: string | null
           rounds?: Json
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "simulator_captures_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "idea_reports"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
