@@ -150,7 +150,7 @@ const EmailUnlockBanner = ({
       }`}
       style={isProminent ? { boxShadow: "0 0 24px hsl(var(--primary) / 0.1)" } : {}}
     >
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2 mb-1.5">
         {isProminent ? (
           <Sparkles size={14} className="text-primary" />
         ) : (
@@ -158,10 +158,15 @@ const EmailUnlockBanner = ({
         )}
         <span className={`font-mono text-xs ${isProminent ? "text-primary font-bold" : "text-muted-foreground"}`}>
           {isProminent
-            ? "Save your progress & unlock the full report"
-            : "Want to save this analysis?"}
+            ? "Unlock your personalized build prompt"
+            : "Save your analysis"}
         </span>
       </div>
+      <p className="font-mono text-[10px] text-muted-foreground/70 mb-3 leading-relaxed">
+        {isProminent
+          ? "Get your custom Lovable prompt, PDF export, and a permanent shareable link to this report."
+          : "Enter your email to save progress, export as PDF, and get a shareable link."}
+      </p>
       <form onSubmit={handleSubmit} className="flex gap-2">
         <input
           type="email"
