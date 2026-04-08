@@ -9,7 +9,7 @@ const gridLines = [
   { top: "75%", opacity: 0.1, delay: 0.3 },
 ];
 
-const ctaSpring = { type: "spring" as const, stiffness: 400, damping: 25 };
+const ctaSpring = { type: "spring" as const, stiffness: 280, damping: 20 };
 
 const Hero = () => {
   const navigate = useNavigate();
@@ -30,7 +30,7 @@ const Hero = () => {
             style={{ top: line.top, opacity: line.opacity, transformOrigin: "center" }}
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
-            transition={{ duration: 0.6, delay: line.delay, ease: "easeOut" }}
+            transition={{ duration: 1.0, delay: line.delay * 1.67, ease: "easeOut" }}
           />
         ))}
       </div>
@@ -42,7 +42,7 @@ const Hero = () => {
               className="font-mono text-sm text-primary uppercase tracking-widest mb-6"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.4, delay: 0.3 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
             >
               try things. break things. ship things.
             </motion.p>
@@ -52,7 +52,7 @@ const Hero = () => {
               className="font-display text-5xl sm:text-6xl lg:text-7xl font-black text-foreground leading-[1.05] mb-1 scan-line"
               initial={{ opacity: 0, filter: "blur(8px)" }}
               animate={{ opacity: 1, filter: "blur(0px)" }}
-              transition={{ duration: 0.6, delay: 0.5, ease: "easeOut" }}
+              transition={{ duration: 1.0, delay: 0.7, ease: "easeOut" }}
             >
               Your wildest idea.
               <br />
@@ -60,7 +60,7 @@ const Hero = () => {
                 className="text-gradient-accent inline-block"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ duration: 0.4, delay: 0.7 }}
+                transition={{ duration: 0.6, delay: 1.0 }}
               >
                 Live in minutes.
               </motion.span>
@@ -70,7 +70,7 @@ const Hero = () => {
               className="font-mono text-base text-foreground/80 leading-relaxed mb-4 max-w-lg mt-5"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.9 }}
+              transition={{ duration: 0.6, delay: 1.3 }}
             >
               You describe it, we build it — powered by AI, driven by obsession.
               No dev team needed. No six-figure budget. Just your idea and our
@@ -81,7 +81,7 @@ const Hero = () => {
               className="font-mono text-sm text-muted-foreground leading-relaxed mb-8 max-w-lg"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.3, delay: 1.0 }}
+              transition={{ duration: 0.5, delay: 1.5 }}
             >
               Creator-led&ensp;•&ensp;AI-powered&ensp;•&ensp;Live in hours, not months
             </motion.p>
@@ -91,7 +91,7 @@ const Hero = () => {
               className="flex flex-wrap gap-4"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ ...ctaSpring, delay: 1.1 }}
+              transition={{ ...ctaSpring, delay: 1.7 }}
             >
               <button
                 onClick={() => navigate("/simulate")}
@@ -112,7 +112,7 @@ const Hero = () => {
               className="font-mono text-xs text-muted-foreground hover:text-primary transition-colors mt-3"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.3, delay: 1.3 }}
+              transition={{ duration: 0.5, delay: 1.9 }}
             >
               ↓ See what we've built
             </motion.button>
@@ -122,7 +122,7 @@ const Hero = () => {
               className="flex lg:hidden items-center gap-6 mt-8 pt-6 border-t border-border/30"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.4, delay: 1.4 }}
+              transition={{ duration: 0.6, delay: 2.0 }}
             >
               {[
                 { value: "16+", label: "live builds" },
@@ -143,7 +143,7 @@ const Hero = () => {
               className="relative"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8, delay: 1.2, ease: "easeOut" }}
+              transition={{ duration: 1.2, delay: 1.6, ease: "easeOut" }}
             >
               <div
                 className="absolute inset-0 rounded-full blur-3xl pointer-events-none"

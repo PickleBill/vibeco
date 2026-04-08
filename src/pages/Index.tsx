@@ -114,6 +114,7 @@ const Index = () => {
           <FinalCta />
         </main>
         <Footer />
+        <VariantSwitcher />
       </div>
     </HelmetProvider>
   );
