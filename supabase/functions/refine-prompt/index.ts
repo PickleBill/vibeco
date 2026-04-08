@@ -34,6 +34,11 @@ const promptToolSchema = {
   },
 };
 
+const MODEL_MAP: Record<string, string> = {
+  fast: "google/gemini-3-flash-preview",
+  deep: "google/gemini-2.5-pro",
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -42,8 +47,9 @@ serve(async (req) => {
   try {
     const {
       brief, idea, original_prompt, perspectives, distillation,
-      annotations, highlights, antiHighlights, refinement_context,
+      annotations, highlights, antiHighlights, refinement_context, mode,
     } = await req.json();
+    const model = MODEL_MAP[mode] || MODEL_MAP.fast;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -119,7 +125,7 @@ RULES:
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-pro",
+          model,
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: context },

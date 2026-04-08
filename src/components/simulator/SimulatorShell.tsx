@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download } from "lucide-react";
+import { Download, Zap, Brain } from "lucide-react";
 import IdeaInput from "./IdeaInput";
 import IdeaBrief from "./IdeaBrief";
 import FollowUpQuestions from "./FollowUpQuestions";
@@ -142,6 +142,7 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
   const [antiHighlights, setAntiHighlights] = useState<Set<string>>(new Set(draft?.antiHighlights || []));
   const [reportId, setReportId] = useState<string | null>(draft?.reportId || null);
   const [depthRecommendation, setDepthRecommendation] = useState<string | undefined>();
+  const [thinkingMode, setThinkingMode] = useState<"fast" | "deep">("fast");
 
   // Resume from DB when resumeId is provided
   useEffect(() => {
@@ -399,8 +400,8 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
     try {
       const body: Record<string, unknown> =
         type === "initial"
-          ? { type: "initial", idea: ideaText || idea }
-          : { type: "refine", history: buildHistory(currentRound - 1), round };
+          ? { type: "initial", idea: ideaText || idea, mode: thinkingMode }
+          : { type: "refine", history: buildHistory(currentRound - 1), round, mode: thinkingMode };
 
       const { data, error } = await supabase.functions.invoke("simulate-idea", { body });
 
@@ -669,6 +670,27 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
   return (
     <div className="min-h-screen bg-background pt-20 pb-16">
       <div className="max-w-4xl mx-auto px-6">
+        {/* Thinking Mode Toggle */}
+        {phase !== "input" && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex justify-end mb-4"
+          >
+            <button
+              onClick={() => setThinkingMode(prev => prev === "fast" ? "deep" : "fast")}
+              className={`flex items-center gap-2 font-mono text-[11px] px-3 py-1.5 rounded-full border transition-all ${
+                thinkingMode === "deep"
+                  ? "border-purple-500/50 bg-purple-500/10 text-purple-400"
+                  : "border-border bg-card text-muted-foreground hover:border-primary/30"
+              }`}
+            >
+              {thinkingMode === "deep" ? <Brain size={12} /> : <Zap size={12} />}
+              {thinkingMode === "deep" ? "Deep thinking" : "Quick mode"}
+            </button>
+          </motion.div>
+        )}
+
         {unlocked && rounds.length > 0 && phase !== "input" && phase !== "analyzing" && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -753,7 +775,7 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
               </div>
               <AnalyzingMessages isInitial={rounds.length === 0} />
               <p className="font-mono text-[10px] text-muted-foreground/50 mt-2">
-                This takes about 10-15 seconds
+                {thinkingMode === "deep" ? "Deep analysis takes 30-60 seconds" : "This takes about 10-15 seconds"}
               </p>
             </motion.div>
           )}

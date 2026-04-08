@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Clock, Sparkles, ArrowRight, Plus, Zap, Shield, Flame, Swords, Heart, Wrench } from "lucide-react";
+import { ArrowLeft, Clock, Sparkles, ArrowRight, Plus, Zap, Shield, Flame, Swords, Heart, Wrench, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
@@ -18,6 +18,7 @@ interface IdeaReport {
   thesis_statement: string | null;
   thunderdome_unlocked: boolean | null;
   parent_idea_id: string | null;
+  user_id: string | null;
 }
 
 interface PerspectiveCount {
@@ -47,6 +48,9 @@ const MySimulations = () => {
   const [perspectiveCounts, setPerspectiveCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [userEmail, setUserEmail] = useState<string>("");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showAll, setShowAll] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string>("");
 
   useEffect(() => {
     (async () => {
@@ -57,13 +61,28 @@ const MySimulations = () => {
         return;
       }
       setUserEmail(session.user.email || "");
+      setCurrentUserId(session.user.id);
 
-      // Fetch idea_reports for this user
-      const { data, error } = await (supabase.from("idea_reports") as any)
-        .select("id, idea, created_at, status, brief, lovable_prompt, concept_image_url, logo_image_url, thesis_statement, thunderdome_unlocked, parent_idea_id")
+      // Check admin role
+      const { data: roleData } = await (supabase.from("user_roles") as any)
+        .select("role")
         .eq("user_id", session.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      const adminStatus = !!roleData;
+      setIsAdmin(adminStatus);
+
+      // Fetch idea_reports — admin sees all, others see own
+      let query = (supabase.from("idea_reports") as any)
+        .select("id, idea, created_at, status, brief, lovable_prompt, concept_image_url, logo_image_url, thesis_statement, thunderdome_unlocked, parent_idea_id, user_id")
         .order("created_at", { ascending: false })
         .limit(50);
+
+      if (!adminStatus) {
+        query = query.eq("user_id", session.user.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error("Fetch error:", error);
@@ -113,6 +132,9 @@ const MySimulations = () => {
   };
 
   const firstName = userEmail.split("@")[0]?.split(".")[0] || "there";
+  const filteredReports = isAdmin && !showAll
+    ? reports.filter(r => r.user_id === currentUserId)
+    : reports;
 
   return (
     <>
@@ -140,11 +162,31 @@ const MySimulations = () => {
             </button>
           </div>
 
+          {/* Admin toggle */}
+          {isAdmin && (
+            <div className="flex items-center gap-2 mb-6">
+              <button
+                onClick={() => setShowAll(prev => !prev)}
+                className={`flex items-center gap-2 font-mono text-[11px] px-3 py-1.5 rounded-full border transition-all ${
+                  showAll
+                    ? "border-purple-500/50 bg-purple-500/10 text-purple-400"
+                    : "border-border bg-card text-muted-foreground"
+                }`}
+              >
+                {showAll ? <Eye size={12} /> : <EyeOff size={12} />}
+                {showAll ? "All ideas" : "My ideas only"}
+              </button>
+              <span className="font-mono text-[10px] text-muted-foreground">
+                Admin · {filteredReports.length} showing
+              </span>
+            </div>
+          )}
+
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <div className="animate-pulse font-mono text-sm text-muted-foreground">Loading your ideas...</div>
             </div>
-          ) : reports.length === 0 ? (
+          ) : filteredReports.length === 0 ? (
             <div className="text-center py-24">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
                 <Sparkles size={24} className="text-primary" />
@@ -163,7 +205,7 @@ const MySimulations = () => {
             </div>
           ) : (
             <div className="grid gap-4">
-              {reports.map((report, i) => {
+              {filteredReports.map((report, i) => {
                 const status = getStatusInfo(report);
                 const pCount = perspectiveCounts[report.id] || 0;
                 const intent = report.brief?.builder_intent;
