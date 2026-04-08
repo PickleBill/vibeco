@@ -205,7 +205,7 @@ const MySimulations = () => {
             </div>
           ) : (
             <div className="grid gap-4">
-              {reports.map((report, i) => {
+              {filteredReports.map((report, i) => {
                 const status = getStatusInfo(report);
                 const pCount = perspectiveCounts[report.id] || 0;
                 const intent = report.brief?.builder_intent;
