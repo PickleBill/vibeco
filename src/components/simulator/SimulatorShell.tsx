@@ -806,6 +806,13 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
               <p className="font-mono text-[10px] text-muted-foreground/50 mt-2">
                 {thinkingMode === "deep" ? "Deep analysis takes 30-60 seconds" : "This takes about 10-15 seconds"}
               </p>
+              <button
+                onClick={handleCancelAnalysis}
+                className="mt-6 flex items-center gap-2 font-mono text-xs text-muted-foreground hover:text-foreground border border-border/60 px-4 py-2 rounded-sm transition-colors"
+              >
+                <X size={14} />
+                Cancel
+              </button>
             </motion.div>
           )}
 
