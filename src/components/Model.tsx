@@ -47,7 +47,7 @@ const Model = () => {
             Built for alignment.
           </h2>
           <p className="font-mono text-sm text-foreground/80 mb-16 max-w-xl">
-            Not a services menu — a real partnership. We only take on projects
+            Not a services menu — a partnership. We only take on projects
             we believe in, and we structure every deal so winning is mutual.
           </p>
         </FadeIn>

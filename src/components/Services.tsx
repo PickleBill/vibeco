@@ -3,24 +3,24 @@ import FadeIn from "./FadeIn";
 
 const services = [
   {
-    title: "We Build It. Fast.",
-    desc: "You describe it. We build it. Same conversation. Not a prototype — a live, deployed product with real people using it.",
-    detail: "Everything from the idea to the live product — design, tech, the whole stack — handled. Often before you finish your coffee.",
+    title: "We Build It",
+    desc: "Describe what you need. We build and deploy it — often before the end of the day.",
+    detail: "Everything from the idea to the live product — design, tech, the whole stack — handled.",
   },
   {
-    title: "From Idea to Game Plan",
+    title: "From Idea to Plan",
     desc: "We scope it, pressure-test it, and start building — often in the same conversation. No decks. No committees.",
     detail: "Who's the customer? What's the first version look like? How do we get it in front of people? We figure it out together, fast.",
   },
   {
-    title: "Ready to Launch, Day One",
-    desc: "Landing pages, onboarding flows, analytics, and SEO — all baked in from the start. Ship ready to learn, not ready to wait.",
-    detail: "SEO, analytics, email capture — all the growth stuff, baked in from day one. You launch and start learning immediately.",
+    title: "Launch-Ready from Day One",
+    desc: "Landing pages, onboarding flows, analytics, and SEO — all baked in from the start.",
+    detail: "SEO, analytics, email capture — all the growth stuff, baked in. You launch and start learning immediately.",
   },
   {
     title: "Learn, Tweak, Grow",
     desc: "Iterate based on real feedback, not guesswork. We build the loops that turn hunches into traction.",
-    detail: "Talk to users, read the data, tweak the product, repeat. Move fast, learn faster. That's how winners are built.",
+    detail: "Talk to users, read the data, tweak the product, repeat. Move fast, learn faster.",
   },
 ];
 
@@ -32,10 +32,10 @@ const Services = () => {
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
         <FadeIn>
           <p className="font-mono text-sm text-muted-foreground uppercase tracking-widest mb-4">
-            What happens when you show up
+            What we do
           </p>
           <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-16">
-            You talk. We build. You iterate.
+            You talk. We build. You ship.
           </h2>
         </FadeIn>
         <div className="grid sm:grid-cols-2 gap-6">

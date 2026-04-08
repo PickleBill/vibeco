@@ -22,9 +22,8 @@ const Credibility = () => (
         </FadeIn>
         <FadeIn delay={0.1}>
           <p className="font-mono text-sm text-foreground/80 leading-relaxed mb-10">
-            VibeCo is led by a builder who has shipped products across multiple
-            industries. This isn't a services play — it's a thinking partnership
-            for people creating things that matter.
+            Led by a builder who's shipped across industries. Not a services
+            play — a thinking partnership for people building things that matter.
           </p>
         </FadeIn>
         <ul className="space-y-4">

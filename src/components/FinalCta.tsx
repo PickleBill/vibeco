@@ -21,8 +21,8 @@ const FinalCta = () => {
         </FadeIn>
         <FadeIn delay={0.1}>
           <p className="font-mono text-base text-muted-foreground mb-10 max-w-md mx-auto">
-            Your idea could be live before dinner. Not a wireframe — a real
-            product your first customers can use tonight.
+            Your idea could be live by tonight. Not a wireframe — a product
+            your first customers can use.
           </p>
         </FadeIn>
         <FadeIn delay={0.15}>
@@ -42,7 +42,7 @@ const FinalCta = () => {
               }}
               className="font-mono text-sm border border-primary/40 text-primary px-8 py-4 rounded-sm hover:bg-primary/10 transition-all duration-300 inline-flex items-center gap-2"
             >
-              Or Pitch It Directly →
+              Or Talk to Us →
             </button>
           </div>
         </FadeIn>

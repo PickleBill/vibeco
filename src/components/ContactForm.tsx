@@ -58,7 +58,7 @@ const ContactForm = () => {
       setSubmitted(true);
     } catch (err) {
       console.error("Contact form error:", err);
-      toast.error("Something went wrong. Please try again.");
+      toast.error("Couldn't send your idea. Check your connection and try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -169,7 +169,7 @@ const ContactForm = () => {
                   disabled={isSubmitting}
                   className={`w-full font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 hover:glow-accent transition-all duration-300 disabled:opacity-50 ${isSubmitting ? "animate-pulse" : ""}`}
                 >
-                  {isSubmitting ? "Sending..." : "Submit →"}
+                  {isSubmitting ? "Sending..." : "Send Idea →"}
                 </button>
               </form>
             </FadeIn>

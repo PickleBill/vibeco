@@ -72,9 +72,8 @@ const Hero = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 1.3 }}
             >
-              You describe it, we build it — powered by AI, driven by obsession.
-              No dev team needed. No six-figure budget. Just your idea and our
-              hands on the keyboard.
+              You describe it, we build it. No dev team. No six-figure
+              budget. Your idea, live in hours.
             </motion.p>
 
             <motion.p
@@ -83,7 +82,7 @@ const Hero = () => {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 1.5 }}
             >
-              Creator-led&ensp;•&ensp;AI-powered&ensp;•&ensp;Live in hours, not months
+              Creator-led&ensp;•&ensp;AI-built&ensp;•&ensp;Live in hours
             </motion.p>
 
             {/* Spring-scaled CTAs */}
@@ -103,7 +102,7 @@ const Hero = () => {
                 onClick={() => document.querySelector("#contact")?.scrollIntoView({ behavior: "smooth" })}
                 className="font-mono text-sm border border-border text-foreground px-6 py-3 rounded-sm hover:border-primary/50 hover:text-primary transition-colors"
               >
-                Pitch Your Idea
+                Talk to Us
               </button>
             </motion.div>
 
@@ -114,7 +113,7 @@ const Hero = () => {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 1.9 }}
             >
-              ↓ See what we've built
+              ↓ See our builds
             </motion.button>
 
             {/* Mobile stats strip */}
@@ -190,12 +189,11 @@ function StaticHero({ navigate }: { navigate: ReturnType<typeof useNavigate> }) 
               <span className="text-gradient-accent">Live in minutes.</span>
             </h1>
             <p className="font-mono text-base text-foreground/80 leading-relaxed mb-4 max-w-lg">
-              You describe it, we build it — powered by AI, driven by obsession.
-              No dev team needed. No six-figure budget. Just your idea and our
-              hands on the keyboard.
+              You describe it, we build it. No dev team. No six-figure
+              budget. Your idea, live in hours.
             </p>
             <p className="font-mono text-sm text-muted-foreground leading-relaxed mb-8 max-w-lg">
-              Creator-led&ensp;•&ensp;AI-powered&ensp;•&ensp;Live in hours, not months
+              Creator-led&ensp;•&ensp;AI-built&ensp;•&ensp;Live in hours
             </p>
             <div className="flex flex-wrap gap-4">
               <button
@@ -208,14 +206,14 @@ function StaticHero({ navigate }: { navigate: ReturnType<typeof useNavigate> }) 
                 onClick={() => document.querySelector("#contact")?.scrollIntoView({ behavior: "smooth" })}
                 className="font-mono text-sm border border-border text-foreground px-6 py-3 rounded-sm hover:border-primary/50 hover:text-primary transition-colors"
               >
-                Pitch Your Idea
+                Talk to Us
               </button>
             </div>
             <button
               onClick={() => document.querySelector("#projects")?.scrollIntoView({ behavior: "smooth" })}
               className="font-mono text-xs text-muted-foreground hover:text-primary transition-colors mt-3"
             >
-              ↓ See what we've built
+              ↓ See our builds
             </button>
           </div>
           <div className="hidden lg:flex items-center justify-center">
