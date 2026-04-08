@@ -1,116 +1,79 @@
 
 
-## Plan: User Dashboard and Idea Management UX Overhaul
+## Plan: Dashboard Data Fix, Admin Mode, Case Studies, and Dual-Speed AI
 
-### The Problem
+Four distinct workstreams addressing immediate bugs and feature requests.
 
-Right now, the user experience has several rough edges:
+### Problem 1: Dashboard Shows Empty
 
-1. **Two disconnected data stores**: `simulator_captures` stores session data (linked to users), `idea_reports` stores the public report (no user link). There's no FK between them, so the "My Simulations" page can't show Thunderdome status, thesis statements, or prompt versions.
+The root cause is clear from the data: **all 20 `idea_reports` rows have `user_id = NULL`**. The `user_id` column was added in the last migration, but no existing rows were backfilled, and the SimulatorShell code that sets `user_id` on new reports was only just added. The dashboard queries `WHERE user_id = session.user.id`, so it returns nothing.
 
-2. **My Simulations is a flat list**: It shows idea text + date + "Complete" badge. No status progression, no Thunderdome indicators, no way to see what stage an idea is at.
+**Fix:**
+- Run a data migration (UPDATE via insert tool) to backfill `user_id` on existing `idea_reports` by matching them to `simulator_captures` via the `idea` text or email
+- Specifically for bricker3@gmail.com (user_id `916a9f29-9766-4810-8198-efebe365960f`), match their `simulator_captures` emails to `idea_reports` by idea text overlap
+- Also backfill `simulator_captures.user_id` where email matches known accounts
+- Verify the SimulatorShell code actually sets `user_id` on new report inserts going forward
 
-3. **Resume flow is fragile**: It reconstructs state into localStorage and navigates to `/simulate`, which feels like starting over. There's no sense of "returning to your workspace."
+### Problem 2: Admin Account
 
-4. **The prompt section says "One-shot prompt"**: But with Thunderdome refinement, perspectives, and distillation, it's now an evolving artifact. The UI doesn't reflect that.
+Create an admin view so bill@courtana.com (user_id `d1153300-9217-4a10-9b43-7c5e4cd5506b`) can see ALL ideas, not just their own.
 
-5. **No connection between ideas**: Expand mode generates variations, but there's no way to see the lineage or navigate between related ideas.
+**Approach:**
+- Create a `user_roles` table with the standard enum pattern (admin/moderator/user)
+- Insert admin role for bill@courtana.com's user_id
+- Create a `has_role` security definer function
+- In `MySimulations.tsx`, check if user has admin role; if so, fetch ALL idea_reports (no user_id filter) with a visual indicator showing whose idea it is
+- Add a toggle: "Show all ideas" / "Show my ideas" for admin users
 
-### Phased Approach
+### Problem 3: Case Studies Update
 
-#### Phase A: Data Foundation (database + linking)
+The ProjectShowcase already has 14 projects. The user wants to update with recent builds.
 
-Add `user_id` and `report_id` columns to connect the data model:
+**Approach:** Since I can't browse external sites in plan mode, I'll need the user to tell me which new Lovable projects to add (URLs and descriptions), OR I can look at their other Lovable projects. For now, I'll note this as a step that needs user input on which specific new builds to add.
 
-**Migration:**
-- Add `report_id UUID REFERENCES idea_reports(id)` to `simulator_captures` (nullable, for linking)
-- Add `user_id UUID` to `idea_reports` (nullable, so public sharing still works)
-- Add `status TEXT DEFAULT 'in-progress'` to `idea_reports` with values: `in-progress`, `brief-complete`, `thunderdome-active`, `prompt-ready`
-- Add `parent_idea_id UUID REFERENCES idea_reports(id)` to `idea_reports` (nullable, for expand-mode lineage)
+### Problem 4: Dual-Speed AI (Fast vs Deep Thinking)
+
+Currently ALL edge functions use `google/gemini-2.5-pro` (slow, expensive, highest quality). The user wants:
+- **Fast mode (default):** `google/gemini-3-flash-preview` for initial simulation rounds and standard Thunderdome features
+- **Deep mode (opt-in):** `google/gemini-2.5-pro` for when users want higher quality, with a clear UI indicator of longer wait times
+
+**Implementation:**
+
+**Edge functions** (`simulate-idea`, `persona-perspective`, `expand-idea`, `distill-idea`, `refine-prompt`):
+- Accept a `mode` parameter: `"fast"` (default) or `"deep"`
+- Map to models: fast → `google/gemini-3-flash-preview`, deep → `google/gemini-2.5-pro`
 
 **SimulatorShell.tsx:**
-- When creating an `idea_reports` row, also store `user_id` from the current session
-- When creating/updating `simulator_captures`, store `report_id` to link them
-- Update the status field as the user progresses through phases
+- Add a `thinkingMode` state: `"fast" | "deep"`, default `"fast"`
+- Pass mode to all edge function calls
+- Show a toggle in the UI — a small pill/switch near the analysis area:
+  - Fast: "⚡ Quick mode" 
+  - Deep: "🧠 Deep thinking" with a note like "Better answers, longer wait (~60s)"
+- When in deep mode, show enhanced loading messages indicating the deeper analysis
 
-#### Phase B: My Simulations becomes an Idea Dashboard
-
-Replace the current flat list with a proper dashboard at `/my-simulations` (or rename to `/dashboard`):
-
-**Layout:**
-- Header with user greeting and "New Simulation" CTA
-- Ideas displayed as cards with richer metadata:
-  - Logo/concept image thumbnail
-  - Idea name (first line or extracted product name from brief)
-  - Status badge: `Analyzing` / `Brief Ready` / `Thunderdome` / `Prompt Ready`
-  - Builder intent badge (experiment, venture, etc.)
-  - Last modified date
-  - Perspectives count (e.g., "3/5 personas consulted")
-  - Thesis statement preview (if distilled)
-- Sort by: Recent / Status / Intent
-- Each card clicks through to `/simulate` with that idea loaded
-
-**Empty state:** Keep current but improve copy — "Your ideas live here. Run your first simulation to get started."
-
-#### Phase C: Resume Flow Cleanup
-
-Instead of dumping state into localStorage and navigating:
-
-**SimulatorShell.tsx changes:**
-- Accept a `resumeId` URL parameter (e.g., `/simulate?id=abc-123`)
-- When `resumeId` is present, load state from `idea_reports` + `simulator_captures` directly instead of localStorage
-- Show a subtle "Resuming..." toast instead of reconstructing drafts
-- The simulator becomes stateful around the report ID — all saves go to the DB, localStorage is just a crash-recovery backup
-
-**Navigation:**
-- Dashboard cards link to `/simulate?id={report_id}` 
-- Direct report links (`/report/:id`) remain read-only for sharing
-
-#### Phase D: Progressive Disclosure in FinalReport
-
-Reorganize the post-brief experience to feel less overwhelming:
-
-**Collapsible sections approach:**
-- The brief sections grid stays as-is (it works well)
-- Below the brief, show a clear "What's Next" progression instead of dumping everything:
-  1. **Your Lovable Prompt** — always visible first, with "Refine with Thunderdome" teaser if not yet explored
-  2. **Stress Test** (Thunderdome) — collapsed by default, expands inline. Shows a progress indicator: "0/5 perspectives · Not yet distilled"
-  3. **Refined Prompt** — appears after any Thunderdome activity, showing version diff
-
-**Prompt section rename:**
-- Change "One-shot prompt" to "Your Lovable Prompt" 
-- Add version indicator when multiple versions exist (v1, v2, etc.)
-- Add a "Refine Prompt" button that calls `refine-prompt` after Thunderdome exploration
-
-#### Phase E: Navbar Polish
-
-- When logged in, change "My Simulations" to "Dashboard" in nav
-- Add a subtle idea count badge (e.g., "Dashboard (4)")
-- On `/simulate` page, show breadcrumb: Dashboard > [Idea Name] if resuming
+**FollowUpQuestions / FinalReport:**
+- Show which mode was used for the current analysis
+- Allow switching modes at any point — the next API call uses the new mode
+- "Refine with deep thinking" as an explicit CTA after seeing fast results
 
 ### Files Modified
 
 | File | Changes |
 |---|---|
-| Database migration | Add user_id/report_id/status/parent_idea_id columns |
-| `src/pages/MySimulations.tsx` | Full rewrite as idea dashboard with status cards |
-| `src/components/simulator/SimulatorShell.tsx` | Accept resumeId param, DB-first state loading, status tracking |
-| `src/components/simulator/FinalReport.tsx` | Progressive disclosure, prompt versioning, "Refine" button |
-| `src/components/Navbar.tsx` | Dashboard rename, breadcrumbs |
-| `src/pages/Report.tsx` | Show Thunderdome status on shared reports (read-only) |
+| Data backfill (insert tool) | UPDATE idea_reports SET user_id where matching captures exist |
+| Database migration | Create user_roles table, has_role function |
+| `src/pages/MySimulations.tsx` | Admin toggle, fetch all ideas when admin |
+| `supabase/functions/simulate-idea/index.ts` | Accept mode param, select model accordingly |
+| `supabase/functions/persona-perspective/index.ts` | Accept mode param |
+| `supabase/functions/expand-idea/index.ts` | Accept mode param |
+| `supabase/functions/distill-idea/index.ts` | Accept mode param |
+| `supabase/functions/refine-prompt/index.ts` | Accept mode param |
+| `src/components/simulator/SimulatorShell.tsx` | thinkingMode state, toggle UI, pass to all calls |
+| `src/components/simulator/FollowUpQuestions.tsx` | Show mode indicator |
 
-### What This Does NOT Change
-- The Thunderdome components themselves (Perspectives, Expand, Distill) — they work, we're just wrapping them better
-- The edge functions — no changes needed
-- The public report sharing flow — stays the same
-- The simulator flow itself (input → questions → brief → final) — unchanged
-
-### Recommended Build Order
-1. Phase A first (data foundation) — everything else depends on linked data
-2. Phase C next (resume flow) — this unblocks the dashboard
-3. Phase B (dashboard) — now cards can link to resumable simulations
-4. Phase D (progressive disclosure) — polish the post-brief experience
-5. Phase E (nav) — final touches
-
-This is a meaningful refactor but each phase is self-contained and testable. Want me to start with Phase A, or would you like to adjust the scope?
+### Build Order
+1. Data backfill (fixes dashboard immediately)
+2. Admin role setup
+3. Dual-speed AI (edge functions + UI)
+4. Case studies (needs user input on which new builds)
 
