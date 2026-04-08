@@ -61,6 +61,7 @@ const MySimulations = () => {
         return;
       }
       setUserEmail(session.user.email || "");
+      setCurrentUserId(session.user.id);
 
       // Check admin role
       const { data: roleData } = await (supabase.from("user_roles") as any)
