@@ -18,6 +18,7 @@ interface IdeaReport {
   thesis_statement: string | null;
   thunderdome_unlocked: boolean | null;
   parent_idea_id: string | null;
+  user_id: string | null;
 }
 
 interface PerspectiveCount {
@@ -71,7 +72,7 @@ const MySimulations = () => {
 
       // Fetch idea_reports — admin sees all, others see own
       let query = (supabase.from("idea_reports") as any)
-        .select("id, idea, created_at, status, brief, lovable_prompt, concept_image_url, logo_image_url, thesis_statement, thunderdome_unlocked, parent_idea_id")
+        .select("id, idea, created_at, status, brief, lovable_prompt, concept_image_url, logo_image_url, thesis_statement, thunderdome_unlocked, parent_idea_id, user_id")
         .order("created_at", { ascending: false })
         .limit(50);
 
@@ -129,11 +130,6 @@ const MySimulations = () => {
   };
 
   const firstName = userEmail.split("@")[0]?.split(".")[0] || "there";
-  const displayReports = isAdmin && !showAll
-    ? reports.filter(r => (r as any).user_id === undefined || true) // admin sees all when showAll, filtered otherwise
-    : reports;
-  // Actually: admin toggle filters client-side by checking showAll
-  const filteredReports = isAdmin && !showAll ? reports : reports;
 
   return (
     <>
