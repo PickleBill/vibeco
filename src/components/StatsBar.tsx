@@ -2,10 +2,10 @@ import { useRef, useEffect, useState } from "react";
 import { useInView } from "framer-motion";
 
 const stats = [
-  { value: 16, suffix: "+", label: "Live products shipped" },
-  { value: 48, prefix: "< ", suffix: "hrs", label: "Avg time to launch" },
-  { value: 7, suffix: "", label: "Industries" },
-  { value: 0, prefix: "$", suffix: " upfront", label: "On rev-share builds" },
+  { value: 16, suffix: "+", label: "Live products shipped", emphasis: true },
+  { value: 48, prefix: "< ", suffix: "hrs", label: "Avg time to launch", emphasis: false },
+  { value: 7, suffix: "", label: "Industries", emphasis: false },
+  { value: 0, prefix: "$", suffix: " upfront", label: "On rev-share builds", emphasis: true },
 ];
 
 const CountUp = ({ target, prefix = "", suffix = "", active }: { target: number; prefix?: string; suffix?: string; active: boolean }) => {
@@ -40,10 +40,16 @@ const StatsBar = () => {
   return (
     <section ref={ref} className="border-t border-b border-border py-10">
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
-          {stats.map((stat) => (
-            <div key={stat.label} className="text-center">
-              <p className="font-display text-3xl font-black text-primary">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-10">
+          {stats.map((stat, i) => (
+            <div
+              key={stat.label}
+              className={`${i === 0 ? 'text-left' : i === stats.length - 1 ? 'text-right' : 'text-center'}`}
+            >
+              <p
+                className="font-display font-black text-primary"
+                style={{ fontSize: stat.emphasis ? 'clamp(1.75rem, 1rem + 2vw, 2.5rem)' : 'clamp(1.5rem, 0.75rem + 1.5vw, 2rem)' }}
+              >
                 <CountUp target={stat.value} prefix={stat.prefix} suffix={stat.suffix} active={isInView} />
               </p>
               <p className="font-mono text-xs text-muted-foreground uppercase tracking-wide mt-1">
