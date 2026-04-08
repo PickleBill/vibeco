@@ -1,46 +1,47 @@
-## Plan: Dual Hero Variants with A/B Testing Infrastructure
 
-### Architecture
 
-A lightweight, no-dependency A/B testing system using URL params + localStorage:
+## Implementation: Dual Hero Variants + A/B Testing Hook
 
-- `/?variant=a` forces Direction A, `/?variant=c` forces Direction C
-- Without a param, the system randomly assigns a variant and persists it in localStorage
-- A small hook (`useVariant`) handles assignment and persistence
-- Both variants share the same copy/CTAs — only the animation treatment differs
+Plan was approved. Four files to create/modify:
 
-This gives you manual control now (share different links, compare side by side) and a clean interface to wire up analytics later (PostHog, Amplitude, etc.) when you're ready.
+### 1. `src/hooks/useVariant.ts` (Create)
+Lightweight hook: checks `?variant=` URL param first, then localStorage sticky assignment, then random. Persists choice. No external dependencies.
 
-### Direction A: Scroll-Driven Parallax + Staggered Type Reveal
+### 2. `src/components/HeroVariantA.tsx` (Create)
+Scroll-driven parallax + staggered type reveal:
+- Each word of "Your wildest idea." springs in with staggered delay (framer-motion spring: stiffness 120, damping 14)
+- "Live in minutes." characters fade left-to-right with 20ms stagger
+- Mind-map image uses `useScroll` + `useTransform` for 0.3x parallax offset
+- Tagline and CTAs use existing FadeIn with slightly adjusted delays
+- `prefers-reduced-motion`: skip word-by-word, use simple opacity fade
+- Same copy, same layout, same mobile stats strip as current Hero
 
-- **Headline**: Each word springs in individually with staggered `framer-motion` spring animations (mass/tension/damping, not cubic-bezier)
-- **Mind-map image**: Parallax drift using `useScroll` + `useTransform` — image moves at 0.7x scroll speed, creating depth
-- **Tagline**: Characters fade in left-to-right with 20ms stagger
-- **Reduced motion**: Falls back to simple opacity fade (current behavior)
+### 3. `src/components/HeroVariantC.tsx` (Create)
+Cinematic orchestrated entry:
+- Three grid lines animate `scaleX` from 0→1 in 200ms stagger sequence
+- Headline starts at `filter: blur(8px)` + `opacity: 0`, resolves to sharp over 600ms
+- "Live in minutes." gradient text fades in 200ms after headline
+- CTA buttons spring-scale from 0.8 with overshoot (stiffness 400, damping 25)
+- Mind-map fades in last with scale 0.95→1 over 800ms
+- `prefers-reduced-motion`: instant render
 
-### Direction C: Cinematic Entry Sequence
+### 4. `src/components/Hero.tsx` (Modify)
+Replace current implementation with a thin wrapper:
+```tsx
+import { useVariant } from "@/hooks/useVariant";
+import HeroVariantA from "./HeroVariantA";
+import HeroVariantC from "./HeroVariantC";
 
-- **Grid lines**: Animate from center outward (scaleX from 0 to 1) in sequence
-- **Headline**: Blur-to-sharp reveal — starts at `blur(8px) opacity(0)`, resolves to sharp over 600ms with spring easing
-- **CTA buttons**: Scale-spring in from 0.8 with overshoot (spring config: stiffness 400, damping 25)
-- **Mind-map image**: Fades in last with a radial wipe (mask animation)
-- **Reduced motion**: Instant render, no animation
+const Hero = () => {
+  const variant = useVariant("hero", ["a", "c"] as const);
+  return variant === "a" ? <HeroVariantA /> : <HeroVariantC />;
+};
+```
 
-### Files
+### Testing
+- `/?variant=a` — forces parallax hero
+- `/?variant=c` — forces cinematic hero
+- `/` — random assignment, sticky across sessions
 
-| File | Action |
-|---|---|
-| `src/hooks/useVariant.ts` | Create — A/B variant assignment hook (URL param override + localStorage persistence) |
-| `src/components/HeroVariantA.tsx` | Create — scroll parallax + staggered type |
-| `src/components/HeroVariantC.tsx` | Create — cinematic entry sequence |
-| `src/components/Hero.tsx` | Modify — delegate to variant A or C based on `useVariant('hero', ['a', 'c'])` |
+No backend changes. No migrations.
 
-### How You'll Use It
-
-- Visit `/` — randomly assigned, sticky across sessions
-- Visit `/?variant=a` — forces parallax hero
-- Visit `/?variant=c` — forces cinematic hero
-- Compare by opening two incognito windows with different params
-- Later: wire `useVariant` to emit events to any analytics tool
-
-### No backend changes needed. No migrations. Pure frontend.
