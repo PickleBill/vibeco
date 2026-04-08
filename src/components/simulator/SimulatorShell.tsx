@@ -155,6 +155,7 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
   const [thinkingMode, setThinkingMode] = useState<"fast" | "deep">("fast");
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const [briefTab, setBriefTab] = useState<"questions" | "analysis" | "history">("questions");
 
   // Resume from DB when resumeId is provided
   useEffect(() => {
