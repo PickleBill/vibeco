@@ -301,6 +301,11 @@ Target: 800-1500 words total. Specific and actionable beats comprehensive and va
   return { systemPrompt, userContent };
 }
 
+const MODEL_MAP: Record<string, string> = {
+  fast: "google/gemini-3-flash-preview",
+  deep: "google/gemini-2.5-pro",
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -308,7 +313,8 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { type } = body;
+    const { type, mode } = body;
+    const model = MODEL_MAP[mode] || MODEL_MAP.fast;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 

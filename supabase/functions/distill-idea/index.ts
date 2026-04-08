@@ -46,13 +46,19 @@ const distillToolSchema = {
   },
 };
 
+const MODEL_MAP: Record<string, string> = {
+  fast: "google/gemini-3-flash-preview",
+  deep: "google/gemini-2.5-pro",
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { brief, idea, highlights, antiHighlights } = await req.json();
+    const { brief, idea, highlights, antiHighlights, mode } = await req.json();
+    const model = MODEL_MAP[mode] || MODEL_MAP.fast;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
