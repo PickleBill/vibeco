@@ -536,10 +536,12 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
         }
       }
     } catch (e: unknown) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
       console.error("Simulator error:", e);
       toast.error(e instanceof Error ? e.message : "Something went wrong. Try again.");
       setPhase(rounds.length > 0 ? "brief" : "input");
     } finally {
+      abortControllerRef.current = null;
       setIsLoading(false);
     }
   };
