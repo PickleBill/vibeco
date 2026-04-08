@@ -805,7 +805,7 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
               </div>
               <AnalyzingMessages isInitial={rounds.length === 0} />
               <p className="font-mono text-[10px] text-muted-foreground/50 mt-2">
-                {thinkingMode === "deep" ? "Deep analysis takes 30-60 seconds" : "This takes about 10-15 seconds"}
+                {thinkingMode === "deep" ? "Deep mode — usually 30-60 seconds" : "Quick mode — about 10-15 seconds"}
               </p>
               <button
                 onClick={handleCancelAnalysis}

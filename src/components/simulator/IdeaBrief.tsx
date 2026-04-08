@@ -216,8 +216,8 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
       </h2>
       <p className="font-mono text-xs text-muted-foreground mt-2">
         {round <= 1
-          ? "Here's what we see. Answer the questions above to go deeper."
-          : "Sharper analysis based on your choices. Keep refining above."}
+          ? "Here's what we found. Answer questions to go deeper."
+          : "Updated based on your input. Keep refining or skip to your report."}
       </p>
       {highlights && highlights.size > 0 && (
         <p className="font-mono text-[10px] text-primary/70 mt-1">

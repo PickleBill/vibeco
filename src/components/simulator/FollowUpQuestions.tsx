@@ -76,10 +76,10 @@ const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, roun
       {/* Optional questions header */}
       <div className="text-center mb-6">
         <h3 className="font-display text-lg sm:text-xl font-bold text-foreground mb-1">
-          Want a sharper analysis? <span className="text-muted-foreground font-normal">(optional)</span>
+          Sharpen your analysis <span className="text-muted-foreground font-normal">(optional)</span>
         </h3>
         <p className="font-mono text-xs text-muted-foreground">
-          Answer any of these to help us refine your brief, or write in your own direction.
+          Answer any question, write your own take, or skip ahead.
         </p>
       </div>
 
@@ -204,7 +204,7 @@ const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, roun
           whileTap={hasAnyAnswer ? { scale: 0.99 } : {}}
           style={hasAnyAnswer ? { boxShadow: "0 0 20px hsl(var(--primary) / 0.2)" } : {}}
         >
-          Refine My Brief
+          Refine Brief
           <ArrowRight size={14} />
         </motion.button>
 
@@ -222,7 +222,7 @@ const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, roun
 
       {depthRecommendation === "ready" && (
         <p className="font-mono text-[10px] text-primary/70 text-center mt-3">
-          ✦ We have enough context for a strong report. Feel free to skip ahead.
+          ✦ Strong signal — your report will be solid. Skip ahead anytime.
         </p>
       )}
     </motion.div>
