@@ -406,16 +406,31 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
     return history;
   };
 
+  const handleCancelAnalysis = () => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    setIsLoading(false);
+    setPhase(rounds.length > 0 ? "brief" : "input");
+    toast("Analysis cancelled.");
+  };
+
   const callSimulator = async (type: "initial" | "refine", ideaText?: string, round?: number) => {
     setIsLoading(true);
     setPhase("analyzing");
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       const body: Record<string, unknown> =
         type === "initial"
           ? { type: "initial", idea: ideaText || idea, mode: thinkingMode }
           : { type: "refine", history: buildHistory(currentRound - 1), round, mode: thinkingMode };
 
-      const { data, error } = await supabase.functions.invoke("simulate-idea", { body });
+      const { data, error } = await supabase.functions.invoke("simulate-idea", {
+        body,
+        signal: controller.signal as AbortSignal,
+      });
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);
