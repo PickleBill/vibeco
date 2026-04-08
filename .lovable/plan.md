@@ -1,48 +1,46 @@
+## Plan: Dual Hero Variants with A/B Testing Infrastructure
 
+### Architecture
 
-## Plan: Create Three Adapted Skill Files in VibeCo (Single Project, No Remix)
+A lightweight, no-dependency A/B testing system using URL params + localStorage:
 
-### Decision: One Project, One Branch
+- `/?variant=a` forces Direction A, `/?variant=c` forces Direction C
+- Without a param, the system randomly assigns a variant and persists it in localStorage
+- A small hook (`useVariant`) handles assignment and persistence
+- Both variants share the same copy/CTAs — only the animation treatment differs
 
-You're right — keeping it all in VibeCo is the simpler path. The skill files are just markdown reference docs; they don't affect the running app at all. No remix needed. If scope creep ever becomes an issue, you can always remix later. For now, consolidation wins.
+This gives you manual control now (share different links, compare side by side) and a clean interface to wire up analytics later (PostHog, Amplitude, etc.) when you're ready.
 
-### What Gets Created
+### Direction A: Scroll-Driven Parallax + Staggered Type Reveal
 
-Three files in the project root, each adapted from the original Impeccable source for Lovable's natural-language prompt model:
+- **Headline**: Each word springs in individually with staggered `framer-motion` spring animations (mass/tension/damping, not cubic-bezier)
+- **Mind-map image**: Parallax drift using `useScroll` + `useTransform` — image moves at 0.7x scroll speed, creating depth
+- **Tagline**: Characters fade in left-to-right with 20ms stagger
+- **Reduced motion**: Falls back to simple opacity fade (current behavior)
 
-**`SKILL_OVERDRIVE.md`** (from your uploaded file)
-- Advanced animation and interaction design constraints
-- Removes non-viable patterns (WebGPU, WASM, native APIs)
-- Keeps: spring physics via framer-motion, scroll-driven animations, View Transitions API, virtual scrolling, reduced-motion handling
-- Adds Lovable-specific prompt patterns: "Apply overdrive-level polish to [component]"
+### Direction C: Cinematic Entry Sequence
 
-**`SKILL_CRITIQUE.md`** (fetched from GitHub)
-- UX critique framework with Nielsen heuristic scoring
-- "AI slop" detection checklist (stock icons, generic copy, uniform grids)
-- Persona-based red flags (accessibility, mobile, cognitive load)
-- Prompt pattern: "Critique [page/component] using the critique skill"
-
-**`SKILL_ONBOARD.md`** (fetched from GitHub)
-- Progressive disclosure and empty state patterns
-- Time-to-value principles, first-run experience design
-- Empty state templates that teach the interface
-- Prompt pattern: "Design the onboarding for [feature] using the onboard skill"
-
-### Adaptation Rules Applied to All Three
-
-- Template variables (`{{command_prefix}}`, `{{config_file}}`) replaced with natural language
-- Slash command references converted to prompt examples
-- External file references (`reference/personas.md`) inlined
-- Browser automation instructions adapted to "check the preview"
-- Tech constraints scoped to Tailwind/shadcn/framer-motion
+- **Grid lines**: Animate from center outward (scaleX from 0 to 1) in sequence
+- **Headline**: Blur-to-sharp reveal — starts at `blur(8px) opacity(0)`, resolves to sharp over 600ms with spring easing
+- **CTA buttons**: Scale-spring in from 0.8 with overshoot (spring config: stiffness 400, damping 25)
+- **Mind-map image**: Fades in last with a radial wipe (mask animation)
+- **Reduced motion**: Instant render, no animation
 
 ### Files
 
 | File | Action |
 |---|---|
-| `SKILL_OVERDRIVE.md` | Create |
-| `SKILL_CRITIQUE.md` | Create |
-| `SKILL_ONBOARD.md` | Create |
+| `src/hooks/useVariant.ts` | Create — A/B variant assignment hook (URL param override + localStorage persistence) |
+| `src/components/HeroVariantA.tsx` | Create — scroll parallax + staggered type |
+| `src/components/HeroVariantC.tsx` | Create — cinematic entry sequence |
+| `src/components/Hero.tsx` | Modify — delegate to variant A or C based on `useVariant('hero', ['a', 'c'])` |
 
-No code changes. No migrations. No runtime impact. These are passive reference documents that I read when you prompt me with skill-specific language.
+### How You'll Use It
 
+- Visit `/` — randomly assigned, sticky across sessions
+- Visit `/?variant=a` — forces parallax hero
+- Visit `/?variant=c` — forces cinematic hero
+- Compare by opening two incognito windows with different params
+- Later: wire `useVariant` to emit events to any analytics tool
+
+### No backend changes needed. No migrations. Pure frontend.
