@@ -1,4 +1,4 @@
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useState, useEffect } from "react";
 import { motion, useReducedMotion, useSpring, useMotionValue } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import FadeIn from "./FadeIn";
@@ -12,11 +12,7 @@ const Hero = () => {
   const prefersReduced = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
 
-  // Mouse tracking for radial glow
-  const mouseX = useMotionValue(0.5);
-  const mouseY = useMotionValue(0.5);
-  const glowX = useSpring(mouseX, { stiffness: 60, damping: 20 });
-  const glowY = useSpring(mouseY, { stiffness: 60, damping: 20 });
+  const [glowPos, setGlowPos] = useState({ x: 50, y: 50 });
 
   // Magnetic CTA tracking
   const magnetX = useMotionValue(0);
@@ -28,10 +24,12 @@ const Hero = () => {
     (e: React.MouseEvent<HTMLElement>) => {
       if (prefersReduced) return;
       const rect = e.currentTarget.getBoundingClientRect();
-      mouseX.set((e.clientX - rect.left) / rect.width);
-      mouseY.set((e.clientY - rect.top) / rect.height);
+      setGlowPos({
+        x: ((e.clientX - rect.left) / rect.width) * 100,
+        y: ((e.clientY - rect.top) / rect.height) * 100,
+      });
     },
-    [prefersReduced, mouseX, mouseY]
+    [prefersReduced]
   );
 
   const handleCtaMouseMove = useCallback(
@@ -64,19 +62,12 @@ const Hero = () => {
       onMouseMove={handleMouseMove}
     >
       {/* Cursor-reactive radial glow */}
-      <motion.div
-        className="absolute inset-0 pointer-events-none"
+      <div
+        className="absolute inset-0 pointer-events-none transition-[background] duration-300"
         style={{
-          background: `radial-gradient(600px circle at calc(${glowX.get() * 100}% ) calc(${glowY.get() * 100}%), hsl(var(--primary) / 0.08), transparent 60%)`,
+          background: `radial-gradient(600px circle at ${glowPos.x}% ${glowPos.y}%, hsl(var(--primary) / 0.08), transparent 60%)`,
         }}
-      >
-        <motion.div
-          className="absolute inset-0"
-          style={{
-            background: useMotionTemplate(glowX, glowY),
-          }}
-        />
-      </motion.div>
+      />
 
       {/* Static grid lines */}
       <div className="absolute inset-0 pointer-events-none">
@@ -226,15 +217,6 @@ const Hero = () => {
     </section>
   );
 };
-
-/* Helper: build a motion-reactive radial gradient string */
-function useMotionTemplate(
-  x: ReturnType<typeof useSpring>,
-  y: ReturnType<typeof useSpring>
-) {
-  // We use a simple CSS custom-property approach instead
-  return undefined;
-}
 
 /* Static fallback for prefers-reduced-motion */
 function StaticHero({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
