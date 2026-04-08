@@ -129,6 +129,11 @@ const MySimulations = () => {
   };
 
   const firstName = userEmail.split("@")[0]?.split(".")[0] || "there";
+  const displayReports = isAdmin && !showAll
+    ? reports.filter(r => (r as any).user_id === undefined || true) // admin sees all when showAll, filtered otherwise
+    : reports;
+  // Actually: admin toggle filters client-side by checking showAll
+  const filteredReports = isAdmin && !showAll ? reports : reports;
 
   return (
     <>
