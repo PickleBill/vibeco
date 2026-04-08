@@ -158,14 +158,14 @@ const EmailUnlockBanner = ({
         )}
         <span className={`font-mono text-xs ${isProminent ? "text-primary font-bold" : "text-muted-foreground"}`}>
           {isProminent
-            ? "Unlock your personalized build prompt"
-            : "Save your analysis"}
+            ? "Unlock your build prompt"
+            : "Save this analysis"}
         </span>
       </div>
       <p className="font-mono text-[10px] text-muted-foreground/70 mb-3 leading-relaxed">
         {isProminent
-          ? "Get your custom Lovable prompt, PDF export, and a permanent shareable link to this report."
-          : "Enter your email to save progress, export as PDF, and get a shareable link."}
+          ? "Your personalized build prompt, PDF export, and a shareable link — all yours."
+          : "Save progress, export PDF, and share via link."}
       </p>
       <form onSubmit={handleSubmit} className="flex gap-2">
         <input
