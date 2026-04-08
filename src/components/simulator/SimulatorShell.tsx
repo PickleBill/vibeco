@@ -153,6 +153,8 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
   const [reportId, setReportId] = useState<string | null>(draft?.reportId || null);
   const [depthRecommendation, setDepthRecommendation] = useState<string | undefined>();
   const [thinkingMode, setThinkingMode] = useState<"fast" | "deep">("fast");
+  const [showRestartConfirm, setShowRestartConfirm] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Resume from DB when resumeId is provided
   useEffect(() => {
