@@ -206,7 +206,7 @@ function StaticHero({ navigate }: { navigate: ReturnType<typeof useNavigate> }) 
                 onClick={() => document.querySelector("#contact")?.scrollIntoView({ behavior: "smooth" })}
                 className="font-mono text-sm border border-border text-foreground px-6 py-3 rounded-sm hover:border-primary/50 hover:text-primary transition-colors"
               >
-                Pitch Your Idea
+                Talk to Us
               </button>
             </div>
             <button
