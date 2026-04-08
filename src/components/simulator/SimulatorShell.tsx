@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download } from "lucide-react";
+import { Download, Zap, Brain } from "lucide-react";
 import IdeaInput from "./IdeaInput";
 import IdeaBrief from "./IdeaBrief";
 import FollowUpQuestions from "./FollowUpQuestions";
@@ -142,6 +142,7 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
   const [antiHighlights, setAntiHighlights] = useState<Set<string>>(new Set(draft?.antiHighlights || []));
   const [reportId, setReportId] = useState<string | null>(draft?.reportId || null);
   const [depthRecommendation, setDepthRecommendation] = useState<string | undefined>();
+  const [thinkingMode, setThinkingMode] = useState<"fast" | "deep">("fast");
 
   // Resume from DB when resumeId is provided
   useEffect(() => {
