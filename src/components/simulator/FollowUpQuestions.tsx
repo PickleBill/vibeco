@@ -73,33 +73,6 @@ const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, roun
       transition={{ delay: 0.15 }}
       className="mb-12"
     >
-      {/* Generate Report Now — primary CTA at top */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="mb-8 p-5 rounded-lg border-2 border-primary/40 bg-primary/5 text-center"
-        style={{ boxShadow: "0 0 30px hsl(var(--primary) / 0.15)" }}
-      >
-        <p className="font-mono text-xs text-muted-foreground mb-3">
-          {depthRecommendation === "ready"
-            ? "We have enough to generate a strong report. Generate now or optionally refine further below."
-            : "Answering the questions below will significantly improve your report. Or generate now if you're ready."}
-        </p>
-        <motion.button
-          onClick={handleGenerateNow}
-          disabled={isLoading}
-          className="inline-flex items-center gap-2 font-mono text-sm font-bold px-6 py-3 rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-lg"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          style={{ boxShadow: "0 0 24px hsl(var(--primary) / 0.3)" }}
-        >
-          <Sparkles size={16} />
-          Generate My Report Now
-          <ArrowRight size={16} />
-        </motion.button>
-      </motion.div>
-
       {/* Optional questions header */}
       <div className="text-center mb-6">
         <h3 className="font-display text-lg sm:text-xl font-bold text-foreground mb-1">
@@ -217,18 +190,19 @@ const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, roun
         })}
       </div>
 
-      {/* Bottom actions */}
+      {/* Bottom actions — Refine is primary, Skip is secondary */}
       <div className="mt-6 flex flex-col sm:flex-row gap-3">
         <motion.button
           onClick={handleRefine}
           disabled={!hasAnyAnswer || isLoading}
-          className={`flex-1 flex items-center justify-center gap-2 font-mono text-sm px-5 py-3.5 rounded-md transition-all duration-300 border ${
+          className={`flex-1 flex items-center justify-center gap-2 font-mono text-sm font-bold px-5 py-3.5 rounded-md transition-all duration-300 ${
             hasAnyAnswer
-              ? "border-primary/40 text-foreground hover:bg-primary/5"
-              : "border-border/30 text-muted-foreground/50 cursor-not-allowed"
+              ? "bg-primary text-primary-foreground hover:opacity-90 shadow-lg"
+              : "bg-muted text-muted-foreground/50 cursor-not-allowed"
           }`}
           whileHover={hasAnyAnswer ? { scale: 1.01 } : {}}
           whileTap={hasAnyAnswer ? { scale: 0.99 } : {}}
+          style={hasAnyAnswer ? { boxShadow: "0 0 20px hsl(var(--primary) / 0.2)" } : {}}
         >
           Refine My Brief
           <ArrowRight size={14} />
@@ -237,15 +211,20 @@ const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, roun
         <motion.button
           onClick={handleGenerateNow}
           disabled={isLoading}
-          className="flex-1 flex items-center justify-center gap-2 font-mono text-sm font-bold px-5 py-3.5 rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-lg"
+          className="flex-1 flex items-center justify-center gap-2 font-mono text-sm px-5 py-3.5 rounded-md border border-border/40 text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-primary/5 transition-all"
           whileHover={{ scale: 1.01 }}
           whileTap={{ scale: 0.99 }}
-          style={{ boxShadow: "0 0 20px hsl(var(--primary) / 0.2)" }}
         >
-          <Sparkles size={14} />
-          Generate Report Now
+          <SkipForward size={14} />
+          Skip to Report
         </motion.button>
       </div>
+
+      {depthRecommendation === "ready" && (
+        <p className="font-mono text-[10px] text-primary/70 text-center mt-3">
+          ✦ We have enough context for a strong report. Feel free to skip ahead.
+        </p>
+      )}
     </motion.div>
   );
 };
