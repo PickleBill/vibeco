@@ -770,7 +770,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
           </div>
         </div>
 
-        {/* Thunderdome — appears after email unlock */}
+        {/* Deep Dive — appears after email unlock */}
         {showPrompt && (
           <ThunderdomePanel
             brief={brief}

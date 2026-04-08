@@ -37,7 +37,7 @@ const ThunderdomePanel = ({ brief, idea, reportId, highlights, antiHighlights }:
           <Zap size={16} className="text-primary" />
         </div>
         <div>
-          <h2 className="font-display text-lg font-bold text-foreground">The Thunderdome</h2>
+          <h2 className="font-display text-lg font-bold text-foreground">Deep Dive</h2>
           <p className="font-mono text-[10px] text-muted-foreground">Stress-test, expand, and distill your idea</p>
         </div>
       </div>

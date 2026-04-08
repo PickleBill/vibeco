@@ -29,7 +29,7 @@ interface PerspectiveCount {
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
   "in-progress": { label: "In Progress", color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/30" },
   "brief-complete": { label: "Brief Ready", color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/30" },
-  "thunderdome-active": { label: "Thunderdome", color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/30" },
+  "thunderdome-active": { label: "Deep Dive", color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/30" },
   "prompt-ready": { label: "Prompt Ready", color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/30" },
 };
 
