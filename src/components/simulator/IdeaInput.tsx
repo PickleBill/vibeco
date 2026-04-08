@@ -57,7 +57,7 @@ const IdeaInput = ({ onSubmit }: Props) => {
           <span className="text-gradient-accent">wildest idea.</span>
         </h1>
         <p className="font-mono text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
-          We'll analyze it, ask smart questions, then generate a ready-to-build prompt.
+          We'll stress-test your assumptions and generate a build-ready prompt.
         </p>
       </motion.div>
 
@@ -86,7 +86,7 @@ const IdeaInput = ({ onSubmit }: Props) => {
           />
           <div className="absolute bottom-4 right-4 flex items-center gap-3">
             <span className="font-mono text-[10px] text-muted-foreground/40">
-              Press Enter to submit
+              Enter ↵ to simulate
             </span>
             <span className={`font-mono text-[10px] transition-colors ${
               attempted && isTooShort ? "text-destructive" : "text-muted-foreground/40"
@@ -102,7 +102,7 @@ const IdeaInput = ({ onSubmit }: Props) => {
             animate={{ opacity: 1, y: 0 }}
             className="font-mono text-xs text-destructive mt-2 ml-1"
           >
-            Describe your idea in at least 10 characters so we have enough to work with.
+            Add a bit more detail — we need at least 10 characters.
           </motion.p>
         )}
 
