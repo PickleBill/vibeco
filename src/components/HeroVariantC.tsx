@@ -72,9 +72,8 @@ const Hero = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 1.3 }}
             >
-              You describe it, we build it — powered by AI, driven by obsession.
-              No dev team needed. No six-figure budget. Just your idea and our
-              hands on the keyboard.
+              You describe it, we build it. No dev team. No six-figure
+              budget. Your idea, live in hours.
             </motion.p>
 
             <motion.p
@@ -83,7 +82,7 @@ const Hero = () => {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 1.5 }}
             >
-              Creator-led&ensp;•&ensp;AI-powered&ensp;•&ensp;Live in hours, not months
+              Creator-led&ensp;•&ensp;AI-built&ensp;•&ensp;Live in hours
             </motion.p>
 
             {/* Spring-scaled CTAs */}
@@ -103,7 +102,7 @@ const Hero = () => {
                 onClick={() => document.querySelector("#contact")?.scrollIntoView({ behavior: "smooth" })}
                 className="font-mono text-sm border border-border text-foreground px-6 py-3 rounded-sm hover:border-primary/50 hover:text-primary transition-colors"
               >
-                Pitch Your Idea
+                Talk to Us
               </button>
             </motion.div>
 
@@ -114,7 +113,7 @@ const Hero = () => {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 1.9 }}
             >
-              ↓ See what we've built
+              ↓ See our builds
             </motion.button>
 
             {/* Mobile stats strip */}
