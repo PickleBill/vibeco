@@ -25,14 +25,15 @@ const analysisMessages = [
   "Mapping out core features...",
   "Pressure-testing the revenue model...",
   "Evaluating industry trends and timing...",
+  "Finalizing analysis...",
 ];
 
 const AnalyzingMessages = ({ isInitial }: { isInitial: boolean }) => {
   const [msgIndex, setMsgIndex] = useState(0);
   useEffect(() => {
     const interval = setInterval(() => {
-      setMsgIndex((i) => (i + 1) % analysisMessages.length);
-    }, 2800);
+      setMsgIndex((i) => Math.min(i + 1, analysisMessages.length - 1));
+    }, 4000);
     return () => clearInterval(interval);
   }, []);
   return (
