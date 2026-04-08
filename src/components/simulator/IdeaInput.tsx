@@ -8,11 +8,24 @@ interface Props {
 
 const IdeaInput = ({ onSubmit }: Props) => {
   const [text, setText] = useState("");
+  const [shaking, setShaking] = useState(false);
+  const [attempted, setAttempted] = useState(false);
+
+  const isTooShort = text.length > 0 && text.trim().length < 10;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (text.trim().length < 10) return;
+    if (text.trim().length < 10) {
+      setAttempted(true);
+      triggerShake();
+      return;
+    }
     onSubmit(text.trim());
+  };
+
+  const triggerShake = () => {
+    setShaking(true);
+    setTimeout(() => setShaking(false), 500);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -20,6 +33,9 @@ const IdeaInput = ({ onSubmit }: Props) => {
       e.preventDefault();
       if (text.trim().length >= 10) {
         onSubmit(text.trim());
+      } else {
+        setAttempted(true);
+        triggerShake();
       }
     }
   };
@@ -52,23 +68,43 @@ const IdeaInput = ({ onSubmit }: Props) => {
         transition={{ duration: 0.5, delay: 0.2 }}
         className="w-full max-w-2xl"
       >
-        <div className="relative">
+        <motion.div
+          className="relative"
+          animate={shaking ? { x: [0, -8, 8, -6, 6, -3, 3, 0] } : {}}
+          transition={{ duration: 0.5 }}
+        >
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="An app that lets dog owners find and book verified pet sitters in their neighborhood, with real-time GPS tracking during walks..."
-            className="w-full min-h-[180px] p-6 rounded-lg bg-card/80 backdrop-blur-sm border border-border/60 text-foreground font-mono text-sm leading-relaxed placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 resize-none transition-all"
+            className={`w-full min-h-[180px] p-6 rounded-lg bg-card/80 backdrop-blur-sm border text-foreground font-mono text-sm leading-relaxed placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 resize-none transition-all ${
+              attempted && isTooShort
+                ? "border-destructive/60 focus:border-destructive/80 focus:ring-destructive/30"
+                : "border-border/60 focus:border-primary/50 focus:ring-primary/20"
+            }`}
           />
           <div className="absolute bottom-4 right-4 flex items-center gap-3">
             <span className="font-mono text-[10px] text-muted-foreground/40">
               Press Enter to submit
             </span>
-            <span className="font-mono text-[10px] text-muted-foreground/40">
+            <span className={`font-mono text-[10px] transition-colors ${
+              attempted && isTooShort ? "text-destructive" : "text-muted-foreground/40"
+            }`}>
               {text.length} chars
             </span>
           </div>
-        </div>
+        </motion.div>
+
+        {attempted && isTooShort && (
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="font-mono text-xs text-destructive mt-2 ml-1"
+          >
+            Describe your idea in at least 10 characters so we have enough to work with.
+          </motion.p>
+        )}
 
         <motion.button
           type="submit"

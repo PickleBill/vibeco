@@ -1,6 +1,16 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, Zap, Brain } from "lucide-react";
+import { Download, Zap, Brain, X } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import IdeaInput from "./IdeaInput";
 import IdeaBrief from "./IdeaBrief";
 import FollowUpQuestions from "./FollowUpQuestions";
@@ -143,6 +153,8 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
   const [reportId, setReportId] = useState<string | null>(draft?.reportId || null);
   const [depthRecommendation, setDepthRecommendation] = useState<string | undefined>();
   const [thinkingMode, setThinkingMode] = useState<"fast" | "deep">("fast");
+  const [showRestartConfirm, setShowRestartConfirm] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Resume from DB when resumeId is provided
   useEffect(() => {
@@ -394,16 +406,31 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
     return history;
   };
 
+  const handleCancelAnalysis = () => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    setIsLoading(false);
+    setPhase(rounds.length > 0 ? "brief" : "input");
+    toast("Analysis cancelled.");
+  };
+
   const callSimulator = async (type: "initial" | "refine", ideaText?: string, round?: number) => {
     setIsLoading(true);
     setPhase("analyzing");
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       const body: Record<string, unknown> =
         type === "initial"
           ? { type: "initial", idea: ideaText || idea, mode: thinkingMode }
           : { type: "refine", history: buildHistory(currentRound - 1), round, mode: thinkingMode };
 
-      const { data, error } = await supabase.functions.invoke("simulate-idea", { body });
+      const { data, error } = await supabase.functions.invoke("simulate-idea", {
+        body,
+        signal: controller.signal as AbortSignal,
+      });
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);
@@ -509,10 +536,12 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
         }
       }
     } catch (e: unknown) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
       console.error("Simulator error:", e);
       toast.error(e instanceof Error ? e.message : "Something went wrong. Try again.");
       setPhase(rounds.length > 0 ? "brief" : "input");
     } finally {
+      abortControllerRef.current = null;
       setIsLoading(false);
     }
   };
@@ -777,6 +806,13 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
               <p className="font-mono text-[10px] text-muted-foreground/50 mt-2">
                 {thinkingMode === "deep" ? "Deep analysis takes 30-60 seconds" : "This takes about 10-15 seconds"}
               </p>
+              <button
+                onClick={handleCancelAnalysis}
+                className="mt-6 flex items-center gap-2 font-mono text-xs text-muted-foreground hover:text-foreground border border-border/60 px-4 py-2 rounded-sm transition-colors"
+              >
+                <X size={14} />
+                Cancel
+              </button>
             </motion.div>
           )}
 
@@ -811,7 +847,7 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
               <FinalReport
                 brief={latestRound.brief}
                 idea={idea}
-                onRestart={handleRestart}
+                onRestart={() => setShowRestartConfirm(true)}
                 conceptImage={conceptImage}
                 logoImage={logoImage}
                 rounds={rounds}
@@ -830,6 +866,29 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
           )}
         </AnimatePresence>
       </div>
+
+      <AlertDialog open={showRestartConfirm} onOpenChange={setShowRestartConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Start over?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will clear your entire session — all rounds, answers, highlights, and generated content. This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep working</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowRestartConfirm(false);
+                handleRestart();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Yes, start over
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
