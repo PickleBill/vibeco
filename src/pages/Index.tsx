@@ -14,6 +14,7 @@ import Fit from "../components/Fit";
 import ContactForm from "../components/ContactForm";
 import FinalCta from "../components/FinalCta";
 import Footer from "../components/Footer";
+import VariantSwitcher from "../components/VariantSwitcher";
 
 const jsonLd = {
   "@context": "https://schema.org",
