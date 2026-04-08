@@ -400,8 +400,8 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
     try {
       const body: Record<string, unknown> =
         type === "initial"
-          ? { type: "initial", idea: ideaText || idea }
-          : { type: "refine", history: buildHistory(currentRound - 1), round };
+          ? { type: "initial", idea: ideaText || idea, mode: thinkingMode }
+          : { type: "refine", history: buildHistory(currentRound - 1), round, mode: thinkingMode };
 
       const { data, error } = await supabase.functions.invoke("simulate-idea", { body });
 
