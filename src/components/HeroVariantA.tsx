@@ -7,7 +7,7 @@ import heroMindmap from "@/assets/hero-mindmap.jpg";
 const headlineWords = ["Your", "wildest", "idea."];
 const taglineChars = "Live in minutes.".split("");
 
-const wordSpring = { type: "spring" as const, stiffness: 120, damping: 14 };
+const wordSpring = { type: "spring" as const, stiffness: 90, damping: 12 };
 
 const Hero = () => {
   const navigate = useNavigate();
@@ -55,7 +55,7 @@ const Hero = () => {
                       className="inline-block mr-[0.3em]"
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ ...wordSpring, delay: 0.15 + i * 0.1 }}
+                      transition={{ ...wordSpring, delay: 0.3 + i * 0.15 }}
                     >
                       {word}
                     </motion.span>
@@ -69,7 +69,7 @@ const Hero = () => {
                         style={{ whiteSpace: ch === " " ? "pre" : undefined }}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ duration: 0.05, delay: 0.55 + i * 0.02 }}
+                        transition={{ duration: 0.08, delay: 0.9 + i * 0.035 }}
                       >
                         {ch}
                       </motion.span>
@@ -79,19 +79,19 @@ const Hero = () => {
               )}
             </div>
 
-            <FadeIn delay={0.8}>
+            <FadeIn delay={1.5}>
               <p className="font-mono text-base text-foreground/80 leading-relaxed mb-4 max-w-lg mt-5">
                 You describe it, we build it — powered by AI, driven by obsession.
                 No dev team needed. No six-figure budget. Just your idea and our
                 hands on the keyboard.
               </p>
             </FadeIn>
-            <FadeIn delay={0.85}>
+            <FadeIn delay={1.7}>
               <p className="font-mono text-sm text-muted-foreground leading-relaxed mb-8 max-w-lg">
                 Creator-led&ensp;•&ensp;AI-powered&ensp;•&ensp;Live in hours, not months
               </p>
             </FadeIn>
-            <FadeIn delay={0.9}>
+            <FadeIn delay={1.9}>
               <div className="flex flex-wrap gap-4">
                 <button
                   onClick={() => navigate("/simulate")}
