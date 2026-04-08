@@ -1,6 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, Zap, Brain } from "lucide-react";
+import { Download, Zap, Brain, X } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import IdeaInput from "./IdeaInput";
 import IdeaBrief from "./IdeaBrief";
 import FollowUpQuestions from "./FollowUpQuestions";
