@@ -189,12 +189,11 @@ function StaticHero({ navigate }: { navigate: ReturnType<typeof useNavigate> }) 
               <span className="text-gradient-accent">Live in minutes.</span>
             </h1>
             <p className="font-mono text-base text-foreground/80 leading-relaxed mb-4 max-w-lg">
-              You describe it, we build it — powered by AI, driven by obsession.
-              No dev team needed. No six-figure budget. Just your idea and our
-              hands on the keyboard.
+              You describe it, we build it. No dev team. No six-figure
+              budget. Your idea, live in hours.
             </p>
             <p className="font-mono text-sm text-muted-foreground leading-relaxed mb-8 max-w-lg">
-              Creator-led&ensp;•&ensp;AI-powered&ensp;•&ensp;Live in hours, not months
+              Creator-led&ensp;•&ensp;AI-built&ensp;•&ensp;Live in hours
             </p>
             <div className="flex flex-wrap gap-4">
               <button
