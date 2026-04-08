@@ -690,6 +690,8 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
             </button>
           </motion.div>
         )}
+
+        {unlocked && rounds.length > 0 && phase !== "input" && phase !== "analyzing" && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
