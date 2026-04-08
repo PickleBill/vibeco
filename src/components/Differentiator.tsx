@@ -6,12 +6,12 @@ import { Zap, Brain, TrendingUp, Target } from "lucide-react";
 const diffs = [
   {
     icon: Zap,
-    title: "Unbelievably fast",
+    title: "Unreasonably fast",
     desc: "From idea to live product in hours, not months. No proposals, no committee sign-offs, no waiting. Just shipping.",
   },
   {
     icon: Brain,
-    title: "Real product thinking, not templates",
+    title: "Product thinking, not templates",
     desc: "Architecture, design systems, and product strategy — not drag-and-drop guesswork or cookie-cutter themes.",
   },
   {
@@ -34,7 +34,7 @@ const Differentiator = () => {
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
         <FadeIn>
           <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-16">
-            Why this hits different.
+            Why we're different.
           </h2>
         </FadeIn>
         <div className="grid sm:grid-cols-2 gap-6">
