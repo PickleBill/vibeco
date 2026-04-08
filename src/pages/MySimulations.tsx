@@ -162,11 +162,6 @@ const MySimulations = () => {
             </button>
           </div>
 
-          {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="animate-pulse font-mono text-sm text-muted-foreground">Loading your ideas...</div>
-          </div>
-
           {/* Admin toggle */}
           {isAdmin && (
             <div className="flex items-center gap-2 mb-6">
@@ -186,7 +181,12 @@ const MySimulations = () => {
               </span>
             </div>
           )}
-          ) : reports.length === 0 ? (
+
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="animate-pulse font-mono text-sm text-muted-foreground">Loading your ideas...</div>
+            </div>
+          ) : filteredReports.length === 0 ? (
             <div className="text-center py-24">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
                 <Sparkles size={24} className="text-primary" />
