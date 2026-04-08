@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Clock, Sparkles, ArrowRight, Plus, Zap, Shield, Flame, Swords, Heart, Wrench } from "lucide-react";
+import { ArrowLeft, Clock, Sparkles, ArrowRight, Plus, Zap, Shield, Flame, Swords, Heart, Wrench, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
@@ -47,6 +47,8 @@ const MySimulations = () => {
   const [perspectiveCounts, setPerspectiveCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [userEmail, setUserEmail] = useState<string>("");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -58,12 +60,26 @@ const MySimulations = () => {
       }
       setUserEmail(session.user.email || "");
 
-      // Fetch idea_reports for this user
-      const { data, error } = await (supabase.from("idea_reports") as any)
-        .select("id, idea, created_at, status, brief, lovable_prompt, concept_image_url, logo_image_url, thesis_statement, thunderdome_unlocked, parent_idea_id")
+      // Check admin role
+      const { data: roleData } = await (supabase.from("user_roles") as any)
+        .select("role")
         .eq("user_id", session.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      const adminStatus = !!roleData;
+      setIsAdmin(adminStatus);
+
+      // Fetch idea_reports — admin sees all, others see own
+      let query = (supabase.from("idea_reports") as any)
+        .select("id, idea, created_at, status, brief, lovable_prompt, concept_image_url, logo_image_url, thesis_statement, thunderdome_unlocked, parent_idea_id")
         .order("created_at", { ascending: false })
         .limit(50);
+
+      if (!adminStatus) {
+        query = query.eq("user_id", session.user.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error("Fetch error:", error);
