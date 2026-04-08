@@ -1,47 +1,62 @@
 
 
-## Implementation: Dual Hero Variants + A/B Testing Hook
+## Plan: Variant B, Slower Animations, and Variant Switcher
 
-Plan was approved. Four files to create/modify:
+### What's Happening
 
-### 1. `src/hooks/useVariant.ts` (Create)
-Lightweight hook: checks `?variant=` URL param first, then localStorage sticky assignment, then random. Persists choice. No external dependencies.
+Three things in one pass:
 
-### 2. `src/components/HeroVariantA.tsx` (Create)
-Scroll-driven parallax + staggered type reveal:
-- Each word of "Your wildest idea." springs in with staggered delay (framer-motion spring: stiffness 120, damping 14)
-- "Live in minutes." characters fade left-to-right with 20ms stagger
-- Mind-map image uses `useScroll` + `useTransform` for 0.3x parallax offset
-- Tagline and CTAs use existing FadeIn with slightly adjusted delays
-- `prefers-reduced-motion`: skip word-by-word, use simple opacity fade
-- Same copy, same layout, same mobile stats strip as current Hero
+1. **Create HeroVariantB** — the cursor-reactive glow + magnetic CTA direction from the original overdrive proposal
+2. **Slow down animations** across all three variants (~1.5–2x current durations)
+3. **Add a small variant switcher** visible only in preview/dev — a subtle floating pill at bottom-right with A/B/C buttons, so you can flip between variants without editing URLs
 
-### 3. `src/components/HeroVariantC.tsx` (Create)
-Cinematic orchestrated entry:
-- Three grid lines animate `scaleX` from 0→1 in 200ms stagger sequence
-- Headline starts at `filter: blur(8px)` + `opacity: 0`, resolves to sharp over 600ms
-- "Live in minutes." gradient text fades in 200ms after headline
-- CTA buttons spring-scale from 0.8 with overshoot (stiffness 400, damping 25)
-- Mind-map fades in last with scale 0.95→1 over 800ms
-- `prefers-reduced-motion`: instant render
+### About the "Files" Section
 
-### 4. `src/components/Hero.tsx` (Modify)
-Replace current implementation with a thin wrapper:
-```tsx
-import { useVariant } from "@/hooks/useVariant";
-import HeroVariantA from "./HeroVariantA";
-import HeroVariantC from "./HeroVariantC";
+The "Files" tab in Lovable's UI is for **generated documents** — PDFs, CSVs, images, etc. created by scripts. It's not where code or markdown lives. Your skill files (`SKILL_OVERDRIVE.md`, etc.) live in the **codebase** (Code tab, file tree). That's the right place for them — I read them automatically from there. The Files section would be for things like exported reports or generated assets.
 
-const Hero = () => {
-  const variant = useVariant("hero", ["a", "c"] as const);
-  return variant === "a" ? <HeroVariantA /> : <HeroVariantC />;
-};
-```
+### Changes
 
-### Testing
-- `/?variant=a` — forces parallax hero
-- `/?variant=c` — forces cinematic hero
-- `/` — random assignment, sticky across sessions
+**`src/components/HeroVariantB.tsx`** (Create)
+- Mouse-tracking radial glow that follows cursor position across the hero section
+- Magnetic CTA buttons that subtly pull toward the cursor when nearby (spring physics, ~6px max displacement)
+- Headline uses a staggered character reveal with a subtle scale pulse
+- Same copy, layout, mobile stats strip as A and C
+- `prefers-reduced-motion`: static render, no tracking
+
+**`src/components/Hero.tsx`** (Modify)
+- Add variant `"b"` to the variant array: `["a", "b", "c"]`
+- Import and render `HeroVariantB`
+
+**`src/components/HeroVariantA.tsx`** (Modify — timing only)
+- Word spring: stiffness 120→90, damping 14→12 (slower, more visible overshoot)
+- Character stagger delay: 20ms→35ms
+- FadeIn delays: push each ~200ms later so the sequence breathes
+
+**`src/components/HeroVariantC.tsx`** (Modify — timing only)
+- Grid line duration: 0.6s→1.0s, stagger 0.15→0.25
+- Headline blur transition: 0.6s→1.0s
+- CTA spring: stiffness 400→280, damping 25→20
+- Image fade: 0.8s→1.2s
+
+**`src/components/VariantSwitcher.tsx`** (Create)
+- Small floating pill, bottom-right corner, only renders when `location.hostname` includes `lovable.app` or `localhost` (dev/preview only)
+- Three small buttons: A, B, C — click sets `?variant=x` and reloads
+- Active variant highlighted with primary color
+- Semi-transparent, doesn't interfere with content
+
+**`src/pages/Index.tsx`** (Modify)
+- Add `<VariantSwitcher />` component
+
+### Files
+
+| File | Action |
+|---|---|
+| `src/components/HeroVariantB.tsx` | Create |
+| `src/components/VariantSwitcher.tsx` | Create |
+| `src/components/Hero.tsx` | Modify — add variant B |
+| `src/components/HeroVariantA.tsx` | Modify — slow timings |
+| `src/components/HeroVariantC.tsx` | Modify — slow timings |
+| `src/pages/Index.tsx` | Modify — add switcher |
 
 No backend changes. No migrations.
 
