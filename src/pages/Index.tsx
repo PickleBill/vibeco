@@ -108,6 +108,7 @@ const Index = () => {
           <SpeedTimeline />
           <Model />
           <Credibility />
+          <Testimonials />
           <Fit />
           <ContactForm />
           <FinalCta />
