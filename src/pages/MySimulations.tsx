@@ -132,6 +132,9 @@ const MySimulations = () => {
   };
 
   const firstName = userEmail.split("@")[0]?.split(".")[0] || "there";
+  const filteredReports = isAdmin && !showAll
+    ? reports.filter(r => r.user_id === currentUserId)
+    : reports;
 
   return (
     <>
@@ -162,7 +165,27 @@ const MySimulations = () => {
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <div className="animate-pulse font-mono text-sm text-muted-foreground">Loading your ideas...</div>
+          </div>
+
+          {/* Admin toggle */}
+          {isAdmin && (
+            <div className="flex items-center gap-2 mb-6">
+              <button
+                onClick={() => setShowAll(prev => !prev)}
+                className={`flex items-center gap-2 font-mono text-[11px] px-3 py-1.5 rounded-full border transition-all ${
+                  showAll
+                    ? "border-purple-500/50 bg-purple-500/10 text-purple-400"
+                    : "border-border bg-card text-muted-foreground"
+                }`}
+              >
+                {showAll ? <Eye size={12} /> : <EyeOff size={12} />}
+                {showAll ? "All ideas" : "My ideas only"}
+              </button>
+              <span className="font-mono text-[10px] text-muted-foreground">
+                Admin · {filteredReports.length} showing
+              </span>
             </div>
+          )}
           ) : reports.length === 0 ? (
             <div className="text-center py-24">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
