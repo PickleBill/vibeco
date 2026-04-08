@@ -29,7 +29,7 @@ interface PerspectiveCount {
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
   "in-progress": { label: "In Progress", color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/30" },
   "brief-complete": { label: "Brief Ready", color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/30" },
-  "thunderdome-active": { label: "Thunderdome", color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/30" },
+  "thunderdome-active": { label: "Deep Dive", color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/30" },
   "prompt-ready": { label: "Prompt Ready", color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/30" },
 };
 
@@ -187,21 +187,61 @@ const MySimulations = () => {
               <div className="animate-pulse font-mono text-sm text-muted-foreground">Loading your ideas...</div>
             </div>
           ) : filteredReports.length === 0 ? (
-            <div className="text-center py-24">
+            <div className="text-center py-16">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
                 <Sparkles size={24} className="text-primary" />
               </div>
               <h2 className="font-display text-xl font-bold text-foreground mb-2">No ideas yet</h2>
               <p className="font-mono text-sm text-muted-foreground mb-8 max-w-sm mx-auto">
-                Run your first simulation to see your ideas come to life with AI analysis, perspectives, and Lovable prompts.
+                Run your first simulation to see your ideas come to life with AI analysis, perspectives, and build-ready prompts.
               </p>
               <button
                 onClick={() => navigate("/simulate")}
-                className="font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity inline-flex items-center gap-2"
+                className="font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity inline-flex items-center gap-2 mb-10"
               >
                 <Sparkles size={14} />
                 Run Your First Simulation
               </button>
+
+              {/* Example card showing what a completed simulation looks like */}
+              <div className="max-w-lg mx-auto">
+                <p className="font-mono text-[10px] text-muted-foreground/50 uppercase tracking-wider mb-3">
+                  Here's what a completed simulation looks like
+                </p>
+                <div className="border border-border/30 rounded-lg p-5 bg-card/30 text-left opacity-70 pointer-events-none">
+                  <div className="flex items-start gap-4">
+                    <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center shrink-0">
+                      <Sparkles size={18} className="text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <h3 className="font-display text-sm font-bold text-foreground truncate">
+                          AI-powered pet sitting marketplace
+                        </h3>
+                        <span className="shrink-0 font-mono text-[10px] px-2 py-0.5 rounded-full border bg-emerald-500/10 border-emerald-500/30 text-emerald-400">
+                          Prompt Ready
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 mt-1">
+                        <span className="font-mono text-[11px] text-muted-foreground flex items-center gap-1">
+                          <Clock size={10} />
+                          Today
+                        </span>
+                        <span className="font-mono text-[11px] text-muted-foreground">
+                          🚀 venture
+                        </span>
+                        <span className="font-mono text-[11px] text-muted-foreground flex items-center gap-1">
+                          <Zap size={10} />
+                          5/5 perspectives
+                        </span>
+                      </div>
+                      <p className="font-mono text-xs text-muted-foreground/80 mt-2 line-clamp-1 italic">
+                        "A neighborhood-first platform connecting pet owners with verified sitters"
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="grid gap-4">

@@ -14,7 +14,7 @@ const testimonials = [
     highlight: false,
   },
   {
-    quote: "The simulator alone saved me from building the wrong product. The Thunderdome tore my assumptions apart — in the best way.",
+    quote: "The simulator alone saved me from building the wrong product. The Deep Dive tore my assumptions apart — in the best way.",
     name: "Marcus T.",
     role: "Serial entrepreneur",
     highlight: false,
