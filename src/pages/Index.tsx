@@ -9,6 +9,7 @@ import ProjectShowcase from "../components/ProjectShowcase";
 import Builds from "../components/Builds";
 import Model from "../components/Model";
 import Credibility from "../components/Credibility";
+import Testimonials from "../components/Testimonials";
 import Fit from "../components/Fit";
 import ContactForm from "../components/ContactForm";
 import FinalCta from "../components/FinalCta";
