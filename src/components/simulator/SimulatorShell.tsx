@@ -847,7 +847,7 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
               <FinalReport
                 brief={latestRound.brief}
                 idea={idea}
-                onRestart={handleRestart}
+                onRestart={() => setShowRestartConfirm(true)}
                 conceptImage={conceptImage}
                 logoImage={logoImage}
                 rounds={rounds}
@@ -866,6 +866,29 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
           )}
         </AnimatePresence>
       </div>
+
+      <AlertDialog open={showRestartConfirm} onOpenChange={setShowRestartConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Start over?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will clear your entire session — all rounds, answers, highlights, and generated content. This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep working</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowRestartConfirm(false);
+                handleRestart();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Yes, start over
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
