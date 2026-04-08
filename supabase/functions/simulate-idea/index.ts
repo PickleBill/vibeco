@@ -354,7 +354,7 @@ Provide a deep-dive analysis specifically on: ${section_label}`;
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-pro",
+            model,
             messages: [
               { role: "system", content: systemPrompt },
               { role: "user", content: userContent },
@@ -410,7 +410,7 @@ Provide a deep-dive analysis specifically on: ${section_label}`;
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-pro",
+          model,
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userContent },

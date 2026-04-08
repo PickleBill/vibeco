@@ -115,7 +115,7 @@ Generate your perspective on this idea. Be specific to THIS product — no gener
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-pro",
+          model,
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userContent },
