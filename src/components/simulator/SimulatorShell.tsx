@@ -818,27 +818,103 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
 
           {phase === "brief" && latestRound && (
             <motion.div key={`brief-${currentRound}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <FollowUpQuestions
-                questions={latestRound.questions}
-                onSubmit={handleAnswersSubmit}
-                onSkipToFinal={handleSkipToFinal}
-                isLoading={isLoading}
-                round={currentRound}
-                highlights={highlights}
-                onToggleHighlight={toggleHighlight}
-                depthRecommendation={depthRecommendation}
-              />
-              <IdeaBrief
-                brief={latestRound.brief}
-                round={currentRound}
-                conceptImage={conceptImage}
-                unlocked={unlocked}
-                onUnlock={handleUnlock}
-                highlights={highlights}
-                onToggleHighlight={toggleHighlight}
-                antiHighlights={antiHighlights}
-                onToggleAntiHighlight={toggleAntiHighlight}
-              />
+              {/* Tab toggle: Questions vs Analysis */}
+              <div className="flex justify-center mb-8">
+                <div className="inline-flex rounded-lg border border-border/50 overflow-hidden">
+                  <button
+                    onClick={() => setBriefTab("questions")}
+                    className={`font-mono text-xs px-5 py-2 transition-colors ${
+                      briefTab === "questions"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-card/60 text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Questions
+                  </button>
+                  <button
+                    onClick={() => setBriefTab("analysis")}
+                    className={`font-mono text-xs px-5 py-2 transition-colors ${
+                      briefTab === "analysis"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-card/60 text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Analysis
+                  </button>
+                  {rounds.length > 1 && (
+                    <button
+                      onClick={() => setBriefTab("history")}
+                      className={`font-mono text-xs px-5 py-2 transition-colors ${
+                        briefTab === "history"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-card/60 text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Previous Rounds
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <AnimatePresence mode="wait">
+                {briefTab === "questions" && (
+                  <motion.div key="tab-questions" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ duration: 0.2 }}>
+                    <FollowUpQuestions
+                      questions={latestRound.questions}
+                      onSubmit={handleAnswersSubmit}
+                      onSkipToFinal={handleSkipToFinal}
+                      isLoading={isLoading}
+                      round={currentRound}
+                      highlights={highlights}
+                      onToggleHighlight={toggleHighlight}
+                      depthRecommendation={depthRecommendation}
+                    />
+                  </motion.div>
+                )}
+
+                {briefTab === "analysis" && (
+                  <motion.div key="tab-analysis" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2 }}>
+                    <IdeaBrief
+                      brief={latestRound.brief}
+                      round={currentRound}
+                      conceptImage={conceptImage}
+                      unlocked={unlocked}
+                      onUnlock={handleUnlock}
+                      highlights={highlights}
+                      onToggleHighlight={toggleHighlight}
+                      antiHighlights={antiHighlights}
+                      onToggleAntiHighlight={toggleAntiHighlight}
+                    />
+                  </motion.div>
+                )}
+
+                {briefTab === "history" && rounds.length > 1 && (
+                  <motion.div key="tab-history" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2 }}>
+                    <div className="space-y-6">
+                      {rounds.slice(0, -1).map((r, i) => (
+                        <div key={i} className="border border-border/40 rounded-lg p-4 bg-card/30">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center font-mono text-[10px] font-bold text-muted-foreground">
+                              {i + 1}
+                            </div>
+                            <span className="font-mono text-xs text-muted-foreground">
+                              Round {i + 1} Analysis
+                            </span>
+                          </div>
+                          <IdeaBrief
+                            brief={r.brief}
+                            round={i}
+                            highlights={highlights}
+                            onToggleHighlight={toggleHighlight}
+                            antiHighlights={antiHighlights}
+                            onToggleAntiHighlight={toggleAntiHighlight}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           )}
 
