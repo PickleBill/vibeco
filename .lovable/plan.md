@@ -1,142 +1,87 @@
+# VibeCo Plan
 
+## Full-Site Audit Report — Score: 11/20 (Acceptable)
 
-## Plan: Top-Level Impeccable Skill + Design Context + Reference Library
+| # | Dimension | Score | Key Finding |
+|---|-----------|-------|-------------|
+| 1 | Accessibility | 2/4 | No skip-to-content link, slider lacks aria-label, buttons-as-links |
+| 2 | Performance | 3/4 | Three hero variants always imported, Google Fonts render-blocking |
+| 3 | Theming | 3/4 | Hard-coded colors in Model (blue-400, emerald-400, amber-400) and SpeedTimeline (green HSL) |
+| 4 | Responsive | 2/4 | SpeedTimeline 5-col grid broken on tablet, hero image hidden on mobile leaving blank space |
+| 5 | Anti-Patterns | 1/4 | AI slop gallery: gradient text, hero metrics strip, card grids everywhere, 7× duplicate CTA, identical hover patterns |
+| **Total** | | **11/20** | **Acceptable** |
 
-### What's Changing
+### Anti-Patterns Verdict: FAIL
 
-Your current setup has four individual skill files (Overdrive, Critique, Onboard, Clarify) and a DESIGN_SYSTEM.md that was a good v1 but is now outdated compared to the upstream impeccable v2.0. The missing piece is the **orchestrator** -- the top-level `/impeccable` command that ties everything together and establishes your project's Design Context so every skill produces consistent, non-generic output.
+The site reads as AI-generated. Specific tells:
+- **P0** ~~Gradient text (`text-gradient-accent`)~~ — FIXED: replaced with `text-primary` in hero
+- **P0** Hero metrics strip duplicated in hero AND StatsBar — redundant
+- **P1** Card grid monoculture — 6 sections use identical card-grid layouts
+- **P1** Every section follows identical structure: label → heading → description → card grid with hover glow
+- **P1** CTA appeared 7+ times (reduced to "Test Your Idea" in sprint 1)
+- **P1** Glow effects on everything
+- **P2** Identical hover patterns across all cards
+- **P2** Font monotony — only Inter + Source Code Pro
 
-Three deliverables:
+### P0-P3 Findings
 
----
+**P0 — Blocking**
+1. ~~Gradient text on hero tagline~~ → FIXED
+2. Hero stats strip duplicates StatsBar → still on mobile hero variants
 
-### 1. Create `.impeccable.md` (Design Context)
+**P1 — Major**
+3. Hard-coded Tailwind colors: `text-blue-400`, `text-emerald-400`, `text-amber-400` in Model.tsx
+4. Hard-coded `hsl(142 70% 45%)` green in SpeedTimeline
+5. SpeedTimeline: 5-column era cards grid breaks on tablet
+6. Card grid monoculture — need layout variety
+7. CTA repetition — "Test Your Idea" still appears 6+ times
+8. Section structure monotony
 
-This is what the `/impeccable teach` flow produces. It's the single source of truth that every skill reads before doing work. Based on your answers:
+**P2 — Minor**
+9. No skip-to-content link
+10. SpeedTimeline range input missing `aria-label`
+11. Hero image hidden on mobile — large empty space
+12. Footer nav stacks poorly on mobile
+13. Inline HSL values repeated instead of CSS custom properties
+14. `bg-surface` utility hard-codes HSL
 
-```text
-## Design Context
-
-### Users
-Non-technical domain experts and high-agency founders.
-Using VibeCo to go from a plain-English idea to a live, testable product.
-Context: on their laptop, excited but skeptical, often after hours.
-
-### Brand Personality
-Bold, experimental, provocative.
-Not "tech bro startup." Not "enterprise committee."
-Talks like a confident collaborator who's done this 50 times.
-
-### Aesthetic Direction
-Cinematic dark mode. Matte charcoal, electric accents.
-Anti-references: generic SaaS templates, gradient-everything startups,
-corporate blue-and-white, anything that screams "AI made this."
-Reference: bioastra.org (pending -- site didn't load, revisit).
-Theme: dark (justified -- evening/focused use, creative energy).
-
-### Design Principles
-1. Provocation over polish -- challenge assumptions, don't decorate
-2. Earned complexity -- start bare, reveal depth through interaction
-3. No monoculture -- vary layouts, fonts, and compositions across sections
-4. Every element justifies its existence -- no decorative filler
-5. Speed is the brand -- the interface should feel as fast as the product
-```
-
-**File:** `.impeccable.md` (project root)
-
----
-
-### 2. Rewrite `DESIGN_SYSTEM.md` as `SKILL_IMPECCABLE.md`
-
-Replace the current DESIGN_SYSTEM.md with a proper adaptation of the upstream impeccable v2.0 SKILL.md. The current file is missing:
-
-- The **Context Gathering Protocol** (check `.impeccable.md` first, then ask)
-- The **Font Anti-Attractor Procedure** (the 4-step process to avoid monoculture fonts)
-- The **Craft Mode** flow (shape -> load references -> build -> visually iterate -> present)
-- The **Teach Mode** flow (explore codebase -> ask questions -> write Design Context)
-- The **AI Slop Test** as a formal checkpoint
-- The **Visual Details bans** (side-stripe borders, gradient text as CSS patterns)
-- OKLCH color guidance (we currently use HSL -- note this as a future migration)
-
-Structure of the new file:
-
-```text
-SKILL_IMPECCABLE.md
-├── Context Gathering Protocol (reads .impeccable.md)
-├── Design Direction (bold aesthetic commitment)
-├── Frontend Aesthetics Guidelines
-│   ├── Typography (with font anti-attractor procedure)
-│   ├── Color & Theme (OKLCH note, 60-30-10 rule)
-│   ├── Layout & Space (4pt scale, gap over margins)
-│   ├── Visual Details (2 hard CSS bans)
-│   ├── Motion (transform+opacity only)
-│   ├── Interaction (progressive disclosure)
-│   ├── Responsive (container queries)
-│   └── UX Writing (earn every word)
-├── The AI Slop Test
-├── VibeCo Token Reference (migrated from current file)
-├── Component Patterns (migrated from current file)
-├── Craft Mode (shape -> references -> build -> iterate)
-├── Teach Mode (explore -> ask -> write context)
-└── Skill Index (links to all SKILL_*.md files)
-```
-
-The old DESIGN_SYSTEM.md gets deleted (replaced by this file). All existing skills already say "Reference DESIGN_SYSTEM.md" -- we'll update those references to point to SKILL_IMPECCABLE.md.
-
-**Files:** Create `SKILL_IMPECCABLE.md`, delete `DESIGN_SYSTEM.md`, update references in `SKILL_CRITIQUE.md`, `SKILL_OVERDRIVE.md`, `SKILL_ONBOARD.md`, `SKILL_CLARIFY.md`
+**P3 — Polish**
+15. Google Fonts via CSS `@import` (render-blocking)
+16. VariantSwitcher buttons lack aria-labels
+17. Sparkles icon used as generic decoration across 5+ locations
 
 ---
 
-### 3. Add High-Value Skills from Impeccable Repo
+## Copy Overhaul (Sprint 1) — COMPLETE
 
-Beyond the 4 we have, these are the most useful for VibeCo's current needs:
+All copy across 16 components rewritten. Key changes:
 
-| Skill | What it does | Why VibeCo needs it |
+| Component | Before | After |
 |---|---|---|
-| **Shape** | Pre-build design brief (used by Craft mode) | Prevents building before thinking |
-| **Audit** | Technical code-level design check (vs Critique which is UX-level) | Catches raw colors, missing tokens, anti-pattern CSS |
-| **Polish** | Final-pass refinement on a finished component | The "last 10%" after a feature ships |
-| **Bolder** | Pushes safe designs toward more distinctive choices | Fights the "every section looks the same" problem |
-
-Each gets adapted as a `SKILL_*.md` file following the same pattern as the existing four.
-
-**Files:** `SKILL_SHAPE.md`, `SKILL_AUDIT.md`, `SKILL_POLISH.md`, `SKILL_BOLDER.md`
-
----
-
-### How You'll Use This
-
-After implementation, your workflow becomes:
-
-1. **"Run impeccable teach"** -- updates `.impeccable.md` if your brand/audience changes
-2. **"Shape [feature]"** -- produces a design brief before any code is written
-3. **"Build [feature] following the impeccable skill"** -- I read `.impeccable.md` + `SKILL_IMPECCABLE.md`, load relevant references, build, then visually iterate
-4. **"Audit [component]"** -- technical CSS/token check
-5. **"Critique [page]"** -- holistic UX/Nielsen evaluation
-6. **"Polish [component]"** -- final refinement pass
-7. **"Clarify the copy on [target]"** -- copy rewrite
-8. **"Push [component] into overdrive"** -- extraordinary interaction polish
-9. **"Make [component] bolder"** -- fight safe/generic choices
-
-All skills read `.impeccable.md` for context, so they all produce output consistent with your brand.
+| Hero headline | "Your wildest idea. Live in minutes." | "One conversation. One live product." |
+| Hero sub | "You describe it, we build it..." | "Tell us what you need. We ship a working product — not a pitch deck." |
+| Hero CTA | "✦ Simulate Your Idea" | "Test Your Idea" |
+| EverydayFounders | "Not just for tech founders" | "Built for domain experts" |
+| Differentiator h2 | "Why we're different." | "Not your typical dev shop." |
+| SpeedTimeline h2 | "The world changed..." | "50 years of cost collapse." |
+| Model h2 | "Built for alignment." | "Three steps. One outcome." |
+| FinalCta | "Let's bring yours to life." | "Ship it tonight." |
+| Footer tagline | "Good vibes, instantly. Bringing ideas to life." | "Ideas to products. Fast." |
+| SEO title | "Good Vibes, Instantly..." | "One Conversation. One Live Product." |
 
 ---
 
-### Files Summary
+## Recommended Next Actions (Priority Order)
 
-| File | Action |
-|---|---|
-| `.impeccable.md` | Create -- Design Context |
-| `SKILL_IMPECCABLE.md` | Create -- top-level orchestrator |
-| `DESIGN_SYSTEM.md` | Delete -- replaced by SKILL_IMPECCABLE.md |
-| `SKILL_CRITIQUE.md` | Modify -- update reference |
-| `SKILL_OVERDRIVE.md` | Modify -- update reference |
-| `SKILL_ONBOARD.md` | Modify -- update reference |
-| `SKILL_CLARIFY.md` | Modify -- update reference |
-| `SKILL_SHAPE.md` | Create |
-| `SKILL_AUDIT.md` | Create |
-| `SKILL_POLISH.md` | Create |
-| `SKILL_BOLDER.md` | Create |
+1. **[P0] `Bolder`** — Break card-grid monoculture. Redesign 2-3 sections with editorial/asymmetric layouts.
+2. **[P1] `Audit` fix** — Replace hard-coded colors in Model.tsx and SpeedTimeline with design tokens.
+3. **[P1] `Shape`** — Design brief for SpeedTimeline responsive fix.
+4. **[P1] `Polish`** — Add skip-to-content, aria-labels, focus indicators.
+5. **[P2] `Overdrive`** — Reduce CTA repetition, vary hover patterns.
+6. **[P2] `Polish`** — Fix hero mobile blank space, footer mobile layout.
 
-No code changes. No backend changes. No migrations. This is pure design infrastructure.
+---
 
+## Previous: Impeccable Design Infrastructure — COMPLETE
+
+Created `.impeccable.md` (Design Context), `SKILL_IMPECCABLE.md` (orchestrator), and 4 new skills (Shape, Audit, Polish, Bolder). All 9 skills now read from `.impeccable.md` for brand consistency.
