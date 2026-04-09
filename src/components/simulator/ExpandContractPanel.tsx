@@ -319,6 +319,15 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
               <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">MVP Scope (1-2 weeks)</span>
               <p className="font-mono text-xs text-foreground/80 mt-1">{distillResult.mvp_scope}</p>
             </div>
+
+            {/* Rebuild action */}
+            <button
+              onClick={handleRebuildDistilled}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-primary/30 hover:border-primary/50 bg-primary/5 font-mono text-xs text-primary hover:text-primary/80 transition-all"
+            >
+              <ArrowRight size={14} />
+              Rebuild with this scope
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
