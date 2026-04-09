@@ -27,6 +27,7 @@ import { jsPDF } from "jspdf";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import ThunderdomePanel from "./ThunderdomePanel";
+import ActionHub from "./ActionHub";
 import { copyToClipboard } from "@/lib/copyToClipboard";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -819,20 +820,31 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
           </motion.div>
         )}
 
-        <div className="flex flex-wrap gap-4 justify-center">
+        {/* Action Hub — replaces dead-end after email unlock */}
+        {showPrompt && (
+          <ActionHub
+            brief={brief}
+            idea={idea}
+            lovablePrompt={lovablePrompt}
+            reportId={reportId}
+            onIterate={onRestart}
+          />
+        )}
+
+        <div className="flex flex-wrap gap-4 justify-center mt-6">
           <button
             onClick={onRestart}
-            className="flex items-center gap-2 font-mono text-sm text-muted-foreground px-6 py-3 rounded-sm hover:text-foreground transition-colors"
+            className="flex items-center gap-2 font-mono text-xs text-muted-foreground/50 px-4 py-2 rounded-sm hover:text-muted-foreground transition-colors"
           >
-            <RotateCcw size={14} />
-            Simulate Another Idea
+            <RotateCcw size={12} />
+            Start fresh
           </button>
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-2 font-mono text-sm text-muted-foreground px-6 py-3 rounded-sm hover:text-foreground transition-colors"
+            className="flex items-center gap-2 font-mono text-xs text-muted-foreground/50 px-4 py-2 rounded-sm hover:text-muted-foreground transition-colors"
           >
-            <ArrowLeft size={14} />
-            Back to Home
+            <ArrowLeft size={12} />
+            Home
           </button>
         </div>
       </motion.div>
