@@ -131,9 +131,11 @@ function clearDraft() {
 
 interface SimulatorShellProps {
   resumeId?: string;
+  prefillIdea?: string;
+  forkedFrom?: string;
 }
 
-const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
+const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellProps) => {
   const [initialized, setInitialized] = useState(false);
   const [resumeLoading, setResumeLoading] = useState(!!resumeId);
   const draft = !initialized && !resumeId ? loadDraft() : null;
@@ -219,6 +221,10 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
     setInitialized(true);
     if (draft && !resumeId) {
       toast.info("Resumed your previous session.");
+    }
+    // Auto-submit prefilled idea from a fork/rebuild
+    if (prefillIdea && !resumeId && !draft) {
+      handleIdeaSubmit(prefillIdea);
     }
   }, []);
 
@@ -777,7 +783,14 @@ const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
         <AnimatePresence mode="wait">
           {phase === "input" && (
             <motion.div key="input" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <IdeaInput onSubmit={handleIdeaSubmit} />
+              {forkedFrom && (
+                <div className="flex items-center gap-2 mb-4 px-1">
+                  <span className="font-mono text-[10px] text-primary bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-full">
+                    ↳ Forked from: {forkedFrom.length > 60 ? forkedFrom.slice(0, 60) + "…" : forkedFrom}
+                  </span>
+                </div>
+              )}
+              <IdeaInput onSubmit={handleIdeaSubmit} initialValue={prefillIdea} />
             </motion.div>
           )}
 
