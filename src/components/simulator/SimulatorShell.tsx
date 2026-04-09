@@ -783,7 +783,14 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
         <AnimatePresence mode="wait">
           {phase === "input" && (
             <motion.div key="input" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <IdeaInput onSubmit={handleIdeaSubmit} />
+              {forkedFrom && (
+                <div className="flex items-center gap-2 mb-4 px-1">
+                  <span className="font-mono text-[10px] text-primary bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-full">
+                    ↳ Forked from: {forkedFrom.length > 60 ? forkedFrom.slice(0, 60) + "…" : forkedFrom}
+                  </span>
+                </div>
+              )}
+              <IdeaInput onSubmit={handleIdeaSubmit} initialValue={prefillIdea} />
             </motion.div>
           )}
 
