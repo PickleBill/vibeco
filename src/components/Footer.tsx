@@ -27,7 +27,7 @@ const Footer = () => {
               VibeCo
             </a>
             <p className="font-mono text-sm text-muted-foreground mt-1">
-              Good vibes, instantly. Bringing ideas to life.
+              Ideas to products. Fast.
             </p>
             <a href="https://vibeco.dev" className="font-mono text-xs text-primary/60 hover:text-primary transition-colors">
               vibeco.dev

@@ -41,7 +41,7 @@ const Builds = () => {
             Selected Builds
           </p>
           <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-16">
-            Conviction, tested.
+            Real thesis. Real traction.
           </h2>
         </FadeIn>
 

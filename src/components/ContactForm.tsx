@@ -73,10 +73,10 @@ const ContactForm = () => {
         <div className="max-w-2xl mx-auto">
           <FadeIn>
             <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-4">
-              Tell us your idea.
+              Got something worth building?
             </h2>
             <p className="font-mono text-sm text-muted-foreground leading-relaxed mb-10">
-              Most ideas get a response within 24 hours.
+              Most ideas get a reply within 24 hours.
             </p>
           </FadeIn>
 
@@ -88,13 +88,13 @@ const ContactForm = () => {
                   We'll be in touch within 24 hours.
                 </h3>
                 <p className="font-mono text-sm text-muted-foreground mb-8">
-                  In the meantime — try the simulator to see your idea take shape.
+                  Try the simulator while you wait — see your idea take shape.
                 </p>
                 <button
                   onClick={() => navigate("/simulate")}
                   className="font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity"
                 >
-                  ✦ Simulate Your Idea
+                  ✦ Test Your Idea
                 </button>
               </div>
             </FadeIn>
