@@ -13,7 +13,7 @@ Rewrites interface copy to be shorter, clearer, and more actionable. Covers head
 
 ## Before You Start
 
-1. Reference `DESIGN_SYSTEM.md` for tone and component patterns.
+1. Reference `SKILL_IMPECCABLE.md` for tone and component patterns.
 2. Identify:
    - Who is reading this copy? (New user? Power user? Admin?)
    - What do they need to *do* after reading it?

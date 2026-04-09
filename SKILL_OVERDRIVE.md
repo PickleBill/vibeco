@@ -13,7 +13,7 @@ Pushes an interface past conventional limits. Not just visual effects — it's a
 
 ## Before You Start
 
-1. Reference `DESIGN_SYSTEM.md` for anti-patterns and token usage.
+1. Reference `SKILL_IMPECCABLE.md` for anti-patterns, token usage, and the **Context Gathering Protocol**.
 2. **Context determines what "extraordinary" means.** A particle system on a creative portfolio is impressive. The same on a settings page is embarrassing. A settings page with instant optimistic saves and animated state transitions? That's extraordinary too.
 
 ### Propose Before Building
