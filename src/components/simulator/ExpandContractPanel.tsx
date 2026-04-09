@@ -35,6 +35,7 @@ interface Props {
   highlights?: Set<string>;
   antiHighlights?: Set<string>;
   onThesisGenerated?: (thesis: string) => void;
+  reportId?: string | null;
 }
 
 const potentialLabels: Record<string, { label: string; color: string }> = {
@@ -44,7 +45,7 @@ const potentialLabels: Record<string, { label: string; color: string }> = {
   "faster-revenue": { label: "Faster revenue", color: "text-pink-400" },
 };
 
-const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, onThesisGenerated }: Props) => {
+const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, onThesisGenerated, reportId }: Props) => {
   const navigate = useNavigate();
   const [expandResult, setExpandResult] = useState<ExpandResult | null>(null);
   const [distillResult, setDistillResult] = useState<Distillation | null>(null);
@@ -92,8 +93,54 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
     }
   };
 
-  const handleExploreVariation = (ideaText: string) => {
-    navigate("/simulate", { state: { prefillIdea: ideaText } });
+  const handleExploreVariation = async (exp: Expansion) => {
+    // Create a forked idea_report with context
+    try {
+      const forkedContext = {
+        parent_brief: brief,
+        parent_idea: idea,
+        highlights: highlights ? Array.from(highlights) : [],
+        antiHighlights: antiHighlights ? Array.from(antiHighlights) : [],
+        variation_title: exp.title,
+      };
+
+      const { data: newReport, error } = await (supabase.from("idea_reports") as any)
+        .insert({
+          idea: exp.idea_text,
+          brief: {} as any,
+          rounds: [] as any,
+          parent_idea_id: reportId || null,
+          forked_context: forkedContext,
+          status: "in-progress",
+        })
+        .select("id")
+        .single();
+
+      if (error) throw error;
+
+      navigate("/simulate", {
+        state: {
+          prefillIdea: exp.idea_text,
+          forkedFrom: idea,
+          resumeId: newReport?.id,
+        },
+      });
+    } catch (err) {
+      console.error("Fork error:", err);
+      // Fallback to simple prefill
+      navigate("/simulate", { state: { prefillIdea: exp.idea_text } });
+    }
+  };
+
+  const handleRebuildDistilled = () => {
+    if (!distillResult) return;
+    const distilledIdea = `${distillResult.thesis_statement}. Core feature: ${distillResult.one_feature}. Target customer: ${distillResult.one_customer}. Revenue: ${distillResult.one_revenue}.`;
+    navigate("/simulate", {
+      state: {
+        prefillIdea: distilledIdea,
+        forkedFrom: idea,
+      },
+    });
   };
 
   if (mode === "expand") {
@@ -159,7 +206,7 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
                       <p className="font-mono text-xs text-foreground/80">{exp.pitch}</p>
                       <p className="font-mono text-[10px] text-muted-foreground italic">{exp.how_its_different}</p>
                       <button
-                        onClick={() => handleExploreVariation(exp.idea_text)}
+                        onClick={() => handleExploreVariation(exp)}
                         className="flex items-center gap-1.5 font-mono text-[10px] text-primary hover:text-primary/80 transition-colors mt-1"
                       >
                         <ArrowRight size={10} />
@@ -272,6 +319,15 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
               <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">MVP Scope (1-2 weeks)</span>
               <p className="font-mono text-xs text-foreground/80 mt-1">{distillResult.mvp_scope}</p>
             </div>
+
+            {/* Rebuild action */}
+            <button
+              onClick={handleRebuildDistilled}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-primary/30 hover:border-primary/50 bg-primary/5 font-mono text-xs text-primary hover:text-primary/80 transition-all"
+            >
+              <ArrowRight size={14} />
+              Rebuild with this scope
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

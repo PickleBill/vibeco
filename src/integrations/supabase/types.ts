@@ -81,11 +81,13 @@ export type Database = {
       }
       idea_reports: {
         Row: {
+          alt_prompts: Json | null
           annotations: Json | null
           brief: Json
           concept_image_url: string | null
           created_at: string
           expanded_ideas: Json | null
+          forked_context: Json | null
           highlights: string[] | null
           id: string
           idea: string
@@ -100,11 +102,13 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          alt_prompts?: Json | null
           annotations?: Json | null
           brief: Json
           concept_image_url?: string | null
           created_at?: string
           expanded_ideas?: Json | null
+          forked_context?: Json | null
           highlights?: string[] | null
           id?: string
           idea: string
@@ -119,11 +123,13 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          alt_prompts?: Json | null
           annotations?: Json | null
           brief?: Json
           concept_image_url?: string | null
           created_at?: string
           expanded_ideas?: Json | null
+          forked_context?: Json | null
           highlights?: string[] | null
           id?: string
           idea?: string

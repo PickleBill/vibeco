@@ -71,11 +71,11 @@ const ThunderdomePanel = ({ brief, idea, reportId, highlights, antiHighlights }:
       )}
 
       {activeTab === "expand" && (
-        <ExpandContractPanel mode="expand" brief={brief} idea={idea} highlights={highlights} antiHighlights={antiHighlights} />
+        <ExpandContractPanel mode="expand" brief={brief} idea={idea} highlights={highlights} antiHighlights={antiHighlights} reportId={reportId} />
       )}
 
       {activeTab === "contract" && (
-        <ExpandContractPanel mode="contract" brief={brief} idea={idea} highlights={highlights} antiHighlights={antiHighlights} />
+        <ExpandContractPanel mode="contract" brief={brief} idea={idea} highlights={highlights} antiHighlights={antiHighlights} reportId={reportId} />
       )}
     </motion.div>
   );
