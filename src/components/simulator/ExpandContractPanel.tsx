@@ -35,6 +35,7 @@ interface Props {
   highlights?: Set<string>;
   antiHighlights?: Set<string>;
   onThesisGenerated?: (thesis: string) => void;
+  reportId?: string | null;
 }
 
 const potentialLabels: Record<string, { label: string; color: string }> = {
@@ -44,7 +45,7 @@ const potentialLabels: Record<string, { label: string; color: string }> = {
   "faster-revenue": { label: "Faster revenue", color: "text-pink-400" },
 };
 
-const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, onThesisGenerated }: Props) => {
+const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, onThesisGenerated, reportId }: Props) => {
   const navigate = useNavigate();
   const [expandResult, setExpandResult] = useState<ExpandResult | null>(null);
   const [distillResult, setDistillResult] = useState<Distillation | null>(null);
@@ -92,8 +93,54 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
     }
   };
 
-  const handleExploreVariation = (ideaText: string) => {
-    navigate("/simulate", { state: { prefillIdea: ideaText } });
+  const handleExploreVariation = async (exp: Expansion) => {
+    // Create a forked idea_report with context
+    try {
+      const forkedContext = {
+        parent_brief: brief,
+        parent_idea: idea,
+        highlights: highlights ? Array.from(highlights) : [],
+        antiHighlights: antiHighlights ? Array.from(antiHighlights) : [],
+        variation_title: exp.title,
+      };
+
+      const { data: newReport, error } = await (supabase.from("idea_reports") as any)
+        .insert({
+          idea: exp.idea_text,
+          brief: {} as any,
+          rounds: [] as any,
+          parent_idea_id: reportId || null,
+          forked_context: forkedContext,
+          status: "in-progress",
+        })
+        .select("id")
+        .single();
+
+      if (error) throw error;
+
+      navigate("/simulate", {
+        state: {
+          prefillIdea: exp.idea_text,
+          forkedFrom: idea,
+          resumeId: newReport?.id,
+        },
+      });
+    } catch (err) {
+      console.error("Fork error:", err);
+      // Fallback to simple prefill
+      navigate("/simulate", { state: { prefillIdea: exp.idea_text } });
+    }
+  };
+
+  const handleRebuildDistilled = () => {
+    if (!distillResult) return;
+    const distilledIdea = `${distillResult.thesis_statement}. Core feature: ${distillResult.one_feature}. Target customer: ${distillResult.one_customer}. Revenue: ${distillResult.one_revenue}.`;
+    navigate("/simulate", {
+      state: {
+        prefillIdea: distilledIdea,
+        forkedFrom: idea,
+      },
+    });
   };
 
   if (mode === "expand") {
