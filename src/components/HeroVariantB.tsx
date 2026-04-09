@@ -81,12 +81,12 @@ const Hero = () => {
           <div>
             <FadeIn>
               <p className="font-mono text-sm text-primary uppercase tracking-widest mb-6">
-                try things. break things. ship things.
+                idea → product → revenue
               </p>
             </FadeIn>
 
             {/* Character-level staggered reveal with scale pulse */}
-            <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl font-black text-foreground leading-[1.05] mb-1 scan-line">
+            <h1 className="font-display font-black text-foreground leading-[1.05] mb-1 scan-line" style={{ fontSize: "clamp(2.75rem, 4vw + 1.5rem, 4.25rem)" }}>
               {headlineChars.map((ch, i) => (
                 <motion.span
                   key={i}
@@ -104,7 +104,7 @@ const Hero = () => {
                 </motion.span>
               ))}
               <br />
-              <span className="text-gradient-accent inline-block">
+              <span className="text-primary inline-block">
                 {taglineChars.map((ch, i) => (
                   <motion.span
                     key={i}
@@ -225,9 +225,9 @@ function StaticHero({ navigate }: { navigate: ReturnType<typeof useNavigate> }) 
         <div className="grid lg:grid-cols-2 gap-16 lg:gap-12 items-center">
           <div>
             <p className="font-mono text-sm text-primary uppercase tracking-widest mb-6">
-              try things. break things. ship things.
+              idea → product → revenue
             </p>
-            <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl font-black text-foreground leading-[1.05] mb-6 scan-line">
+            <h1 className="font-display font-black text-foreground leading-[1.05] mb-6 scan-line" style={{ fontSize: "clamp(2.75rem, 4vw + 1.5rem, 4.25rem)" }}>
               One conversation.
               <br />
               <span className="text-primary">One live product.</span>

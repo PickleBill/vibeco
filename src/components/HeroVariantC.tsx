@@ -44,12 +44,13 @@ const Hero = () => {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.5 }}
             >
-              try things. break things. ship things.
+              idea → product → revenue
             </motion.p>
 
             {/* Blur-to-sharp headline */}
             <motion.h1
-              className="font-display text-5xl sm:text-6xl lg:text-7xl font-black text-foreground leading-[1.05] mb-1 scan-line"
+              className="font-display font-black text-foreground leading-[1.05] mb-1 scan-line"
+              style={{ fontSize: "clamp(2.75rem, 4vw + 1.5rem, 4.25rem)" }}
               initial={{ opacity: 0, filter: "blur(8px)" }}
               animate={{ opacity: 1, filter: "blur(0px)" }}
               transition={{ duration: 1.0, delay: 0.7, ease: "easeOut" }}
@@ -172,9 +173,9 @@ function StaticHero({ navigate }: { navigate: ReturnType<typeof useNavigate> }) 
         <div className="grid lg:grid-cols-2 gap-16 lg:gap-12 items-center">
           <div>
             <p className="font-mono text-sm text-primary uppercase tracking-widest mb-6">
-              try things. break things. ship things.
+              idea → product → revenue
             </p>
-            <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl font-black text-foreground leading-[1.05] mb-6 scan-line">
+            <h1 className="font-display font-black text-foreground leading-[1.05] mb-6 scan-line" style={{ fontSize: "clamp(2.75rem, 4vw + 1.5rem, 4.25rem)" }}>
               One conversation.
               <br />
               <span className="text-primary">One live product.</span>
