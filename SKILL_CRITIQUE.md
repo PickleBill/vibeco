@@ -13,7 +13,7 @@ A holistic design critique evaluating whether an interface actually works — no
 
 ## Before You Start
 
-1. Reference `DESIGN_SYSTEM.md` for anti-patterns, principles, and token usage.
+1. Reference `SKILL_IMPECCABLE.md` for anti-patterns, token usage, and the **Context Gathering Protocol**.
 2. Gather context: what is the interface trying to accomplish? Who is the audience?
 
 ---
