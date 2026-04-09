@@ -21,7 +21,7 @@ const jsonLd = {
   "@type": "Organization",
   name: "VibeCo",
   description:
-    "Good vibes, instantly. VibeCo brings your ideas to life with AI — real products, live in hours, no dev team needed.",
+    "Good vibes, instantly. VibeCo turns your ideas into live products with AI — shipped in hours, not months.",
   url: "https://vibeco.dev",
 };
 
@@ -67,28 +67,28 @@ const Index = () => {
   return (
     <HelmetProvider>
       <Helmet>
-        <title>VibeCo — Good Vibes, Instantly. Bring Your Idea to Life.</title>
+        <title>VibeCo — One Conversation. One Live Product.</title>
         <meta
           name="description"
-          content="VibeCo brings your ideas to life with AI. Real products, live in hours, no dev team needed. For creators, experts, and founders of all kinds."
+          content="VibeCo turns ideas into live products with AI. Shipped in hours, not months. For creators, experts, and founders who move fast."
         />
         <link rel="canonical" href="https://vibeco.dev" />
 
         <meta property="og:type" content="website" />
-        <meta property="og:title" content="VibeCo — Good Vibes, Instantly." />
+        <meta property="og:title" content="VibeCo — One Conversation. One Live Product." />
         <meta
           property="og:description"
-          content="Bring your idea to life. AI-powered product studio — live in hours, not months."
+          content="Ideas to live products in hours. AI-powered product studio."
         />
         <meta property="og:url" content="https://vibeco.dev" />
         <meta property="og:site_name" content="VibeCo" />
         <meta property="og:image" content="https://vibeco.dev/og-image.png" />
 
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="VibeCo — Good Vibes, Instantly." />
+        <meta name="twitter:title" content="VibeCo — One Conversation. One Live Product." />
         <meta
           name="twitter:description"
-          content="Bring your idea to life. AI-powered product studio — live in hours."
+          content="Ideas to live products in hours. AI-powered product studio."
         />
         <meta name="twitter:image" content="https://vibeco.dev/og-image.png" />
 
