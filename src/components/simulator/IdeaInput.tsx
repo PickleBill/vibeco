@@ -4,10 +4,11 @@ import { Sparkles } from "lucide-react";
 
 interface Props {
   onSubmit: (idea: string) => void;
+  initialValue?: string;
 }
 
-const IdeaInput = ({ onSubmit }: Props) => {
-  const [text, setText] = useState("");
+const IdeaInput = ({ onSubmit, initialValue }: Props) => {
+  const [text, setText] = useState(initialValue || "");
   const [shaking, setShaking] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const [focused, setFocused] = useState(false);

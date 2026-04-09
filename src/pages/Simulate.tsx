@@ -1,11 +1,19 @@
 import { HelmetProvider, Helmet } from "react-helmet-async";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useLocation } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import SimulatorShell from "@/components/simulator/SimulatorShell";
 
+interface LocationState {
+  prefillIdea?: string;
+  forkedFrom?: string;
+  resumeId?: string;
+}
+
 const Simulate = () => {
   const [searchParams] = useSearchParams();
-  const resumeId = searchParams.get("id") || undefined;
+  const location = useLocation();
+  const state = (location.state || {}) as LocationState;
+  const resumeId = searchParams.get("id") || state.resumeId || undefined;
 
   return (
     <HelmetProvider>
@@ -17,7 +25,11 @@ const Simulate = () => {
         />
       </Helmet>
       <Navbar />
-      <SimulatorShell resumeId={resumeId} />
+      <SimulatorShell
+        resumeId={resumeId}
+        prefillIdea={state.prefillIdea}
+        forkedFrom={state.forkedFrom}
+      />
     </HelmetProvider>
   );
 };
