@@ -222,6 +222,10 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
     if (draft && !resumeId) {
       toast.info("Resumed your previous session.");
     }
+    // Auto-submit prefilled idea from a fork/rebuild
+    if (prefillIdea && !resumeId && !draft) {
+      handleIdeaSubmit(prefillIdea);
+    }
   }, []);
 
   // Persist state to localStorage on meaningful changes
