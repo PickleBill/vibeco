@@ -33,12 +33,12 @@ const Hero = () => {
           <div>
             <FadeIn>
               <p className="font-mono text-sm text-primary uppercase tracking-widest mb-6">
-                try things. break things. ship things.
+                idea → product → revenue
               </p>
             </FadeIn>
 
             {/* Staggered word reveal */}
-            <div className="font-display text-5xl sm:text-6xl lg:text-7xl font-black text-foreground leading-[1.05] mb-1 scan-line">
+            <div className="font-display font-black text-foreground leading-[1.05] mb-1 scan-line" style={{ fontSize: "clamp(2.75rem, 4vw + 1.5rem, 4.25rem)" }}>
               {prefersReduced ? (
                 <FadeIn delay={0.1}>
                   <h1>
@@ -61,7 +61,7 @@ const Hero = () => {
                     </motion.span>
                   ))}
                   <br />
-                  <span className="text-gradient-accent inline-block">
+                  <span className="text-primary inline-block">
                     {taglineChars.map((ch, i) => (
                       <motion.span
                         key={i}
