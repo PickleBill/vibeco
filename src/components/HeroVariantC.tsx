@@ -54,15 +54,15 @@ const Hero = () => {
               animate={{ opacity: 1, filter: "blur(0px)" }}
               transition={{ duration: 1.0, delay: 0.7, ease: "easeOut" }}
             >
-              Your wildest idea.
+              One conversation.
               <br />
               <motion.span
-                className="text-gradient-accent inline-block"
+                className="text-primary inline-block"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.6, delay: 1.0 }}
               >
-                Live in minutes.
+                One live product.
               </motion.span>
             </motion.h1>
 
@@ -72,17 +72,8 @@ const Hero = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 1.3 }}
             >
-              You describe it, we build it. No dev team. No six-figure
-              budget. Your idea, live in hours.
-            </motion.p>
-
-            <motion.p
-              className="font-mono text-sm text-muted-foreground leading-relaxed mb-8 max-w-lg"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 1.5 }}
-            >
-              Creator-led&ensp;•&ensp;AI-built&ensp;•&ensp;Live in hours
+              Tell us what you need. We ship a working product — not a
+              pitch deck. Most go live the same day.
             </motion.p>
 
             {/* Spring-scaled CTAs */}
@@ -96,7 +87,7 @@ const Hero = () => {
                 onClick={() => navigate("/simulate")}
                 className="font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity inline-flex items-center gap-2"
               >
-                ✦ Simulate Your Idea
+                Test Your Idea
               </button>
               <button
                 onClick={() => document.querySelector("#contact")?.scrollIntoView({ behavior: "smooth" })}
@@ -184,23 +175,20 @@ function StaticHero({ navigate }: { navigate: ReturnType<typeof useNavigate> }) 
               try things. break things. ship things.
             </p>
             <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl font-black text-foreground leading-[1.05] mb-6 scan-line">
-              Your wildest idea.
+              One conversation.
               <br />
-              <span className="text-gradient-accent">Live in minutes.</span>
+              <span className="text-primary">One live product.</span>
             </h1>
             <p className="font-mono text-base text-foreground/80 leading-relaxed mb-4 max-w-lg">
-              You describe it, we build it. No dev team. No six-figure
-              budget. Your idea, live in hours.
-            </p>
-            <p className="font-mono text-sm text-muted-foreground leading-relaxed mb-8 max-w-lg">
-              Creator-led&ensp;•&ensp;AI-built&ensp;•&ensp;Live in hours
+              Tell us what you need. We ship a working product — not a
+              pitch deck. Most go live the same day.
             </p>
             <div className="flex flex-wrap gap-4">
               <button
                 onClick={() => navigate("/simulate")}
                 className="font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity inline-flex items-center gap-2"
               >
-                ✦ Simulate Your Idea
+                Test Your Idea
               </button>
               <button
                 onClick={() => document.querySelector("#contact")?.scrollIntoView({ behavior: "smooth" })}
