@@ -6,23 +6,23 @@ import { Zap, Brain, TrendingUp, Target } from "lucide-react";
 const diffs = [
   {
     icon: Zap,
-    title: "Unreasonably fast",
-    desc: "From idea to live product in hours, not months. No proposals, no committee sign-offs, no waiting. Just shipping.",
+    title: "Hours, not months",
+    desc: "From conversation to live product before your coffee gets cold. No proposals. No waiting.",
   },
   {
     icon: Brain,
     title: "Product thinking, not templates",
-    desc: "Architecture, design systems, and product strategy — not drag-and-drop guesswork or cookie-cutter themes.",
+    desc: "Architecture, design, and strategy — not drag-and-drop or cookie-cutter themes.",
   },
   {
     icon: TrendingUp,
-    title: "Skin in the game",
-    desc: "Revenue share, equity, hybrid models. We bet on the same outcome you do. Your win is our win.",
+    title: "We bet on you",
+    desc: "Revenue share. Equity. Hybrid. We only win when you do.",
   },
   {
     icon: Target,
-    title: "Ready for real customers from day one",
-    desc: "Every product ships with the tools to make money, track results, and reach people — baked in, not bolted on.",
+    title: "Revenue-ready from day one",
+    desc: "Every product ships with payments, analytics, and growth tools baked in.",
   },
 ];
 
@@ -34,7 +34,7 @@ const Differentiator = () => {
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
         <FadeIn>
           <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-16">
-            Why we're different.
+            Not your typical dev shop.
           </h2>
         </FadeIn>
         <div className="grid sm:grid-cols-2 gap-6">

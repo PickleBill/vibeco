@@ -39,17 +39,16 @@ const EverydayFounders = () => {
         <div className="max-w-3xl mb-16">
           <FadeIn>
             <p className="font-mono text-sm text-muted-foreground uppercase tracking-widest mb-4">
-              Not just for tech founders
+              Built for domain experts
             </p>
             <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-6">
-              You don't have to be a tech person. You just need a real idea.
+              You know the problem. We handle the tech.
             </h2>
           </FadeIn>
           <FadeIn delay={0.1}>
             <p className="font-mono text-base text-foreground/80 leading-relaxed">
-              Some of the best software comes from people who've never written a
-              line of code. AI changed the game — and we're here to help you play
-              it.
+              The best products come from people who live the problem every
+              day. You don't need to code — you need to ship.
             </p>
           </FadeIn>
         </div>
@@ -76,8 +75,7 @@ const EverydayFounders = () => {
         <FadeIn delay={0.4}>
           <div className="mt-12 text-center">
             <p className="font-mono text-sm text-muted-foreground mb-6">
-              You don't need a pitch deck. You just need a real problem and the
-              guts to test a solution.
+              Got a problem worth solving? That's all you need.
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <button
@@ -85,7 +83,7 @@ const EverydayFounders = () => {
                 className="font-mono text-sm bg-primary text-primary-foreground px-8 py-3 rounded-sm hover:opacity-90 transition-opacity inline-flex items-center gap-2"
               >
                 <Sparkles size={14} />
-                Simulate Your Idea Free
+                Test Your Idea Free
               </button>
               <button
                 onClick={() => {

@@ -13,15 +13,15 @@ const FinalCta = () => {
       <div className="max-w-7xl mx-auto px-6 lg:px-12 text-center">
         <FadeIn>
           <p className="font-mono text-xs text-primary tracking-[0.3em] uppercase mb-4">
-            good vibes, instantly.
+            ready when you are.
           </p>
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-black text-foreground mb-6">
-            Let's bring yours to life.
+            Ship it tonight.
           </h2>
         </FadeIn>
         <FadeIn delay={0.1}>
           <p className="font-mono text-base text-muted-foreground mb-10 max-w-md mx-auto">
-            Your idea could be live by tonight. Not a wireframe — a product
+            Your idea. Live by tonight. Not a wireframe — a product
             your first customers can use.
           </p>
         </FadeIn>
@@ -33,7 +33,7 @@ const FinalCta = () => {
               style={{ boxShadow: "0 0 30px hsl(var(--primary) / 0.2)" }}
             >
               <Sparkles size={14} />
-              Simulate Your Idea
+              Test Your Idea
             </button>
             <button
               onClick={() => {
@@ -42,7 +42,7 @@ const FinalCta = () => {
               }}
               className="font-mono text-sm border border-primary/40 text-primary px-8 py-4 rounded-sm hover:bg-primary/10 transition-all duration-300 inline-flex items-center gap-2"
             >
-              Or Talk to Us →
+              Talk to Us →
             </button>
           </div>
         </FadeIn>

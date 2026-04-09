@@ -128,7 +128,7 @@ const ProjectShowcase = () => {
             </FadeIn>
             <FadeIn delay={0.1}>
               <p className="font-mono text-sm text-muted-foreground leading-relaxed">
-                Every project below went from a conversation to a live, working product — most in under 48 hours.
+                Every project below went from conversation to live product — most in under 48 hours.
               </p>
             </FadeIn>
           </div>
@@ -138,7 +138,7 @@ const ProjectShowcase = () => {
               className="flex items-center gap-2 font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity whitespace-nowrap"
             >
               <Sparkles size={14} />
-              Simulate Your Idea
+              Test Your Idea
             </button>
           </FadeIn>
         </div>

@@ -1,11 +1,11 @@
 import FadeIn from "./FadeIn";
 
 const traits = [
-  "Founder-minded — we think about what makes money, how to grow it, and how to get it in front of people.",
-  "Product and market aware — design and growth are not afterthoughts. They're built in from day one.",
+  "Thinks like a founder — what makes money, how to grow it, how to reach people.",
+  "Product-aware — design and growth are built in from day one, not afterthoughts.",
   "Visually opinionated — craft matters. We ship things worth looking at.",
-  "Biased toward shipping — ideas are cheap. Testable products are not.",
-  "Willing to structure around upside — on the right opportunities, we put skin in the game.",
+  "Biased toward shipping — ideas are cheap. Testable products aren't.",
+  "Structured around upside — on the right deals, we put skin in the game.",
 ];
 
 const Credibility = () => (
@@ -23,7 +23,7 @@ const Credibility = () => (
         <FadeIn delay={0.1}>
           <p className="font-mono text-sm text-foreground/80 leading-relaxed mb-10">
             Led by a builder who's shipped across industries. Not a services
-            play — a thinking partnership for people building things that matter.
+            play — a thinking partnership.
           </p>
         </FadeIn>
         <ul className="space-y-4">

@@ -150,14 +150,14 @@ const SpeedTimeline = () => {
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
         <FadeIn>
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-black text-foreground leading-tight mb-4 max-w-3xl">
-            The world changed.
+            50 years of cost collapse.
             <br />
-            Building didn't keep up. <span className="text-primary">Until now.</span>
+            <span className="text-primary">We're at the bottom.</span>
           </h2>
         </FadeIn>
         <FadeIn delay={0.1}>
           <p className="font-mono text-sm text-muted-foreground mb-16 max-w-lg">
-            Drag the slider to see how cost collapsed and opportunity exploded.
+            Drag the slider. Watch what used to cost $1M become free.
           </p>
         </FadeIn>
 

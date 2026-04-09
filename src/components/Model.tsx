@@ -7,27 +7,27 @@ const steps = [
   {
     num: "01",
     title: "We Listen",
-    short: "We figure out if your idea has legs — not through decks or pitch meetings, but a real conversation.",
+    short: "You tell us the problem. We poke holes and find the fastest path to something real.",
     detail:
-      "You tell us the problem you see. Who has it. Why it matters. We listen, poke holes, and figure out the fastest path to something real. No jargon required — just honesty about what you want to build and who it's for.",
+      "Who has this problem? Why does it matter? What's the first version? We work it out in a single conversation — no jargon required.",
     icon: MessageCircle,
     iconColor: "text-blue-400",
   },
   {
     num: "02",
     title: "We Build",
-    short: "Using AI-powered tools, we go from conversation to a live, working product in hours.",
+    short: "Conversation to deployed product in hours. Not mockups — the real thing.",
     detail:
-      "Not a mockup. Not a slide deck. A real product — designed, built, and deployed — that you can share with actual customers the same day. AI lets us move at a speed that used to be impossible.",
+      "Designed, built, and deployed — shareable with real customers the same day. AI handles the stack so we can focus on making it right.",
     icon: Code2,
     iconColor: "text-emerald-400",
   },
   {
     num: "03",
     title: "We Grow Together",
-    short: "For the right projects, we put skin in the game. Your win is our win.",
+    short: "Revenue share, equity, or flat fee — whatever makes us both invested in winning.",
     detail:
-      "Revenue share, a small equity stake, or a flat fee — whatever structure makes us both invested in winning. We're not a vendor billing hours. We're a partner betting on the same outcome you are.",
+      "We're not billing hours. We pick a structure that aligns incentives — so we're betting on the same outcome you are.",
     icon: Rocket,
     iconColor: "text-amber-400",
   },
@@ -44,11 +44,11 @@ const Model = () => {
             How we work together
           </p>
           <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-6">
-            Built for alignment.
+            Three steps. One outcome.
           </h2>
           <p className="font-mono text-sm text-foreground/80 mb-16 max-w-xl">
-            Not a services menu — a partnership. We only take on projects
-            we believe in, and we structure every deal so winning is mutual.
+            We only take on projects we believe in. Every deal is
+            structured so winning is mutual.
           </p>
         </FadeIn>
 

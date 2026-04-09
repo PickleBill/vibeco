@@ -2,19 +2,19 @@ import FadeIn from "./FadeIn";
 
 const testimonials = [
   {
-    quote: "I described my fitness app at 9 AM. By lunch, I had a working prototype with real users signing up.",
+    quote: "Described my app at 9 AM. By lunch I had a working prototype with real users signing up.",
     name: "Jordan M.",
     role: "Fitness coach → app founder",
     highlight: true,
   },
   {
-    quote: "We'd been quoted $80K by two agencies. VibeCo shipped the same thing in a weekend on rev-share.",
+    quote: "Two agencies quoted $80K. VibeCo shipped the same thing in a weekend on rev-share.",
     name: "Priya S.",
     role: "E-commerce operator",
     highlight: false,
   },
   {
-    quote: "The simulator alone saved me from building the wrong product. The Deep Dive tore my assumptions apart — in the best way.",
+    quote: "The simulator tore my assumptions apart — in the best way. Saved me from building the wrong thing.",
     name: "Marcus T.",
     role: "Serial entrepreneur",
     highlight: false,
@@ -33,7 +33,7 @@ const Testimonials = () => {
             className="font-display font-black text-foreground mb-14 max-w-2xl"
             style={{ fontSize: "clamp(1.75rem, 1rem + 2vw, 2.75rem)" }}
           >
-            Ideas that became products.
+            From their words, not ours.
           </h2>
         </FadeIn>
 

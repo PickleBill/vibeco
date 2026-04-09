@@ -4,8 +4,8 @@ import { useNavigate } from "react-router-dom";
 import FadeIn from "./FadeIn";
 import heroMindmap from "@/assets/hero-mindmap.jpg";
 
-const headlineChars = "Your wildest idea.".split("");
-const taglineChars = "Live in minutes.".split("");
+const headlineChars = "One conversation.".split("");
+const taglineChars = "One live product.".split("");
 
 const Hero = () => {
   const navigate = useNavigate();
@@ -125,14 +125,9 @@ const Hero = () => {
             </h1>
 
             <FadeIn delay={1.4}>
-              <p className="font-mono text-base text-foreground/80 leading-relaxed mb-4 max-w-lg mt-5">
-                You describe it, we build it. No dev team. No six-figure
-                budget. Your idea, live in hours.
-              </p>
-            </FadeIn>
-            <FadeIn delay={1.5}>
-              <p className="font-mono text-sm text-muted-foreground leading-relaxed mb-8 max-w-lg">
-                Creator-led&ensp;•&ensp;AI-built&ensp;•&ensp;Live in hours
+              <p className="font-mono text-base text-foreground/80 leading-relaxed mb-8 max-w-lg mt-5">
+                Tell us what you need. We ship a working product — not a
+                pitch deck. Most go live the same day.
               </p>
             </FadeIn>
             <FadeIn delay={1.6}>
@@ -145,7 +140,7 @@ const Hero = () => {
                   className="font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity inline-flex items-center gap-2"
                   style={{ x: springX, y: springY }}
                 >
-                  ✦ Simulate Your Idea
+                  Test Your Idea
                 </motion.button>
                 <motion.button
                   onClick={() =>
@@ -233,23 +228,20 @@ function StaticHero({ navigate }: { navigate: ReturnType<typeof useNavigate> }) 
               try things. break things. ship things.
             </p>
             <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl font-black text-foreground leading-[1.05] mb-6 scan-line">
-              Your wildest idea.
+              One conversation.
               <br />
-              <span className="text-gradient-accent">Live in minutes.</span>
+              <span className="text-primary">One live product.</span>
             </h1>
             <p className="font-mono text-base text-foreground/80 leading-relaxed mb-4 max-w-lg">
-              You describe it, we build it. No dev team. No six-figure
-              budget. Your idea, live in hours.
-            </p>
-            <p className="font-mono text-sm text-muted-foreground leading-relaxed mb-8 max-w-lg">
-              Creator-led&ensp;•&ensp;AI-built&ensp;•&ensp;Live in hours
+              Tell us what you need. We ship a working product — not a
+              pitch deck. Most go live the same day.
             </p>
             <div className="flex flex-wrap gap-4">
               <button
                 onClick={() => navigate("/simulate")}
                 className="font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity inline-flex items-center gap-2"
               >
-                ✦ Simulate Your Idea
+                Test Your Idea
               </button>
               <button
                 onClick={() =>

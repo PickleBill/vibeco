@@ -2,19 +2,19 @@ import FadeIn from "./FadeIn";
 import { Check, X } from "lucide-react";
 
 const good = [
-  "You know your customers and their problems better than anyone",
-  "You have a strong insight into a painful workflow or gap in your industry",
-  "You already have an audience, client base, or way to get it in front of people",
+  "You know your customers and their pain points cold",
+  "You have an audience or client base ready to test with",
   "You're building tools that solve real problems for real businesses",
-  "You're ready to test, sell, and iterate — not just brainstorm",
+  "You're ready to ship and sell — not just brainstorm",
+  "You want a partner, not a vendor",
 ];
 
 const bad = [
-  "Ideas without a clear customer or problem to solve",
-  "Looking for the cheapest build possible over the best one",
-  "Complex marketplace concepts with no traction yet",
-  "Projects with no clear way to make money or no urgency behind them",
-  "People who want a vendor, not a thinking partner",
+  "Ideas without a clear customer or problem",
+  "Shopping for the cheapest build over the best one",
+  "Complex marketplaces with zero traction",
+  "No clear path to revenue or urgency behind the idea",
+  "Looking for someone to take orders, not think",
 ];
 
 const Fit = () => (
@@ -25,7 +25,7 @@ const Fit = () => (
           Who we partner with
         </p>
         <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-16">
-          Signal over noise.
+          Right fit? Wrong fit?
         </h2>
       </FadeIn>
       <div className="grid md:grid-cols-2 gap-8">
