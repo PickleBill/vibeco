@@ -131,9 +131,11 @@ function clearDraft() {
 
 interface SimulatorShellProps {
   resumeId?: string;
+  prefillIdea?: string;
+  forkedFrom?: string;
 }
 
-const SimulatorShell = ({ resumeId }: SimulatorShellProps) => {
+const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellProps) => {
   const [initialized, setInitialized] = useState(false);
   const [resumeLoading, setResumeLoading] = useState(!!resumeId);
   const draft = !initialized && !resumeId ? loadDraft() : null;
