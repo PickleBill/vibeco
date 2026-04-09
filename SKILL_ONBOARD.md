@@ -13,7 +13,7 @@ Creates or improves onboarding experiences that help users understand, adopt, an
 
 ## Before You Start
 
-1. Reference `DESIGN_SYSTEM.md` for anti-patterns and component patterns (especially Empty States and Loading States).
+1. Reference `SKILL_IMPECCABLE.md` for anti-patterns, token usage, and the **Context Gathering Protocol** (especially Empty States and Loading States).
 2. Identify:
    - What are users trying to accomplish?
    - What's the "aha moment" we want users to reach?
