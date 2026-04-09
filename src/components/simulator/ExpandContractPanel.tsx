@@ -206,7 +206,7 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
                       <p className="font-mono text-xs text-foreground/80">{exp.pitch}</p>
                       <p className="font-mono text-[10px] text-muted-foreground italic">{exp.how_its_different}</p>
                       <button
-                        onClick={() => handleExploreVariation(exp.idea_text)}
+                        onClick={() => handleExploreVariation(exp)}
                         className="flex items-center gap-1.5 font-mono text-[10px] text-primary hover:text-primary/80 transition-colors mt-1"
                       >
                         <ArrowRight size={10} />
