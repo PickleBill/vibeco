@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Zap, Maximize2, Minimize2 } from "lucide-react";
 import PerspectivesPanel from "./PerspectivesPanel";
 import ExpandContractPanel from "./ExpandContractPanel";
@@ -25,59 +25,86 @@ const ThunderdomePanel = ({ brief, idea, reportId, highlights, antiHighlights }:
   ];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.4 }}
-      className="mb-8 p-6 rounded-xl border border-primary/20 bg-gradient-to-b from-primary/5 to-transparent"
-    >
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-5">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-          <Zap size={16} className="text-primary" />
+    <div className="mb-8 relative">
+      {/* Full-bleed mode break — distinct from the report above */}
+      <div
+        className="absolute inset-0 -mx-6 sm:-mx-8 rounded-none"
+        style={{
+          background: "linear-gradient(180deg, hsl(var(--primary) / 0.06) 0%, transparent 100%)",
+        }}
+      />
+
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="relative z-10 py-8"
+      >
+        {/* Mode-shift header — feels like entering a different space */}
+        <div className="flex items-center gap-4 mb-6">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{
+              background: "linear-gradient(135deg, hsl(var(--primary) / 0.25), hsl(var(--accent) / 0.15))",
+              boxShadow: "0 0 24px hsl(var(--primary) / 0.15), inset 0 1px 1px hsl(var(--primary) / 0.2)",
+            }}
+          >
+            <Zap size={18} className="text-primary" />
+          </div>
+          <div>
+            <h2 className="font-display text-xl font-black text-foreground tracking-tight">Deep Dive</h2>
+            <p className="font-mono text-[11px] text-muted-foreground mt-0.5">
+              Stress-test · Expand · Distill — push this idea further
+            </p>
+          </div>
         </div>
-        <div>
-          <h2 className="font-display text-lg font-bold text-foreground">Deep Dive</h2>
-          <p className="font-mono text-[10px] text-muted-foreground">Stress-test, expand, and distill your idea</p>
+
+        {/* Tabs — larger, bolder treatment */}
+        <div className="flex gap-2 mb-6">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 flex flex-col items-center gap-1.5 px-4 py-3 rounded-lg font-mono text-xs transition-all border ${
+                  isActive
+                    ? "bg-primary/10 border-primary/30 text-foreground shadow-sm"
+                    : "bg-card/30 border-border/30 text-muted-foreground hover:border-border/60 hover:text-foreground"
+                }`}
+              >
+                <Icon size={16} className={isActive ? "text-primary" : ""} />
+                <span className="font-semibold">{tab.label}</span>
+                <span className="text-[9px] text-muted-foreground hidden sm:block">{tab.description}</span>
+              </button>
+            );
+          })}
         </div>
-      </div>
 
-      {/* Tab nav */}
-      <div className="flex gap-1 p-1 rounded-lg bg-muted/30 mb-5">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-md font-mono text-xs transition-all ${
-                isActive
-                  ? "bg-background text-foreground shadow-sm border border-border/50"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Icon size={12} />
-              <span>{tab.label}</span>
-              <span className="hidden sm:inline text-[9px] text-muted-foreground">{tab.description}</span>
-            </button>
-          );
-        })}
-      </div>
+        {/* Divider */}
+        <div className="h-px bg-border/30 mb-6" />
 
-      {/* Tab content */}
-      {activeTab === "perspectives" && (
-        <PerspectivesPanel brief={brief} idea={idea} reportId={reportId} />
-      )}
-
-      {activeTab === "expand" && (
-        <ExpandContractPanel mode="expand" brief={brief} idea={idea} highlights={highlights} antiHighlights={antiHighlights} reportId={reportId} />
-      )}
-
-      {activeTab === "contract" && (
-        <ExpandContractPanel mode="contract" brief={brief} idea={idea} highlights={highlights} antiHighlights={antiHighlights} reportId={reportId} />
-      )}
-    </motion.div>
+        {/* Tab content with animation */}
+        <AnimatePresence mode="wait">
+          {activeTab === "perspectives" && (
+            <motion.div key="perspectives" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+              <PerspectivesPanel brief={brief} idea={idea} reportId={reportId} />
+            </motion.div>
+          )}
+          {activeTab === "expand" && (
+            <motion.div key="expand" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+              <ExpandContractPanel mode="expand" brief={brief} idea={idea} highlights={highlights} antiHighlights={antiHighlights} reportId={reportId} />
+            </motion.div>
+          )}
+          {activeTab === "contract" && (
+            <motion.div key="contract" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+              <ExpandContractPanel mode="contract" brief={brief} idea={idea} highlights={highlights} antiHighlights={antiHighlights} reportId={reportId} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </div>
   );
 };
 
