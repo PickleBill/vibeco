@@ -420,7 +420,118 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
     }
   };
 
-  return (
+  /* ─── Render helpers to avoid duplication ─── */
+  const renderHighlightToggles = (
+    key: string,
+    isHighlighted: boolean | undefined,
+    isAntiHighlighted: boolean | undefined,
+    onToggle?: (k: string) => void,
+    onAntiToggle?: (k: string) => void,
+  ) => {
+    if (!onToggle) return null;
+    return (
+      <div className="flex items-center gap-1.5 ml-auto">
+        <button
+          onClick={() => onToggle(key)}
+          className={`flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-[10px] transition-all ${
+            isHighlighted
+              ? "bg-primary/20 border border-primary/40 text-primary"
+              : "border border-border/50 text-muted-foreground hover:border-primary/30 hover:text-primary/80"
+          }`}
+        >
+          <Sparkles size={10} className={isHighlighted ? "fill-primary" : ""} />
+          {isHighlighted ? "Resonates" : "This resonates"}
+        </button>
+        {onAntiToggle && (
+          <button
+            onClick={() => onAntiToggle(key)}
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-[10px] transition-all ${
+              isAntiHighlighted
+                ? "bg-destructive/15 border border-destructive/40 text-destructive"
+                : "border border-border/50 text-muted-foreground hover:border-destructive/30 hover:text-destructive/80"
+            }`}
+          >
+            ✕ {isAntiHighlighted ? "Flagged" : "Not quite"}
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  const renderDeepDiveButton = (
+    key: string,
+    isExpanded: boolean,
+    isLoadingThis: boolean,
+    isHighlighted: boolean | undefined,
+    onDive: (k: string) => void,
+  ) => (
+    <div className="flex justify-end mt-2">
+      <button
+        onClick={() => onDive(key)}
+        disabled={isLoadingThis}
+        className={`flex items-center gap-1.5 font-mono text-xs transition-colors px-2 py-1 rounded disabled:opacity-50 ${
+          isHighlighted
+            ? "text-primary hover:bg-primary/10 font-semibold"
+            : "text-muted-foreground hover:text-primary hover:bg-muted/30"
+        }`}
+      >
+        {isLoadingThis ? (
+          <Loader2 size={12} className="animate-spin" />
+        ) : (
+          <ChevronDown size={12} className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
+        )}
+        {isLoadingThis ? "Analyzing..." : isExpanded ? "Collapse" : isHighlighted ? "Deep dive ✦" : "Deep dive"}
+      </button>
+    </div>
+  );
+
+  const renderDeepDiveContent = (
+    key: string,
+    isExpanded: boolean,
+    isLoadingThis: boolean,
+    hasContent: boolean,
+    content: Record<string, string>,
+  ) => (
+    <AnimatePresence>
+      {isExpanded && (isLoadingThis || hasContent) && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.25 }}
+          className="overflow-hidden"
+        >
+          <div className="mt-3 pl-4 border-l-2 border-primary/30">
+            {isLoadingThis && !hasContent ? (
+              <div className="space-y-2 py-2">
+                {[1, 2, 3, 4].map((n) => (
+                  <div key={n} className="h-3 rounded bg-muted animate-pulse" style={{ width: `${60 + n * 8}%` }} />
+                ))}
+              </div>
+            ) : (
+              <div className="prose prose-sm prose-invert max-w-none py-2">
+                <ReactMarkdown
+                  components={{
+                    p: ({ children }) => <p className="font-mono text-sm text-foreground/80 leading-relaxed mb-2">{children}</p>,
+                    ul: ({ children }) => <ul className="space-y-1.5 mb-2">{children}</ul>,
+                    li: ({ children }) => (
+                      <li className="font-mono text-sm text-foreground/80 leading-relaxed flex gap-2">
+                        <span className="text-primary mt-0.5 shrink-0">•</span>
+                        <span>{children}</span>
+                      </li>
+                    ),
+                    strong: ({ children }) => <strong className="text-foreground font-semibold">{children}</strong>,
+                  }}
+                >
+                  {content[key]}
+                </ReactMarkdown>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
     <div className="py-8">
       {/* Compact header — no wasted vertical space */}
       <motion.div
