@@ -422,20 +422,17 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
 
   return (
     <div className="py-8">
+      {/* Compact header — no wasted vertical space */}
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-8"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex items-center gap-3 mb-6"
       >
-        <p className="font-mono text-sm text-primary uppercase tracking-widest mb-3">
-          Simulation Complete
+        <div className="h-px flex-1 bg-border/30" />
+        <p className="font-mono text-[10px] text-primary uppercase tracking-[0.3em]">
+          Simulation Complete · {rounds.length} round{rounds.length !== 1 ? "s" : ""}
         </p>
-        <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-3">
-          Your Breakout Idea
-        </h2>
-        <p className="font-mono text-sm text-muted-foreground max-w-md mx-auto">
-          Three rounds of refinement distilled into one actionable summary.
-        </p>
+        <div className="h-px flex-1 bg-border/30" />
       </motion.div>
 
       {/* Email banner at top — always visible until submitted */}
