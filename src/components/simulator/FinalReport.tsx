@@ -582,15 +582,90 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
             </div>
           )}
 
+          {/* Hero sections — Problem & Core Features get dramatic treatment */}
+          <div className="space-y-1 mb-8">
+            {sectionMeta.filter(s => s.key === "problem" || s.key === "core_features").map((section, i) => {
+              const Icon = section.icon;
+              const value = brief[section.key as keyof BriefData];
+              const isExpanded = expandedSection === section.key;
+              const isLoadingThis = deepDiveLoading === section.key;
+              const hasContent = !!deepDiveContent[section.key];
+              const isHighlighted = highlights?.has(section.key);
+              const isAntiHighlighted = antiHighlights?.has(section.key);
+              const isHero = section.key === "problem";
+
+              return (
+                <motion.div
+                  key={section.key}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 + i * 0.1 }}
+                  className={`relative p-6 sm:p-8 rounded-xl border ${
+                    isHero
+                      ? "border-primary/20 bg-gradient-to-br from-primary/8 via-transparent to-accent/5"
+                      : "border-border/30 bg-card/40"
+                  }`}
+                  style={isHero ? { boxShadow: "0 0 40px -15px hsl(var(--primary) / 0.12)" } : {}}
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <Icon size={isHero ? 18 : 14} className="text-primary" />
+                    <h4 className={`font-display font-bold text-foreground uppercase tracking-wide ${isHero ? "text-base" : "text-sm"}`}>
+                      {section.label}
+                    </h4>
+                    {renderHighlightToggles(section.key, isHighlighted, isAntiHighlighted, onToggleHighlight, onToggleAntiHighlight)}
+                  </div>
+
+                  {section.key === "core_features" && Array.isArray(value) ? (
+                    <div>
+                      {onReorderFeatures ? (
+                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                          <SortableContext items={(value as BriefData["core_features"]).map((_, i) => `feature-${i}`)} strategy={verticalListSortingStrategy}>
+                            <div className="grid gap-3">
+                              {(value as BriefData["core_features"]).map((feat, fi) => (
+                                <SortableFeature key={`feature-${fi}`} feat={feat} index={fi} id={`feature-${fi}`} />
+                              ))}
+                            </div>
+                          </SortableContext>
+                        </DndContext>
+                      ) : (
+                        <div className="grid gap-3">
+                          {(value as BriefData["core_features"]).map((feat, fi) => (
+                            <p key={fi} className="font-mono text-base text-foreground/90 leading-relaxed">
+                              <span className="text-primary font-bold">{fi + 1}.</span>{" "}
+                              <span className="font-semibold">{feat.name}</span> — {feat.description}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                      {onReorderFeatures && (
+                        <p className="font-mono text-[10px] text-muted-foreground/50 mt-3">
+                          Drag to reorder by priority · #1 gets hero placement in your Lovable prompt
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className={`font-mono text-foreground/90 leading-relaxed ${isHero ? "text-base sm:text-lg" : "text-base"}`}>
+                      {typeof value === "string" ? value : ""}
+                    </p>
+                  )}
+
+                  {renderDeepDiveButton(section.key, isExpanded, isLoadingThis, isHighlighted, handleDeepDive)}
+                  {renderDeepDiveContent(section.key, isExpanded, isLoadingThis, hasContent, deepDiveContent)}
+                </motion.div>
+              );
+            })}
+          </div>
+
+          {/* Supporting sections — tighter, less visual weight */}
           <div
             className="p-px rounded-lg mb-8"
             style={{
-              background: "linear-gradient(135deg, hsl(var(--primary) / 0.4), hsl(var(--accent) / 0.2))",
+              background: "linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(var(--border) / 0.3))",
             }}
           >
-            <div className="p-6 sm:p-8 rounded-lg bg-background">
-              <div className="grid gap-6">
-                {sectionMeta.map((section, i) => {
+            <div className="p-5 sm:p-6 rounded-lg bg-background">
+              <div className="grid gap-5">
+                {sectionMeta.filter(s => s.key !== "problem" && s.key !== "core_features").map((section, i) => {
                   const Icon = section.icon;
                   const value = brief[section.key as keyof BriefData];
                   const isExpanded = expandedSection === section.key;
@@ -602,164 +677,24 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
                   return (
                     <motion.div
                       key={section.key}
-                      initial={{ opacity: 0, y: 12 }}
+                      initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 + i * 0.06 }}
+                      transition={{ delay: 0.4 + i * 0.05 }}
                     >
                       <div className="flex items-center gap-2 mb-2">
-                        <Icon size={14} className="text-primary" />
+                        <Icon size={14} className="text-primary/70" />
                         <h4 className="font-display text-sm font-bold text-foreground uppercase tracking-wide">
                           {section.label}
                         </h4>
-                        {/* Highlight toggles */}
-                        {onToggleHighlight && (
-                          <div className="flex items-center gap-1.5 ml-auto">
-                            <button
-                              onClick={() => onToggleHighlight(section.key)}
-                              className={`flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-[10px] transition-all ${
-                                isHighlighted
-                                  ? "bg-primary/20 border border-primary/40 text-primary"
-                                  : "border border-border/50 text-muted-foreground hover:border-primary/30 hover:text-primary/80"
-                              }`}
-                            >
-                              <Sparkles size={10} className={isHighlighted ? "fill-primary" : ""} />
-                              {isHighlighted ? "Resonates" : "This resonates"}
-                            </button>
-                            {onToggleAntiHighlight && (
-                              <button
-                                onClick={() => onToggleAntiHighlight(section.key)}
-                                className={`flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-[10px] transition-all ${
-                                  isAntiHighlighted
-                                    ? "bg-destructive/15 border border-destructive/40 text-destructive"
-                                    : "border border-border/50 text-muted-foreground hover:border-destructive/30 hover:text-destructive/80"
-                                }`}
-                              >
-                                ✕
-                                {isAntiHighlighted ? "Flagged" : "Not quite"}
-                              </button>
-                            )}
-                          </div>
-                        )}
+                        {renderHighlightToggles(section.key, isHighlighted, isAntiHighlighted, onToggleHighlight, onToggleAntiHighlight)}
                       </div>
 
-                      {/* Core features with drag reorder */}
-                      {section.key === "core_features" && Array.isArray(value) ? (
-                        <div className="ml-5">
-                          {onReorderFeatures ? (
-                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                              <SortableContext items={(value as BriefData["core_features"]).map((_, i) => `feature-${i}`)} strategy={verticalListSortingStrategy}>
-                                <div className="grid gap-2">
-                                  {(value as BriefData["core_features"]).map((feat, fi) => (
-                                    <SortableFeature key={`feature-${fi}`} feat={feat} index={fi} id={`feature-${fi}`} />
-                                  ))}
-                                </div>
-                              </SortableContext>
-                            </DndContext>
-                          ) : (
-                            <div className="grid gap-2">
-                              {(value as BriefData["core_features"]).map((feat, fi) => (
-                                <p key={fi} className="font-mono text-base text-foreground/90 leading-relaxed">
-                                  <span className="text-primary font-bold">{fi + 1}.</span>{" "}
-                                  <span className="font-semibold">{feat.name}</span> — {feat.description}
-                                </p>
-                              ))}
-                            </div>
-                          )}
-                          {onReorderFeatures && (
-                            <p className="font-mono text-[10px] text-muted-foreground/50 mt-2">
-                              Drag to reorder by priority · #1 gets hero placement in your Lovable prompt
-                            </p>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="font-mono text-base text-foreground/90 leading-relaxed ml-5">
-                          {typeof value === "string" ? value : ""}
-                        </p>
-                      )}
+                      <p className="font-mono text-sm text-foreground/80 leading-relaxed ml-5">
+                        {typeof value === "string" ? value : ""}
+                      </p>
 
-                      {/* Deep Dive button */}
-                      <div className="flex justify-end mt-2">
-                        <button
-                          onClick={() => handleDeepDive(section.key)}
-                          disabled={isLoadingThis}
-                          className={`flex items-center gap-1.5 font-mono text-xs transition-colors px-2 py-1 rounded disabled:opacity-50 ${
-                            isHighlighted
-                              ? "text-primary hover:bg-primary/10 font-semibold"
-                              : "text-muted-foreground hover:text-primary hover:bg-muted/30"
-                          }`}
-                        >
-                          {isLoadingThis ? (
-                            <Loader2 size={12} className="animate-spin" />
-                          ) : (
-                            <ChevronDown
-                              size={12}
-                              className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
-                            />
-                          )}
-                          {isLoadingThis
-                            ? "Analyzing..."
-                            : isExpanded
-                            ? "Collapse"
-                            : isHighlighted
-                            ? "Deep dive ✦"
-                            : "Deep dive"}
-                        </button>
-                      </div>
-
-                      {/* Deep Dive content */}
-                      <AnimatePresence>
-                        {isExpanded && (isLoadingThis || hasContent) && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.25 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="mt-3 ml-5 pl-4 border-l-2 border-primary/30">
-                              {isLoadingThis && !hasContent ? (
-                                <div className="space-y-2 py-2">
-                                  {[1, 2, 3, 4].map((n) => (
-                                    <div
-                                      key={n}
-                                      className="h-3 rounded bg-muted animate-pulse"
-                                      style={{ width: `${60 + n * 8}%` }}
-                                    />
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="prose prose-sm prose-invert max-w-none py-2">
-                                  <ReactMarkdown
-                                    components={{
-                                      p: ({ children }) => (
-                                        <p className="font-mono text-sm text-foreground/80 leading-relaxed mb-2">
-                                          {children}
-                                        </p>
-                                      ),
-                                      ul: ({ children }) => (
-                                        <ul className="space-y-1.5 mb-2">{children}</ul>
-                                      ),
-                                      li: ({ children }) => (
-                                        <li className="font-mono text-sm text-foreground/80 leading-relaxed flex gap-2">
-                                          <span className="text-primary mt-0.5 shrink-0">•</span>
-                                          <span>{children}</span>
-                                        </li>
-                                      ),
-                                      strong: ({ children }) => (
-                                        <strong className="text-foreground font-semibold">
-                                          {children}
-                                        </strong>
-                                      ),
-                                    }}
-                                  >
-                                    {deepDiveContent[section.key]}
-                                  </ReactMarkdown>
-                                </div>
-                              )}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                      {renderDeepDiveButton(section.key, isExpanded, isLoadingThis, isHighlighted, handleDeepDive)}
+                      {renderDeepDiveContent(section.key, isExpanded, isLoadingThis, hasContent, deepDiveContent)}
                     </motion.div>
                   );
                 })}
