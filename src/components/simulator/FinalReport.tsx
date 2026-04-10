@@ -532,6 +532,8 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
       )}
     </AnimatePresence>
   );
+
+  return (
     <div className="py-8">
       {/* Compact header — no wasted vertical space */}
       <motion.div
