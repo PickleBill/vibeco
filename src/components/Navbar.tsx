@@ -170,6 +170,14 @@ const Navbar = () => {
             {user ? (
               <>
                 <a
+                  href="/portfolio"
+                  onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/portfolio"); }}
+                  className="flex items-center gap-2 py-3 font-mono text-sm text-muted-foreground hover:text-foreground"
+                >
+                  <FolderKanban size={13} />
+                  Portfolio
+                </a>
+                <a
                   href="/my-simulations"
                   onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/my-simulations"); }}
                   className="flex items-center gap-2 py-3 font-mono text-sm text-muted-foreground hover:text-foreground"
