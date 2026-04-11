@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Import } from "lucide-react";
+import ProjectImporter from "./ProjectImporter";
 
 interface Props {
   onSubmit: (idea: string) => void;
@@ -12,6 +13,7 @@ const IdeaInput = ({ onSubmit, initialValue }: Props) => {
   const [shaking, setShaking] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [importMode, setImportMode] = useState(false);
 
   const isTooShort = text.length > 0 && text.trim().length < 10;
 
@@ -62,6 +64,33 @@ const IdeaInput = ({ onSubmit, initialValue }: Props) => {
         <p className="font-mono text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
           Describe it. We'll stress-test every assumption and hand you a build-ready prompt.
         </p>
+
+        {/* Mode toggle */}
+        <div className="flex items-center justify-center gap-4 mt-5">
+          <button
+            type="button"
+            onClick={() => setImportMode(false)}
+            className={`font-mono text-[11px] px-3 py-1.5 rounded-sm transition-colors ${
+              !importMode
+                ? "bg-primary/15 text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Describe Idea
+          </button>
+          <button
+            type="button"
+            onClick={() => setImportMode(true)}
+            className={`font-mono text-[11px] px-3 py-1.5 rounded-sm transition-colors flex items-center gap-1.5 ${
+              importMode
+                ? "bg-primary/15 text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Import size={11} />
+            Import Project
+          </button>
+        </div>
       </motion.div>
 
       <motion.form
