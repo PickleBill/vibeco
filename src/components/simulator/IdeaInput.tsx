@@ -93,73 +93,87 @@ const IdeaInput = ({ onSubmit, initialValue }: Props) => {
         </div>
       </motion.div>
 
-      <motion.form
-        onSubmit={handleSubmit}
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.3 }}
-        className="w-full max-w-2xl"
-      >
+      {importMode ? (
         <motion.div
-          className="relative"
-          animate={shaking ? { x: [0, -8, 8, -6, 6, -3, 3, 0] } : {}}
-          transition={{ duration: 0.5 }}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="w-full max-w-2xl"
         >
-          {/* Stage-style textarea — no container border, just a vast typing surface */}
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-            placeholder="An app that connects dog owners with verified pet sitters, featuring real-time GPS tracking and instant booking..."
-            className={`w-full min-h-[200px] p-6 rounded-lg bg-transparent border text-foreground font-mono text-sm leading-relaxed placeholder:text-muted-foreground/30 focus:outline-none resize-none transition-all duration-300 ${
-              attempted && isTooShort
-                ? "border-destructive/40 focus:border-destructive/60"
-                : focused
-                ? "border-primary/30 shadow-[0_0_40px_-12px_hsl(var(--primary)/0.15)]"
-                : "border-border/20 hover:border-border/40"
-            }`}
+          <ProjectImporter
+            onImport={(ideaText) => {
+              setText(ideaText);
+              setImportMode(false);
+              onSubmit(ideaText);
+            }}
           />
-
-          {/* Minimal metadata */}
-          <div className="absolute bottom-3 right-4 flex items-center gap-4">
-            <span className="font-mono text-[10px] text-muted-foreground/30">
-              ↵ to simulate
-            </span>
-            <span
-              className={`font-mono text-[10px] transition-colors ${
-                attempted && isTooShort
-                  ? "text-destructive/60"
-                  : "text-muted-foreground/25"
-              }`}
-            >
-              {text.length}
-            </span>
-          </div>
         </motion.div>
-
-        {attempted && isTooShort && (
-          <motion.p
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="font-mono text-xs text-destructive/70 mt-2 ml-1"
-          >
-            A bit more detail — at least 10 characters.
-          </motion.p>
-        )}
-
-        <motion.button
-          type="submit"
-          disabled={text.trim().length < 10}
-          className="mt-6 w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground font-mono text-sm px-6 py-4 rounded-sm hover:opacity-90 transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.99 }}
+      ) : (
+        <motion.form
+          onSubmit={handleSubmit}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="w-full max-w-2xl"
         >
-          <Sparkles size={16} />
-          Simulate This Idea
-        </motion.button>
-      </motion.form>
+          <motion.div
+            className="relative"
+            animate={shaking ? { x: [0, -8, 8, -6, 6, -3, 3, 0] } : {}}
+            transition={{ duration: 0.5 }}
+          >
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              placeholder="An app that connects dog owners with verified pet sitters, featuring real-time GPS tracking and instant booking..."
+              className={`w-full min-h-[200px] p-6 rounded-lg bg-transparent border text-foreground font-mono text-sm leading-relaxed placeholder:text-muted-foreground/30 focus:outline-none resize-none transition-all duration-300 ${
+                attempted && isTooShort
+                  ? "border-destructive/40 focus:border-destructive/60"
+                  : focused
+                  ? "border-primary/30 shadow-[0_0_40px_-12px_hsl(var(--primary)/0.15)]"
+                  : "border-border/20 hover:border-border/40"
+              }`}
+            />
+            <div className="absolute bottom-3 right-4 flex items-center gap-4">
+              <span className="font-mono text-[10px] text-muted-foreground/30">
+                ↵ to simulate
+              </span>
+              <span
+                className={`font-mono text-[10px] transition-colors ${
+                  attempted && isTooShort
+                    ? "text-destructive/60"
+                    : "text-muted-foreground/25"
+                }`}
+              >
+                {text.length}
+              </span>
+            </div>
+          </motion.div>
+
+          {attempted && isTooShort && (
+            <motion.p
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="font-mono text-xs text-destructive/70 mt-2 ml-1"
+            >
+              A bit more detail — at least 10 characters.
+            </motion.p>
+          )}
+
+          <motion.button
+            type="submit"
+            disabled={text.trim().length < 10}
+            className="mt-6 w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground font-mono text-sm px-6 py-4 rounded-sm hover:opacity-90 transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+          >
+            <Sparkles size={16} />
+            Simulate This Idea
+          </motion.button>
+        </motion.form>
+      )}
     </div>
   );
 };
