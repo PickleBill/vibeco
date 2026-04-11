@@ -153,6 +153,65 @@ export type Database = {
           },
         ]
       }
+      project_registry: {
+        Row: {
+          category: Database["public"]["Enums"]["project_category"]
+          created_at: string
+          description: string | null
+          id: string
+          last_touched: string
+          lovable_project_id: string | null
+          name: string
+          notes: string | null
+          parent_brand: string | null
+          priority: number
+          report_id: string | null
+          status: Database["public"]["Enums"]["project_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["project_category"]
+          created_at?: string
+          description?: string | null
+          id?: string
+          last_touched?: string
+          lovable_project_id?: string | null
+          name: string
+          notes?: string | null
+          parent_brand?: string | null
+          priority?: number
+          report_id?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["project_category"]
+          created_at?: string
+          description?: string | null
+          id?: string
+          last_touched?: string
+          lovable_project_id?: string | null
+          name?: string
+          notes?: string | null
+          parent_brand?: string | null
+          priority?: number
+          report_id?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_registry_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "idea_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       simulator_captures: {
         Row: {
           concept_image_url: string | null
@@ -236,6 +295,14 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      project_category:
+        | "partner"
+        | "internal_dev"
+        | "future_dev"
+        | "fun"
+        | "client"
+        | "experiment"
+      project_status: "active" | "paused" | "shipped" | "archived"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -364,6 +431,15 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      project_category: [
+        "partner",
+        "internal_dev",
+        "future_dev",
+        "fun",
+        "client",
+        "experiment",
+      ],
+      project_status: ["active", "paused", "shipped", "archived"],
     },
   },
 } as const

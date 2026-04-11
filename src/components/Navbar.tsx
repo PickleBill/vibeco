@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Sparkles, User, History } from "lucide-react";
+import { Menu, X, Sparkles, User, History, FolderKanban } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -95,6 +95,14 @@ const Navbar = () => {
           {user ? (
             <>
               <a
+                href="/portfolio"
+                onClick={(e) => { e.preventDefault(); navigate("/portfolio"); }}
+                className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+              >
+                <FolderKanban size={12} />
+                Portfolio
+              </a>
+              <a
                 href="/my-simulations"
                 onClick={(e) => { e.preventDefault(); navigate("/my-simulations"); }}
                 className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
@@ -161,6 +169,14 @@ const Navbar = () => {
             </a>
             {user ? (
               <>
+                <a
+                  href="/portfolio"
+                  onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/portfolio"); }}
+                  className="flex items-center gap-2 py-3 font-mono text-sm text-muted-foreground hover:text-foreground"
+                >
+                  <FolderKanban size={13} />
+                  Portfolio
+                </a>
                 <a
                   href="/my-simulations"
                   onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/my-simulations"); }}
