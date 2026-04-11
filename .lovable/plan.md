@@ -1,35 +1,27 @@
-## Simulator Flow Redesign — Progress
 
-### ✅ Sprint A: Complete
-- **ActionHub** (`src/components/simulator/ActionHub.tsx`) — post-report "What's Next?" panel with 5 contextual actions:
-  - Build in Lovable (copy prompt)
-  - Research Prompt (ChatGPT/Claude via `generate-alt-prompt` edge function)
-  - Design Brief (Impeccable-style UI spec)
-  - Landing Page Test (validation-focused prompt)
-  - Iterate on This (re-enter simulator with context)
-- **IdeaInput** redesigned — stage-style textarea, fluid heading, cleaner metadata, removed banned patterns
-- **FinalReport** integrated — ActionHub replaces dead-end "Simulate Another Idea" buttons
-- **PerspectivesPanel** — added response fields for challenge questions with save functionality
-- **ExpandContractPanel** — "Explore this variation" now forks with full context (parent brief, highlights, anti-highlights); Distill mode has "Rebuild with this scope" button
-- **Database** — added `forked_context` and `alt_prompts` columns to `idea_reports`
-- **Edge function** — `generate-alt-prompt` deployed (research, design brief, landing page prompts)
 
-### 🔲 Sprint B: Iteration Loop Polish
-- Wire `forkedFrom` badge in SimulatorShell when resuming forked ideas
-- "Re-analyze with your answers" button in PerspectivesPanel (feeds responses back to simulator)
+## Generate Impeccable Style v2.0 Complete Reference Document
 
-### 🔲 Sprint C: Dashboard Upgrade
-- Idea lineage tree in MySimulations
-- Side-by-side comparison
-- Quick actions on cards
-- Progress indicators
+All 10 skill files have been read. I'll compile them into a single Markdown file at `/mnt/documents/` containing:
 
-### 🔲 Sprint D: Ecosystem Routing
-- NextStepsRouter component
-- Partner directory concept
-- Platform-appropriate routing based on scale assessment
+1. `.impeccable.md` — Design Context (example/template)
+2. `SKILL_IMPECCABLE.md` — Top-level orchestrator (320 lines)
+3. `SKILL_SHAPE.md` — Discovery & design briefs (111 lines)
+4. `SKILL_AUDIT.md` — Technical quality checks (157 lines)
+5. `SKILL_CRITIQUE.md` — UX/design evaluation (185 lines)
+6. `SKILL_POLISH.md` — Final-pass refinement (148 lines)
+7. `SKILL_BOLDER.md` — Push toward distinctive design (131 lines)
+8. `SKILL_CLARIFY.md` — Copy rewriting (185 lines)
+9. `SKILL_OVERDRIVE.md` — Advanced animation/interaction (127 lines)
+10. `SKILL_ONBOARD.md` — Onboarding & empty states (189 lines)
 
-### 🔲 Sprint E: Full Bolder Pass
-- Visual differentiation across simulator sections
-- Break card-grid monoculture in FinalReport
-- Distinct Deep Dive mode visual treatment
+Plus a **Quick Start Guide** at the top explaining how to use the framework in a new project (copy files to root, run `impeccable teach` first, then use skill triggers).
+
+**Output**: Single `.md` file at `/mnt/documents/impeccable-style-v2-complete.md`
+
+### Steps
+1. Concatenate all file contents with clear separators and a table of contents
+2. Add a "How to Use in a New Project" header section
+3. Write to `/mnt/documents/`
+4. Deliver as artifact
+
