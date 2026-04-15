@@ -1,16 +1,15 @@
-import { readFile } from "fs/promises";
+import { readFile, readdir } from "fs/promises";
 import { join } from "path";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { resolveProjectPath, listProjects } from "../config.js";
 
 /**
  * Knowledge tools — read-only access to organizational knowledge.
  * These let any Claude Code session query Courtana's project registry,
- * design systems, and skill files.
+ * design systems, and skill files across MULTIPLE repos.
  */
 
-const VIBECO_ROOT = join(process.cwd(), "..");
-
-// ─── Project Registry ───
+// ─── Project Registry (Supabase table) ───
 
 export async function getProjectRegistry(supabase: SupabaseClient) {
   const { data, error } = await supabase
@@ -22,41 +21,56 @@ export async function getProjectRegistry(supabase: SupabaseClient) {
   return data || [];
 }
 
-// ─── Project Context ───
+// ─── Project Context (reads from the configured repo path) ───
 
 export async function getProjectContext(projectName: string) {
-  // For now, only VibeCo is available locally. Others will be added as the MCP
-  // server gains access to more repos.
-  if (projectName.toLowerCase() === "vibeco") {
-    const claudeMd = await safeReadFile(join(VIBECO_ROOT, "CLAUDE.md"));
-    const impeccable = await safeReadFile(join(VIBECO_ROOT, ".impeccable.md"));
-    const plan = await safeReadFile(join(VIBECO_ROOT, ".lovable", "plan.md"));
+  const normalizedName = projectName.toLowerCase();
+  const repoPath = await resolveProjectPath(normalizedName);
 
+  if (!repoPath) {
+    const { configured, pending } = await listProjects();
     return {
-      project: "vibeco",
-      claude_md: claudeMd,
-      impeccable_context: impeccable,
-      strategic_plan: plan,
+      project: normalizedName,
+      error: `Project "${projectName}" not configured.`,
+      available_projects: configured,
+      pending_projects: pending,
+      hint: "Add the project to ~/.claude/courtana-repos.json with its local filesystem path. Projects with 'TBD' paths need a real path before they can be queried.",
     };
   }
 
-  return { project: projectName, error: `Project "${projectName}" not available locally yet. Add it to the MCP server configuration.` };
+  const claudeMd = await safeReadFile(join(repoPath, "CLAUDE.md"));
+  const impeccable = await safeReadFile(join(repoPath, ".impeccable.md"));
+  const readme = await safeReadFile(join(repoPath, "README.md"));
+  const plan = await safeReadFile(join(repoPath, ".lovable", "plan.md"));
+
+  return {
+    project: normalizedName,
+    repo_path: repoPath,
+    claude_md: claudeMd,
+    impeccable_context: impeccable,
+    readme: readme,
+    strategic_plan: plan,
+  };
 }
 
 // ─── Design System ───
 
 export async function getDesignSystem(brand: string) {
-  const impeccable = await safeReadFile(join(VIBECO_ROOT, ".impeccable.md"));
+  // Try to read from the configured repo for this brand
+  const repoPath = await resolveProjectPath(brand.toLowerCase());
+  const basePath = repoPath || (await resolveProjectPath("vibeco"));
 
-  // Check for brand-specific design system files
-  const designSystemPath = join(VIBECO_ROOT, `${brand.toUpperCase()}_DESIGN_SYSTEM.md`);
-  const brandSystem = await safeReadFile(designSystemPath);
+  if (!basePath) {
+    return { brand, error: "No repo configured for this brand and no vibeco fallback available." };
+  }
 
-  // Fallback to the generic DESIGN_SYSTEM.md
-  const genericSystem = await safeReadFile(join(VIBECO_ROOT, "DESIGN_SYSTEM.md"));
+  const impeccable = await safeReadFile(join(basePath, ".impeccable.md"));
+  const brandSystem = await safeReadFile(join(basePath, `${brand.toUpperCase()}_DESIGN_SYSTEM.md`));
+  const genericSystem = await safeReadFile(join(basePath, "DESIGN_SYSTEM.md"));
 
   return {
     brand,
+    source_repo: basePath,
     impeccable_context: impeccable,
     brand_design_system: brandSystem || null,
     generic_design_system: genericSystem || null,
@@ -68,51 +82,58 @@ export async function getDesignSystem(brand: string) {
 
 // ─── Skill Files ───
 
-export async function getSkill(skillName: string) {
-  // Normalize: "audit" → "SKILL_AUDIT.md", "SKILL_AUDIT" → "SKILL_AUDIT.md"
+export async function getSkill(skillName: string, project?: string) {
+  const repoPath = await resolveProjectPath((project || "vibeco").toLowerCase());
+  if (!repoPath) {
+    return { error: `No repo configured for project "${project || "vibeco"}".` };
+  }
+
   const normalized = skillName.toUpperCase().startsWith("SKILL_")
     ? `${skillName.toUpperCase()}.md`
     : `SKILL_${skillName.toUpperCase()}.md`;
 
-  const content = await safeReadFile(join(VIBECO_ROOT, normalized));
+  const content = await safeReadFile(join(repoPath, normalized));
 
   if (!content) {
-    // List available skills
-    const { readdir } = await import("fs/promises");
-    const files = await readdir(VIBECO_ROOT);
+    const files = await readdir(repoPath).catch(() => [] as string[]);
     const skills = files.filter((f: string) => f.startsWith("SKILL_") && f.endsWith(".md"));
-    return { error: `Skill "${skillName}" not found. Available: ${skills.join(", ")}` };
+    return { error: `Skill "${skillName}" not found in ${repoPath}.`, available: skills };
   }
 
-  return { skill: normalized, content };
+  return { skill: normalized, source_repo: repoPath, content };
 }
 
-// ─── Search Knowledge ───
+// ─── Search Knowledge (across all configured repos) ───
 
 export async function searchKnowledge(query: string) {
-  const { readdir } = await import("fs/promises");
-  const files = await readdir(VIBECO_ROOT);
-  const knowledgeFiles = files.filter(
-    (f: string) => f.endsWith(".md") && !f.startsWith("node_modules"),
-  );
+  const { configured } = await listProjects();
+  const results: { project: string; file: string; matches: string[] }[] = [];
+  let filesSearched = 0;
 
-  const results: { file: string; matches: string[] }[] = [];
+  for (const project of configured) {
+    const repoPath = await resolveProjectPath(project);
+    if (!repoPath) continue;
 
-  for (const file of knowledgeFiles) {
-    const content = await safeReadFile(join(VIBECO_ROOT, file));
-    if (!content) continue;
+    const files = await readdir(repoPath).catch(() => [] as string[]);
+    const knowledgeFiles = files.filter((f: string) => f.endsWith(".md"));
 
-    const lines = content.split("\n");
-    const matchingLines = lines.filter((line: string) =>
-      line.toLowerCase().includes(query.toLowerCase()),
-    );
+    for (const file of knowledgeFiles) {
+      filesSearched++;
+      const content = await safeReadFile(join(repoPath, file));
+      if (!content) continue;
 
-    if (matchingLines.length > 0) {
-      results.push({ file, matches: matchingLines.slice(0, 5) }); // top 5 matches per file
+      const lines = content.split("\n");
+      const matchingLines = lines.filter((line: string) =>
+        line.toLowerCase().includes(query.toLowerCase()),
+      );
+
+      if (matchingLines.length > 0) {
+        results.push({ project, file, matches: matchingLines.slice(0, 5) });
+      }
     }
   }
 
-  return { query, results, files_searched: knowledgeFiles.length };
+  return { query, results, files_searched: filesSearched, projects_searched: configured };
 }
 
 // ─── Helpers ───

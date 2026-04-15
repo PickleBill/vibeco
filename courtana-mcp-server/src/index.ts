@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import { getProjectRegistry, getProjectContext, getDesignSystem, getSkill, searchKnowledge } from "./tools/knowledge.js";
-import { saveDecision, getDecisions } from "./tools/memory.js";
+import { saveDecision, getDecisions, searchDecisions } from "./tools/memory.js";
 import { invokeVibeCo, listAgents } from "./tools/agents.js";
 
 /**
@@ -83,9 +83,12 @@ server.tool(
 server.tool(
   "get_skill",
   "Get a specific SKILL file from the design orchestration framework",
-  { skill: z.string().describe("Skill name (e.g., 'audit', 'critique', 'polish')") },
-  async ({ skill }) => {
-    const result = await getSkill(skill);
+  {
+    skill: z.string().describe("Skill name (e.g., 'audit', 'critique', 'polish')"),
+    project: z.string().optional().describe("Which project's SKILL files to search (defaults to vibeco)"),
+  },
+  async ({ skill, project }) => {
+    const result = await getSkill(skill, project);
     return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
   },
 );
@@ -120,7 +123,7 @@ server.tool(
 
 server.tool(
   "get_decisions",
-  "Read recent organizational decisions from shared memory. See what other sessions have decided.",
+  "Read recent organizational decisions from shared memory. See what other sessions have decided. Filter-based (exact project/category match).",
   {
     project: z.string().optional().describe("Filter by project"),
     category: z.string().optional().describe("Filter by category"),
@@ -130,6 +133,22 @@ server.tool(
     if (!supabase) return { content: [{ type: "text" as const, text: "Supabase not configured." }] };
     const decisions = await getDecisions(supabase, { project, category, limit });
     return { content: [{ type: "text" as const, text: JSON.stringify(decisions, null, 2) }] };
+  },
+);
+
+server.tool(
+  "search_decisions",
+  "SEMANTIC search over organizational decisions. Finds decisions similar in meaning to your query, not just exact matches. Use this when you want to know 'what have we decided about X?' where X is fuzzy or conceptual.",
+  {
+    query: z.string().describe("Natural language query (e.g., 'how should I run AI calls in parallel?')"),
+    project: z.string().optional().describe("Optionally filter by project"),
+    category: z.string().optional().describe("Optionally filter by category"),
+    limit: z.number().optional().describe("Max results (default 10)"),
+  },
+  async ({ query, project, category, limit }) => {
+    if (!supabase) return { content: [{ type: "text" as const, text: "Supabase not configured." }] };
+    const result = await searchDecisions(supabase, query, { project, category, limit });
+    return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
   },
 );
 
