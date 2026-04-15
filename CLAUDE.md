@@ -39,6 +39,9 @@ All agents follow the same pattern: receive JSON → construct system prompt →
 | `generate-idea-image` | Concept art + logo generation | Gemini 3.1-flash-image | None (image modality) |
 | `generate-alt-prompt` | Research/design/landing prompts for other AI tools | Gemini 2.5-flash | None (JSON response_format) |
 | `probe-models` | Model availability diagnostics across all providers | All models | None (diagnostic) |
+| `synthesize` | Cross-agent synthesis (consensus, tensions, confidence) | Claude Sonnet 4 | `generate_synthesis` |
+| `orchestrate` | Auto-Thunderdome: 7 agents parallel + synthesis | Multi-model | N/A (orchestrator) |
+| `auto-evaluate` | **Flywheel**: raw idea → simulate → thunderdome → synthesize → score | Multi-model | N/A (pipeline) |
 
 ### Shared Agent Infrastructure (`supabase/functions/_shared/`)
 

@@ -23,6 +23,7 @@ const AVAILABLE_AGENTS = [
   "generate-idea-image",
   "synthesize",
   "orchestrate",
+  "auto-evaluate",
 ] as const;
 
 export function listAgents() {
@@ -75,6 +76,7 @@ function getAgentDescription(name: string): string {
     "generate-idea-image": "Generate concept art or logo for an idea",
     "synthesize": "Read all agent outputs and produce consensus/tension/confidence analysis",
     "orchestrate": "Auto-Thunderdome: fire all 7 agents in parallel, then synthesize",
+    "auto-evaluate": "Flywheel: raw idea → simulate → thunderdome → synthesize → confidence score. Feed ideas in, scored results out.",
   };
   return descriptions[name] || "Unknown agent";
 }
