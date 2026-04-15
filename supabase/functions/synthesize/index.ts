@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { handleCors, jsonResponse } from "../_shared/cors.ts";
 import { handleFunctionError } from "../_shared/error-handler.ts";
-import { generateExpansions } from "../_shared/agents/expand.ts";
+import { synthesize } from "../_shared/agents/synthesize.ts";
 
 serve(async (req) => {
   const cors = handleCors(req);
@@ -9,9 +9,9 @@ serve(async (req) => {
 
   try {
     const input = await req.json();
-    const result = await generateExpansions(input);
+    const result = await synthesize(input);
     return jsonResponse(result);
   } catch (e) {
-    return handleFunctionError("expand-idea", e);
+    return handleFunctionError("synthesize", e);
   }
 });
