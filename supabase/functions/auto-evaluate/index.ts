@@ -156,18 +156,23 @@ serve(async (req) => {
         const { data } = await supabase
           .from("idea_reports")
           .insert({
-            idea_text: idea,
+            idea,
             brief,
             rounds: [{ brief, questions: simulation.follow_up_questions, answers: {} }],
             status: "auto-evaluated",
             auto_score: score,
             auto_verdict: verdict,
             auto_source: source,
+            auto_synthesis: synthesisResult,
+            auto_perspectives: perspectives,
+            auto_expansion: expansion,
+            auto_distillation: distillation,
           })
           .select("id")
           .single();
         reportId = data?.id;
-      } catch {
+      } catch (e) {
+        console.error("Failed to persist report:", (e as Error).message);
         // Don't fail the response if persistence fails
       }
     }
