@@ -24,6 +24,8 @@ const AVAILABLE_AGENTS = [
   "synthesize",
   "orchestrate",
   "auto-evaluate",
+  "debate",
+  "mcp-analyze-usage",
 ] as const;
 
 export function listAgents() {
@@ -77,6 +79,8 @@ function getAgentDescription(name: string): string {
     "synthesize": "Read all agent outputs and produce consensus/tension/confidence analysis",
     "orchestrate": "Auto-Thunderdome: fire all 7 agents in parallel, then synthesize",
     "auto-evaluate": "Flywheel: raw idea → simulate → thunderdome → synthesize → confidence score. Feed ideas in, scored results out.",
+    "debate": "Multi-perspective analysis on ANY topic (architecture, code review, strategy). Fires multiple AI personas in parallel and synthesizes their stances into a unified recommendation.",
+    "mcp-analyze-usage": "Self-improvement: reads MCP tool usage data and asks Claude to suggest fixes/improvements. Suggestions saved to mcp_improvement_log.",
   };
   return descriptions[name] || "Unknown agent";
 }

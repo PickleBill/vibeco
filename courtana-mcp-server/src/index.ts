@@ -7,6 +7,7 @@ import { z } from "zod";
 import { getProjectRegistry, getProjectContext, getDesignSystem, getSkill, searchKnowledge } from "./tools/knowledge.js";
 import { saveDecision, getDecisions, searchDecisions } from "./tools/memory.js";
 import { invokeVibeCo, listAgents } from "./tools/agents.js";
+import { setTelemetryClient, withTelemetry } from "./telemetry.js";
 
 /**
  * Courtana MCP Server
@@ -42,6 +43,9 @@ const supabase = SUPABASE_URL && SUPABASE_ANON_KEY
   ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
 
+// Phase G: enable telemetry — every tool call gets logged for self-improvement analysis
+setTelemetryClient(supabase);
+
 const server = new McpServer({
   name: "courtana",
   version: "0.1.0",
@@ -53,21 +57,21 @@ server.tool(
   "get_project_registry",
   "List all Courtana projects by category, brand, and status",
   {},
-  async () => {
+  withTelemetry("get_project_registry", async () => {
     if (!supabase) return { content: [{ type: "text" as const, text: "Supabase not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY." }] };
     const projects = await getProjectRegistry(supabase);
     return { content: [{ type: "text" as const, text: JSON.stringify(projects, null, 2) }] };
-  },
+  }),
 );
 
 server.tool(
   "get_project_context",
   "Get a project's CLAUDE.md, design context, and strategic plan",
   { project: z.string().describe("Project name (e.g., 'vibeco')") },
-  async ({ project }) => {
+  withTelemetry("get_project_context", async ({ project }: { project: string }) => {
     const context = await getProjectContext(project);
     return { content: [{ type: "text" as const, text: JSON.stringify(context, null, 2) }] };
-  },
+  }),
 );
 
 server.tool(
@@ -114,11 +118,11 @@ server.tool(
     project: z.string().optional().describe("Which project this relates to (e.g., 'vibeco', 'pickle-daas')"),
     category: z.enum(["architecture", "design", "strategy", "pattern", "insight"]).optional().describe("Category of the decision"),
   },
-  async ({ title, content, project, category }) => {
+  withTelemetry("save_decision", async ({ title, content, project, category }: { title: string; content: string; project?: string; category?: "architecture" | "design" | "strategy" | "pattern" | "insight" }) => {
     if (!supabase) return { content: [{ type: "text" as const, text: "Supabase not configured." }] };
     const result = await saveDecision(supabase, { title, content, project, category });
     return { content: [{ type: "text" as const, text: `Decision saved: ${JSON.stringify(result)}` }] };
-  },
+  }),
 );
 
 server.tool(
@@ -145,11 +149,11 @@ server.tool(
     category: z.string().optional().describe("Optionally filter by category"),
     limit: z.number().optional().describe("Max results (default 10)"),
   },
-  async ({ query, project, category, limit }) => {
+  withTelemetry("search_decisions", async ({ query, project, category, limit }: { query: string; project?: string; category?: string; limit?: number }) => {
     if (!supabase) return { content: [{ type: "text" as const, text: "Supabase not configured." }] };
     const result = await searchDecisions(supabase, query, { project, category, limit });
     return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
-  },
+  }),
 );
 
 // ─── Agent Tools ───
@@ -178,6 +182,71 @@ server.tool(
     try {
       const parsedInput = JSON.parse(input);
       const result = await invokeVibeCo(SUPABASE_URL, SUPABASE_ANON_KEY, agent, parsedInput);
+      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+    } catch (e) {
+      return { content: [{ type: "text" as const, text: `Error: ${(e as Error).message}` }] };
+    }
+  },
+);
+
+// ─── MCP Self-Improvement Tools (Phase G) ───
+
+server.tool(
+  "get_mcp_insights",
+  "Read AI-generated improvement suggestions for the MCP server itself, based on usage patterns. The system watches how tools are used and suggests fixes.",
+  {
+    status: z.enum(["open", "acknowledged", "implemented", "dismissed", "all"]).optional().describe("Filter by status (default: open)"),
+    limit: z.number().optional().describe("Max results (default 20)"),
+  },
+  withTelemetry("get_mcp_insights", async ({ status, limit }: { status?: "open" | "acknowledged" | "implemented" | "dismissed" | "all"; limit?: number }) => {
+    if (!supabase) return { content: [{ type: "text" as const, text: "Supabase not configured." }] };
+    let q = supabase.from("mcp_improvement_log").select("*").order("created_at", { ascending: false }).limit(limit || 20);
+    if (status && status !== "all") q = q.eq("status", status);
+    const { data, error } = await q;
+    if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
+    return { content: [{ type: "text" as const, text: JSON.stringify(data || [], null, 2) }] };
+  }),
+);
+
+server.tool(
+  "analyze_mcp_usage",
+  "Trigger MCP self-analysis: reads recent usage data and asks Claude to suggest improvements. Suggestions saved to mcp_improvement_log.",
+  {
+    window_hours: z.number().optional().describe("Look back this many hours (default 168 = 1 week)"),
+    dry_run: z.boolean().optional().describe("If true, return suggestions without saving"),
+  },
+  withTelemetry("analyze_mcp_usage", async ({ window_hours, dry_run }: { window_hours?: number; dry_run?: boolean }) => {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      return { content: [{ type: "text" as const, text: "Supabase not configured." }] };
+    }
+    try {
+      const result = await invokeVibeCo(SUPABASE_URL, SUPABASE_ANON_KEY, "mcp-analyze-usage", {
+        window_hours, dry_run,
+      });
+      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+    } catch (e) {
+      return { content: [{ type: "text" as const, text: `Error: ${(e as Error).message}` }] };
+    }
+  }),
+);
+
+server.tool(
+  "run_debate",
+  "Run a multi-perspective AI debate on any topic. Different personas weigh in (skeptic, champion, builder, etc.) and a synthesizer produces a unified recommendation. Use for architecture decisions, code review, strategy questions — anything that benefits from multiple viewpoints.",
+  {
+    topic: z.string().describe("The question or proposal to debate (e.g., 'Should we use Supabase Realtime or polling for the inbox?')"),
+    context: z.string().optional().describe("Additional background, code, or constraints relevant to the topic"),
+    personas: z.array(z.string()).optional().describe("Which personas to involve (default: skeptic, champion, builder). Available: skeptic, champion, builder, pragmatist, strategist, user_advocate, security_auditor, performance_engineer, contrarian"),
+    mode: z.enum(["fast", "deep"]).optional().describe("fast = Gemini Flash for speed, deep = Claude Sonnet for depth"),
+  },
+  async ({ topic, context, personas, mode }) => {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      return { content: [{ type: "text" as const, text: "Supabase not configured." }] };
+    }
+    try {
+      const result = await invokeVibeCo(SUPABASE_URL, SUPABASE_ANON_KEY, "debate", {
+        topic, context, personas, mode,
+      });
       return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
     } catch (e) {
       return { content: [{ type: "text" as const, text: `Error: ${(e as Error).message}` }] };
