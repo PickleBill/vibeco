@@ -85,7 +85,7 @@ const Report = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse font-mono text-sm text-muted-foreground">Loading report...</div>
+        <div className="animate-pulse text-sm text-muted-foreground">Loading report...</div>
       </div>
     );
   }
@@ -93,8 +93,8 @@ const Report = () => {
   if (notFound || !report) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
-        <p className="font-mono text-sm text-muted-foreground">Report not found.</p>
-        <Link to="/simulate" className="font-mono text-sm text-primary hover:underline">
+        <p className="text-sm text-muted-foreground">Report not found.</p>
+        <Link to="/simulate" className="text-sm text-primary hover:underline">
           Try the simulator →
         </Link>
       </div>
@@ -107,7 +107,7 @@ const Report = () => {
     <div className="min-h-screen bg-background pt-20 pb-16">
       <div className="max-w-3xl mx-auto px-6">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-10">
-          <p className="font-mono text-xs text-primary uppercase tracking-widest mb-1">VibeCo AI Report</p>
+          <p className="text-xs text-primary uppercase tracking-widest mb-1">VibeCo AI Report</p>
           {report.logo_image_url && (
             <div className="mb-4 flex justify-center">
               <div className="w-16 h-16 rounded-xl overflow-hidden border border-primary/20 bg-card/60"
@@ -119,7 +119,7 @@ const Report = () => {
           <h1 className="font-display text-2xl sm:text-3xl font-black text-foreground mb-2">
             {report.idea}
           </h1>
-          <p className="font-mono text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Generated {new Date(report.created_at).toLocaleDateString()}
           </p>
         </motion.div>
@@ -130,7 +130,7 @@ const Report = () => {
               <img src={report.concept_image_url} alt="Product concept" className="w-full h-48 sm:h-64 object-cover" />
               <div className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-1 rounded bg-background/80 backdrop-blur-sm">
                 <ImageIcon size={10} className="text-primary" />
-                <span className="font-mono text-[10px] text-muted-foreground">Product Vision</span>
+                <span className="text-[10px] text-muted-foreground">Product Vision</span>
               </div>
             </div>
           </div>
@@ -149,7 +149,7 @@ const Report = () => {
                       <Icon size={14} className="text-primary" />
                       <h4 className="font-display text-sm font-bold text-foreground uppercase tracking-wide">{section.label}</h4>
                       {highlightSet.has(section.key) && (
-                        <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/15 border border-primary/30 font-mono text-[10px] text-primary">
+                        <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/15 border border-primary/30 text-[10px] text-primary">
                           <Sparkles size={10} className="fill-primary" />
                           Resonates
                         </span>
@@ -158,14 +158,14 @@ const Report = () => {
                     {section.key === "core_features" && Array.isArray(value) ? (
                       <div className="grid gap-2 ml-5">
                         {(value as BriefData["core_features"]).map((feat, fi) => (
-                          <p key={fi} className="font-mono text-base text-foreground/90 leading-relaxed">
+                          <p key={fi} className="text-base text-foreground/90 leading-relaxed">
                             <span className="text-primary font-bold">{fi + 1}.</span>{" "}
                             <span className="font-semibold">{feat.name}</span> — {feat.description}
                           </p>
                         ))}
                       </div>
                     ) : (
-                      <p className="font-mono text-base text-foreground/90 leading-relaxed ml-5">{value as string}</p>
+                      <p className="text-base text-foreground/90 leading-relaxed ml-5">{value as string}</p>
                     )}
                   </motion.div>
                 );
@@ -178,17 +178,17 @@ const Report = () => {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="mb-8">
             <div className="border border-border/30 rounded-lg overflow-hidden">
               <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/20">
-                <span className="font-mono text-xs text-muted-foreground uppercase tracking-wider">
+                <span className="text-xs text-muted-foreground uppercase tracking-wider">
                   One-shot prompt — paste into Lovable to build your landing page
                 </span>
                 <button onClick={handleCopyPrompt}
-                  className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-muted/50">
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-muted/50">
                   {copied ? <Check size={12} className="text-primary" /> : <Copy size={12} />}
                   {copied ? "Copied" : "Copy"}
                 </button>
               </div>
               <div className="p-4 max-h-48 overflow-y-auto">
-                <pre className="font-mono text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                <pre className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
                   {report.lovable_prompt}
                 </pre>
               </div>
@@ -197,9 +197,9 @@ const Report = () => {
         )}
 
         <div className="text-center pt-4 border-t border-border/20">
-          <p className="font-mono text-sm text-muted-foreground mb-3">Want to simulate your own idea?</p>
+          <p className="text-sm text-muted-foreground mb-3">Want to simulate your own idea?</p>
           <Link to="/simulate"
-            className="inline-flex items-center gap-2 font-mono text-sm text-primary hover:underline">
+            className="inline-flex items-center gap-2 text-sm text-primary hover:underline">
             Try the simulator <ArrowRight size={14} />
           </Link>
         </div>

@@ -38,7 +38,7 @@ const EverydayFounders = () => {
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
         <div className="max-w-3xl mb-16">
           <FadeIn>
-            <p className="font-mono text-sm text-muted-foreground uppercase tracking-widest mb-4">
+            <p className="text-sm text-muted-foreground uppercase tracking-widest mb-4">
               Built for domain experts
             </p>
             <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-6">
@@ -46,7 +46,7 @@ const EverydayFounders = () => {
             </h2>
           </FadeIn>
           <FadeIn delay={0.1}>
-            <p className="font-mono text-base text-foreground/80 leading-relaxed">
+            <p className="text-base text-foreground/80 leading-relaxed">
               The best products come from people who live the problem every
               day. You don't need to code — you need to ship.
             </p>
@@ -56,7 +56,7 @@ const EverydayFounders = () => {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {personas.map((p, i) => (
             <FadeIn key={p.title} delay={i * 0.08}>
-              <div className="group bg-card border border-border rounded-lg p-8 hover:border-primary/30 hover:glow-accent-subtle transition-all duration-300">
+              <div className="group bg-card border border-border rounded-lg p-8 hover:border-primary/30 hover:shadow-warm transition-all duration-300">
                 <p.icon
                   size={24}
                   className="text-primary mb-4 group-hover:scale-110 transition-transform duration-300"
@@ -64,7 +64,7 @@ const EverydayFounders = () => {
                 <h3 className="font-display text-xl font-bold text-foreground mb-3">
                   {p.title}
                 </h3>
-                <p className="font-mono text-sm text-muted-foreground leading-relaxed">
+                <p className="text-sm text-muted-foreground leading-relaxed">
                   {p.desc}
                 </p>
               </div>
@@ -74,13 +74,13 @@ const EverydayFounders = () => {
 
         <FadeIn delay={0.4}>
           <div className="mt-12 text-center">
-            <p className="font-mono text-sm text-muted-foreground mb-6">
+            <p className="text-sm text-muted-foreground mb-6">
               Got a problem worth solving? That's all you need.
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <button
                 onClick={() => navigate("/simulate")}
-                className="font-mono text-sm bg-primary text-primary-foreground px-8 py-3 rounded-sm hover:opacity-90 transition-opacity inline-flex items-center gap-2"
+                className="text-sm bg-primary text-primary-foreground px-8 py-3 rounded-full hover:opacity-90 transition-opacity inline-flex items-center gap-2"
               >
                 <Sparkles size={14} />
                 Test Your Idea Free
@@ -90,7 +90,7 @@ const EverydayFounders = () => {
                   const el = document.querySelector("#contact");
                   el?.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="font-mono text-sm border border-border text-foreground px-8 py-3 rounded-sm hover:border-primary/50 hover:text-primary transition-colors"
+                className="text-sm border border-border text-foreground px-8 py-3 rounded-full hover:border-primary/50 hover:text-primary transition-colors"
               >
                 Pitch It Directly →
               </button>

@@ -52,7 +52,7 @@ const StatsBar = () => {
               >
                 <CountUp target={stat.value} prefix={stat.prefix} suffix={stat.suffix} active={isInView} />
               </p>
-              <p className="font-mono text-xs text-muted-foreground uppercase tracking-wide mt-1">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mt-1">
                 {stat.label}
               </p>
             </div>

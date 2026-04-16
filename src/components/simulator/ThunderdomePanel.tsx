@@ -53,7 +53,7 @@ const ThunderdomePanel = ({ brief, idea, reportId, highlights, antiHighlights }:
           </div>
           <div>
             <h2 className="font-display text-xl font-black text-foreground tracking-tight">Deep Dive</h2>
-            <p className="font-mono text-[11px] text-muted-foreground mt-0.5">
+            <p className="text-[11px] text-muted-foreground mt-0.5">
               Stress-test · Expand · Distill — push this idea further
             </p>
           </div>
@@ -68,7 +68,7 @@ const ThunderdomePanel = ({ brief, idea, reportId, highlights, antiHighlights }:
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 flex flex-col items-center gap-1.5 px-4 py-3 rounded-lg font-mono text-xs transition-all border ${
+                className={`flex-1 flex flex-col items-center gap-1.5 px-4 py-3 rounded-lg text-xs transition-all border ${
                   isActive
                     ? "bg-primary/10 border-primary/30 text-foreground shadow-sm"
                     : "bg-card/30 border-border/30 text-muted-foreground hover:border-border/60 hover:text-foreground"

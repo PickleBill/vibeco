@@ -37,7 +37,7 @@ const AnalyzingMessages = ({ isInitial }: { isInitial: boolean }) => {
     return () => clearInterval(interval);
   }, []);
   return (
-    <p className="font-mono text-sm text-muted-foreground animate-pulse transition-opacity duration-500">
+    <p className="text-sm text-muted-foreground animate-pulse transition-opacity duration-500">
       {isInitial ? analysisMessages[msgIndex] : "Deepening the analysis..."}
     </p>
   );
@@ -698,7 +698,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
           />
-          <p className="font-mono text-sm text-muted-foreground mt-6">Resuming your simulation...</p>
+          <p className="text-sm text-muted-foreground mt-6">Resuming your simulation...</p>
         </div>
       </div>
     );
@@ -716,7 +716,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
           >
             <button
               onClick={() => setThinkingMode(prev => prev === "fast" ? "deep" : "fast")}
-              className={`flex items-center gap-2 font-mono text-[11px] px-3 py-1.5 rounded-full border transition-all ${
+              className={`flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-full border transition-all ${
                 thinkingMode === "deep"
                   ? "border-purple-500/50 bg-purple-500/10 text-purple-400"
                   : "border-border bg-card text-muted-foreground hover:border-primary/30"
@@ -736,7 +736,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
           >
             <button
               onClick={handleDownloadPDF}
-              className="flex items-center gap-2 font-mono text-xs px-4 py-2.5 rounded-sm bg-primary text-primary-foreground shadow-lg hover:opacity-90 transition-opacity"
+              className="flex items-center gap-2 text-xs px-4 py-2.5 rounded-sm bg-primary text-primary-foreground shadow-lg hover:opacity-90 transition-opacity"
             >
               <Download size={14} />
               Download PDF
@@ -754,7 +754,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                 <div key={i} className="flex items-center gap-3">
                   <div className="flex flex-col items-center gap-1.5">
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center font-mono text-sm font-bold transition-all duration-500 ${
+                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-500 ${
                         i < rounds.length || (phase === "final" && i === rounds.length - 1)
                           ? "bg-primary text-primary-foreground"
                           : i === rounds.length && phase === "analyzing"
@@ -764,7 +764,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                     >
                       {i + 1}
                     </div>
-                    <span className="font-mono text-[10px] text-muted-foreground">
+                    <span className="text-[10px] text-muted-foreground">
                       {i === 0 ? "Analyze" : i === 1 ? "Refine" : "Finalize"}
                     </span>
                   </div>
@@ -785,7 +785,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
             <motion.div key="input" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               {forkedFrom && (
                 <div className="flex items-center gap-2 mb-4 px-1">
-                  <span className="font-mono text-[10px] text-primary bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-full">
+                  <span className="text-[10px] text-primary bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-full">
                     ↳ Forked from: {forkedFrom.length > 60 ? forkedFrom.slice(0, 60) + "…" : forkedFrom}
                   </span>
                 </div>
@@ -818,12 +818,12 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                 />
               </div>
               <AnalyzingMessages isInitial={rounds.length === 0} />
-              <p className="font-mono text-[10px] text-muted-foreground/50 mt-2">
+              <p className="text-[10px] text-muted-foreground/50 mt-2">
                 {thinkingMode === "deep" ? "Deep mode — usually 30-60 seconds" : "Quick mode — about 10-15 seconds"}
               </p>
               <button
                 onClick={handleCancelAnalysis}
-                className="mt-6 flex items-center gap-2 font-mono text-xs text-muted-foreground hover:text-foreground border border-border/60 px-4 py-2 rounded-sm transition-colors"
+                className="mt-6 flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground border border-border/60 px-4 py-2 rounded-sm transition-colors"
               >
                 <X size={14} />
                 Cancel
@@ -838,7 +838,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                 <div className="inline-flex rounded-lg border border-border/50 overflow-hidden">
                   <button
                     onClick={() => setBriefTab("questions")}
-                    className={`font-mono text-xs px-5 py-2 transition-colors ${
+                    className={`text-xs px-5 py-2 transition-colors ${
                       briefTab === "questions"
                         ? "bg-primary text-primary-foreground"
                         : "bg-card/60 text-muted-foreground hover:text-foreground"
@@ -848,7 +848,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                   </button>
                   <button
                     onClick={() => setBriefTab("analysis")}
-                    className={`font-mono text-xs px-5 py-2 transition-colors ${
+                    className={`text-xs px-5 py-2 transition-colors ${
                       briefTab === "analysis"
                         ? "bg-primary text-primary-foreground"
                         : "bg-card/60 text-muted-foreground hover:text-foreground"
@@ -859,7 +859,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                   {rounds.length > 1 && (
                     <button
                       onClick={() => setBriefTab("history")}
-                      className={`font-mono text-xs px-5 py-2 transition-colors ${
+                      className={`text-xs px-5 py-2 transition-colors ${
                         briefTab === "history"
                           ? "bg-primary text-primary-foreground"
                           : "bg-card/60 text-muted-foreground hover:text-foreground"
@@ -909,10 +909,10 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                       {rounds.slice(0, -1).map((r, i) => (
                         <div key={i} className="border border-border/40 rounded-lg p-4 bg-card/30">
                           <div className="flex items-center gap-2 mb-3">
-                            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center font-mono text-[10px] font-bold text-muted-foreground">
+                            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground">
                               {i + 1}
                             </div>
-                            <span className="font-mono text-xs text-muted-foreground">
+                            <span className="text-xs text-muted-foreground">
                               Round {i + 1} Analysis
                             </span>
                           </div>

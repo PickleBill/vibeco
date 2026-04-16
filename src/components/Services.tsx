@@ -31,7 +31,7 @@ const Services = () => {
     <section id="services" className="py-32 border-t border-border">
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
         <FadeIn>
-          <p className="font-mono text-sm text-muted-foreground uppercase tracking-widest mb-4">
+          <p className="text-sm text-muted-foreground uppercase tracking-widest mb-4">
             What we do
           </p>
           <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-16">
@@ -44,7 +44,7 @@ const Services = () => {
               <div
                 className={`group relative bg-card border rounded-lg p-8 transition-all duration-500 overflow-hidden ${
                   hoveredIndex === i
-                    ? "border-primary/50 glow-accent-subtle scale-[1.01]"
+                    ? "border-primary/50 shadow-warm scale-[1.01]"
                     : "border-border hover:border-primary/30"
                 }`}
                 onMouseEnter={() => setHoveredIndex(i)}
@@ -55,13 +55,13 @@ const Services = () => {
                     hoveredIndex === i ? "opacity-100" : "opacity-0"
                   }`}
                   style={{
-                    background: "radial-gradient(circle, hsl(243 76% 58% / 0.2), transparent)",
+                    background: "radial-gradient(circle, hsl(var(--primary) / 0.2), transparent)",
                   }}
                 />
                 <h3 className="font-display text-xl font-bold text-foreground mb-3">
                   {s.title}
                 </h3>
-                <p className="font-mono text-sm text-muted-foreground leading-relaxed">
+                <p className="text-sm text-muted-foreground leading-relaxed">
                   {s.desc}
                 </p>
                 <div
@@ -69,7 +69,7 @@ const Services = () => {
                     hoveredIndex === i ? "max-h-20 opacity-100 mt-3" : "max-h-0 opacity-0 mt-0"
                   }`}
                 >
-                  <p className="font-mono text-xs text-primary leading-relaxed border-t border-border pt-3">
+                  <p className="text-xs text-primary leading-relaxed border-t border-border pt-3">
                     {s.detail}
                   </p>
                 </div>

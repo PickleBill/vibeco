@@ -63,7 +63,8 @@ export default {
         },
       },
       fontFamily: {
-        display: ['Inter', 'sans-serif'],
+        sans: ['Albert Sans', 'system-ui', 'sans-serif'],
+        display: ['Sora', 'system-ui', 'sans-serif'],
         mono: ['Source Code Pro', 'monospace'],
       },
       borderRadius: {

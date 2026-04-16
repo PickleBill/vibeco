@@ -25,14 +25,14 @@ const VariantSwitcher = () => {
 
   return (
     <div className="fixed bottom-4 right-4 z-50 flex items-center gap-1 rounded-full bg-background/80 backdrop-blur border border-border/50 px-2 py-1 shadow-lg">
-      <span className="font-mono text-[10px] text-muted-foreground mr-1 uppercase tracking-wider">
+      <span className="text-[10px] text-muted-foreground mr-1 uppercase tracking-wider">
         Hero
       </span>
       {variants.map((v) => (
         <button
           key={v}
           onClick={() => switchTo(v)}
-          className={`font-mono text-xs w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
+          className={`text-xs w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
             current === v
               ? "bg-primary text-primary-foreground"
               : "text-muted-foreground hover:text-foreground"

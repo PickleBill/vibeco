@@ -13,7 +13,7 @@ const Credibility = () => (
     <div className="max-w-7xl mx-auto px-6 lg:px-12">
       <div className="max-w-3xl">
         <FadeIn>
-          <p className="font-mono text-sm text-muted-foreground uppercase tracking-widest mb-4">
+          <p className="text-sm text-muted-foreground uppercase tracking-widest mb-4">
             Operating style
           </p>
           <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-8">
@@ -21,7 +21,7 @@ const Credibility = () => (
           </h2>
         </FadeIn>
         <FadeIn delay={0.1}>
-          <p className="font-mono text-sm text-foreground/80 leading-relaxed mb-10">
+          <p className="text-sm text-foreground/80 leading-relaxed mb-10">
             Led by a builder who's shipped across industries. Not a services
             play — a thinking partnership.
           </p>
@@ -31,7 +31,7 @@ const Credibility = () => (
             <FadeIn key={i} delay={0.15 + i * 0.05}>
               <li className="flex items-start gap-3">
                 <span className="w-1 h-1 rounded-full bg-primary mt-2 shrink-0" />
-                <span className="font-mono text-sm text-foreground/80 leading-relaxed">
+                <span className="text-sm text-foreground/80 leading-relaxed">
                   {t}
                 </span>
               </li>

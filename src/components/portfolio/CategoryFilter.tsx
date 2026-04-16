@@ -57,17 +57,17 @@ const CategoryFilter = ({
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
         placeholder="Search projects..."
-        className="pl-9 bg-secondary/50 border-border/30 font-mono text-xs"
+        className="pl-9 bg-secondary/50 border-border/30 text-xs"
       />
     </div>
 
     <Select value={category} onValueChange={onCategoryChange}>
-      <SelectTrigger className="w-[140px] bg-secondary/50 border-border/30 font-mono text-xs">
+      <SelectTrigger className="w-[140px] bg-secondary/50 border-border/30 text-xs">
         <SelectValue placeholder="Category" />
       </SelectTrigger>
       <SelectContent>
         {CATEGORIES.map((c) => (
-          <SelectItem key={c.value} value={c.value} className="font-mono text-xs">
+          <SelectItem key={c.value} value={c.value} className="text-xs">
             {c.label}
           </SelectItem>
         ))}
@@ -75,12 +75,12 @@ const CategoryFilter = ({
     </Select>
 
     <Select value={status} onValueChange={onStatusChange}>
-      <SelectTrigger className="w-[120px] bg-secondary/50 border-border/30 font-mono text-xs">
+      <SelectTrigger className="w-[120px] bg-secondary/50 border-border/30 text-xs">
         <SelectValue placeholder="Status" />
       </SelectTrigger>
       <SelectContent>
         {STATUSES.map((s) => (
-          <SelectItem key={s.value} value={s.value} className="font-mono text-xs">
+          <SelectItem key={s.value} value={s.value} className="text-xs">
             {s.label}
           </SelectItem>
         ))}
@@ -89,13 +89,13 @@ const CategoryFilter = ({
 
     {brands.length > 0 && (
       <Select value={brandFilter} onValueChange={onBrandFilterChange}>
-        <SelectTrigger className="w-[140px] bg-secondary/50 border-border/30 font-mono text-xs">
+        <SelectTrigger className="w-[140px] bg-secondary/50 border-border/30 text-xs">
           <SelectValue placeholder="Brand" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all" className="font-mono text-xs">All Brands</SelectItem>
+          <SelectItem value="all" className="text-xs">All Brands</SelectItem>
           {brands.map((b) => (
-            <SelectItem key={b} value={b} className="font-mono text-xs">
+            <SelectItem key={b} value={b} className="text-xs">
               {b}
             </SelectItem>
           ))}

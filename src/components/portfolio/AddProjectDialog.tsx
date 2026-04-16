@@ -59,28 +59,28 @@ const AddProjectDialog = ({ open, onOpenChange, onSave, initial }: Props) => {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label className="font-mono text-xs">Project Name *</Label>
+            <Label className="text-xs">Project Name *</Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Courtana Pulse"
-              className="mt-1 font-mono text-sm"
+              className="mt-1 text-sm"
             />
           </div>
           <div>
-            <Label className="font-mono text-xs">Description</Label>
+            <Label className="text-xs">Description</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Pickle-as-a-Service data platform..."
-              className="mt-1 font-mono text-xs min-h-[80px]"
+              className="mt-1 text-xs min-h-[80px]"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="font-mono text-xs">Category</Label>
+              <Label className="text-xs">Category</Label>
               <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="mt-1 font-mono text-xs">
+                <SelectTrigger className="mt-1 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -94,9 +94,9 @@ const AddProjectDialog = ({ open, onOpenChange, onSave, initial }: Props) => {
               </Select>
             </div>
             <div>
-              <Label className="font-mono text-xs">Status</Label>
+              <Label className="text-xs">Status</Label>
               <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger className="mt-1 font-mono text-xs">
+                <SelectTrigger className="mt-1 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -110,34 +110,34 @@ const AddProjectDialog = ({ open, onOpenChange, onSave, initial }: Props) => {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="font-mono text-xs">Brand</Label>
+              <Label className="text-xs">Brand</Label>
               <Input
                 value={parentBrand}
                 onChange={(e) => setParentBrand(e.target.value)}
                 placeholder="Courtana"
-                className="mt-1 font-mono text-xs"
+                className="mt-1 text-xs"
               />
             </div>
             <div>
-              <Label className="font-mono text-xs">Lovable Project ID</Label>
+              <Label className="text-xs">Lovable Project ID</Label>
               <Input
                 value={lovableId}
                 onChange={(e) => setLovableId(e.target.value)}
                 placeholder="e56b8988-..."
-                className="mt-1 font-mono text-xs"
+                className="mt-1 text-xs"
               />
             </div>
           </div>
           <div>
-            <Label className="font-mono text-xs">Notes</Label>
+            <Label className="text-xs">Notes</Label>
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Priority build for Q3..."
-              className="mt-1 font-mono text-xs min-h-[60px]"
+              className="mt-1 text-xs min-h-[60px]"
             />
           </div>
-          <Button type="submit" className="w-full font-mono text-sm">
+          <Button type="submit" className="w-full text-sm">
             {initial ? "Update Project" : "Add Project"}
           </Button>
         </form>

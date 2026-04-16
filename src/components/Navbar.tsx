@@ -69,7 +69,7 @@ const Navbar = () => {
             <button
               key={link.href}
               onClick={() => handleNavClick(link.href)}
-              className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors duration-200"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
             >
               {link.label}
             </button>
@@ -79,14 +79,8 @@ const Navbar = () => {
           <a
             href="/simulate"
             onClick={(e) => { e.preventDefault(); navigate("/simulate"); }}
-            className="relative font-mono text-sm font-bold px-5 py-2.5 rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-all duration-300 flex items-center gap-2"
+            className="font-display text-sm font-semibold px-5 py-2.5 rounded-full bg-primary text-primary-foreground hover:brightness-110 transition-all duration-300 flex items-center gap-2"
           >
-            <motion.div
-              className="absolute inset-0 rounded-md pointer-events-none"
-              style={{ boxShadow: "0 0 24px hsl(var(--primary) / 0.4)" }}
-              animate={{ opacity: [0.4, 0.8, 0.4] }}
-              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-            />
             <Sparkles size={14} />
             Simulate Your Idea
           </a>
@@ -97,7 +91,7 @@ const Navbar = () => {
               <a
                 href="/portfolio"
                 onClick={(e) => { e.preventDefault(); navigate("/portfolio"); }}
-                className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
               >
                 <FolderKanban size={12} />
                 Portfolio
@@ -105,14 +99,14 @@ const Navbar = () => {
               <a
                 href="/my-simulations"
                 onClick={(e) => { e.preventDefault(); navigate("/my-simulations"); }}
-                className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
               >
                 <History size={12} />
                 Dashboard
               </a>
               <button
                 onClick={handleSignOut}
-                className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
               >
                 <User size={12} />
                 Sign Out
@@ -122,7 +116,7 @@ const Navbar = () => {
             <a
               href="/auth"
               onClick={(e) => { e.preventDefault(); navigate("/auth"); }}
-              className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
             >
               <User size={12} />
               Sign In
@@ -154,7 +148,7 @@ const Navbar = () => {
               <button
                 key={link.href}
                 onClick={() => handleNavClick(link.href)}
-                className="block py-3 font-mono text-sm text-muted-foreground hover:text-foreground transition-colors w-full text-left"
+                className="block py-3 text-sm text-muted-foreground hover:text-foreground transition-colors w-full text-left"
               >
                 {link.label}
               </button>
@@ -162,7 +156,7 @@ const Navbar = () => {
             <a
               href="/simulate"
               onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/simulate"); }}
-              className="flex items-center gap-2 py-3 font-mono text-sm text-primary"
+              className="flex items-center gap-2 py-3 text-sm text-primary"
             >
               <Sparkles size={13} />
               AI Idea Simulator
@@ -172,7 +166,7 @@ const Navbar = () => {
                 <a
                   href="/portfolio"
                   onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/portfolio"); }}
-                  className="flex items-center gap-2 py-3 font-mono text-sm text-muted-foreground hover:text-foreground"
+                  className="flex items-center gap-2 py-3 text-sm text-muted-foreground hover:text-foreground"
                 >
                   <FolderKanban size={13} />
                   Portfolio
@@ -180,14 +174,14 @@ const Navbar = () => {
                 <a
                   href="/my-simulations"
                   onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/my-simulations"); }}
-                  className="flex items-center gap-2 py-3 font-mono text-sm text-muted-foreground hover:text-foreground"
+                  className="flex items-center gap-2 py-3 text-sm text-muted-foreground hover:text-foreground"
                 >
                   <History size={13} />
                   Dashboard
                 </a>
                 <button
                   onClick={() => { handleSignOut(); setMobileOpen(false); }}
-                  className="block py-3 font-mono text-sm text-muted-foreground hover:text-foreground w-full text-left"
+                  className="block py-3 text-sm text-muted-foreground hover:text-foreground w-full text-left"
                 >
                   Sign Out
                 </button>
@@ -196,7 +190,7 @@ const Navbar = () => {
               <a
                 href="/auth"
                 onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/auth"); }}
-                className="flex items-center gap-2 py-3 font-mono text-sm text-muted-foreground hover:text-foreground"
+                className="flex items-center gap-2 py-3 text-sm text-muted-foreground hover:text-foreground"
               >
                 <User size={13} />
                 Sign In
@@ -204,7 +198,7 @@ const Navbar = () => {
             )}
             <button
               onClick={() => { setMobileOpen(false); navigate("/simulate"); }}
-              className="flex items-center justify-center gap-2 mt-2 font-mono text-sm bg-primary text-primary-foreground px-4 py-2.5 rounded-sm text-center w-full"
+              className="flex items-center justify-center gap-2 mt-2 text-sm bg-primary text-primary-foreground px-4 py-2.5 rounded-full text-center w-full"
             >
               <Sparkles size={14} />
               Simulate Your Idea

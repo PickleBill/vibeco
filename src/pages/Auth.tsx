@@ -67,7 +67,7 @@ const Auth = () => {
       <div className="w-full max-w-sm">
         <button
           onClick={() => navigate("/")}
-          className="font-mono text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mb-8 transition-colors"
+          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mb-8 transition-colors"
         >
           <ArrowLeft size={12} /> Back to home
         </button>
@@ -75,7 +75,7 @@ const Auth = () => {
         <h1 className="font-display text-2xl font-black text-foreground mb-1">
           {isLogin ? "Welcome back." : "Create your account."}
         </h1>
-        <p className="font-mono text-sm text-muted-foreground mb-8">
+        <p className="text-sm text-muted-foreground mb-8">
           {isLogin
             ? "Sign in to save your simulator sessions."
             : "Sign up to save and revisit your ideas."}
@@ -85,7 +85,7 @@ const Auth = () => {
         <div className="space-y-3 mb-6">
           <Button
             variant="outline"
-            className="w-full font-mono text-sm h-11 gap-2"
+            className="w-full text-sm h-11 gap-2"
             onClick={handleGoogle}
           >
             <svg viewBox="0 0 24 24" className="w-4 h-4">
@@ -110,7 +110,7 @@ const Auth = () => {
           </Button>
           <Button
             variant="outline"
-            className="w-full font-mono text-sm h-11 gap-2"
+            className="w-full text-sm h-11 gap-2"
             onClick={handleApple}
           >
             <svg viewBox="0 0 24 24" className="w-4 h-4 fill-foreground">
@@ -123,14 +123,14 @@ const Auth = () => {
         {/* Divider */}
         <div className="flex items-center gap-3 mb-6">
           <div className="flex-1 h-px bg-border" />
-          <span className="font-mono text-xs text-muted-foreground">or</span>
+          <span className="text-xs text-muted-foreground">or</span>
           <div className="flex-1 h-px bg-border" />
         </div>
 
         {/* Email form */}
         <form onSubmit={handleEmailAuth} className="space-y-4">
           <div>
-            <Label htmlFor="email" className="font-mono text-xs">
+            <Label htmlFor="email" className="text-xs">
               Email
             </Label>
             <Input
@@ -139,12 +139,12 @@ const Auth = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="font-mono text-sm mt-1"
+              className="text-sm mt-1"
               placeholder="you@example.com"
             />
           </div>
           <div>
-            <Label htmlFor="password" className="font-mono text-xs">
+            <Label htmlFor="password" className="text-xs">
               Password
             </Label>
             <Input
@@ -154,14 +154,14 @@ const Auth = () => {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="font-mono text-sm mt-1"
+              className="text-sm mt-1"
               placeholder="••••••••"
             />
           </div>
           <Button
             type="submit"
             disabled={loading}
-            className="w-full font-mono text-sm h-11 gap-2"
+            className="w-full text-sm h-11 gap-2"
           >
             <Mail size={14} />
             {loading
@@ -172,7 +172,7 @@ const Auth = () => {
           </Button>
         </form>
 
-        <p className="font-mono text-xs text-muted-foreground text-center mt-6">
+        <p className="text-xs text-muted-foreground text-center mt-6">
           {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
           <button
             onClick={() => setIsLogin(!isLogin)}

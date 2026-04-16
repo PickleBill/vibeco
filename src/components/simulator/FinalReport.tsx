@@ -95,7 +95,7 @@ const SortableFeature = ({ feat, index, id }: { feat: { name: string; descriptio
       <button {...attributes} {...listeners} className="mt-1.5 cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-primary transition-colors touch-none">
         <GripVertical size={14} />
       </button>
-      <p className="font-mono text-base text-foreground/90 leading-relaxed">
+      <p className="text-base text-foreground/90 leading-relaxed">
         <span className="text-primary font-bold">{index + 1}.</span>{" "}
         <span className="font-semibold">{feat.name}</span> — {feat.description}
       </p>
@@ -433,7 +433,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
       <div className="flex items-center gap-1.5 ml-auto">
         <button
           onClick={() => onToggle(key)}
-          className={`flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-[10px] transition-all ${
+          className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] transition-all ${
             isHighlighted
               ? "bg-primary/20 border border-primary/40 text-primary"
               : "border border-border/50 text-muted-foreground hover:border-primary/30 hover:text-primary/80"
@@ -445,7 +445,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
         {onAntiToggle && (
           <button
             onClick={() => onAntiToggle(key)}
-            className={`flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-[10px] transition-all ${
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] transition-all ${
               isAntiHighlighted
                 ? "bg-destructive/15 border border-destructive/40 text-destructive"
                 : "border border-border/50 text-muted-foreground hover:border-destructive/30 hover:text-destructive/80"
@@ -469,7 +469,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
       <button
         onClick={() => onDive(key)}
         disabled={isLoadingThis}
-        className={`flex items-center gap-1.5 font-mono text-xs transition-colors px-2 py-1 rounded disabled:opacity-50 ${
+        className={`flex items-center gap-1.5 text-xs transition-colors px-2 py-1 rounded disabled:opacity-50 ${
           isHighlighted
             ? "text-primary hover:bg-primary/10 font-semibold"
             : "text-muted-foreground hover:text-primary hover:bg-muted/30"
@@ -512,10 +512,10 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
               <div className="prose prose-sm prose-invert max-w-none py-2">
                 <ReactMarkdown
                   components={{
-                    p: ({ children }) => <p className="font-mono text-sm text-foreground/80 leading-relaxed mb-2">{children}</p>,
+                    p: ({ children }) => <p className="text-sm text-foreground/80 leading-relaxed mb-2">{children}</p>,
                     ul: ({ children }) => <ul className="space-y-1.5 mb-2">{children}</ul>,
                     li: ({ children }) => (
-                      <li className="font-mono text-sm text-foreground/80 leading-relaxed flex gap-2">
+                      <li className="text-sm text-foreground/80 leading-relaxed flex gap-2">
                         <span className="text-primary mt-0.5 shrink-0">•</span>
                         <span>{children}</span>
                       </li>
@@ -542,7 +542,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
         className="flex items-center gap-3 mb-6"
       >
         <div className="h-px flex-1 bg-border/30" />
-        <p className="font-mono text-[10px] text-primary uppercase tracking-[0.3em]">
+        <p className="text-[10px] text-primary uppercase tracking-[0.3em]">
           Simulation Complete · {rounds.length} round{rounds.length !== 1 ? "s" : ""}
         </p>
         <div className="h-px flex-1 bg-border/30" />
@@ -559,7 +559,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <div className="flex-1">
               <p className="font-display text-sm font-bold text-foreground">Save your report & unlock the prompt</p>
-              <p className="font-mono text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Get your shareable link, PDF download, and one-shot Lovable prompt.
               </p>
             </div>
@@ -569,12 +569,12 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
                 placeholder="your@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 sm:w-52 px-3 py-2 rounded-sm bg-background border border-border font-mono text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
+                className="flex-1 sm:w-52 px-3 py-2 rounded-sm bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
               />
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex items-center gap-2 bg-primary text-primary-foreground font-mono text-sm px-4 py-2 rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50 whitespace-nowrap"
+                className="flex items-center gap-2 bg-primary text-primary-foreground text-sm px-4 py-2 rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50 whitespace-nowrap"
               >
                 <Mail size={14} />
                 {isSubmitting ? "..." : "Unlock"}
@@ -596,14 +596,14 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
             <button
               onClick={handleDownloadPDF}
               disabled={isExporting}
-              className="flex items-center gap-2 font-mono text-xs px-4 py-2 rounded-sm border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 text-xs px-4 py-2 rounded-sm border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors disabled:opacity-50"
             >
               <Download size={14} />
               {isExporting ? "Generating..." : "Download PDF"}
             </button>
             <button
               onClick={handleShareReport}
-              className="flex items-center gap-2 font-mono text-xs px-4 py-2 rounded-sm border border-primary/40 text-primary hover:bg-primary/10 transition-colors"
+              className="flex items-center gap-2 text-xs px-4 py-2 rounded-sm border border-primary/40 text-primary hover:bg-primary/10 transition-colors"
             >
               {shareCopied ? <Check size={14} /> : <Share2 size={14} />}
               {shareCopied ? "Link Copied!" : "Share Report"}
@@ -626,7 +626,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
                 </div>
               </motion.div>
             )}
-            <p className="font-mono text-xs text-primary uppercase tracking-widest mb-1">VibeCo AI Report</p>
+            <p className="text-xs text-primary uppercase tracking-widest mb-1">VibeCo AI Report</p>
             <h3 className="font-display text-xl font-bold text-foreground">
               {idea.slice(0, 60)}{idea.length > 60 ? "..." : ""}
             </h3>
@@ -638,7 +638,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
                 <img src={conceptImage} alt="Product concept" className="w-full h-48 sm:h-64 object-cover" />
                 <div className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-1 rounded bg-background/80 backdrop-blur-sm">
                   <ImageIcon size={10} className="text-primary" />
-                  <span className="font-mono text-[10px] text-muted-foreground">Product Vision</span>
+                  <span className="text-[10px] text-muted-foreground">Product Vision</span>
                 </div>
               </div>
             </div>
@@ -664,13 +664,13 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
                   {brief.scale_assessment.fits_intent ? "✓" : "⚖️"}
                 </div>
                 <div>
-                  <p className={`font-mono text-xs font-bold ${
+                  <p className={`text-xs font-bold ${
                     brief.scale_assessment.fits_intent ? "text-primary" : "text-yellow-500"
                   }`}>
                     Scale: {brief.scale_assessment.current_scale.charAt(0).toUpperCase() + brief.scale_assessment.current_scale.slice(1)}
                     {brief.scale_assessment.fits_intent ? " — matches your intent" : " — might not match your intent"}
                   </p>
-                  <p className="font-mono text-xs text-muted-foreground mt-1 leading-relaxed">
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                     {brief.scale_assessment.recommendation}
                   </p>
                 </div>
@@ -681,7 +681,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
           {/* Builder intent badge */}
           {brief.builder_intent && (
             <div className="flex justify-center mb-4">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 font-mono text-[11px] text-accent">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-[11px] text-accent">
                 Building for: {
                   brief.builder_intent === 'experiment' ? '🧪 Quick experiment' :
                   brief.builder_intent === 'community' ? '👥 Community project' :
@@ -743,7 +743,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
                       ) : (
                         <div className="grid gap-3">
                           {(value as BriefData["core_features"]).map((feat, fi) => (
-                            <p key={fi} className="font-mono text-base text-foreground/90 leading-relaxed">
+                            <p key={fi} className="text-base text-foreground/90 leading-relaxed">
                               <span className="text-primary font-bold">{fi + 1}.</span>{" "}
                               <span className="font-semibold">{feat.name}</span> — {feat.description}
                             </p>
@@ -751,13 +751,13 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
                         </div>
                       )}
                       {onReorderFeatures && (
-                        <p className="font-mono text-[10px] text-muted-foreground/50 mt-3">
+                        <p className="text-[10px] text-muted-foreground/50 mt-3">
                           Drag to reorder by priority · #1 gets hero placement in your Lovable prompt
                         </p>
                       )}
                     </div>
                   ) : (
-                    <p className={`font-mono text-foreground/90 leading-relaxed ${isHero ? "text-base sm:text-lg" : "text-base"}`}>
+                    <p className={`text-foreground/90 leading-relaxed ${isHero ? "text-base sm:text-lg" : "text-base"}`}>
                       {typeof value === "string" ? value : ""}
                     </p>
                   )}
@@ -802,7 +802,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
                         {renderHighlightToggles(section.key, isHighlighted, isAntiHighlighted, onToggleHighlight, onToggleAntiHighlight)}
                       </div>
 
-                      <p className="font-mono text-sm text-foreground/80 leading-relaxed ml-5">
+                      <p className="text-sm text-foreground/80 leading-relaxed ml-5">
                         {typeof value === "string" ? value : ""}
                       </p>
 
@@ -838,26 +838,26 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
             {highlights && highlights.size > 0 && (
               <div className="flex items-center gap-2 mb-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20">
                 <Sparkles size={12} className="text-primary fill-primary" />
-                <span className="font-mono text-xs text-primary">
+                <span className="text-xs text-primary">
                   Personalized based on {highlights.size} area{highlights.size > 1 ? "s" : ""} you highlighted
                 </span>
               </div>
             )}
             <div className="border border-border/30 rounded-lg overflow-hidden">
               <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/20">
-                <span className="font-mono text-xs text-muted-foreground uppercase tracking-wider">
+                <span className="text-xs text-muted-foreground uppercase tracking-wider">
                   Your Lovable Prompt — paste into Lovable to build your app
                 </span>
                 <button
                   onClick={handleCopyPromptWithHighlights}
-                  className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-muted/50"
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-muted/50"
                 >
                   {copied ? <Check size={12} className="text-primary" /> : <Copy size={12} />}
                   {copied ? "Copied" : highlights && highlights.size > 0 ? "Copy + highlights" : "Copy"}
                 </button>
               </div>
               <div className="p-4 max-h-48 overflow-y-auto">
-                <pre className="font-mono text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                <pre className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
                   {lovablePrompt}
                 </pre>
               </div>
@@ -879,14 +879,14 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
         <div className="flex flex-wrap gap-4 justify-center mt-6">
           <button
             onClick={onRestart}
-            className="flex items-center gap-2 font-mono text-xs text-muted-foreground/50 px-4 py-2 rounded-sm hover:text-muted-foreground transition-colors"
+            className="flex items-center gap-2 text-xs text-muted-foreground/50 px-4 py-2 rounded-sm hover:text-muted-foreground transition-colors"
           >
             <RotateCcw size={12} />
             Start fresh
           </button>
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-2 font-mono text-xs text-muted-foreground/50 px-4 py-2 rounded-sm hover:text-muted-foreground transition-colors"
+            className="flex items-center gap-2 text-xs text-muted-foreground/50 px-4 py-2 rounded-sm hover:text-muted-foreground transition-colors"
           >
             <ArrowLeft size={12} />
             Home

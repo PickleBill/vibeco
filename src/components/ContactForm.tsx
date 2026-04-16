@@ -65,7 +65,7 @@ const ContactForm = () => {
   };
 
   const inputClass =
-    "w-full bg-secondary border border-border rounded-sm px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors";
+    "w-full bg-secondary border border-border rounded-full px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors";
 
   return (
     <section id="contact" className="py-32 border-t border-border">
@@ -75,7 +75,7 @@ const ContactForm = () => {
             <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-4">
               Got something worth building?
             </h2>
-            <p className="font-mono text-sm text-muted-foreground leading-relaxed mb-10">
+            <p className="text-sm text-muted-foreground leading-relaxed mb-10">
               Most ideas get a reply within 24 hours.
             </p>
           </FadeIn>
@@ -83,16 +83,16 @@ const ContactForm = () => {
           {submitted ? (
             <FadeIn>
               <div className="text-center py-16">
-                <p className="font-mono text-primary text-sm tracking-widest uppercase mb-4">✦ Received.</p>
+                <p className="text-primary text-sm tracking-widest uppercase mb-4">✦ Received.</p>
                 <h3 className="font-display text-3xl font-black text-foreground mb-4">
                   We'll be in touch within 24 hours.
                 </h3>
-                <p className="font-mono text-sm text-muted-foreground mb-8">
+                <p className="text-sm text-muted-foreground mb-8">
                   Try the simulator while you wait — see your idea take shape.
                 </p>
                 <button
                   onClick={() => navigate("/simulate")}
-                  className="font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity"
+                  className="text-sm bg-primary text-primary-foreground px-6 py-3 rounded-full hover:opacity-90 transition-opacity"
                 >
                   ✦ Test Your Idea
                 </button>
@@ -134,7 +134,7 @@ const ContactForm = () => {
 
                 {/* Structure selector */}
                 <div>
-                  <label className="font-mono text-sm text-muted-foreground mb-3 flex items-center gap-1.5">
+                  <label className="text-sm text-muted-foreground mb-3 flex items-center gap-1.5">
                     Preferred partnership structure
                     <Info size={14} className="text-primary/50" />
                   </label>
@@ -147,9 +147,9 @@ const ContactForm = () => {
                           setActiveStructure(i);
                           update("structure", s.value);
                         }}
-                        className={`relative font-mono text-xs px-3 py-2.5 rounded-sm border transition-all duration-300 text-center ${
+                        className={`relative text-xs px-3 py-2.5 rounded-full border transition-all duration-300 text-center ${
                           activeStructure === i
-                            ? "border-primary/50 bg-primary/10 text-primary glow-accent-subtle"
+                            ? "border-primary/50 bg-primary/10 text-primary shadow-warm"
                             : "border-border bg-secondary text-muted-foreground hover:border-primary/30 hover:text-foreground"
                         }`}
                       >
@@ -157,8 +157,8 @@ const ContactForm = () => {
                       </button>
                     ))}
                   </div>
-                  <div className="mt-3 p-3 bg-secondary/50 border border-border rounded-sm">
-                    <p className="font-mono text-xs text-foreground/70 leading-relaxed">
+                  <div className="mt-3 p-3 bg-secondary/50 border border-border rounded-full">
+                    <p className="text-xs text-foreground/70 leading-relaxed">
                       {structures[activeStructure].desc}
                     </p>
                   </div>
@@ -167,7 +167,7 @@ const ContactForm = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`w-full font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 hover:glow-accent transition-all duration-300 disabled:opacity-50 ${isSubmitting ? "animate-pulse" : ""}`}
+                  className={`w-full text-sm bg-primary text-primary-foreground px-6 py-3 rounded-full hover:opacity-90 hover:shadow-warm-lg transition-all duration-300 disabled:opacity-50 ${isSubmitting ? "animate-pulse" : ""}`}
                 >
                   {isSubmitting ? "Sending..." : "Send Idea →"}
                 </button>

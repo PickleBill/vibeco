@@ -115,10 +115,10 @@ const ProjectShowcase = () => {
           <div className="max-w-2xl">
             <FadeIn>
               <div className="flex items-center gap-3 mb-4">
-                <p className="font-mono text-xs text-primary tracking-[0.3em] uppercase">
+                <p className="text-xs text-primary tracking-[0.3em] uppercase">
                   Live Builds
                 </p>
-                <span className="font-mono text-xs text-primary border border-primary/20 rounded-full px-3 py-1 bg-primary/5">
+                <span className="text-xs text-primary border border-primary/20 rounded-full px-3 py-1 bg-primary/5">
                   {projects.length} live builds
                 </span>
               </div>
@@ -127,7 +127,7 @@ const ProjectShowcase = () => {
               </h2>
             </FadeIn>
             <FadeIn delay={0.1}>
-              <p className="font-mono text-sm text-muted-foreground leading-relaxed">
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 Every project below went from conversation to live product — most in under 48 hours.
               </p>
             </FadeIn>
@@ -135,7 +135,7 @@ const ProjectShowcase = () => {
           <FadeIn delay={0.15}>
             <button
               onClick={() => navigate("/simulate")}
-              className="flex items-center gap-2 font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity whitespace-nowrap"
+              className="flex items-center gap-2 text-sm bg-primary text-primary-foreground px-6 py-3 rounded-full hover:opacity-90 transition-opacity whitespace-nowrap"
             >
               <Sparkles size={14} />
               Test Your Idea
@@ -179,9 +179,9 @@ const ProjectShowcase = () => {
                       e.currentTarget.parentElement!.appendChild(badge);
                     }}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <div className="absolute top-3 left-3">
-                    <span className="font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full bg-background/80 backdrop-blur-sm text-primary border border-primary/20">
+                    <span className="text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full bg-background/80 backdrop-blur-sm text-primary border border-primary/20">
                       {project.category}
                     </span>
                   </div>
@@ -198,7 +198,7 @@ const ProjectShowcase = () => {
                       className="text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0"
                     />
                   </div>
-                  <p className="font-mono text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
                     {project.desc}
                   </p>
                 </div>

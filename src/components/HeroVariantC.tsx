@@ -39,7 +39,7 @@ const Hero = () => {
         <div className="grid lg:grid-cols-2 gap-16 lg:gap-12 items-center">
           <div>
             <motion.p
-              className="font-mono text-sm text-primary uppercase tracking-widest mb-6"
+              className="text-sm text-primary uppercase tracking-widest mb-6"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.5 }}
@@ -49,7 +49,7 @@ const Hero = () => {
 
             {/* Blur-to-sharp headline */}
             <motion.h1
-              className="font-display font-black text-foreground leading-[1.05] mb-1 scan-line"
+              className="font-display font-black text-foreground leading-[1.05] mb-1 "
               style={{ fontSize: "clamp(2.75rem, 4vw + 1.5rem, 4.25rem)" }}
               initial={{ opacity: 0, filter: "blur(8px)" }}
               animate={{ opacity: 1, filter: "blur(0px)" }}
@@ -68,7 +68,7 @@ const Hero = () => {
             </motion.h1>
 
             <motion.p
-              className="font-mono text-base text-foreground/80 leading-relaxed mb-4 max-w-lg mt-5"
+              className="text-base text-foreground/80 leading-relaxed mb-4 max-w-lg mt-5"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 1.3 }}
@@ -86,13 +86,13 @@ const Hero = () => {
             >
               <button
                 onClick={() => navigate("/simulate")}
-                className="font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity inline-flex items-center gap-2"
+                className="text-sm bg-primary text-primary-foreground px-6 py-3 rounded-full hover:opacity-90 transition-opacity inline-flex items-center gap-2"
               >
                 Test Your Idea
               </button>
               <button
                 onClick={() => document.querySelector("#contact")?.scrollIntoView({ behavior: "smooth" })}
-                className="font-mono text-sm border border-border text-foreground px-6 py-3 rounded-sm hover:border-primary/50 hover:text-primary transition-colors"
+                className="text-sm border border-border text-foreground px-6 py-3 rounded-full hover:border-primary/50 hover:text-primary transition-colors"
               >
                 Talk to Us
               </button>
@@ -100,7 +100,7 @@ const Hero = () => {
 
             <motion.button
               onClick={() => document.querySelector("#projects")?.scrollIntoView({ behavior: "smooth" })}
-              className="font-mono text-xs text-muted-foreground hover:text-primary transition-colors mt-3"
+              className="text-xs text-muted-foreground hover:text-primary transition-colors mt-3"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 1.9 }}
@@ -122,7 +122,7 @@ const Hero = () => {
               ].map((s) => (
                 <div key={s.label} className="text-center">
                   <p className="font-display text-xl font-black text-primary">{s.value}</p>
-                  <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-wide">{s.label}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{s.label}</p>
                 </div>
               ))}
             </motion.div>
@@ -172,35 +172,35 @@ function StaticHero({ navigate }: { navigate: ReturnType<typeof useNavigate> }) 
       <div className="max-w-7xl mx-auto px-6 lg:px-12 w-full">
         <div className="grid lg:grid-cols-2 gap-16 lg:gap-12 items-center">
           <div>
-            <p className="font-mono text-sm text-primary uppercase tracking-widest mb-6">
+            <p className="text-sm text-primary uppercase tracking-widest mb-6">
               idea → product → revenue
             </p>
-            <h1 className="font-display font-black text-foreground leading-[1.05] mb-6 scan-line" style={{ fontSize: "clamp(2.75rem, 4vw + 1.5rem, 4.25rem)" }}>
+            <h1 className="font-display font-black text-foreground leading-[1.05] mb-6 " style={{ fontSize: "clamp(2.75rem, 4vw + 1.5rem, 4.25rem)" }}>
               One conversation.
               <br />
               <span className="text-primary">One live product.</span>
             </h1>
-            <p className="font-mono text-base text-foreground/80 leading-relaxed mb-4 max-w-lg">
+            <p className="text-base text-foreground/80 leading-relaxed mb-4 max-w-lg">
               Tell us what you need. We ship a working product — not a
               pitch deck. Most go live the same day.
             </p>
             <div className="flex flex-wrap gap-4">
               <button
                 onClick={() => navigate("/simulate")}
-                className="font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity inline-flex items-center gap-2"
+                className="text-sm bg-primary text-primary-foreground px-6 py-3 rounded-full hover:opacity-90 transition-opacity inline-flex items-center gap-2"
               >
                 Test Your Idea
               </button>
               <button
                 onClick={() => document.querySelector("#contact")?.scrollIntoView({ behavior: "smooth" })}
-                className="font-mono text-sm border border-border text-foreground px-6 py-3 rounded-sm hover:border-primary/50 hover:text-primary transition-colors"
+                className="text-sm border border-border text-foreground px-6 py-3 rounded-full hover:border-primary/50 hover:text-primary transition-colors"
               >
                 Talk to Us
               </button>
             </div>
             <button
               onClick={() => document.querySelector("#projects")?.scrollIntoView({ behavior: "smooth" })}
-              className="font-mono text-xs text-muted-foreground hover:text-primary transition-colors mt-3"
+              className="text-xs text-muted-foreground hover:text-primary transition-colors mt-3"
             >
               ↓ See our builds
             </button>

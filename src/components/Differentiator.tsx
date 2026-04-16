@@ -43,7 +43,7 @@ const Differentiator = () => {
               <div
                 className={`relative bg-card border rounded-lg p-8 transition-all duration-500 overflow-hidden ${
                   hoveredIndex === i
-                    ? "border-primary/50 glow-accent-subtle scale-[1.01]"
+                    ? "border-primary/50 shadow-warm scale-[1.01]"
                     : "border-border hover:border-primary/30"
                 }`}
                 onMouseEnter={() => setHoveredIndex(i)}
@@ -54,7 +54,7 @@ const Differentiator = () => {
                     hoveredIndex === i ? "opacity-100" : "opacity-0"
                   }`}
                   style={{
-                    background: "radial-gradient(circle, hsl(243 76% 58% / 0.2), transparent)",
+                    background: "radial-gradient(circle, hsl(var(--primary) / 0.06), transparent)",
                   }}
                 />
                 <motion.div
@@ -71,7 +71,7 @@ const Differentiator = () => {
                 <h3 className="font-display text-lg font-bold text-foreground mb-2">
                   {d.title}
                 </h3>
-                <p className="font-mono text-sm text-foreground/80 leading-relaxed">
+                <p className="text-sm text-foreground/80 leading-relaxed">
                   {d.desc}
                 </p>
               </div>

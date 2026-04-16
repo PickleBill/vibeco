@@ -173,14 +173,14 @@ const ActionHub = ({ brief, idea, lovablePrompt, reportId, onIterate }: Props) =
         <h3 className="font-display text-sm font-semibold text-foreground">
           What's Next?
         </h3>
-        <span className="font-mono text-[10px] text-muted-foreground">
+        <span className="text-[10px] text-muted-foreground">
           {actions.length} actions available
         </span>
       </div>
 
       {scaleAssessment && !scaleAssessment.fits_intent && (
         <div className="px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/20">
-          <p className="font-mono text-xs text-amber-400">
+          <p className="text-xs text-amber-400">
             ⚠ {scaleAssessment.recommendation}
           </p>
         </div>
@@ -211,10 +211,10 @@ const ActionHub = ({ brief, idea, lovablePrompt, reportId, onIterate }: Props) =
                   <Icon size={16} className={`${action.iconClass} shrink-0`} />
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="font-mono text-xs font-medium text-foreground">
+                  <p className="text-xs font-medium text-foreground">
                     {action.label}
                   </p>
-                  <p className="font-mono text-[10px] text-muted-foreground truncate">
+                  <p className="text-[10px] text-muted-foreground truncate">
                     {isGenerating ? "Generating..." : action.description}
                   </p>
                 </div>
@@ -236,12 +236,12 @@ const ActionHub = ({ brief, idea, lovablePrompt, reportId, onIterate }: Props) =
                   >
                     <div className="mt-1 p-3 rounded-lg bg-muted/20 border border-border/20">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
                           {promptData.platform} prompt
                         </span>
                         <button
                           onClick={() => handleCopy(promptData.prompt, action.id)}
-                          className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                          className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
                         >
                           {copiedAction === action.id ? (
                             <Check size={10} className="text-primary" />
@@ -251,11 +251,11 @@ const ActionHub = ({ brief, idea, lovablePrompt, reportId, onIterate }: Props) =
                           {copiedAction === action.id ? "Copied" : "Copy"}
                         </button>
                       </div>
-                      <p className="font-mono text-[10px] text-muted-foreground mb-2">
+                      <p className="text-[10px] text-muted-foreground mb-2">
                         {promptData.description}
                       </p>
                       <div className="max-h-32 overflow-y-auto">
-                        <pre className="font-mono text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed">
+                        <pre className="text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed">
                           {promptData.prompt}
                         </pre>
                       </div>

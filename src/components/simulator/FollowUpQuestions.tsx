@@ -78,7 +78,7 @@ const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, roun
         <h3 className="font-display text-lg sm:text-xl font-bold text-foreground mb-1">
           Sharpen your analysis <span className="text-muted-foreground font-normal">(optional)</span>
         </h3>
-        <p className="font-mono text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Answer any question, write your own take, or skip ahead.
         </p>
       </div>
@@ -104,13 +104,13 @@ const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, roun
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
                   isAnswered ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                 }`}>
-                  {isAnswered ? <CheckCircle2 size={14} /> : <span className="font-mono text-[10px] font-bold">{qi + 1}</span>}
+                  {isAnswered ? <CheckCircle2 size={14} /> : <span className="text-[10px] font-bold">{qi + 1}</span>}
                 </div>
                 <div>
-                  <p className="font-mono text-sm text-foreground font-medium leading-snug">
+                  <p className="text-sm text-foreground font-medium leading-snug">
                     {q.question}
                   </p>
-                  <span className="font-mono text-[10px] text-muted-foreground/60 mt-1 inline-block">
+                  <span className="text-[10px] text-muted-foreground/60 mt-1 inline-block">
                     {q.allow_multiple ? "Select any that apply, write your own, or both" : "Pick what fits, write your own, or both"}
                   </span>
                 </div>
@@ -126,7 +126,7 @@ const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, roun
                       onClick={() => toggleOption(qi, opt.label, q.allow_multiple)}
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.98 }}
-                      className={`relative text-left px-4 py-3.5 rounded-lg font-mono text-sm transition-all duration-200 border ${
+                      className={`relative text-left px-4 py-3.5 rounded-lg text-sm transition-all duration-200 border ${
                         isSelected
                           ? "bg-primary/15 border-primary/50 text-foreground shadow-sm"
                           : "bg-background/50 border-border/40 text-muted-foreground hover:border-primary/25 hover:text-foreground hover:bg-card/60"
@@ -157,7 +157,7 @@ const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, roun
                         animate={{ opacity: 1, scale: 1 }}
                         type="button"
                         onClick={() => onToggleHighlight(highlightKey)}
-                        className={`col-span-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-mono text-[10px] transition-all duration-200 border ${
+                        className={`col-span-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10px] transition-all duration-200 border ${
                           isHighlighted
                             ? "bg-primary/15 border-primary/40 text-primary"
                             : "bg-muted/20 border-border/30 text-muted-foreground/50 hover:text-primary hover:border-primary/25"
@@ -177,10 +177,10 @@ const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, roun
                   placeholder="Add your own thoughts (counts as your answer with or without selecting above)..."
                   value={answers[qi]?.freeText || ""}
                   onChange={(e) => setFreeText(qi, e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-md bg-background/50 border border-border/30 font-mono text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 focus:bg-background/80 transition-colors resize-none"
+                  className="w-full px-3 py-2.5 rounded-md bg-background/50 border border-border/30 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 focus:bg-background/80 transition-colors resize-none"
                 />
                 {hasFreeText && (
-                  <p className="font-mono text-[10px] text-primary mt-1">
+                  <p className="text-[10px] text-primary mt-1">
                     ✓ Your input will be included
                   </p>
                 )}
@@ -195,7 +195,7 @@ const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, roun
         <motion.button
           onClick={handleRefine}
           disabled={!hasAnyAnswer || isLoading}
-          className={`flex-1 flex items-center justify-center gap-2 font-mono text-sm font-bold px-5 py-3.5 rounded-md transition-all duration-300 ${
+          className={`flex-1 flex items-center justify-center gap-2 text-sm font-bold px-5 py-3.5 rounded-md transition-all duration-300 ${
             hasAnyAnswer
               ? "bg-primary text-primary-foreground hover:opacity-90 shadow-lg"
               : "bg-muted text-muted-foreground/50 cursor-not-allowed"
@@ -211,7 +211,7 @@ const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, roun
         <motion.button
           onClick={handleGenerateNow}
           disabled={isLoading}
-          className="flex-1 flex items-center justify-center gap-2 font-mono text-sm px-5 py-3.5 rounded-md border border-border/40 text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-primary/5 transition-all"
+          className="flex-1 flex items-center justify-center gap-2 text-sm px-5 py-3.5 rounded-md border border-border/40 text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-primary/5 transition-all"
           whileHover={{ scale: 1.01 }}
           whileTap={{ scale: 0.99 }}
         >
@@ -221,7 +221,7 @@ const FollowUpQuestions = ({ questions, onSubmit, onSkipToFinal, isLoading, roun
       </div>
 
       {depthRecommendation === "ready" && (
-        <p className="font-mono text-[10px] text-primary/70 text-center mt-3">
+        <p className="text-[10px] text-primary/70 text-center mt-3">
           ✦ Strong signal — your report will be solid. Skip ahead anytime.
         </p>
       )}

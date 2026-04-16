@@ -110,7 +110,7 @@ const ComparePanel = ({ ideas, onClose }: { ideas: IdeaReport[]; onClose: () => 
           {[a, b].map((idea) => (
             <div key={idea.id} className="p-4 rounded-lg border border-border bg-card/50">
               <p className="font-display text-sm font-bold text-foreground truncate">{idea.idea.slice(0, 60)}</p>
-              <p className="font-mono text-[10px] text-muted-foreground mt-1">
+              <p className="text-[10px] text-muted-foreground mt-1">
                 {new Date(idea.created_at).toLocaleDateString()}
               </p>
             </div>
@@ -121,10 +121,10 @@ const ComparePanel = ({ ideas, onClose }: { ideas: IdeaReport[]; onClose: () => 
             <div key={key} className="contents">
               {[a, b].map((idea) => (
                 <div key={`${idea.id}-${key}`} className="p-4 rounded-lg border border-border/30">
-                  <p className="font-mono text-[10px] text-primary uppercase tracking-wider mb-2">
+                  <p className="text-[10px] text-primary uppercase tracking-wider mb-2">
                     {sectionLabels[key]}
                   </p>
-                  <p className="font-mono text-xs text-foreground/80 leading-relaxed">
+                  <p className="text-xs text-foreground/80 leading-relaxed">
                     {idea.brief?.[key] || "—"}
                   </p>
                 </div>
@@ -135,17 +135,17 @@ const ComparePanel = ({ ideas, onClose }: { ideas: IdeaReport[]; onClose: () => 
           {/* Feature count */}
           {[a, b].map((idea) => (
             <div key={`${idea.id}-features`} className="p-4 rounded-lg border border-border/30">
-              <p className="font-mono text-[10px] text-primary uppercase tracking-wider mb-2">Core Features</p>
+              <p className="text-[10px] text-primary uppercase tracking-wider mb-2">Core Features</p>
               {Array.isArray(idea.brief?.core_features) ? (
                 <ul className="space-y-1">
                   {idea.brief.core_features.map((f: any, i: number) => (
-                    <li key={i} className="font-mono text-xs text-foreground/80">
+                    <li key={i} className="text-xs text-foreground/80">
                       <span className="text-primary font-bold">{i + 1}.</span> {f.name}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="font-mono text-xs text-muted-foreground">—</p>
+                <p className="text-xs text-muted-foreground">—</p>
               )}
             </div>
           ))}
@@ -153,8 +153,8 @@ const ComparePanel = ({ ideas, onClose }: { ideas: IdeaReport[]; onClose: () => 
           {/* Thesis */}
           {[a, b].map((idea) => (
             <div key={`${idea.id}-thesis`} className="p-4 rounded-lg border border-primary/20 bg-primary/5">
-              <p className="font-mono text-[10px] text-primary uppercase tracking-wider mb-2">Thesis</p>
-              <p className="font-mono text-xs text-foreground/80 italic leading-relaxed">
+              <p className="text-[10px] text-primary uppercase tracking-wider mb-2">Thesis</p>
+              <p className="text-xs text-foreground/80 italic leading-relaxed">
                 {idea.thesis_statement || "Not yet generated"}
               </p>
             </div>
@@ -235,24 +235,24 @@ const IdeaCard = ({
               <h3 className="font-display text-sm font-bold text-foreground truncate">
                 {productName}
               </h3>
-              <span className={`shrink-0 font-mono text-[10px] px-2 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
+              <span className={`shrink-0 text-[10px] px-2 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
                 {status.label}
               </span>
             </div>
 
             {/* Meta */}
             <div className="flex flex-wrap items-center gap-3">
-              <span className="font-mono text-[11px] text-muted-foreground flex items-center gap-1">
+              <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                 <Clock size={10} />
                 {new Date(report.created_at).toLocaleDateString()}
               </span>
               {intent && (
-                <span className="font-mono text-[11px] text-muted-foreground">
+                <span className="text-[11px] text-muted-foreground">
                   {intentEmoji[intent] || ""} {intent}
                 </span>
               )}
               {perspectiveCount > 0 && (
-                <span className="font-mono text-[11px] text-muted-foreground flex items-center gap-1">
+                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                   <Zap size={10} />
                   {perspectiveCount}/5
                 </span>
@@ -269,12 +269,12 @@ const IdeaCard = ({
                   transition={{ duration: 0.6, ease: "easeOut" }}
                 />
               </div>
-              <span className="font-mono text-[9px] text-muted-foreground">{progress}%</span>
+              <span className="text-[9px] text-muted-foreground">{progress}%</span>
             </div>
 
             {/* Thesis */}
             {report.thesis_statement && (
-              <p className="font-mono text-xs text-muted-foreground/70 mt-1.5 line-clamp-1 italic">
+              <p className="text-xs text-muted-foreground/70 mt-1.5 line-clamp-1 italic">
                 "{report.thesis_statement}"
               </p>
             )}
@@ -288,20 +288,20 @@ const IdeaCard = ({
           {report.lovable_prompt && (
             <button
               onClick={(e) => { e.stopPropagation(); onQuickAction("copy-prompt"); }}
-              className="flex items-center gap-1 font-mono text-[10px] px-2 py-1 rounded bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             >
               <Copy size={10} /> Copy Prompt
             </button>
           )}
           <button
             onClick={(e) => { e.stopPropagation(); onQuickAction("fork"); }}
-            className="flex items-center gap-1 font-mono text-[10px] px-2 py-1 rounded bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <GitBranch size={10} /> Fork
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onQuickAction("deep-dive"); }}
-            className="flex items-center gap-1 font-mono text-[10px] px-2 py-1 rounded bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <Zap size={10} /> Deep Dive
           </button>
@@ -472,7 +472,7 @@ const MySimulations = () => {
               <h1 className="font-display text-2xl sm:text-3xl font-black text-foreground">
                 Hey {firstName.charAt(0).toUpperCase() + firstName.slice(1)} 👋
               </h1>
-              <p className="font-mono text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 {reports.length > 0
                   ? `${reports.length} idea${reports.length !== 1 ? "s" : ""} in your lab`
                   : "Your ideas live here"}
@@ -480,7 +480,7 @@ const MySimulations = () => {
             </div>
             <button
               onClick={() => navigate("/simulate")}
-              className="flex items-center gap-2 font-mono text-sm font-bold px-5 py-2.5 rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+              className="flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
             >
               <Plus size={14} />
               New Simulation
@@ -492,7 +492,7 @@ const MySimulations = () => {
             {isAdmin && (
               <button
                 onClick={() => setShowAll(prev => !prev)}
-                className={`flex items-center gap-2 font-mono text-[11px] px-3 py-1.5 rounded-full border transition-all ${
+                className={`flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-full border transition-all ${
                   showAll
                     ? "border-purple-500/50 bg-purple-500/10 text-purple-400"
                     : "border-border bg-card text-muted-foreground"
@@ -507,7 +507,7 @@ const MySimulations = () => {
               <>
                 <button
                   onClick={() => setViewMode(prev => prev === "flat" ? "tree" : "flat")}
-                  className={`flex items-center gap-1.5 font-mono text-[11px] px-3 py-1.5 rounded-full border transition-all ${
+                  className={`flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-full border transition-all ${
                     viewMode === "tree"
                       ? "border-primary/40 bg-primary/10 text-primary"
                       : "border-border bg-card text-muted-foreground"
@@ -524,7 +524,7 @@ const MySimulations = () => {
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
                       onClick={() => setShowCompare(true)}
-                      className="flex items-center gap-1.5 font-mono text-[11px] px-3 py-1.5 rounded-full border border-accent/40 bg-accent/10 text-accent"
+                      className="flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-full border border-accent/40 bg-accent/10 text-accent"
                     >
                       <BarChart3 size={11} />
                       Compare selected
@@ -535,7 +535,7 @@ const MySimulations = () => {
             )}
 
             {isAdmin && (
-              <span className="font-mono text-[10px] text-muted-foreground ml-auto">
+              <span className="text-[10px] text-muted-foreground ml-auto">
                 Admin · {filteredReports.length} showing
               </span>
             )}
@@ -543,7 +543,7 @@ const MySimulations = () => {
 
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="animate-pulse font-mono text-sm text-muted-foreground">Loading your ideas...</div>
+              <div className="animate-pulse text-sm text-muted-foreground">Loading your ideas...</div>
             </div>
           ) : filteredReports.length === 0 ? (
             <div className="text-center py-16">
@@ -551,12 +551,12 @@ const MySimulations = () => {
                 <Sparkles size={24} className="text-primary" />
               </div>
               <h2 className="font-display text-xl font-bold text-foreground mb-2">No ideas yet</h2>
-              <p className="font-mono text-sm text-muted-foreground mb-8 max-w-sm mx-auto">
+              <p className="text-sm text-muted-foreground mb-8 max-w-sm mx-auto">
                 Run your first simulation to see your ideas come to life.
               </p>
               <button
                 onClick={() => navigate("/simulate")}
-                className="font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity inline-flex items-center gap-2"
+                className="text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity inline-flex items-center gap-2"
               >
                 <Sparkles size={14} />
                 Run Your First Simulation

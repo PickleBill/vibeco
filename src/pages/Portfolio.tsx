@@ -136,13 +136,13 @@ const Portfolio = () => {
                 Portfolio Command Center
               </h1>
             </div>
-            <p className="font-mono text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {projects.length} project{projects.length !== 1 ? "s" : ""} registered
             </p>
           </div>
           <Button
             onClick={() => { setEditing(null); setDialogOpen(true); }}
-            className="font-mono text-xs gap-2"
+            className="text-xs gap-2"
           >
             <Plus size={14} />
             Register Project
@@ -174,7 +174,7 @@ const Portfolio = () => {
         ) : filtered.length === 0 ? (
           <div className="text-center py-20">
             <FolderKanban size={40} className="mx-auto text-muted-foreground/30 mb-4" />
-            <p className="font-mono text-sm text-muted-foreground mb-2">
+            <p className="text-sm text-muted-foreground mb-2">
               {projects.length === 0
                 ? "No projects registered yet"
                 : "No projects match your filters"}
@@ -183,7 +183,7 @@ const Portfolio = () => {
               <Button
                 variant="outline"
                 size="sm"
-                className="font-mono text-xs mt-2"
+                className="text-xs mt-2"
                 onClick={() => setDialogOpen(true)}
               >
                 Register your first project

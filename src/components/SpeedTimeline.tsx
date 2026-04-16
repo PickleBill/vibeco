@@ -156,7 +156,7 @@ const SpeedTimeline = () => {
           </h2>
         </FadeIn>
         <FadeIn delay={0.1}>
-          <p className="font-mono text-sm text-muted-foreground mb-16 max-w-lg">
+          <p className="text-sm text-muted-foreground mb-16 max-w-lg">
             Drag the slider. Watch what used to cost $1M become free.
           </p>
         </FadeIn>
@@ -166,10 +166,10 @@ const SpeedTimeline = () => {
           <div className="relative mb-2">
             {/* Y-axis labels */}
             <div className="flex justify-between mb-1 px-1">
-              <span className="font-mono text-[10px] text-destructive uppercase tracking-widest flex items-center gap-1">
+              <span className="text-[10px] text-destructive uppercase tracking-widest flex items-center gap-1">
                 Cost ↓
               </span>
-              <span className="font-mono text-[10px] uppercase tracking-widest flex items-center gap-1" style={{ color: "hsl(142 70% 45%)" }}>
+              <span className="text-[10px] uppercase tracking-widest flex items-center gap-1" style={{ color: "hsl(142 70% 45%)" }}>
                 Opportunity ↑
               </span>
             </div>
@@ -275,16 +275,16 @@ const SpeedTimeline = () => {
           {/* Legend */}
           <div className="flex items-center justify-center gap-6 mb-4">
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: "hsl(var(--destructive) / 0.4)" }} />
-              <span className="font-mono text-[10px] text-muted-foreground">Cost</span>
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "hsl(var(--destructive) / 0.4)" }} />
+              <span className="text-[10px] text-muted-foreground">Cost</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-5 h-0.5 rounded" style={{ backgroundColor: "hsl(var(--muted-foreground) / 0.5)", borderStyle: "dashed" }} />
-              <span className="font-mono text-[10px] text-muted-foreground">Time to Market</span>
+              <span className="text-[10px] text-muted-foreground">Time to Market</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-5 h-1 rounded" style={{ backgroundColor: "hsl(142 70% 45%)" }} />
-              <span className="font-mono text-[10px] text-muted-foreground">Market Opportunity</span>
+              <span className="text-[10px] text-muted-foreground">Market Opportunity</span>
             </div>
           </div>
         </FadeIn>
@@ -313,7 +313,7 @@ const SpeedTimeline = () => {
                     setSliderValue(val);
                     setActiveEra(era.id);
                   }}
-                  className={`font-mono text-[10px] transition-colors duration-200 ${
+                  className={`text-[10px] transition-colors duration-200 ${
                     activeEra === era.id
                       ? "text-primary font-bold"
                       : "text-muted-foreground"
@@ -339,7 +339,7 @@ const SpeedTimeline = () => {
                   setActiveEra(era.id);
                   setSliderValue(era.id * 25);
                 }}
-                className={`text-left p-4 rounded-sm border transition-all duration-300 ${
+                className={`text-left p-4 rounded-full border transition-all duration-300 ${
                   isActive
                     ? "border-primary/50 bg-primary/5"
                     : "border-border bg-background hover:border-muted-foreground/30"
@@ -363,10 +363,10 @@ const SpeedTimeline = () => {
                   {era.label}
                 </p>
                 <div className="flex gap-3 mb-2">
-                  <span className="font-mono text-[10px] text-primary">
+                  <span className="text-[10px] text-primary">
                     {era.time}
                   </span>
-                  <span className={`font-mono text-[10px] ${era.id === 4 ? "text-primary font-bold" : "text-destructive"}`}>
+                  <span className={`text-[10px] ${era.id === 4 ? "text-primary font-bold" : "text-destructive"}`}>
                     {era.cost}
                   </span>
                 </div>
@@ -376,7 +376,7 @@ const SpeedTimeline = () => {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="font-mono text-xs text-muted-foreground leading-relaxed"
+                      className="text-xs text-muted-foreground leading-relaxed"
                     >
                       {era.desc}
                     </motion.p>

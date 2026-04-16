@@ -17,28 +17,30 @@ const Hero = () => {
     target: sectionRef,
     offset: ["start start", "end start"],
   });
-  const imageY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
+  const imageY = useTransform(scrollYProgress, [0, 1], ["0%", "20%"]);
 
   return (
     <section ref={sectionRef} className="relative min-h-screen flex items-center pt-16 overflow-hidden">
-      {/* Grid lines */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-0 w-full h-px bg-border/30" />
-        <div className="absolute top-2/4 left-0 w-full h-px bg-border/20" />
-        <div className="absolute top-3/4 left-0 w-full h-px bg-border/10" />
-      </div>
+      {/* Subtle background accent */}
+      <div
+        className="absolute top-0 right-0 w-1/2 h-1/2 pointer-events-none"
+        style={{
+          background: "radial-gradient(ellipse at 80% 20%, hsl(var(--primary) / 0.04), transparent 60%)",
+        }}
+      />
 
       <div className="max-w-7xl mx-auto px-6 lg:px-12 w-full">
         <div className="grid lg:grid-cols-2 gap-16 lg:gap-12 items-center">
           <div>
             <FadeIn>
-              <p className="font-mono text-sm text-primary uppercase tracking-widest mb-6">
-                idea → product → revenue
+              <p className="text-sm font-semibold text-primary uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
+                <span className="w-8 h-px bg-primary" />
+                idea &rarr; product &rarr; revenue
               </p>
             </FadeIn>
 
             {/* Staggered word reveal */}
-            <div className="font-display font-black text-foreground leading-[1.05] mb-1 scan-line" style={{ fontSize: "clamp(2.75rem, 4vw + 1.5rem, 4.25rem)" }}>
+            <div className="font-display font-extrabold text-foreground leading-[1.05] mb-1" style={{ fontSize: "clamp(2.75rem, 4vw + 1.5rem, 4.25rem)" }}>
               {prefersReduced ? (
                 <FadeIn delay={0.1}>
                   <h1>
@@ -80,7 +82,7 @@ const Hero = () => {
             </div>
 
             <FadeIn delay={1.5}>
-              <p className="font-mono text-base text-foreground/80 leading-relaxed mb-8 max-w-lg mt-5">
+              <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-lg mt-5">
                 Tell us what you need. We ship a working product — not a
                 pitch deck. Most go live the same day.
               </p>
@@ -89,33 +91,39 @@ const Hero = () => {
               <div className="flex flex-wrap gap-4">
                 <button
                   onClick={() => navigate("/simulate")}
-                  className="font-mono text-sm bg-primary text-primary-foreground px-6 py-3 rounded-sm hover:opacity-90 transition-opacity inline-flex items-center gap-2"
+                  className="font-display text-sm font-semibold bg-primary text-primary-foreground px-7 py-3.5 rounded-full hover:brightness-110 transition-all inline-flex items-center gap-2"
                 >
                   Test Your Idea
                 </button>
                 <button
                   onClick={() => document.querySelector("#contact")?.scrollIntoView({ behavior: "smooth" })}
-                  className="font-mono text-sm border border-border text-foreground px-6 py-3 rounded-sm hover:border-primary/50 hover:text-primary transition-colors"
+                  className="text-sm font-medium border-2 border-foreground/15 text-foreground px-7 py-3.5 rounded-full hover:border-primary hover:text-primary transition-colors"
                 >
                   Talk to Us
                 </button>
               </div>
               <button
                 onClick={() => document.querySelector("#projects")?.scrollIntoView({ behavior: "smooth" })}
-                className="font-mono text-xs text-muted-foreground hover:text-primary transition-colors mt-3"
+                className="text-xs text-muted-foreground hover:text-primary transition-colors mt-6 flex items-center gap-1"
               >
-                ↓ See our builds
+                <motion.span
+                  animate={{ y: [0, 4, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  &darr;
+                </motion.span>
+                See our builds
               </button>
               {/* Mobile stats strip */}
-              <div className="flex lg:hidden items-center gap-6 mt-8 pt-6 border-t border-border/30">
+              <div className="flex lg:hidden items-center gap-6 mt-8 pt-6 border-t border-border">
                 {[
                   { value: "16+", label: "live builds" },
                   { value: "< 48hrs", label: "avg to launch" },
                   { value: "$0", label: "upfront on rev-share" },
                 ].map((s) => (
                   <div key={s.label} className="text-center">
-                    <p className="font-display text-xl font-black text-primary">{s.value}</p>
-                    <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-wide">{s.label}</p>
+                    <p className="font-display text-xl font-bold text-primary">{s.value}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{s.label}</p>
                   </div>
                 ))}
               </div>
@@ -125,22 +133,11 @@ const Hero = () => {
           {/* Parallax mind-map image */}
           <FadeIn delay={0.5} className="hidden lg:flex items-center justify-center">
             <motion.div className="relative" style={{ y: prefersReduced ? 0 : imageY }}>
-              <div
-                className="absolute inset-0 rounded-full blur-3xl pointer-events-none"
-                style={{
-                  background: "radial-gradient(circle, hsl(var(--primary) / 0.2), transparent 70%)",
-                  transform: "scale(1.3)",
-                }}
-              />
               <motion.img
                 src={heroMindmap}
                 alt="Creative brainstorming mind map — ideas to products to revenue"
-                className="relative w-[420px] h-[420px] object-cover rounded-2xl"
-                style={{
-                  maskImage: "radial-gradient(ellipse 85% 85% at center, black 50%, transparent 100%)",
-                  WebkitMaskImage: "radial-gradient(ellipse 85% 85% at center, black 50%, transparent 100%)",
-                }}
-                initial={{ opacity: 0, scale: 0.9 }}
+                className="relative w-[420px] h-[420px] object-cover rounded-2xl shadow-warm-lg"
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.8, delay: 0.4 }}
               />

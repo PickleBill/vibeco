@@ -56,7 +56,7 @@ const ProjectImporter = ({ onImport }: Props) => {
   if (projects.length === 0) {
     return (
       <div className="text-center py-4">
-        <p className="font-mono text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           No registered projects.{" "}
           <a href="/portfolio" className="text-primary hover:underline">
             Register one first →
@@ -69,12 +69,12 @@ const ProjectImporter = ({ onImport }: Props) => {
   return (
     <div className="flex items-center gap-3 w-full">
       <Select value={selected} onValueChange={setSelected}>
-        <SelectTrigger className="flex-1 bg-secondary/50 border-border/30 font-mono text-xs">
+        <SelectTrigger className="flex-1 bg-secondary/50 border-border/30 text-xs">
           <SelectValue placeholder="Select a registered project..." />
         </SelectTrigger>
         <SelectContent>
           {projects.map((p) => (
-            <SelectItem key={p.id} value={p.id} className="font-mono text-xs">
+            <SelectItem key={p.id} value={p.id} className="text-xs">
               <span className="flex items-center gap-2">
                 {p.name}
                 {p.parent_brand && (
@@ -89,7 +89,7 @@ const ProjectImporter = ({ onImport }: Props) => {
         onClick={handleImport}
         disabled={!selected || loading}
         size="sm"
-        className="font-mono text-xs gap-1.5 shrink-0"
+        className="text-xs gap-1.5 shrink-0"
       >
         {loading ? <Loader2 size={12} className="animate-spin" /> : <Import size={12} />}
         Import & Simulate

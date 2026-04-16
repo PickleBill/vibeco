@@ -21,7 +21,7 @@ const Fit = () => (
   <section className="py-32 border-t border-border">
     <div className="max-w-7xl mx-auto px-6 lg:px-12">
       <FadeIn>
-        <p className="font-mono text-sm text-muted-foreground uppercase tracking-widest mb-4">
+        <p className="text-sm text-muted-foreground uppercase tracking-widest mb-4">
           Who we partner with
         </p>
         <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-16">
@@ -38,7 +38,7 @@ const Fit = () => (
               {good.map((item) => (
                 <li key={item} className="flex items-start gap-3">
                   <Check size={16} className="text-primary mt-0.5 shrink-0" />
-                  <span className="font-mono text-sm text-foreground/70">{item}</span>
+                  <span className="text-sm text-foreground/70">{item}</span>
                 </li>
               ))}
             </ul>
@@ -53,7 +53,7 @@ const Fit = () => (
               {bad.map((item) => (
                 <li key={item} className="flex items-start gap-3">
                   <X size={16} className="text-destructive/60 mt-0.5 shrink-0" />
-                  <span className="font-mono text-sm text-muted-foreground">{item}</span>
+                  <span className="text-sm text-muted-foreground">{item}</span>
                 </li>
               ))}
             </ul>

@@ -148,9 +148,9 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-display text-sm font-semibold text-foreground">Expand Your Idea</h3>
-          <span className="font-mono text-[10px] text-muted-foreground">3 orthogonal variations</span>
+          <span className="text-[10px] text-muted-foreground">3 orthogonal variations</span>
         </div>
-        <p className="font-mono text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Same core insight, different markets, models, and scale. What else could this be?
         </p>
 
@@ -158,7 +158,7 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
           <button
             onClick={handleExpand}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-border/50 hover:border-primary/30 font-mono text-xs text-muted-foreground hover:text-foreground transition-all disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-border/50 hover:border-primary/30 text-xs text-muted-foreground hover:text-foreground transition-all disabled:opacity-50"
           >
             {loading ? (
               <>
@@ -182,8 +182,8 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
               className="space-y-4"
             >
               <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
-                <span className="font-mono text-[10px] text-primary uppercase tracking-wider">Core Insight</span>
-                <p className="font-mono text-xs text-foreground mt-1">{expandResult.core_insight}</p>
+                <span className="text-[10px] text-primary uppercase tracking-wider">Core Insight</span>
+                <p className="text-xs text-foreground mt-1">{expandResult.core_insight}</p>
               </div>
 
               <div className="space-y-3">
@@ -199,15 +199,15 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
                     >
                       <div className="flex items-start justify-between gap-2">
                         <h4 className="font-display text-sm font-semibold text-foreground">{exp.title}</h4>
-                        <span className={`font-mono text-[10px] px-2 py-0.5 rounded-full border border-current/20 ${pot.color} whitespace-nowrap`}>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full border border-current/20 ${pot.color} whitespace-nowrap`}>
                           {pot.label}
                         </span>
                       </div>
-                      <p className="font-mono text-xs text-foreground/80">{exp.pitch}</p>
-                      <p className="font-mono text-[10px] text-muted-foreground italic">{exp.how_its_different}</p>
+                      <p className="text-xs text-foreground/80">{exp.pitch}</p>
+                      <p className="text-[10px] text-muted-foreground italic">{exp.how_its_different}</p>
                       <button
                         onClick={() => handleExploreVariation(exp)}
-                        className="flex items-center gap-1.5 font-mono text-[10px] text-primary hover:text-primary/80 transition-colors mt-1"
+                        className="flex items-center gap-1.5 text-[10px] text-primary hover:text-primary/80 transition-colors mt-1"
                       >
                         <ArrowRight size={10} />
                         Explore this variation
@@ -228,9 +228,9 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-display text-sm font-semibold text-foreground">Distill to Core</h3>
-        <span className="font-mono text-[10px] text-muted-foreground">one feature, one customer, one thesis</span>
+        <span className="text-[10px] text-muted-foreground">one feature, one customer, one thesis</span>
       </div>
-      <p className="font-mono text-xs text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         Strip away everything that isn't essential. What's the ONE thing that matters?
       </p>
 
@@ -238,7 +238,7 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
         <button
           onClick={handleDistill}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-border/50 hover:border-primary/30 font-mono text-xs text-muted-foreground hover:text-foreground transition-all disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-border/50 hover:border-primary/30 text-xs text-muted-foreground hover:text-foreground transition-all disabled:opacity-50"
         >
           {loading ? (
             <>
@@ -265,7 +265,7 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
             <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles size={12} className="text-primary" />
-                <span className="font-mono text-[10px] text-primary uppercase tracking-wider">Core Thesis</span>
+                <span className="text-[10px] text-primary uppercase tracking-wider">Core Thesis</span>
               </div>
               <p className="font-display text-sm font-semibold text-foreground leading-snug">
                 {distillResult.thesis_statement}
@@ -277,23 +277,23 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
               <div className="p-3 rounded-lg border border-border/30 bg-muted/10">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Target size={10} className="text-emerald-400" />
-                  <span className="font-mono text-[10px] text-emerald-400 uppercase">One Feature</span>
+                  <span className="text-[10px] text-emerald-400 uppercase">One Feature</span>
                 </div>
-                <p className="font-mono text-xs text-foreground/80">{distillResult.one_feature}</p>
+                <p className="text-xs text-foreground/80">{distillResult.one_feature}</p>
               </div>
               <div className="p-3 rounded-lg border border-border/30 bg-muted/10">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Target size={10} className="text-blue-400" />
-                  <span className="font-mono text-[10px] text-blue-400 uppercase">One Customer</span>
+                  <span className="text-[10px] text-blue-400 uppercase">One Customer</span>
                 </div>
-                <p className="font-mono text-xs text-foreground/80">{distillResult.one_customer}</p>
+                <p className="text-xs text-foreground/80">{distillResult.one_customer}</p>
               </div>
               <div className="p-3 rounded-lg border border-border/30 bg-muted/10">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Target size={10} className="text-pink-400" />
-                  <span className="font-mono text-[10px] text-pink-400 uppercase">One Revenue</span>
+                  <span className="text-[10px] text-pink-400 uppercase">One Revenue</span>
                 </div>
-                <p className="font-mono text-xs text-foreground/80">{distillResult.one_revenue}</p>
+                <p className="text-xs text-foreground/80">{distillResult.one_revenue}</p>
               </div>
             </div>
 
@@ -302,11 +302,11 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
               <div className="p-3 rounded-lg border border-destructive/20 bg-destructive/5">
                 <div className="flex items-center gap-1.5 mb-2">
                   <Scissors size={10} className="text-destructive" />
-                  <span className="font-mono text-[10px] text-destructive uppercase">Cut from V1</span>
+                  <span className="text-[10px] text-destructive uppercase">Cut from V1</span>
                 </div>
                 <ul className="space-y-1">
                   {distillResult.what_to_cut.map((item, i) => (
-                    <li key={i} className="font-mono text-xs text-muted-foreground line-through decoration-destructive/40">
+                    <li key={i} className="text-xs text-muted-foreground line-through decoration-destructive/40">
                       {item}
                     </li>
                   ))}
@@ -316,14 +316,14 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
 
             {/* MVP scope */}
             <div className="p-3 rounded-lg border border-border/30 bg-muted/10">
-              <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">MVP Scope (1-2 weeks)</span>
-              <p className="font-mono text-xs text-foreground/80 mt-1">{distillResult.mvp_scope}</p>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">MVP Scope (1-2 weeks)</span>
+              <p className="text-xs text-foreground/80 mt-1">{distillResult.mvp_scope}</p>
             </div>
 
             {/* Rebuild action */}
             <button
               onClick={handleRebuildDistilled}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-primary/30 hover:border-primary/50 bg-primary/5 font-mono text-xs text-primary hover:text-primary/80 transition-all"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-primary/30 hover:border-primary/50 bg-primary/5 text-xs text-primary hover:text-primary/80 transition-all"
             >
               <ArrowRight size={14} />
               Rebuild with this scope

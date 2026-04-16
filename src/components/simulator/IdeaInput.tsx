@@ -52,7 +52,7 @@ const IdeaInput = ({ onSubmit, initialValue }: Props) => {
         transition={{ duration: 0.8 }}
         className="text-center mb-10"
       >
-        <p className="font-mono text-[10px] text-primary uppercase tracking-[0.4em] mb-5 opacity-60">
+        <p className="text-[10px] text-primary uppercase tracking-[0.4em] mb-5 opacity-60">
           AI Idea Simulator
         </p>
         <h1
@@ -61,7 +61,7 @@ const IdeaInput = ({ onSubmit, initialValue }: Props) => {
         >
           What are you building?
         </h1>
-        <p className="font-mono text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+        <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
           Describe it. We'll stress-test every assumption and hand you a build-ready prompt.
         </p>
 
@@ -70,7 +70,7 @@ const IdeaInput = ({ onSubmit, initialValue }: Props) => {
           <button
             type="button"
             onClick={() => setImportMode(false)}
-            className={`font-mono text-[11px] px-3 py-1.5 rounded-sm transition-colors ${
+            className={`text-[11px] px-3 py-1.5 rounded-sm transition-colors ${
               !importMode
                 ? "bg-primary/15 text-primary"
                 : "text-muted-foreground hover:text-foreground"
@@ -81,7 +81,7 @@ const IdeaInput = ({ onSubmit, initialValue }: Props) => {
           <button
             type="button"
             onClick={() => setImportMode(true)}
-            className={`font-mono text-[11px] px-3 py-1.5 rounded-sm transition-colors flex items-center gap-1.5 ${
+            className={`text-[11px] px-3 py-1.5 rounded-sm transition-colors flex items-center gap-1.5 ${
               importMode
                 ? "bg-primary/15 text-primary"
                 : "text-muted-foreground hover:text-foreground"
@@ -128,7 +128,7 @@ const IdeaInput = ({ onSubmit, initialValue }: Props) => {
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
               placeholder="An app that connects dog owners with verified pet sitters, featuring real-time GPS tracking and instant booking..."
-              className={`w-full min-h-[200px] p-6 rounded-lg bg-transparent border text-foreground font-mono text-sm leading-relaxed placeholder:text-muted-foreground/30 focus:outline-none resize-none transition-all duration-300 ${
+              className={`w-full min-h-[200px] p-6 rounded-lg bg-transparent border text-foreground text-sm leading-relaxed placeholder:text-muted-foreground/30 focus:outline-none resize-none transition-all duration-300 ${
                 attempted && isTooShort
                   ? "border-destructive/40 focus:border-destructive/60"
                   : focused
@@ -137,11 +137,11 @@ const IdeaInput = ({ onSubmit, initialValue }: Props) => {
               }`}
             />
             <div className="absolute bottom-3 right-4 flex items-center gap-4">
-              <span className="font-mono text-[10px] text-muted-foreground/30">
+              <span className="text-[10px] text-muted-foreground/30">
                 ↵ to simulate
               </span>
               <span
-                className={`font-mono text-[10px] transition-colors ${
+                className={`text-[10px] transition-colors ${
                   attempted && isTooShort
                     ? "text-destructive/60"
                     : "text-muted-foreground/25"
@@ -156,7 +156,7 @@ const IdeaInput = ({ onSubmit, initialValue }: Props) => {
             <motion.p
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="font-mono text-xs text-destructive/70 mt-2 ml-1"
+              className="text-xs text-destructive/70 mt-2 ml-1"
             >
               A bit more detail — at least 10 characters.
             </motion.p>
@@ -165,7 +165,7 @@ const IdeaInput = ({ onSubmit, initialValue }: Props) => {
           <motion.button
             type="submit"
             disabled={text.trim().length < 10}
-            className="mt-6 w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground font-mono text-sm px-6 py-4 rounded-sm hover:opacity-90 transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
+            className="mt-6 w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground text-sm px-6 py-4 rounded-sm hover:opacity-90 transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
           >

@@ -26,10 +26,10 @@ const Footer = () => {
             >
               VibeCo
             </a>
-            <p className="font-mono text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               Ideas to products. Fast.
             </p>
-            <a href="https://vibeco.dev" className="font-mono text-xs text-primary/60 hover:text-primary transition-colors">
+            <a href="https://vibeco.dev" className="text-xs text-primary/60 hover:text-primary transition-colors">
               vibeco.dev
             </a>
           </div>
@@ -42,7 +42,7 @@ const Footer = () => {
               <button
                 key={link.href}
                 onClick={() => handleNavClick(link.href)}
-                className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 {link.label}
               </button>
@@ -70,7 +70,7 @@ const Footer = () => {
           </div>
         </div>
         <div className="mt-8 pt-6 border-t border-border">
-          <p className="font-mono text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} VibeCo. All rights reserved.
           </p>
         </div>

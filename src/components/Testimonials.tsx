@@ -26,7 +26,7 @@ const Testimonials = () => {
     <section className="py-20 lg:py-28">
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
         <FadeIn>
-          <p className="font-mono text-sm text-primary uppercase tracking-widest mb-3">
+          <p className="text-sm text-primary uppercase tracking-widest mb-3">
             From our partners
           </p>
           <h2
@@ -42,7 +42,7 @@ const Testimonials = () => {
             <FadeIn key={t.name} delay={i * 0.1}>
               <div
                 className={`
-                  relative p-6 lg:p-8 rounded-sm border transition-colors duration-300
+                  relative p-6 lg:p-8 rounded-full border transition-colors duration-300
                   ${t.highlight
                     ? "border-primary/40 bg-primary/[0.04] md:row-span-1 md:-mt-4 md:mb-4"
                     : "border-border bg-surface hover:border-primary/20"
@@ -50,7 +50,7 @@ const Testimonials = () => {
                 `}
               >
                 <blockquote
-                  className="font-mono text-foreground/90 leading-relaxed mb-6"
+                  className="text-foreground/90 leading-relaxed mb-6"
                   style={{ fontSize: t.highlight ? "clamp(0.938rem, 0.8rem + 0.4vw, 1.063rem)" : "clamp(0.875rem, 0.75rem + 0.3vw, 0.938rem)" }}
                 >
                   "{t.quote}"
@@ -59,7 +59,7 @@ const Testimonials = () => {
                   <p className="font-display text-sm font-bold text-foreground">
                     {t.name}
                   </p>
-                  <p className="font-mono text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     {t.role}
                   </p>
                 </div>

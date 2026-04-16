@@ -40,13 +40,13 @@ const Model = () => {
     <section id="model" className="py-32 border-t border-border">
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
         <FadeIn>
-          <p className="font-mono text-sm text-muted-foreground uppercase tracking-widest mb-4">
+          <p className="text-sm text-muted-foreground uppercase tracking-widest mb-4">
             How we work together
           </p>
           <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-6">
             Three steps. One outcome.
           </h2>
-          <p className="font-mono text-sm text-foreground/80 mb-16 max-w-xl">
+          <p className="text-sm text-foreground/80 mb-16 max-w-xl">
             We only take on projects we believe in. Every deal is
             structured so winning is mutual.
           </p>
@@ -62,7 +62,7 @@ const Model = () => {
                   onClick={() => setExpanded(isOpen ? null : i)}
                   className={`w-full text-left relative bg-card border rounded-lg p-8 transition-all duration-500 overflow-hidden group ${
                     isOpen
-                      ? "border-primary/50 glow-accent-subtle"
+                      ? "border-primary/50 shadow-warm"
                       : "border-border hover:border-primary/30"
                   }`}
                 >
@@ -72,7 +72,7 @@ const Model = () => {
                     }`}
                     style={{
                       background:
-                        "radial-gradient(circle, hsl(243 76% 58% / 0.2), transparent)",
+                        "radial-gradient(circle, hsl(var(--primary) / 0.2), transparent)",
                     }}
                   />
                   <div className="flex items-start justify-between gap-4">
@@ -84,7 +84,7 @@ const Model = () => {
                         <h3 className="font-display text-xl font-bold text-foreground mb-2">
                           {s.title}
                         </h3>
-                        <p className="font-mono text-sm text-muted-foreground leading-relaxed">
+                        <p className="text-sm text-muted-foreground leading-relaxed">
                           {s.short}
                         </p>
                       </div>
@@ -115,7 +115,7 @@ const Model = () => {
                           >
                             <StepIcon size={22} className={s.iconColor} />
                           </motion.div>
-                          <p className="font-mono text-sm text-foreground/80 leading-relaxed">
+                          <p className="text-sm text-foreground/80 leading-relaxed">
                             {s.detail}
                           </p>
                         </div>
@@ -137,7 +137,7 @@ const Model = () => {
                   <div className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center">
                     <s.icon size={16} className={s.iconColor} />
                   </div>
-                  <span className="font-mono text-[9px] text-muted-foreground">{s.title}</span>
+                  <span className="text-[9px] text-muted-foreground">{s.title}</span>
                 </div>
                 {i < steps.length - 1 && (
                   <div className="w-12 h-px bg-border" />
@@ -149,7 +149,7 @@ const Model = () => {
 
         {/* Builder ethos */}
         <FadeIn delay={0.5}>
-          <p className="text-center font-mono text-xs text-muted-foreground mt-10 tracking-wide">
+          <p className="text-center text-xs text-muted-foreground mt-10 tracking-wide">
             Skin in the game · Builder, not vendor · Biased toward shipping
           </p>
         </FadeIn>

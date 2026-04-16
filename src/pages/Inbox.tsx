@@ -100,7 +100,7 @@ export default function Inbox() {
           </div>
         </div>
 
-        <p className="font-mono text-sm text-muted-foreground mb-8 max-w-2xl">
+        <p className="text-sm text-muted-foreground mb-8 max-w-2xl">
           Auto-evaluated ideas from the Idea Lab and other sources. Ranked by confidence score.
           Click any idea to see the full analysis and refine into a Lovable prompt.
         </p>
@@ -111,7 +111,7 @@ export default function Inbox() {
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-full font-mono text-xs border transition-colors ${
+              className={`px-3 py-1.5 rounded-full text-xs border transition-colors ${
                 filter === f
                   ? "bg-primary/20 border-primary text-primary"
                   : "bg-card border-border text-muted-foreground hover:border-border/80"
@@ -123,11 +123,11 @@ export default function Inbox() {
         </div>
 
         {loading ? (
-          <div className="font-mono text-sm text-muted-foreground">Loading inbox...</div>
+          <div className="text-sm text-muted-foreground">Loading inbox...</div>
         ) : filtered.length === 0 ? (
           <div className="p-12 rounded-lg border border-dashed border-border text-center">
             <InboxIcon size={32} className="text-muted-foreground mx-auto mb-3" />
-            <p className="font-mono text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {filter === "all"
                 ? "No auto-evaluated ideas yet. Connect the Idea Lab or call the auto-evaluate endpoint to populate."
                 : `No ideas in this category.`}
@@ -172,26 +172,26 @@ function IdeaCard({
           <span className={`font-display text-xl font-bold ${config.color}`}>
             {idea.auto_score ?? "—"}
           </span>
-          <span className="font-mono text-[9px] text-muted-foreground uppercase tracking-wider">score</span>
+          <span className="text-[9px] text-muted-foreground uppercase tracking-wider">score</span>
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
             <Icon size={12} className={config.color} />
-            <span className={`font-mono text-[10px] uppercase tracking-wider ${config.color}`}>
+            <span className={`text-[10px] uppercase tracking-wider ${config.color}`}>
               {config.label}
             </span>
             {idea.auto_source && (
               <>
                 <span className="text-muted-foreground">·</span>
-                <span className="font-mono text-[10px] text-muted-foreground">
+                <span className="text-[10px] text-muted-foreground">
                   from {idea.auto_source}
                 </span>
               </>
             )}
             <span className="text-muted-foreground">·</span>
-            <span className="font-mono text-[10px] text-muted-foreground flex items-center gap-1">
+            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
               <Clock size={10} />
               {new Date(idea.created_at).toLocaleDateString()}
             </span>
@@ -202,7 +202,7 @@ function IdeaCard({
           </p>
 
           {idea.brief?.thesis_statement && (
-            <p className="font-mono text-xs text-muted-foreground line-clamp-2">
+            <p className="text-xs text-muted-foreground line-clamp-2">
               {idea.brief.thesis_statement}
             </p>
           )}

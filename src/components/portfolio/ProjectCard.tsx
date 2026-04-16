@@ -92,7 +92,7 @@ const ProjectCard = ({ project, onEdit, onDelete }: Props) => {
             </h3>
           </div>
           {project.parent_brand && (
-            <p className="font-mono text-[10px] text-muted-foreground/60 uppercase tracking-wider ml-4">
+            <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider ml-4">
               {project.parent_brand}
             </p>
           )}
@@ -108,7 +108,7 @@ const ProjectCard = ({ project, onEdit, onDelete }: Props) => {
               <MoreVertical size={14} />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="font-mono text-xs">
+          <DropdownMenuContent align="end" className="text-xs">
             <DropdownMenuItem onClick={() => onEdit(project)}>
               <Pencil size={12} className="mr-2" /> Edit
             </DropdownMenuItem>
@@ -141,7 +141,7 @@ const ProjectCard = ({ project, onEdit, onDelete }: Props) => {
 
       {/* Description */}
       {project.description && (
-        <p className="font-mono text-xs text-muted-foreground leading-relaxed mb-4 line-clamp-2">
+        <p className="text-xs text-muted-foreground leading-relaxed mb-4 line-clamp-2">
           {project.description}
         </p>
       )}
@@ -150,7 +150,7 @@ const ProjectCard = ({ project, onEdit, onDelete }: Props) => {
       <div className="flex items-center justify-between gap-2">
         <Badge
           variant="outline"
-          className={`text-[10px] font-mono border ${categoryColor[project.category] || categoryColor.experiment}`}
+          className={`text-[10px] border ${categoryColor[project.category] || categoryColor.experiment}`}
         >
           {categoryLabel[project.category] || project.category}
         </Badge>
@@ -158,7 +158,7 @@ const ProjectCard = ({ project, onEdit, onDelete }: Props) => {
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 text-[10px] font-mono gap-1.5 text-primary hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
+          className="h-7 text-[10px] gap-1.5 text-primary hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
           onClick={handleSimulate}
         >
           <Sparkles size={10} />

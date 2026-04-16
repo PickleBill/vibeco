@@ -56,7 +56,7 @@ const FeatureStrengthBar = ({ name, index }: { name: string; index: number }) =>
           transition={{ delay: 0.3 + index * 0.15, duration: 0.6, ease: "easeOut" }}
         />
       </div>
-      <span className="font-mono text-[9px] text-muted-foreground/60 w-8 text-right">{strength}%</span>
+      <span className="text-[9px] text-muted-foreground/60 w-8 text-right">{strength}%</span>
     </div>
   );
 };
@@ -98,11 +98,11 @@ const BriefScoreVisual = ({ brief }: { brief: BriefData }) => {
                 transition={{ delay: 0.4 + i * 0.15, duration: 0.8, ease: "easeOut" }}
               />
             </svg>
-            <span className="absolute inset-0 flex items-center justify-center font-mono text-[10px] font-bold text-foreground">
+            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-foreground">
               {s.value}
             </span>
           </div>
-          <span className="font-mono text-[9px] text-muted-foreground">{s.label}</span>
+          <span className="text-[9px] text-muted-foreground">{s.label}</span>
         </motion.div>
       ))}
     </div>
@@ -156,13 +156,13 @@ const EmailUnlockBanner = ({
         ) : (
           <Mail size={12} className="text-muted-foreground" />
         )}
-        <span className={`font-mono text-xs ${isProminent ? "text-primary font-bold" : "text-muted-foreground"}`}>
+        <span className={`text-xs ${isProminent ? "text-primary font-bold" : "text-muted-foreground"}`}>
           {isProminent
             ? "Unlock your build prompt"
             : "Save this analysis"}
         </span>
       </div>
-      <p className="font-mono text-[10px] text-muted-foreground/70 mb-3 leading-relaxed">
+      <p className="text-[10px] text-muted-foreground/70 mb-3 leading-relaxed">
         {isProminent
           ? "Your personalized build prompt, PDF export, and a shareable link — all yours."
           : "Save progress, export PDF, and share via link."}
@@ -173,12 +173,12 @@ const EmailUnlockBanner = ({
           placeholder="your@email.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="flex-1 px-3 py-2 rounded-sm bg-background/50 border border-border/50 font-mono text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50"
+          className="flex-1 px-3 py-2 rounded-sm bg-background/50 border border-border/50 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50"
         />
         <button
           type="submit"
           disabled={submitting}
-          className="flex items-center gap-1.5 bg-primary text-primary-foreground font-mono text-xs px-4 py-2 rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+          className="flex items-center gap-1.5 bg-primary text-primary-foreground text-xs px-4 py-2 rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50"
         >
           <Mail size={12} />
           {isProminent ? "Unlock" : "Save"}
@@ -197,7 +197,7 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
     >
       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-4">
         <Target size={12} className="text-primary" />
-        <span className="font-mono text-[10px] text-primary uppercase tracking-wider">
+        <span className="text-[10px] text-primary uppercase tracking-wider">
           {round <= 1 ? "Initial Analysis" : `Refined · Round ${round}`}
         </span>
       </div>
@@ -205,7 +205,7 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
       {/* Builder intent badge */}
       {brief.builder_intent && (
         <div className="flex justify-center mb-3">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 font-mono text-[11px] text-accent">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-[11px] text-accent">
             Building for: {intentLabels[brief.builder_intent] || brief.builder_intent}
           </span>
         </div>
@@ -214,13 +214,13 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
       <h2 className="font-display text-2xl sm:text-3xl font-black text-foreground">
         {round <= 1 ? "Your Idea, Analyzed" : `Deeper Insights — Round ${round}`}
       </h2>
-      <p className="font-mono text-xs text-muted-foreground mt-2">
+      <p className="text-xs text-muted-foreground mt-2">
         {round <= 1
           ? "Here's what we found. Answer questions to go deeper."
           : "Updated based on your input. Keep refining or skip to your report."}
       </p>
       {highlights && highlights.size > 0 && (
-        <p className="font-mono text-[10px] text-primary/70 mt-1">
+        <p className="text-[10px] text-primary/70 mt-1">
           ✦ {highlights.size} area{highlights.size > 1 ? "s" : ""} highlighted — these will shape your final prompt
         </p>
       )}
@@ -247,7 +247,7 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
             {brief.scale_assessment.fits_intent ? "✓" : "⚖️"}
           </div>
           <div>
-            <p className={`font-mono text-xs font-bold ${
+            <p className={`text-xs font-bold ${
               brief.scale_assessment.fits_intent ? "text-primary" : "text-yellow-500"
             }`}>
               Scale: {brief.scale_assessment.current_scale.charAt(0).toUpperCase() + brief.scale_assessment.current_scale.slice(1)}
@@ -256,7 +256,7 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
                 : " — might not match your intent"
               }
             </p>
-            <p className="font-mono text-xs text-muted-foreground mt-1 leading-relaxed">
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
               {brief.scale_assessment.recommendation}
             </p>
           </div>
@@ -280,7 +280,7 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
           />
           <div className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-1 rounded bg-background/80 backdrop-blur-sm">
             <ImageIcon size={10} className="text-primary" />
-            <span className="font-mono text-[9px] text-muted-foreground">AI Concept Art</span>
+            <span className="text-[9px] text-muted-foreground">AI Concept Art</span>
           </div>
         </div>
       </motion.div>
@@ -292,7 +292,7 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
       transition={{ delay: 0.2 }}
       className="mb-8 p-4 rounded-lg bg-card/40 border border-border/30"
     >
-      <p className="font-mono text-[10px] text-muted-foreground text-center mb-2 uppercase tracking-wider">
+      <p className="text-[10px] text-muted-foreground text-center mb-2 uppercase tracking-wider">
         Idea Viability Snapshot
       </p>
       <BriefScoreVisual brief={brief} />
@@ -325,7 +325,7 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
               <div className="absolute top-3 right-3 flex items-center gap-1.5">
                 <button
                   onClick={() => onToggleHighlight(section.key)}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-full font-mono text-[9px] transition-all duration-200 ${
+                  className={`flex items-center gap-1 px-2 py-1 rounded-full text-[9px] transition-all duration-200 ${
                     isHighlighted
                       ? "bg-primary/20 text-primary border border-primary/30"
                       : "bg-muted/30 text-muted-foreground/50 border border-transparent hover:text-primary hover:bg-primary/10"
@@ -337,7 +337,7 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
                 {onToggleAntiHighlight && (
                   <button
                     onClick={() => onToggleAntiHighlight(section.key)}
-                    className={`flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-[10px] transition-all ${
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] transition-all ${
                       isAntiHighlighted
                         ? "bg-destructive/15 border border-destructive/40 text-destructive"
                         : "border border-border/50 text-muted-foreground/50 hover:border-destructive/30 hover:text-destructive/80"
@@ -358,7 +358,7 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
                 {section.label}
               </h3>
               {section.key === "target_customer" && (
-                <span className="ml-auto mr-16 px-2 py-0.5 rounded-full bg-accent/10 border border-accent/20 font-mono text-[9px] text-accent">
+                <span className="ml-auto mr-16 px-2 py-0.5 rounded-full bg-accent/10 border border-accent/20 text-[9px] text-accent">
                   Persona
                 </span>
               )}
@@ -372,10 +372,10 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
                         <Zap size={10} className="text-primary" />
                       </div>
                       <div className="flex-1">
-                        <span className="font-mono text-sm text-foreground/90 font-semibold">
+                        <span className="text-sm text-foreground/90 font-semibold">
                           {feat.name}
                         </span>
-                        <span className="font-mono text-sm text-muted-foreground">
+                        <span className="text-sm text-muted-foreground">
                           {" "}— {feat.description}
                         </span>
                         <FeatureStrengthBar name={feat.name} index={fi} />
@@ -385,7 +385,7 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
                 ))}
               </div>
             ) : (
-              <p className="font-mono text-sm text-foreground/80 leading-relaxed">
+              <p className="text-sm text-foreground/80 leading-relaxed">
                 {typeof value === "string" ? value : ""}
               </p>
             )}

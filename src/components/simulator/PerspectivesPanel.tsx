@@ -123,10 +123,10 @@ const PerspectivesPanel = ({ brief, idea, reportId }: Props) => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-display text-sm font-semibold text-foreground">Perspectives</h3>
-        <span className="font-mono text-[10px] text-muted-foreground">5 AI personas</span>
+        <span className="text-[10px] text-muted-foreground">5 AI personas</span>
       </div>
 
-      <p className="font-mono text-xs text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         Each persona sees something different. Answer their challenges to sharpen your thinking.
       </p>
 
@@ -156,10 +156,10 @@ const PerspectivesPanel = ({ brief, idea, reportId }: Props) => {
               ) : (
                 <Icon size={18} className={persona.color} />
               )}
-              <span className="font-mono text-[10px] font-medium text-foreground leading-tight text-center">
+              <span className="text-[10px] font-medium text-foreground leading-tight text-center">
                 {persona.name}
               </span>
-              <span className="font-mono text-[9px] text-muted-foreground leading-tight text-center hidden sm:block">
+              <span className="text-[9px] text-muted-foreground leading-tight text-center hidden sm:block">
                 {persona.tagline}
               </span>
             </button>
@@ -179,7 +179,7 @@ const PerspectivesPanel = ({ brief, idea, reportId }: Props) => {
             {loading === activePersona && !activeData ? (
               <div className="flex flex-col items-center gap-3 py-8">
                 <Loader2 size={24} className="animate-spin text-muted-foreground" />
-                <span className="font-mono text-xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   {activeMeta?.name} is analyzing your idea...
                 </span>
               </div>
@@ -192,7 +192,7 @@ const PerspectivesPanel = ({ brief, idea, reportId }: Props) => {
                   </p>
                 </div>
 
-                <div className="prose prose-sm prose-invert max-w-none font-mono text-xs text-muted-foreground leading-relaxed">
+                <div className="prose prose-sm prose-invert max-w-none text-xs text-muted-foreground leading-relaxed">
                   <ReactMarkdown
                     components={{
                       p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
@@ -220,17 +220,17 @@ const PerspectivesPanel = ({ brief, idea, reportId }: Props) => {
                       {activeData.challenge_questions.map((cq, i) => (
                         <div key={i} className="space-y-2">
                           <div className="flex items-start gap-2">
-                            <span className="font-mono text-[10px] text-primary font-bold mt-0.5">{i + 1}</span>
+                            <span className="text-[10px] text-primary font-bold mt-0.5">{i + 1}</span>
                             <div>
-                              <p className="font-mono text-xs text-foreground font-medium">{cq.question}</p>
-                              <p className="font-mono text-[10px] text-muted-foreground mt-0.5">{cq.context}</p>
+                              <p className="text-xs text-foreground font-medium">{cq.question}</p>
+                              <p className="text-[10px] text-muted-foreground mt-0.5">{cq.context}</p>
                             </div>
                           </div>
                           <textarea
                             value={activeResponses[i] || ""}
                             onChange={(e) => handleResponseChange(activePersona!, i, e.target.value)}
                             placeholder="Your response..."
-                            className="w-full min-h-[60px] p-3 rounded-md bg-background/50 border border-border/30 text-foreground font-mono text-xs leading-relaxed placeholder:text-muted-foreground/30 focus:outline-none focus:border-primary/30 resize-none transition-colors"
+                            className="w-full min-h-[60px] p-3 rounded-md bg-background/50 border border-border/30 text-foreground text-xs leading-relaxed placeholder:text-muted-foreground/30 focus:outline-none focus:border-primary/30 resize-none transition-colors"
                           />
                         </div>
                       ))}
@@ -240,7 +240,7 @@ const PerspectivesPanel = ({ brief, idea, reportId }: Props) => {
                       <button
                         onClick={() => handleSaveResponses(activePersona!)}
                         disabled={savingResponses}
-                        className="mt-3 flex items-center gap-2 px-3 py-2 rounded-md bg-primary/10 border border-primary/20 font-mono text-xs text-primary hover:bg-primary/15 transition-colors disabled:opacity-50"
+                        className="mt-3 flex items-center gap-2 px-3 py-2 rounded-md bg-primary/10 border border-primary/20 text-xs text-primary hover:bg-primary/15 transition-colors disabled:opacity-50"
                       >
                         {savingResponses ? (
                           <Loader2 size={12} className="animate-spin" />

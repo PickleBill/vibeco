@@ -10,7 +10,7 @@ const Thesis = () => (
           </h2>
         </FadeIn>
         <FadeIn delay={0.1}>
-          <p className="font-mono text-base text-foreground/80 leading-relaxed max-w-2xl">
+          <p className="text-base text-foreground/80 leading-relaxed max-w-2xl">
             What used to take a team of developers and months of runway? We do it
             in hours with AI. You talk, we build, you show it to real people. It's
             not magic — it's just what happens when great tools meet real conviction.

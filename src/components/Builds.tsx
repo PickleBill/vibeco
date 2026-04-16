@@ -37,7 +37,7 @@ const Builds = () => {
     <section id="builds" className="py-32 border-t border-border">
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
         <FadeIn>
-          <p className="font-mono text-sm text-muted-foreground uppercase tracking-widest mb-4">
+          <p className="text-sm text-muted-foreground uppercase tracking-widest mb-4">
             Selected Builds
           </p>
           <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-16">
@@ -51,7 +51,7 @@ const Builds = () => {
               <div
                 className={`group relative bg-card border rounded-lg overflow-hidden transition-all duration-500 h-full ${
                   hoveredIndex === i
-                    ? "border-primary/50 glow-accent scale-[1.02]"
+                    ? "border-primary/50 shadow-warm-lg scale-[1.02]"
                     : "border-border hover:border-primary/30"
                 }`}
                 onMouseEnter={() => setHoveredIndex(i)}
@@ -62,36 +62,36 @@ const Builds = () => {
                     hoveredIndex === i ? "opacity-100" : "opacity-0"
                   }`}
                   style={{
-                    background: "radial-gradient(circle, hsl(243 76% 58% / 0.25), transparent)",
+                    background: "radial-gradient(circle, hsl(var(--primary) / 0.25), transparent)",
                   }}
                 />
                 <div className={`h-32 bg-gradient-to-br ${p.color} flex items-center justify-center`}>
                   <div className="w-3/4 bg-background/60 border border-border rounded-md p-3 shadow-deep">
-                    <div className="h-2 w-1/2 bg-secondary rounded-sm mb-2" />
-                    <div className="h-2 w-3/4 bg-secondary rounded-sm mb-2" />
+                    <div className="h-2 w-1/2 bg-secondary rounded-full mb-2" />
+                    <div className="h-2 w-3/4 bg-secondary rounded-full mb-2" />
                     <div className="flex gap-2">
-                      <div className="h-5 flex-1 bg-primary/20 rounded-sm" />
-                      <div className="h-5 w-10 bg-primary/30 rounded-sm" />
+                      <div className="h-5 flex-1 bg-primary/20 rounded-full" />
+                      <div className="h-5 w-10 bg-primary/30 rounded-full" />
                     </div>
                   </div>
                 </div>
                 <div className="p-6 space-y-4">
                   <div>
-                    <p className="font-mono text-[10px] text-primary uppercase tracking-widest mb-2">
+                    <p className="text-[10px] text-primary uppercase tracking-widest mb-2">
                       Thesis
                     </p>
                     <h3 className="font-display text-xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors">
                       {p.name}
                     </h3>
-                    <p className="font-mono text-sm text-foreground/80 leading-relaxed">
+                    <p className="text-sm text-foreground/80 leading-relaxed">
                       {p.thesis}
                     </p>
                   </div>
                   <div>
-                    <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">
                       What we shipped
                     </p>
-                    <p className="font-mono text-sm text-foreground/80 leading-relaxed">
+                    <p className="text-sm text-foreground/80 leading-relaxed">
                       {p.built}
                     </p>
                   </div>
@@ -114,7 +114,7 @@ const Builds = () => {
                         <p className="font-display text-2xl font-black text-primary leading-none">
                           {p.kpi}
                         </p>
-                        <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider mt-1">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-1">
                           {p.kpiLabel}
                         </p>
                       </div>
