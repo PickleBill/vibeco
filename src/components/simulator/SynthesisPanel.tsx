@@ -90,9 +90,10 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
     setProgress({ completed: 0, total: 7 });
 
     try {
+      const effectiveIdea = (idea && idea.trim()) || brief?.problem || "Untitled idea";
       const { data, error } = await supabase.functions.invoke("orchestrate", {
         body: {
-          idea,
+          idea: effectiveIdea,
           brief,
           mode,
           report_id: reportId || undefined,
