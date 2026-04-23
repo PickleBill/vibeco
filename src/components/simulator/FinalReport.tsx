@@ -57,6 +57,7 @@ interface Props {
   onToggleAntiHighlight?: (key: string) => void;
   reportId?: string | null;
   onReorderFeatures?: (features: BriefData["core_features"]) => void;
+  onPromptUpdate?: (newPrompt: string) => void;
 }
 
 const sectionMeta = [
