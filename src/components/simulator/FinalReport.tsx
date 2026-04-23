@@ -880,33 +880,34 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
           </div>
         </div>
 
-        {/* Deep Dive — appears after email unlock */}
-        {showPrompt && (
-          <ThunderdomePanel
-            brief={brief}
-            idea={idea}
-            reportId={reportId}
-            highlights={highlights}
-            antiHighlights={antiHighlights}
-          />
-        )}
-
-        {/* Lovable Prompt — visible after email unlock */}
-        {showPrompt && lovablePrompt && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="mb-8"
-          >
-            {highlights && highlights.size > 0 && (
-              <div className="flex items-center gap-2 mb-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20">
-                <Sparkles size={12} className="text-primary fill-primary" />
-                <span className="text-xs text-primary">
-                  Personalized based on {highlights.size} area{highlights.size > 1 ? "s" : ""} you highlighted
+        {/* Lovable Prompt — always visible (no email gate) */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="mb-8"
+        >
+          {highlights && highlights.size > 0 && lovablePrompt && (
+            <div className="flex items-center justify-between gap-3 mb-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20">
+              <div className="flex items-center gap-2 min-w-0">
+                <Sparkles size={12} className="text-primary fill-primary shrink-0" />
+                <span className="text-xs text-primary truncate">
+                  {highlights.size} highlight{highlights.size > 1 ? "s" : ""}
+                  {antiHighlights && antiHighlights.size > 0 ? ` · ${antiHighlights.size} flag${antiHighlights.size > 1 ? "s" : ""}` : ""} will sharpen the prompt
                 </span>
               </div>
-            )}
+              <button
+                onClick={handleSharpenPrompt}
+                disabled={isSharpening}
+                className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-primary/40 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50 whitespace-nowrap"
+              >
+                {isSharpening ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                {isSharpening ? "Sharpening..." : "Sharpen prompt now"}
+              </button>
+            </div>
+          )}
+
+          {lovablePrompt ? (
             <div className="border border-border/30 rounded-lg overflow-hidden">
               <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/20">
                 <span className="text-xs text-muted-foreground uppercase tracking-wider">
@@ -920,25 +921,47 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
                   {copied ? "Copied" : highlights && highlights.size > 0 ? "Copy + highlights" : "Copy"}
                 </button>
               </div>
-              <div className="p-4 max-h-48 overflow-y-auto">
-                <pre className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+              <div className="p-4 max-h-72 overflow-y-auto">
+                <pre className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap font-sans">
                   {lovablePrompt}
                 </pre>
               </div>
             </div>
-          </motion.div>
-        )}
+          ) : (
+            <div className="border border-dashed border-border/40 rounded-lg p-6 text-center bg-card/30">
+              <p className="text-sm text-foreground/80 mb-1 font-display font-semibold">No Lovable prompt yet</p>
+              <p className="text-xs text-muted-foreground mb-4">
+                The 3-round analysis didn't return a prompt. Generate one now from this brief.
+              </p>
+              <button
+                onClick={handleGeneratePrompt}
+                disabled={isGeneratingPrompt}
+                className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {isGeneratingPrompt ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                {isGeneratingPrompt ? "Generating..." : "Generate Lovable prompt"}
+              </button>
+            </div>
+          )}
+        </motion.div>
 
-        {/* Action Hub — replaces dead-end after email unlock */}
-        {showPrompt && (
-          <ActionHub
-            brief={brief}
-            idea={idea}
-            lovablePrompt={lovablePrompt}
-            reportId={reportId}
-            onIterate={onRestart}
-          />
-        )}
+        {/* Stress-test the whole idea — always visible */}
+        <ThunderdomePanel
+          brief={brief}
+          idea={idea}
+          reportId={reportId}
+          highlights={highlights}
+          antiHighlights={antiHighlights}
+        />
+
+        {/* Action Hub — always visible */}
+        <ActionHub
+          brief={brief}
+          idea={idea}
+          lovablePrompt={lovablePrompt}
+          reportId={reportId}
+          onIterate={onRestart}
+        />
 
         <div className="flex flex-wrap gap-4 justify-center mt-6">
           <button
