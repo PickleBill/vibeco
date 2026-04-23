@@ -113,6 +113,7 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
   const runOrchestrate = async () => {
     setRunning(true);
     setResult(null);
+    setAgentStatus({});
     setProgress({ completed: 0, total: 7 });
 
     try {
