@@ -480,7 +480,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
         ) : (
           <ChevronDown size={12} className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
         )}
-        {isLoadingThis ? "Analyzing..." : isExpanded ? "Collapse" : isHighlighted ? "Deep dive ✦" : "Deep dive"}
+        {isLoadingThis ? "Analyzing..." : isExpanded ? "Collapse" : isHighlighted ? "Go deeper on this section ✦" : "Go deeper on this section"}
       </button>
     </div>
   );
