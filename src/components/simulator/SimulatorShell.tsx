@@ -967,6 +967,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                 onToggleAntiHighlight={toggleAntiHighlight}
                 reportId={reportId}
                 onReorderFeatures={handleReorderFeatures}
+                onPromptUpdate={(p) => setLovablePrompt(p)}
               />
             </motion.div>
           )}
