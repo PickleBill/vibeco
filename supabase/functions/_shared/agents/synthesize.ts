@@ -214,13 +214,26 @@ ${agentOutputs}
 
 Synthesize all of the above into a unified analysis. Find what they agree on, where they disagree, and what the founder should do next.`;
 
-  return callLLMWithTool<SynthesisResult>({
-    model,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userContent },
-    ],
-    tools: [synthesizeToolSchema],
-    toolChoice: { type: "function", function: { name: "generate_synthesis" } },
-  });
+  let lastError: unknown;
+  for (const model of modelChain) {
+    try {
+      const startedAt = Date.now();
+      const result = await callLLMWithTool<SynthesisResult>({
+        model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userContent },
+        ],
+        tools: [synthesizeToolSchema],
+        toolChoice: { type: "function", function: { name: "generate_synthesis" } },
+      });
+      console.log(`[synthesize] ✓ ${model} in ${Date.now() - startedAt}ms`);
+      return result;
+    } catch (e) {
+      lastError = e;
+      console.error(`[synthesize] ✗ ${model}: ${(e as Error).message}`);
+      // continue to next model in the chain
+    }
+  }
+  throw lastError ?? new Error("All synthesis models failed");
 }
