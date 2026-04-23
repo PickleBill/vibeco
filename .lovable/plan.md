@@ -89,3 +89,39 @@ The 9 SKILL files in your root are the right framework but the simulator screens
 2. **Deep Dive timing:** offer it during the brief phase (after round 1) or only after round 3 is complete?
 3. **Auto-Analyze default mode:** should clicking "Auto-Analyze" use Quick mode (~30s) or Deep mode (~90s)?
 
+
+---
+
+## Sprint 2 Retro — Auto-Analyze + SynthesisPanel (DONE)
+
+**Shipped**
+- New `SynthesisPanel.tsx` — renders `orchestrate` output: confidence ring, executive summary, consensus, tensions (with "Your call" badges), ranked recommendations, brief suggestions. One-click "Apply to prompt" calls `refine-prompt` with synthesis as `refinement_context`.
+- `ThunderdomePanel` now has 4 tabs with **Auto-Analyze as the default first tab**. The 3 manual tabs (Perspectives / Expand / Distill) remain for users who want one lens at a time.
+- Threaded `lovablePrompt` + `onPromptUpdate` through SimulatorShell → ThunderdomePanel → SynthesisPanel so synthesis can mutate the prompt in place.
+- Added semantic `--warning` design token (HSL amber) to `index.css` + `tailwind.config.ts` — replaced all raw `amber-*` Tailwind classes.
+- Deployed `orchestrate` + `synthesize` edge functions.
+- Fast (~30s) / Deep (~90s) mode toggle on the Auto-Analyze CTA.
+
+**Discovered while building → recommended Sprint 3 changes**
+
+1. **No realtime progress yet.** `orchestrate/index.ts` already emits events to `agent_events` (each persona, expand, distill report when they complete) but the UI just shows a single spinner. **Sprint 3 add:** Supabase Realtime channel subscription in SynthesisPanel showing "Skeptic ✓ · Champion ✓ · Competitor… · Builder… · Distill ✓" as agents finish. Massive UX win for free since the events are already firing.
+
+2. **Synthesis output should auto-update the brief, not just the prompt.** `synthesis.refined_brief_suggestions` are passive text. **Sprint 3 add:** "Apply suggestion" button per item that re-runs `simulate-idea` with the suggestion in `refinement_context`, regenerating the brief.
+
+3. **Per-persona "Apply this critique" is still missing.** PerspectivesPanel today just shows the perspective + saves user responses. The original Sprint 2 plan called for an "Apply this critique" button per persona. **Move to Sprint 3** — implementation is small but PerspectivesPanel needs the same `lovablePrompt` / `onPromptUpdate` plumbing.
+
+4. **`agent_events` table needs RLS audit before Sprint 3 realtime.** The orchestrate function inserts via service-role, but if we subscribe from the browser we need a `public read` policy on the table. Same pattern as `idea_perspectives`.
+
+5. **Confidence threshold gating.** When `confidence_score < 50` we should *strongly* warn before applying to prompt — high tensions mean the agents disagree and the prompt could regress. Currently we just show a colored badge.
+
+6. **Cost surfacing.** Each Auto-Analyze fires 8 LLM calls. Should show `(7/7 agents · 9.2s · ~$0.04)` style metadata under the synthesis header so users understand the spend. Need usage data from the gateway response.
+
+7. **Caching.** Re-running Auto-Analyze on an unchanged brief re-fires all 8 calls. Could hash `(brief, idea, highlights, mode)` and cache to `idea_reports.synthesis_cache JSONB` for free re-renders.
+
+**Plan adjustment for Sprint 3 (was: flywheel only)**
+
+Reframe Sprint 3 as **two parallel tracks**:
+- **3a: Polish the loop** — items 1, 2, 3, 5 above. Makes Auto-Analyze feel finished.
+- **3b: Connect the flywheel** — Inbox → auto-evaluate, Portfolio ↔ Simulator round-trip (original Sprint 3 scope).
+
+Recommend doing 3a first — it directly improves the surface users will touch most.

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Zap, Maximize2, Minimize2 } from "lucide-react";
+import { Zap, Maximize2, Minimize2, Sparkles } from "lucide-react";
 import PerspectivesPanel from "./PerspectivesPanel";
 import ExpandContractPanel from "./ExpandContractPanel";
+import SynthesisPanel from "./SynthesisPanel";
 import type { BriefData } from "./SimulatorShell";
 
-type ThunderdomeTab = "perspectives" | "expand" | "contract";
+type ThunderdomeTab = "synthesis" | "perspectives" | "expand" | "contract";
 
 interface Props {
   brief: BriefData;
@@ -13,13 +14,24 @@ interface Props {
   reportId?: string | null;
   highlights?: Set<string>;
   antiHighlights?: Set<string>;
+  lovablePrompt?: string | null;
+  onPromptUpdate?: (prompt: string) => void;
 }
 
-const ThunderdomePanel = ({ brief, idea, reportId, highlights, antiHighlights }: Props) => {
-  const [activeTab, setActiveTab] = useState<ThunderdomeTab>("perspectives");
+const ThunderdomePanel = ({
+  brief,
+  idea,
+  reportId,
+  highlights,
+  antiHighlights,
+  lovablePrompt,
+  onPromptUpdate,
+}: Props) => {
+  const [activeTab, setActiveTab] = useState<ThunderdomeTab>("synthesis");
 
   const tabs = [
-    { id: "perspectives" as const, label: "Perspectives", icon: Zap, description: "5 AI personas weigh in" },
+    { id: "synthesis" as const, label: "Auto-Analyze", icon: Sparkles, description: "All 7 agents + synthesis" },
+    { id: "perspectives" as const, label: "Perspectives", icon: Zap, description: "5 personas, one at a time" },
     { id: "expand" as const, label: "Expand", icon: Maximize2, description: "What else could this be?" },
     { id: "contract" as const, label: "Distill", icon: Minimize2, description: "What's the one thing?" },
   ];
@@ -54,27 +66,32 @@ const ThunderdomePanel = ({ brief, idea, reportId, highlights, antiHighlights }:
           <div>
             <h2 className="font-display text-xl font-black text-foreground tracking-tight">Stress-test the whole idea</h2>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              5 personas weigh in · expand into adjacent shapes · distill to the one thing
+              Run all 7 agents at once · or explore one lens at a time
             </p>
           </div>
         </div>
 
         {/* Tabs — larger, bolder treatment */}
-        <div className="flex gap-2 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
+            const isPrimary = tab.id === "synthesis";
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 flex flex-col items-center gap-1.5 px-4 py-3 rounded-lg text-xs transition-all border ${
+                className={`relative flex flex-col items-center gap-1.5 px-4 py-3 rounded-lg text-xs transition-all border ${
                   isActive
-                    ? "bg-primary/10 border-primary/30 text-foreground shadow-sm"
+                    ? isPrimary
+                      ? "bg-primary/15 border-primary/50 text-foreground shadow-sm ring-1 ring-primary/20"
+                      : "bg-primary/10 border-primary/30 text-foreground shadow-sm"
+                    : isPrimary
+                    ? "bg-primary/5 border-primary/30 text-foreground hover:border-primary/50"
                     : "bg-card/30 border-border/30 text-muted-foreground hover:border-border/60 hover:text-foreground"
                 }`}
               >
-                <Icon size={16} className={isActive ? "text-primary" : ""} />
+                <Icon size={16} className={isActive || isPrimary ? "text-primary" : ""} />
                 <span className="font-semibold">{tab.label}</span>
                 <span className="text-[9px] text-muted-foreground hidden sm:block">{tab.description}</span>
               </button>
@@ -87,6 +104,19 @@ const ThunderdomePanel = ({ brief, idea, reportId, highlights, antiHighlights }:
 
         {/* Tab content with animation */}
         <AnimatePresence mode="wait">
+          {activeTab === "synthesis" && (
+            <motion.div key="synthesis" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+              <SynthesisPanel
+                brief={brief}
+                idea={idea}
+                reportId={reportId}
+                highlights={highlights}
+                antiHighlights={antiHighlights}
+                lovablePrompt={lovablePrompt}
+                onPromptUpdate={onPromptUpdate}
+              />
+            </motion.div>
+          )}
           {activeTab === "perspectives" && (
             <motion.div key="perspectives" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
               <PerspectivesPanel brief={brief} idea={idea} reportId={reportId} />
