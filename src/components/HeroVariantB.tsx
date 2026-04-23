@@ -203,7 +203,7 @@ function StaticHero({ navigate }: { navigate: ReturnType<typeof useNavigate> }) 
             <p className="text-sm text-primary uppercase tracking-widest mb-6">
               idea → product → revenue
             </p>
-            <h1 className="font-display font-black text-foreground leading-[1.05] mb-6 " style={{ fontSize: "clamp(2.75rem, 4vw + 1.5rem, 4.25rem)" }}>
+            <h1 className="font-display font-black text-foreground leading-[1.05] mb-6 break-words" style={{ fontSize: "clamp(2.25rem, 4vw + 1.25rem, 4.25rem)" }}>
               One conversation.
               <br />
               <span className="text-primary">One live product.</span>
