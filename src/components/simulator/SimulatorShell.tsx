@@ -15,6 +15,7 @@ import IdeaInput from "./IdeaInput";
 import IdeaBrief from "./IdeaBrief";
 import FollowUpQuestions from "./FollowUpQuestions";
 import FinalReport, { generateStructuredPDF, computeScores } from "./FinalReport";
+import ThunderdomePanel from "./ThunderdomePanel";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
