@@ -612,7 +612,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
         <div className="h-px flex-1 bg-border/30" />
       </motion.div>
 
-      {/* Email banner at top — always visible until submitted */}
+      {/* Email banner — only gates PDF/Share, NOT the prompt */}
       {!showPrompt && (
         <motion.div
           initial={{ opacity: 0, y: -8 }}
@@ -622,9 +622,9 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
         >
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <div className="flex-1">
-              <p className="font-display text-sm font-bold text-foreground">Save your report & unlock the prompt</p>
+              <p className="font-display text-sm font-bold text-foreground">Save your report — unlock PDF + share link</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Get your shareable link, PDF download, and one-shot Lovable prompt.
+                Your prompt is already below. Add an email to download a PDF and get a shareable URL.
               </p>
             </div>
             <form onSubmit={handleEmailSubmit} className="flex gap-2 w-full sm:w-auto">
@@ -641,7 +641,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
                 className="flex items-center gap-2 bg-primary text-primary-foreground text-sm px-4 py-2 rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50 whitespace-nowrap"
               >
                 <Mail size={14} />
-                {isSubmitting ? "..." : "Unlock"}
+                {isSubmitting ? "..." : "Save"}
               </button>
             </form>
           </div>
