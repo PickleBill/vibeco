@@ -65,13 +65,13 @@ interface Props {
 
 const confidenceLabel = (n: number) => {
   if (n >= 80) return { label: "Strong consensus", color: "text-primary", bg: "bg-primary/10", ring: "ring-primary/30" };
-  if (n >= 50) return { label: "Mixed signals", color: "text-amber-400", bg: "bg-amber-500/10", ring: "ring-amber-500/30" };
+  if (n >= 50) return { label: "Mixed signals", color: "text-warning", bg: "bg-warning/10", ring: "ring-warning/30" };
   return { label: "High tension", color: "text-destructive", bg: "bg-destructive/10", ring: "ring-destructive/30" };
 };
 
 const confChip = (c: "high" | "medium" | "low") => {
   if (c === "high") return "bg-primary/15 text-primary border-primary/30";
-  if (c === "medium") return "bg-amber-500/10 text-amber-400 border-amber-500/30";
+  if (c === "medium") return "bg-warning/10 text-warning border-warning/30";
   return "bg-muted/40 text-muted-foreground border-border/40";
 };
 
@@ -257,8 +257,8 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
   if (!synthesis) {
     return (
       <div className="space-y-4">
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
-          <p className="text-sm text-amber-400 font-medium">Synthesis didn't complete</p>
+        <div className="rounded-lg border border-warning/30 bg-warning/5 p-4">
+          <p className="text-sm text-warning font-medium">Synthesis didn't complete</p>
           <p className="text-xs text-muted-foreground mt-1">
             {result?.agents_completed ?? 0} of {result?.agents_total ?? 7} agents responded but synthesis failed. Try
             again.
@@ -358,25 +358,25 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
       {synthesis.tensions.length > 0 && (
         <section className="space-y-3">
           <div className="flex items-center gap-2">
-            <AlertTriangle size={14} className="text-amber-400" />
+            <AlertTriangle size={14} className="text-warning" />
             <h4 className="font-display text-xs font-bold text-foreground uppercase tracking-wider">
               Tensions ({synthesis.tensions.length})
             </h4>
           </div>
           <div className="space-y-3">
             {synthesis.tensions.map((t, i) => (
-              <div key={i} className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 space-y-2">
+              <div key={i} className="rounded-lg border border-warning/20 bg-warning/5 p-3 space-y-2">
                 <div className="flex items-center gap-2">
                   <p className="text-xs font-semibold text-foreground flex-1">{t.topic}</p>
                   {t.requires_human_decision && (
-                    <span className="text-[9px] uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                    <span className="text-[9px] uppercase tracking-wider text-warning bg-warning/10 px-2 py-0.5 rounded-full">
                       Your call
                     </span>
                   )}
                 </div>
                 <ul className="space-y-1">
                   {t.positions.map((p, pi) => (
-                    <li key={pi} className="text-[11px] text-muted-foreground leading-relaxed pl-3 border-l border-amber-500/30">
+                    <li key={pi} className="text-[11px] text-muted-foreground leading-relaxed pl-3 border-l border-warning/30">
                       {p}
                     </li>
                   ))}
