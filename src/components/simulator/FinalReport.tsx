@@ -44,6 +44,7 @@ interface Props {
   brief: BriefData;
   idea: string;
   onRestart: () => void;
+  onIterate?: () => void;
   conceptImage?: string | null;
   logoImage?: string | null;
   rounds: RoundState[];
