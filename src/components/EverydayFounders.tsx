@@ -73,29 +73,9 @@ const EverydayFounders = () => {
         </div>
 
         <FadeIn delay={0.4}>
-          <div className="mt-12 text-center">
-            <p className="text-sm text-muted-foreground mb-6">
-              Got a problem worth solving? That's all you need.
-            </p>
-            <div className="flex flex-wrap gap-4 justify-center">
-              <button
-                onClick={() => navigate("/simulate")}
-                className="text-sm bg-primary text-primary-foreground px-8 py-3 rounded-full hover:opacity-90 transition-opacity inline-flex items-center gap-2"
-              >
-                <Sparkles size={14} />
-                Test Your Idea Free
-              </button>
-              <button
-                onClick={() => {
-                  const el = document.querySelector("#contact");
-                  el?.scrollIntoView({ behavior: "smooth" });
-                }}
-                className="text-sm border border-border text-foreground px-8 py-3 rounded-full hover:border-primary/50 hover:text-primary transition-colors"
-              >
-                Pitch It Directly →
-              </button>
-            </div>
-          </div>
+          <p className="mt-12 text-sm text-muted-foreground text-center">
+            Got a problem worth solving? That's all you need.
+          </p>
         </FadeIn>
       </div>
     </section>
