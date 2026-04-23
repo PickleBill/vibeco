@@ -1,129 +1,91 @@
 
 
-## VibeCo Ecosystem Strategy: From Simulator to Flywheel
+# VibeCo: Production-Ready Reset
 
-### What You're Asking (Distilled)
+You're right — we have a lot of cool features sitting next to each other but the core promise ("paste an idea → get something you can actually build") is broken. Let's fix the engine first, then prune.
 
-You have 65+ Lovable projects spanning Courtana/pickleball, VibeCo, personal experiments, and client work. You want:
-1. A way to **feed existing Lovable projects INTO the simulator** for analysis
-2. A **global workspace** organized by category (partners, internal dev, future dev, fun)
-3. A **flywheel loop** where VibeCo's simulator becomes your own product development tool
-4. Focus on **Courtana Pulse** (Pickle DaaS Explorer) as the priority build
-5. Better **knowledge portability** (like Impeccable Style) across projects
+## What's Actually Broken (verified in code)
 
-### Answers to Your Direct Questions
+1. **Build is red.** Two TypeScript errors block deploy:
+   - `orchestrate/index.ts:47` — inserts into `agent_events` table that exists in a migration but isn't in the generated `types.ts` yet (Supabase types are stale).
+   - `Inbox.tsx:71` — selects `auto_score`/`auto_verdict`/`auto_source` columns that exist in a migration but aren't in `types.ts`.
+   - **Fix:** force a Supabase types regeneration by touching the migrations or running them, then cast the two queries through `as unknown as` to unblock immediately.
 
-**"Why can't I see all 35+ projects when I type @?"** — The @ mention dropdown currently caps at a limited set. This is a Lovable platform limitation, not something we can fix in your project code. You can work around it by typing more of the project name to filter.
+2. **The Lovable Prompt copy with highlights doesn't actually copy in some browsers.** `copyToClipboard` has the fallback, but the button only calls `handleCopyPromptWithHighlights` when `lovablePrompt` exists. If `simulate-idea` finishes without returning `lovable_prompt` (possible when round 3 hits an error path), the copy block never renders. **Fix:** always show the prompt area; if the prompt is missing, show a "Generate Prompt" button that calls `refine-prompt` directly.
 
-**"Can I upload a Lovable project into Simulate?"** — Yes, and this is a genuinely good idea. Not the full codebase, but a **project manifest** — the knowledge files, component tree, route structure, and description. The simulator already takes free-text ideas; we'd add a "Import from Lovable" input mode that pulls project context via the cross-project tools and formats it as a structured brief for the AI.
+3. **Deep Dive (Thunderdome) is gated behind email unlock and only appears at the very bottom of the final report.** Users never find it. The Perspectives/Expand/Distill panels work but produce output that doesn't feed back anywhere — there's no "apply this" loop. **Fix:** surface Deep Dive in the brief phase too, and make every Perspective/Expansion/Distillation result have a single primary action ("Apply to brief" / "Replace prompt").
 
-**"Should I have a global workspace organized by category?"** — Absolutely. Your 65 projects break down into clear clusters. We can build this as a **Portfolio Command Center** right here in VibeCo.
+4. **"This resonates" / "Not quite" buttons do nothing visible.** They mutate `highlights`/`antiHighlights` state, which only takes effect when a *new* round runs or the prompt is copied. Users click them and see no feedback. **Fix:** show a tiny inline "Will sharpen the prompt" pill the moment a highlight is toggled, and add a "Sharpen prompt now" button that re-calls `refine-prompt` without forcing a full new round.
 
----
+5. **Landing page generation is orphaned.** `generate-landing-page` exists, no UI calls it. Either wire it into ActionHub as one option or delete the function. Recommended: delete for now.
 
-### The Flywheel Architecture
+6. **Two simultaneous "deep dive" surfaces** (per-section ChevronDown deep dives in `FinalReport`, plus the bottom Thunderdome) create the confusion you're describing. Both are useful but unlabeled. **Fix:** rename clearly — per-section becomes "Go deeper on this section", bottom panel becomes "Stress-test the whole idea".
 
-```text
-┌─────────────────────────────────────────────────┐
-│                 VibeCo Hub                       │
-│  ┌───────────┐  ┌───────────┐  ┌─────────────┐ │
-│  │ Portfolio  │  │ Simulator │  │  Action Hub  │ │
-│  │ Command    │→ │ (Analyze  │→ │ (Build/Fork/ │ │
-│  │ Center     │  │  /Expand/ │  │  Route/Ship) │ │
-│  │            │  │  Distill) │  │              │ │
-│  └─────┬─────┘  └─────┬─────┘  └──────┬──────┘ │
-│        │              │               │         │
-│        └──────────────┼───────────────┘         │
-│                       ▼                         │
-│              Lovable Projects                   │
-│         (65+ apps in workspace)                 │
-└─────────────────────────────────────────────────┘
-```
+7. **Claude Code branch (`claude/ai-agent-architecture-Xc8pG`) is partially merged.** The `_shared/agents/*`, `orchestrate`, `synthesize`, `auto-evaluate` files exist but no UI uses `orchestrate` and the Inbox query is broken. The work is sitting dormant. **Fix:** either wire `orchestrate` into a single "Auto-Analyze" button at the top of the brief phase (1 call replaces 7) or hide `/inbox` from nav until it's connected to real data.
 
----
+## The Plan: Three Sequential Sprints
 
-### Plan: Two Focused Builds
+### Sprint 1 — Unblock & Stabilize (this session)
 
-#### Build 1: Portfolio Command Center (`/portfolio`)
+Goal: green build, every existing button does something visible.
 
-A new page in VibeCo that organizes ALL your projects into a strategic dashboard.
+- Fix the two TS errors with `as unknown as` casts and a comment explaining the types-regen gap
+- Make the Lovable Prompt always visible on the final report (no email gate on the prompt itself; keep email gate on PDF/share only)
+- Add the inline "Sharpen prompt now" action on highlight toggles, calling `refine-prompt`
+- Rename the two deep-dive surfaces so they're distinguishable
+- Add a single "Run full Deep Dive" CTA in the brief phase that opens Thunderdome inline (don't wait for final report)
+- Hide `/inbox` from nav until Sprint 3 wires it up
 
-**Data Model**: New `project_registry` table:
-- `id`, `user_id`, `lovable_project_id`, `name`, `description`
-- `category` enum: `partner`, `internal_dev`, `future_dev`, `fun`, `client`, `experiment`
-- `status` enum: `active`, `paused`, `shipped`, `archived`
-- `parent_brand` (e.g., "Courtana", "VibeCo", "Personal")
-- `report_id` (links to simulator analysis if one exists)
-- `notes`, `priority`, `last_touched`
+### Sprint 2 — Make the Loop Real (next session)
 
-**Features**:
-- Filterable grid by category, brand, and status
-- Quick-action to "Analyze in Simulator" (pre-fills the simulator with project context)
-- Link simulator reports back to projects (bidirectional)
-- Drag-and-drop priority ordering within categories
+Goal: every panel feeds back into the brief or prompt.
 
-**Your Courtana cluster would look like**:
-- **Partner**: Venue Launchpad, CONCORD, Courtana Venue
-- **Internal Dev**: Pickle DaaS Explorer (Courtana Pulse), CourtSense AI, courtana-live
-- **Future Dev**: Courtana Coach Pro, courtana-match-replay-hub
-- **Fun/Experiment**: shotgenius, pickleprime, picklerickroll, WallBall Connect
+- Wire `orchestrate` to a single "Auto-Analyze" button at the top of the brief — fires all 5 personas + expand + distill + synthesize in one call, shows progress via Realtime `agent_events`
+- Build a `SynthesisPanel` showing consensus, tensions, confidence score, and **a single "Apply to brief" button** that calls `refine-prompt` with the synthesis as input
+- Each persona perspective gets an "Apply this critique" button → re-runs `simulate-idea` with that perspective injected
+- Each expansion gets a "Fork into new simulation" button (already exists in ActionHub, surface earlier)
+- Distill output replaces the prompt directly with a confirmation
 
-#### Build 2: "Import Project" Mode for the Simulator
+### Sprint 3 — Connect the Flywheel (later)
 
-Add a second input mode to the IdeaInput component:
+Goal: VibeCo becomes the hub for your 65 projects.
 
-**How it works**:
-1. User clicks "Import from Project" toggle
-2. Selects a project from a searchable dropdown of their registered projects
-3. System pulls the project's description, route structure, and key components
-4. Formats this into a structured idea brief automatically
-5. Simulator runs its full analysis on the **existing project** — identifying gaps, expansion opportunities, and distillation targets
+- Wire `/inbox` to `auto-evaluate` so external sources (Idea Lab, MCP) can pipe ideas in
+- Portfolio → Simulator round-trip: register Courtana Pulse, run Auto-Analyze, push the refined prompt back as a "next iteration spec" attached to the project_registry row
+- Re-evaluate Impeccable Style: audit the simulator screens against the 9 SKILL files (probably means: less card-grid, more typographic moments in `IdeaBrief` and `PerspectivesPanel`)
 
-This turns the simulator from "analyze hypothetical ideas" into "stress-test and evolve real projects."
+## What to Cut
 
----
+These features are dormant or confusing. Recommend deleting in Sprint 1 to reduce surface area:
 
-### Knowledge Portability (Impeccable Style + More)
+- **`generate-landing-page` edge function + any UI references** — orphaned, not part of the core loop
+- **The "history" tab in `SimulatorShell`** when there's only 1 prior round — show inline instead
+- **The brief-phase "Analysis" vs "Questions" tab toggle** — collapse into one scrollable view; the toggle hides what the user just generated
 
-The generated file at `/mnt/documents/impeccable-style-v2.1-complete.md` is the right artifact, but the right **delivery mechanism** is:
+## On the Claude Code Branch
 
-1. **Project Knowledge settings**: For each new Lovable project, paste the core principles into Settings > Knowledge. This is the fastest path.
-2. **Root-level SKILL files**: For projects where you need the full framework, copy the individual `.md` files to the project root (use `@VibeCo Labs` cross-project reference to pull them).
-3. **Template project**: Create a "Courtana Starter" template with all SKILL files pre-loaded. Remix it for every new Courtana build.
+The shared infrastructure (`_shared/agents/*`, `cors.ts`, `llm-client.ts`, `model-router.ts`, `error-handler.ts`) is solid and already in place. Keep it. The `orchestrate` and `synthesize` agents are also good — they just need a UI. **Don't merge anything new from that branch until Sprint 2** when we actually wire `orchestrate` to a button. The risk of further drift between branch and main grows with every unmerged change.
 
-**Recommendation**: Create a dedicated **"Courtana Design System"** knowledge file that combines Impeccable Style with Courtana-specific brand tokens (colors, fonts, component patterns from Pickle DaaS Explorer). This becomes your standard for all Courtana projects.
+## On Impeccable Style
 
----
+The 9 SKILL files in your root are the right framework but the simulator screens haven't been audited against them. After Sprint 1 stabilizes the flow, run `Run impeccable audit /simulate` to catalog the violations (probable hits: card monoculture in `IdeaBrief`, decorative gradients without justification in `ThunderdomePanel`, button variant proliferation). For other projects, the consolidated `/mnt/documents/impeccable-style-v2.1-complete.md` file is the right artifact — paste its core principles into each project's Knowledge settings.
 
-### Courtana Pulse Focus
+## Files Changed in Sprint 1
 
-For the immediate priority — [Pickle DaaS Explorer](/projects/e56b8988-ae4f-48fb-a2dc-6d081b70fb6f) (Courtana Pulse):
-
-The simulator can generate a fresh analysis of where Courtana Pulse stands today. We'd:
-1. Register it in the Portfolio Command Center as `internal_dev` / `Courtana` brand
-2. Run it through the simulator's Expand + Distill cycle
-3. Use the resulting Lovable Prompt as the next iteration spec
-
-This creates the flywheel: **Build → Simulate → Expand/Distill → Build again**.
-
----
-
-### Files Changed
-
-| File | Action |
+| File | Change |
 |---|---|
-| `src/pages/Portfolio.tsx` | Create — Command Center dashboard |
-| `src/components/portfolio/ProjectCard.tsx` | Create — project cards with category badges |
-| `src/components/portfolio/CategoryFilter.tsx` | Create — filter/sort controls |
-| `src/components/simulator/IdeaInput.tsx` | Modify — add "Import from Project" toggle |
-| `src/components/simulator/ProjectImporter.tsx` | Create — project selector + context extractor |
-| `src/App.tsx` | Modify — add `/portfolio` route |
-| Migration | Create `project_registry` table with RLS |
+| `src/pages/Inbox.tsx` | Cast query result; hide route from nav |
+| `src/components/Navbar.tsx` | Remove Inbox link until Sprint 3 |
+| `supabase/functions/orchestrate/index.ts` | Cast `agent_events` insert |
+| `src/components/simulator/FinalReport.tsx` | Always render Lovable Prompt; rename per-section deep dive; add "Sharpen prompt now" |
+| `src/components/simulator/SimulatorShell.tsx` | Add "Run Deep Dive" CTA in brief phase; collapse Questions/Analysis tabs |
+| `src/components/simulator/ThunderdomePanel.tsx` | Header rename + clearer subtext |
+| `supabase/functions/generate-landing-page/` | Delete |
+| `supabase/functions/_shared/agents/landing-page.ts` | Delete |
 
-### Sequencing
+### Open Questions Before Sprint 1
 
-1. Database migration for `project_registry`
-2. Portfolio Command Center page (register + categorize projects)
-3. Simulator "Import Project" mode
-4. Bidirectional linking (reports ↔ projects)
+1. **Email gate scope:** keep email required for PDF/share but free the Lovable Prompt itself? Or remove the email gate entirely since most users bounce at it?
+2. **Deep Dive timing:** offer it during the brief phase (after round 1) or only after round 3 is complete?
+3. **Auto-Analyze default mode:** should clicking "Auto-Analyze" use Quick mode (~30s) or Deep mode (~90s)?
 
