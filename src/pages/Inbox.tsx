@@ -57,8 +57,18 @@ export default function Inbox() {
 
   async function loadIdeas() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("idea_reports")
+    // NOTE: auto_score / auto_verdict / auto_source columns exist in a
+    // migration but aren't in the generated Supabase types yet — cast through
+    // `unknown` until types regenerate. Tracked for Sprint 3 wiring.
+    const { data, error } = await (supabase.from as unknown as (t: string) => {
+      select: (cols: string) => {
+        not: (col: string, op: string, val: null) => {
+          order: (col: string, opts: { ascending: boolean; nullsFirst: boolean }) => {
+            limit: (n: number) => Promise<{ data: unknown; error: unknown }>;
+          };
+        };
+      };
+    })("idea_reports")
       .select("id, idea, created_at, brief, auto_score, auto_verdict, auto_source")
       .not("auto_source", "is", null)
       .order("auto_score", { ascending: false, nullsFirst: false })
@@ -68,7 +78,7 @@ export default function Inbox() {
       toast.error("Failed to load inbox");
       console.error(error);
     } else {
-      setIdeas((data as AutoEvaluatedIdea[]) || []);
+      setIdeas((data as unknown as AutoEvaluatedIdea[]) || []);
     }
     setLoading(false);
   }

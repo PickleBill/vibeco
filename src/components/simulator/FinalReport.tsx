@@ -57,6 +57,7 @@ interface Props {
   onToggleAntiHighlight?: (key: string) => void;
   reportId?: string | null;
   onReorderFeatures?: (features: BriefData["core_features"]) => void;
+  onPromptUpdate?: (newPrompt: string) => void;
 }
 
 const sectionMeta = [
@@ -261,7 +262,7 @@ export const generateStructuredPDF = (
   pdf.save(fileName);
 };
 
-const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights, onToggleHighlight, antiHighlights, onToggleAntiHighlight, reportId, onReorderFeatures }: Props) => {
+const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights, onToggleHighlight, antiHighlights, onToggleAntiHighlight, reportId, onReorderFeatures, onPromptUpdate }: Props) => {
   const [email, setEmail] = useState(unlockEmail || "");
   const [showPrompt, setShowPrompt] = useState(!!unlocked);
   const [isExporting, setIsExporting] = useState(false);
@@ -271,6 +272,8 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [deepDiveContent, setDeepDiveContent] = useState<Record<string, string>>({});
   const [deepDiveLoading, setDeepDiveLoading] = useState<string | null>(null);
+  const [isSharpening, setIsSharpening] = useState(false);
+  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -410,6 +413,67 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
     }
   };
 
+  const callRefinePrompt = async (context?: string) => {
+    const { data, error } = await supabase.functions.invoke("refine-prompt", {
+      body: {
+        brief,
+        idea,
+        original_prompt: lovablePrompt || undefined,
+        highlights: highlights ? Array.from(highlights) : [],
+        antiHighlights: antiHighlights ? Array.from(antiHighlights) : [],
+        refinement_context: context,
+      },
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data?.lovable_prompt as string | undefined;
+  };
+
+  const handleSharpenPrompt = async () => {
+    setIsSharpening(true);
+    try {
+      const newPrompt = await callRefinePrompt(
+        "Re-tighten the prompt around the user's resonating sections; deprioritize the flagged ones.",
+      );
+      if (newPrompt && onPromptUpdate) {
+        onPromptUpdate(newPrompt);
+        toast.success("Prompt sharpened with your highlights.");
+      } else if (newPrompt) {
+        // Fallback: copy to clipboard if no parent handler
+        await copyToClipboard(newPrompt);
+        toast.success("Sharpened prompt copied to clipboard.");
+      } else {
+        toast.error("Could not sharpen the prompt. Try again.");
+      }
+    } catch (e) {
+      console.error("Sharpen error:", e);
+      toast.error("Failed to sharpen prompt.");
+    } finally {
+      setIsSharpening(false);
+    }
+  };
+
+  const handleGeneratePrompt = async () => {
+    setIsGeneratingPrompt(true);
+    try {
+      const newPrompt = await callRefinePrompt();
+      if (newPrompt && onPromptUpdate) {
+        onPromptUpdate(newPrompt);
+        toast.success("Prompt generated.");
+      } else if (newPrompt) {
+        await copyToClipboard(newPrompt);
+        toast.success("Prompt generated and copied.");
+      } else {
+        toast.error("Could not generate prompt. Try again.");
+      }
+    } catch (e) {
+      console.error("Generate prompt error:", e);
+      toast.error("Failed to generate prompt.");
+    } finally {
+      setIsGeneratingPrompt(false);
+    }
+  };
+
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
     if (over && active.id !== over.id && onReorderFeatures) {
@@ -480,7 +544,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
         ) : (
           <ChevronDown size={12} className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
         )}
-        {isLoadingThis ? "Analyzing..." : isExpanded ? "Collapse" : isHighlighted ? "Deep dive ✦" : "Deep dive"}
+        {isLoadingThis ? "Analyzing..." : isExpanded ? "Collapse" : isHighlighted ? "Go deeper on this section ✦" : "Go deeper on this section"}
       </button>
     </div>
   );
@@ -548,7 +612,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
         <div className="h-px flex-1 bg-border/30" />
       </motion.div>
 
-      {/* Email banner at top — always visible until submitted */}
+      {/* Email banner — only gates PDF/Share, NOT the prompt */}
       {!showPrompt && (
         <motion.div
           initial={{ opacity: 0, y: -8 }}
@@ -558,9 +622,9 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
         >
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <div className="flex-1">
-              <p className="font-display text-sm font-bold text-foreground">Save your report & unlock the prompt</p>
+              <p className="font-display text-sm font-bold text-foreground">Save your report — unlock PDF + share link</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Get your shareable link, PDF download, and one-shot Lovable prompt.
+                Your prompt is already below. Add an email to download a PDF and get a shareable URL.
               </p>
             </div>
             <form onSubmit={handleEmailSubmit} className="flex gap-2 w-full sm:w-auto">
@@ -577,7 +641,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
                 className="flex items-center gap-2 bg-primary text-primary-foreground text-sm px-4 py-2 rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50 whitespace-nowrap"
               >
                 <Mail size={14} />
-                {isSubmitting ? "..." : "Unlock"}
+                {isSubmitting ? "..." : "Save"}
               </button>
             </form>
           </div>
@@ -816,33 +880,34 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
           </div>
         </div>
 
-        {/* Deep Dive — appears after email unlock */}
-        {showPrompt && (
-          <ThunderdomePanel
-            brief={brief}
-            idea={idea}
-            reportId={reportId}
-            highlights={highlights}
-            antiHighlights={antiHighlights}
-          />
-        )}
-
-        {/* Lovable Prompt — visible after email unlock */}
-        {showPrompt && lovablePrompt && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="mb-8"
-          >
-            {highlights && highlights.size > 0 && (
-              <div className="flex items-center gap-2 mb-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20">
-                <Sparkles size={12} className="text-primary fill-primary" />
-                <span className="text-xs text-primary">
-                  Personalized based on {highlights.size} area{highlights.size > 1 ? "s" : ""} you highlighted
+        {/* Lovable Prompt — always visible (no email gate) */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="mb-8"
+        >
+          {highlights && highlights.size > 0 && lovablePrompt && (
+            <div className="flex items-center justify-between gap-3 mb-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20">
+              <div className="flex items-center gap-2 min-w-0">
+                <Sparkles size={12} className="text-primary fill-primary shrink-0" />
+                <span className="text-xs text-primary truncate">
+                  {highlights.size} highlight{highlights.size > 1 ? "s" : ""}
+                  {antiHighlights && antiHighlights.size > 0 ? ` · ${antiHighlights.size} flag${antiHighlights.size > 1 ? "s" : ""}` : ""} will sharpen the prompt
                 </span>
               </div>
-            )}
+              <button
+                onClick={handleSharpenPrompt}
+                disabled={isSharpening}
+                className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-primary/40 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50 whitespace-nowrap"
+              >
+                {isSharpening ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                {isSharpening ? "Sharpening..." : "Sharpen prompt now"}
+              </button>
+            </div>
+          )}
+
+          {lovablePrompt ? (
             <div className="border border-border/30 rounded-lg overflow-hidden">
               <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/20">
                 <span className="text-xs text-muted-foreground uppercase tracking-wider">
@@ -856,25 +921,47 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
                   {copied ? "Copied" : highlights && highlights.size > 0 ? "Copy + highlights" : "Copy"}
                 </button>
               </div>
-              <div className="p-4 max-h-48 overflow-y-auto">
-                <pre className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+              <div className="p-4 max-h-72 overflow-y-auto">
+                <pre className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap font-sans">
                   {lovablePrompt}
                 </pre>
               </div>
             </div>
-          </motion.div>
-        )}
+          ) : (
+            <div className="border border-dashed border-border/40 rounded-lg p-6 text-center bg-card/30">
+              <p className="text-sm text-foreground/80 mb-1 font-display font-semibold">No Lovable prompt yet</p>
+              <p className="text-xs text-muted-foreground mb-4">
+                The 3-round analysis didn't return a prompt. Generate one now from this brief.
+              </p>
+              <button
+                onClick={handleGeneratePrompt}
+                disabled={isGeneratingPrompt}
+                className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {isGeneratingPrompt ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                {isGeneratingPrompt ? "Generating..." : "Generate Lovable prompt"}
+              </button>
+            </div>
+          )}
+        </motion.div>
 
-        {/* Action Hub — replaces dead-end after email unlock */}
-        {showPrompt && (
-          <ActionHub
-            brief={brief}
-            idea={idea}
-            lovablePrompt={lovablePrompt}
-            reportId={reportId}
-            onIterate={onRestart}
-          />
-        )}
+        {/* Stress-test the whole idea — always visible */}
+        <ThunderdomePanel
+          brief={brief}
+          idea={idea}
+          reportId={reportId}
+          highlights={highlights}
+          antiHighlights={antiHighlights}
+        />
+
+        {/* Action Hub — always visible */}
+        <ActionHub
+          brief={brief}
+          idea={idea}
+          lovablePrompt={lovablePrompt}
+          reportId={reportId}
+          onIterate={onRestart}
+        />
 
         <div className="flex flex-wrap gap-4 justify-center mt-6">
           <button

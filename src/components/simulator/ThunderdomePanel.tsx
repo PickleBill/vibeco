@@ -52,9 +52,9 @@ const ThunderdomePanel = ({ brief, idea, reportId, highlights, antiHighlights }:
             <Zap size={18} className="text-primary" />
           </div>
           <div>
-            <h2 className="font-display text-xl font-black text-foreground tracking-tight">Deep Dive</h2>
+            <h2 className="font-display text-xl font-black text-foreground tracking-tight">Stress-test the whole idea</h2>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              Stress-test · Expand · Distill — push this idea further
+              5 personas weigh in · expand into adjacent shapes · distill to the one thing
             </p>
           </div>
         </div>
