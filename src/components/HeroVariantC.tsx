@@ -168,12 +168,6 @@ function StaticHero({ navigate }: { navigate: ReturnType<typeof useNavigate> }) 
                 Talk to Us
               </button>
             </div>
-            <button
-              onClick={() => document.querySelector("#projects")?.scrollIntoView({ behavior: "smooth" })}
-              className="text-xs text-muted-foreground hover:text-primary transition-colors mt-3"
-            >
-              ↓ See our builds
-            </button>
           </div>
           <div className="hidden lg:flex items-center justify-center">
             <div className="relative">
