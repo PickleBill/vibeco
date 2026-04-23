@@ -835,103 +835,116 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
 
           {phase === "brief" && latestRound && (
             <motion.div key={`brief-${currentRound}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              {/* Tab toggle: Questions vs Analysis */}
-              <div className="flex justify-center mb-8">
-                <div className="inline-flex rounded-lg border border-border/50 overflow-hidden">
+              {/* Single scrollable view: Analysis first, then Questions inline. No tab toggle. */}
+              <div className="space-y-10">
+                <IdeaBrief
+                  brief={latestRound.brief}
+                  round={currentRound}
+                  conceptImage={conceptImage}
+                  unlocked={unlocked}
+                  onUnlock={handleUnlock}
+                  highlights={highlights}
+                  onToggleHighlight={toggleHighlight}
+                  antiHighlights={antiHighlights}
+                  onToggleAntiHighlight={toggleAntiHighlight}
+                />
+
+                {/* Run Stress-test CTA — surface Thunderdome during the brief phase */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-4 rounded-lg border border-border/40 bg-card/40">
+                  <div className="flex-1">
+                    <p className="font-display text-sm font-bold text-foreground">Want to stress-test before answering more?</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Run all 5 personas, expand into adjacent shapes, and distill to the one thing — without leaving this screen.
+                    </p>
+                  </div>
                   <button
-                    onClick={() => setBriefTab("questions")}
-                    className={`text-xs px-5 py-2 transition-colors ${
-                      briefTab === "questions"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-card/60 text-muted-foreground hover:text-foreground"
-                    }`}
+                    onClick={() => setShowStressTest((v) => !v)}
+                    className="flex items-center justify-center gap-2 text-xs font-semibold px-4 py-2 rounded-sm border border-primary/40 text-primary hover:bg-primary/10 transition-colors whitespace-nowrap"
                   >
-                    Questions
+                    <Zap size={12} />
+                    {showStressTest ? "Hide stress-test" : "Run stress-test"}
                   </button>
-                  <button
-                    onClick={() => setBriefTab("analysis")}
-                    className={`text-xs px-5 py-2 transition-colors ${
-                      briefTab === "analysis"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-card/60 text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    Analysis
-                  </button>
-                  {rounds.length > 1 && (
-                    <button
-                      onClick={() => setBriefTab("history")}
-                      className={`text-xs px-5 py-2 transition-colors ${
-                        briefTab === "history"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-card/60 text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      Previous Rounds
-                    </button>
-                  )}
                 </div>
-              </div>
 
-              <AnimatePresence mode="wait">
-                {briefTab === "questions" && (
-                  <motion.div key="tab-questions" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ duration: 0.2 }}>
-                    <FollowUpQuestions
-                      questions={latestRound.questions}
-                      onSubmit={handleAnswersSubmit}
-                      onSkipToFinal={handleSkipToFinal}
-                      isLoading={isLoading}
-                      round={currentRound}
-                      highlights={highlights}
-                      onToggleHighlight={toggleHighlight}
-                      depthRecommendation={depthRecommendation}
-                    />
-                  </motion.div>
-                )}
+                <AnimatePresence>
+                  {showStressTest && (
+                    <motion.div
+                      key="inline-stress-test"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden"
+                    >
+                      <ThunderdomePanel
+                        brief={latestRound.brief}
+                        idea={idea}
+                        reportId={reportId}
+                        highlights={highlights}
+                        antiHighlights={antiHighlights}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-                {briefTab === "analysis" && (
-                  <motion.div key="tab-analysis" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2 }}>
-                    <IdeaBrief
-                      brief={latestRound.brief}
-                      round={currentRound}
-                      conceptImage={conceptImage}
-                      unlocked={unlocked}
-                      onUnlock={handleUnlock}
-                      highlights={highlights}
-                      onToggleHighlight={toggleHighlight}
-                      antiHighlights={antiHighlights}
-                      onToggleAntiHighlight={toggleAntiHighlight}
-                    />
-                  </motion.div>
-                )}
+                {/* Follow-up questions — always inline below */}
+                <FollowUpQuestions
+                  questions={latestRound.questions}
+                  onSubmit={handleAnswersSubmit}
+                  onSkipToFinal={handleSkipToFinal}
+                  isLoading={isLoading}
+                  round={currentRound}
+                  highlights={highlights}
+                  onToggleHighlight={toggleHighlight}
+                  depthRecommendation={depthRecommendation}
+                />
 
-                {briefTab === "history" && rounds.length > 1 && (
-                  <motion.div key="tab-history" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2 }}>
-                    <div className="space-y-6">
-                      {rounds.slice(0, -1).map((r, i) => (
-                        <div key={i} className="border border-border/40 rounded-lg p-4 bg-card/30">
-                          <div className="flex items-center gap-2 mb-3">
-                            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground">
-                              {i + 1}
-                            </div>
-                            <span className="text-xs text-muted-foreground">
-                              Round {i + 1} Analysis
-                            </span>
+                {/* Previous rounds — collapsible, only when there's history */}
+                {rounds.length > 1 && (
+                  <div className="border-t border-border/30 pt-6">
+                    <button
+                      onClick={() => setShowHistory((v) => !v)}
+                      className="text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showHistory ? "Hide" : "Show"} previous rounds ({rounds.length - 1})
+                    </button>
+                    <AnimatePresence>
+                      {showHistory && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="space-y-6 mt-6">
+                            {rounds.slice(0, -1).map((r, i) => (
+                              <div key={i} className="border border-border/40 rounded-lg p-4 bg-card/30">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+                                    {i + 1}
+                                  </div>
+                                  <span className="text-xs text-muted-foreground">
+                                    Round {i + 1} Analysis
+                                  </span>
+                                </div>
+                                <IdeaBrief
+                                  brief={r.brief}
+                                  round={i}
+                                  highlights={highlights}
+                                  onToggleHighlight={toggleHighlight}
+                                  antiHighlights={antiHighlights}
+                                  onToggleAntiHighlight={toggleAntiHighlight}
+                                />
+                              </div>
+                            ))}
                           </div>
-                          <IdeaBrief
-                            brief={r.brief}
-                            round={i}
-                            highlights={highlights}
-                            onToggleHighlight={toggleHighlight}
-                            antiHighlights={antiHighlights}
-                            onToggleAntiHighlight={toggleAntiHighlight}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </motion.div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 )}
-              </AnimatePresence>
+              </div>
             </motion.div>
           )}
 
