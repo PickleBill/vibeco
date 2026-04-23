@@ -263,7 +263,7 @@ export const generateStructuredPDF = (
   pdf.save(fileName);
 };
 
-const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights, onToggleHighlight, antiHighlights, onToggleAntiHighlight, reportId, onReorderFeatures, onPromptUpdate }: Props) => {
+const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights, onToggleHighlight, antiHighlights, onToggleAntiHighlight, reportId, onReorderFeatures, onPromptUpdate }: Props) => {
   const [email, setEmail] = useState(unlockEmail || "");
   const [showPrompt, setShowPrompt] = useState(!!unlocked);
   const [isExporting, setIsExporting] = useState(false);
@@ -976,7 +976,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
           idea={idea}
           lovablePrompt={lovablePrompt}
           reportId={reportId}
-          onIterate={onRestart}
+          onIterate={onIterate ?? onRestart}
         />
 
         <div className="flex flex-wrap gap-4 justify-center mt-6">
