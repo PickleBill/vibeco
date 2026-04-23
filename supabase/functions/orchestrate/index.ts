@@ -64,11 +64,18 @@ serve(async (req) => {
   if (cors) return cors;
 
   try {
-    const { idea, brief, report_id, mode, highlights, antiHighlights } = await req.json();
+    const { idea: rawIdea, brief, report_id, mode, highlights, antiHighlights } = await req.json();
 
-    if (!idea || !brief) {
-      return jsonResponse({ error: "Missing required fields: idea, brief" }, 400);
+    if (!brief) {
+      return jsonResponse({ error: "Missing required field: brief" }, 400);
     }
+
+    // Fall back to brief.problem when idea is empty (e.g. resumed sessions
+    // where the original idea text wasn't persisted on the brief payload).
+    const idea: string =
+      (typeof rawIdea === "string" && rawIdea.trim()) ||
+      (typeof brief?.problem === "string" && brief.problem.trim()) ||
+      "Untitled idea";
 
     // Set up Supabase client for event streaming (optional — works without it)
     let supabase: ReturnType<typeof createClient> | null = null;
