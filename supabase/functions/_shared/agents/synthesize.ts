@@ -125,8 +125,17 @@ export const synthesizeToolSchema = {
 
 // ─── Core Logic ───
 
+// Hard fallback chain — only models known to be allowed by the Lovable Gateway.
+// If selectModel() returns something unavailable, we walk through these in order.
+const SYNTHESIS_FALLBACK_MODELS = [
+  "google/gemini-2.5-pro",
+  "openai/gpt-5",
+  "google/gemini-3-flash-preview",
+];
+
 export async function synthesize(input: SynthesisInput): Promise<SynthesisResult> {
-  const model = selectModel("synthesis", { mode: input.mode });
+  const primaryModel = selectModel("synthesis", { mode: input.mode });
+  const modelChain = [primaryModel, ...SYNTHESIS_FALLBACK_MODELS.filter((m) => m !== primaryModel)];
 
   // Build a comprehensive context from all agent outputs
   let agentOutputs = "";
