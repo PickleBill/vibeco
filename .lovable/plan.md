@@ -167,3 +167,4 @@ Edge function redeploys: `orchestrate`, `synthesize`.
 2. **Section cuts:** I want to remove `Differentiator`, `Builds`, `Credibility`, `Fit` because each duplicates a nearby section's job. Any of these you want to keep? `Differentiator` is the most defensible (4 unique value props vs `Model`'s 3 partnership structures).
 
 3. **Hero variant lock-in:** want to pick a winner from A/B/C and delete the other two as part of distill, or keep the variant switcher running? My read: pick A as default (cleanest typography), keep B/C for opt-in via URL params, delete neither — matches the existing A/B framework.
+Sprint 5a + 5b complete — see chat for summary
