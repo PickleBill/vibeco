@@ -716,20 +716,20 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
               className={`mb-6 p-4 rounded-lg border ${
                 brief.scale_assessment.fits_intent
                   ? "border-primary/30 bg-primary/5"
-                  : "border-yellow-500/30 bg-yellow-500/5"
+                  : "border-warning/30 bg-warning/5"
               }`}
             >
               <div className="flex items-start gap-3">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm ${
                   brief.scale_assessment.fits_intent
                     ? "bg-primary/15 text-primary"
-                    : "bg-yellow-500/15 text-yellow-500"
+                    : "bg-warning/15 text-warning"
                 }`}>
                   {brief.scale_assessment.fits_intent ? "✓" : "⚖️"}
                 </div>
                 <div>
                   <p className={`text-xs font-bold ${
-                    brief.scale_assessment.fits_intent ? "text-primary" : "text-yellow-500"
+                    brief.scale_assessment.fits_intent ? "text-primary" : "text-warning"
                   }`}>
                     Scale: {brief.scale_assessment.current_scale.charAt(0).toUpperCase() + brief.scale_assessment.current_scale.slice(1)}
                     {brief.scale_assessment.fits_intent ? " — matches your intent" : " — might not match your intent"}
