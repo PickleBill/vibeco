@@ -259,19 +259,59 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
   // ─── Running state ───
 
   if (running) {
+    const agentList = [
+      { key: "persona-skeptic", label: "Skeptic" },
+      { key: "persona-champion", label: "Champion" },
+      { key: "persona-competitor", label: "Competitor" },
+      { key: "persona-customer", label: "Customer" },
+      { key: "persona-builder", label: "Builder" },
+      { key: "expand", label: "Expand" },
+      { key: "distill", label: "Distill" },
+    ];
+    const completed = progress?.completed ?? 0;
+    const total = progress?.total ?? 7;
+
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-display text-sm font-semibold text-foreground">Auto-Analyze</h3>
           <span className="text-[10px] text-muted-foreground">
-            {mode === "deep" ? "Deep mode — 60-120s" : "Quick mode — 20-40s"}
+            {completed}/{total} · {mode === "deep" ? "Deep" : "Quick"} mode
           </span>
         </div>
-        <div className="flex flex-col items-center justify-center py-10 rounded-lg border border-border/30 bg-card/30">
-          <Loader2 size={28} className="animate-spin text-primary mb-4" />
-          <p className="text-sm text-foreground font-medium">Running 7 agents in parallel...</p>
-          <p className="text-[11px] text-muted-foreground mt-1">
-            Skeptic, Champion, Competitor, Customer, Builder, Expand, Distill → Synthesize
+        <div className="rounded-lg border border-border/30 bg-card/30 p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <Loader2 size={18} className="animate-spin text-primary" />
+            <p className="text-sm text-foreground font-medium">Running agents in parallel…</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {agentList.map((a) => {
+              const done = agentStatus[a.key] === "done";
+              return (
+                <div
+                  key={a.key}
+                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-[11px] border transition-all ${
+                    done
+                      ? "bg-primary/10 border-primary/30 text-primary"
+                      : "bg-muted/20 border-border/30 text-muted-foreground"
+                  }`}
+                >
+                  {done ? <Check size={11} /> : <Circle size={9} className="animate-pulse" />}
+                  <span className="truncate">{a.label}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-4 h-1 rounded-full bg-muted/30 overflow-hidden">
+            <motion.div
+              className="h-full bg-primary"
+              initial={{ width: 0 }}
+              animate={{ width: `${(completed / total) * 100}%` }}
+              transition={{ duration: 0.4 }}
+            />
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-2 text-center">
+            Then synthesis reads them all and produces consensus + tensions.
           </p>
         </div>
       </div>
