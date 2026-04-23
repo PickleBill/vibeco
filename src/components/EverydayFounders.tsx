@@ -1,6 +1,5 @@
-import { useNavigate } from "react-router-dom";
 import FadeIn from "./FadeIn";
-import { Home, Scissors, Dumbbell, Briefcase, Trophy, Sparkles } from "lucide-react";
+import { Home, Scissors, Dumbbell, Briefcase, Trophy } from "lucide-react";
 
 const personas = [
   {
@@ -31,8 +30,6 @@ const personas = [
 ];
 
 const EverydayFounders = () => {
-  const navigate = useNavigate();
-
   return (
     <section id="everyday" className="py-32 border-t border-border">
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
