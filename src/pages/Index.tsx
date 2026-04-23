@@ -3,14 +3,10 @@ import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
 import StatsBar from "../components/StatsBar";
 import EverydayFounders from "../components/EverydayFounders";
-import Differentiator from "../components/Differentiator";
 import SpeedTimeline from "../components/SpeedTimeline";
 import ProjectShowcase from "../components/ProjectShowcase";
-import Builds from "../components/Builds";
 import Model from "../components/Model";
-import Credibility from "../components/Credibility";
 import Testimonials from "../components/Testimonials";
-import Fit from "../components/Fit";
 import ContactForm from "../components/ContactForm";
 import FinalCta from "../components/FinalCta";
 import Footer from "../components/Footer";
@@ -103,14 +99,10 @@ const Index = () => {
           <Hero />
           <StatsBar />
           <EverydayFounders />
-          <Differentiator />
           <ProjectShowcase />
-          <Builds />
           <SpeedTimeline />
           <Model />
-          <Credibility />
           <Testimonials />
-          <Fit />
           <ContactForm />
           <FinalCta />
         </main>

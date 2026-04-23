@@ -126,11 +126,12 @@ export const synthesizeToolSchema = {
 // ─── Core Logic ───
 
 // Hard fallback chain — only models known to be allowed by the Lovable Gateway.
-// If selectModel() returns something unavailable, we walk through these in order.
+// Ordered fastest-first so we stay under the orchestrator's 90s budget.
+// Gemini 2.5-pro typically returns synthesis in ~25s; GPT-5 takes 60-70s.
 const SYNTHESIS_FALLBACK_MODELS = [
   "google/gemini-2.5-pro",
-  "openai/gpt-5",
   "google/gemini-3-flash-preview",
+  "openai/gpt-5",
 ];
 
 export async function synthesize(input: SynthesisInput): Promise<SynthesisResult> {

@@ -679,6 +679,23 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
     setDepthRecommendation(undefined);
   };
 
+  // Iterate: keep prior context (rounds, highlights, report link) but go back to
+  // input with the original idea pre-filled. The prior report stays in the user's
+  // dashboard and can be referenced; this run continues building on what was learned.
+  const handleIterate = () => {
+    // Keep idea, rounds (as history), highlights, antiHighlights, reportId.
+    // Reset only the surfaces that gate the next round.
+    setPhase("input");
+    setUnlocked(false);
+    setUnlockEmail("");
+    setLovablePrompt(null);
+    setConceptImage(null);
+    setLogoImage(null);
+    // Scroll to top so the input is visible
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+    toast.success("Iterating — your prior rounds and highlights are preserved.");
+  };
+
   const handleDownloadPDF = () => {
     const latestBrief = rounds[rounds.length - 1]?.brief;
     if (!latestBrief) return;
@@ -956,6 +973,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                 brief={latestRound.brief}
                 idea={idea}
                 onRestart={() => setShowRestartConfirm(true)}
+                onIterate={handleIterate}
                 conceptImage={conceptImage}
                 logoImage={logoImage}
                 rounds={rounds}
