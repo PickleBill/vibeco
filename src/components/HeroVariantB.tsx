@@ -86,7 +86,7 @@ const Hero = () => {
             </FadeIn>
 
             {/* Character-level staggered reveal with scale pulse */}
-            <h1 className="font-display font-black text-foreground leading-[1.05] mb-1 " style={{ fontSize: "clamp(2.75rem, 4vw + 1.5rem, 4.25rem)" }}>
+            <h1 className="font-display font-black text-foreground leading-[1.05] mb-1 break-words" style={{ fontSize: "clamp(2.25rem, 4vw + 1.25rem, 4.25rem)" }}>
               {headlineChars.map((ch, i) => (
                 <motion.span
                   key={i}
@@ -126,8 +126,7 @@ const Hero = () => {
 
             <FadeIn delay={1.4}>
               <p className="text-base text-foreground/80 leading-relaxed mb-8 max-w-lg mt-5">
-                Tell us what you need. We ship a working product — not a
-                pitch deck. Most go live the same day.
+                Tell us what you need. We ship — usually same day.
               </p>
             </FadeIn>
             <FadeIn delay={1.6}>
@@ -153,29 +152,6 @@ const Hero = () => {
                 >
                   Talk to Us
                 </motion.button>
-              </div>
-              <button
-                onClick={() =>
-                  document.querySelector("#projects")?.scrollIntoView({ behavior: "smooth" })
-                }
-                className="text-xs text-muted-foreground hover:text-primary transition-colors mt-3"
-              >
-                ↓ See our builds
-              </button>
-              {/* Mobile stats strip */}
-              <div className="flex lg:hidden items-center gap-6 mt-8 pt-6 border-t border-border/30">
-                {[
-                  { value: "16+", label: "live builds" },
-                  { value: "< 48hrs", label: "avg to launch" },
-                  { value: "$0", label: "upfront on rev-share" },
-                ].map((s) => (
-                  <div key={s.label} className="text-center">
-                    <p className="font-display text-xl font-black text-primary">{s.value}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                      {s.label}
-                    </p>
-                  </div>
-                ))}
               </div>
             </FadeIn>
           </div>

@@ -40,7 +40,7 @@ const Hero = () => {
             </FadeIn>
 
             {/* Staggered word reveal */}
-            <div className="font-display font-extrabold text-foreground leading-[1.05] mb-1" style={{ fontSize: "clamp(2.75rem, 4vw + 1.5rem, 4.25rem)" }}>
+            <div className="font-display font-extrabold text-foreground leading-[1.05] mb-1 break-words" style={{ fontSize: "clamp(2.25rem, 4vw + 1.25rem, 4.25rem)" }}>
               {prefersReduced ? (
                 <FadeIn delay={0.1}>
                   <h1>
@@ -83,8 +83,7 @@ const Hero = () => {
 
             <FadeIn delay={1.5}>
               <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-lg mt-5">
-                Tell us what you need. We ship a working product — not a
-                pitch deck. Most go live the same day.
+                Tell us what you need. We ship — usually same day.
               </p>
             </FadeIn>
             <FadeIn delay={1.9}>
@@ -101,31 +100,6 @@ const Hero = () => {
                 >
                   Talk to Us
                 </button>
-              </div>
-              <button
-                onClick={() => document.querySelector("#projects")?.scrollIntoView({ behavior: "smooth" })}
-                className="text-xs text-muted-foreground hover:text-primary transition-colors mt-6 flex items-center gap-1"
-              >
-                <motion.span
-                  animate={{ y: [0, 4, 0] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  &darr;
-                </motion.span>
-                See our builds
-              </button>
-              {/* Mobile stats strip */}
-              <div className="flex lg:hidden items-center gap-6 mt-8 pt-6 border-t border-border">
-                {[
-                  { value: "16+", label: "live builds" },
-                  { value: "< 48hrs", label: "avg to launch" },
-                  { value: "$0", label: "upfront on rev-share" },
-                ].map((s) => (
-                  <div key={s.label} className="text-center">
-                    <p className="font-display text-xl font-bold text-primary">{s.value}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{s.label}</p>
-                  </div>
-                ))}
               </div>
             </FadeIn>
           </div>

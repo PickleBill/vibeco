@@ -49,8 +49,8 @@ const Hero = () => {
 
             {/* Blur-to-sharp headline */}
             <motion.h1
-              className="font-display font-black text-foreground leading-[1.05] mb-1 "
-              style={{ fontSize: "clamp(2.75rem, 4vw + 1.5rem, 4.25rem)" }}
+              className="font-display font-black text-foreground leading-[1.05] mb-1 break-words"
+              style={{ fontSize: "clamp(2.25rem, 4vw + 1.25rem, 4.25rem)" }}
               initial={{ opacity: 0, filter: "blur(8px)" }}
               animate={{ opacity: 1, filter: "blur(0px)" }}
               transition={{ duration: 1.0, delay: 0.7, ease: "easeOut" }}
@@ -73,8 +73,7 @@ const Hero = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 1.3 }}
             >
-              Tell us what you need. We ship a working product — not a
-              pitch deck. Most go live the same day.
+              Tell us what you need. We ship — usually same day.
             </motion.p>
 
             {/* Spring-scaled CTAs */}
@@ -96,35 +95,6 @@ const Hero = () => {
               >
                 Talk to Us
               </button>
-            </motion.div>
-
-            <motion.button
-              onClick={() => document.querySelector("#projects")?.scrollIntoView({ behavior: "smooth" })}
-              className="text-xs text-muted-foreground hover:text-primary transition-colors mt-3"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 1.9 }}
-            >
-              ↓ See our builds
-            </motion.button>
-
-            {/* Mobile stats strip */}
-            <motion.div
-              className="flex lg:hidden items-center gap-6 mt-8 pt-6 border-t border-border/30"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.6, delay: 2.0 }}
-            >
-              {[
-                { value: "16+", label: "live builds" },
-                { value: "< 48hrs", label: "avg to launch" },
-                { value: "$0", label: "upfront on rev-share" },
-              ].map((s) => (
-                <div key={s.label} className="text-center">
-                  <p className="font-display text-xl font-black text-primary">{s.value}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{s.label}</p>
-                </div>
-              ))}
             </motion.div>
           </div>
 
