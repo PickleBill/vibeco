@@ -44,7 +44,11 @@ async function emitEvent(
 ) {
   if (!supabase || !reportId) return; // graceful no-op if no report context
   try {
-    await supabase.from("agent_events").insert({
+    // NOTE: `agent_events` exists in a migration but isn't in the generated
+    // Supabase types yet — cast through `unknown` until types regenerate.
+    await (supabase.from as unknown as (t: string) => {
+      insert: (row: Record<string, unknown>) => Promise<unknown>;
+    })("agent_events").insert({
       report_id: reportId,
       agent,
       event_type: eventType,
