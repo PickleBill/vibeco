@@ -179,7 +179,7 @@ serve(async (req) => {
             antiHighlights,
             mode,
           }),
-          AGENT_TIMEOUT_MS * 1.5, // give synthesis more time — it reads all outputs
+          90_000, // synthesis reads all 7 outputs; GPT-5 fallback can take 60-70s
           "synthesize",
         );
         timing["synthesis"] = Date.now() - startTime;

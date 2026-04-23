@@ -71,8 +71,9 @@ const ROUTING_TABLE: Record<TaskType, ModelCandidate[]> = {
     { model: "google/gemini-3-flash-preview", rationale: "Fast mode fallback", cost: "low", speed: "fast" },
   ],
   "synthesis": [
-    { model: "openai/gpt-5", rationale: "Excels at comparing complex multi-source inputs", cost: "high", speed: "medium" },
-    { model: "google/gemini-2.5-pro", rationale: "Fallback for synthesis", cost: "medium", speed: "medium" },
+    { model: "google/gemini-2.5-pro", rationale: "Fast (~25s) and reliably available; primary for synthesis", cost: "medium", speed: "medium" },
+    { model: "openai/gpt-5", rationale: "Higher-quality fallback when Gemini fails (slower, ~60-70s)", cost: "high", speed: "slow" },
+    { model: "google/gemini-3-flash-preview", rationale: "Last-resort fast fallback", cost: "low", speed: "fast" },
   ],
   "prompt-engineering": [
     { model: "google/gemini-2.5-pro", rationale: "Most precise structured output for build specs", cost: "medium", speed: "medium" },
