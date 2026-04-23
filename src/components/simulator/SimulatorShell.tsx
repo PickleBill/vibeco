@@ -158,7 +158,8 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
   const [thinkingMode, setThinkingMode] = useState<"fast" | "deep">("fast");
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const [briefTab, setBriefTab] = useState<"questions" | "analysis" | "history">("questions");
+  const [showHistory, setShowHistory] = useState(false);
+  const [showStressTest, setShowStressTest] = useState(false);
 
   // Resume from DB when resumeId is provided
   useEffect(() => {
