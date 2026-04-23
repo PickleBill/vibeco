@@ -79,11 +79,36 @@ const confChip = (c: "high" | "medium" | "low") => {
 const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lovablePrompt, onPromptUpdate }: Props) => {
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<{ completed: number; total: number } | null>(null);
+  const [agentStatus, setAgentStatus] = useState<Record<string, "pending" | "done">>({});
   const [result, setResult] = useState<OrchestrateResult | null>(null);
   const [mode, setMode] = useState<"fast" | "deep">("fast");
   const [applying, setApplying] = useState(false);
   const [showRecs, setShowRecs] = useState(true);
   const [showBriefSuggestions, setShowBriefSuggestions] = useState(false);
+
+  // ─── Realtime: subscribe to agent_events for live progress ───
+  useEffect(() => {
+    if (!running || !reportId) return;
+
+    const channel = supabase
+      .channel(`agent-events-${reportId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "agent_events", filter: `report_id=eq.${reportId}` },
+        (payload) => {
+          const ev = payload.new as { agent: string; event_type: string };
+          if (ev.event_type === "completed" && ev.agent) {
+            setAgentStatus((prev) => ({ ...prev, [ev.agent]: "done" }));
+            setProgress((prev) => prev ? { ...prev, completed: prev.completed + 1 } : prev);
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [running, reportId]);
 
   const runOrchestrate = async () => {
     setRunning(true);
