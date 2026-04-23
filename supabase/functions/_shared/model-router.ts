@@ -50,7 +50,7 @@ const ROUTING_TABLE: Record<TaskType, ModelCandidate[]> = {
   ],
   "analysis-final": [
     { model: "google/gemini-2.5-pro", rationale: "Deep reasoning for comprehensive final brief", cost: "medium", speed: "medium" },
-    { model: "anthropic/claude-sonnet-4-20250514", rationale: "Alternative deep analysis", cost: "high", speed: "medium" },
+    { model: "openai/gpt-5", rationale: "Alternative deep analysis", cost: "high", speed: "medium" },
   ],
   "deep-dive": [
     { model: "google/gemini-3-flash-preview", rationale: "Fast deep-dive generation", cost: "low", speed: "fast" },
@@ -61,22 +61,23 @@ const ROUTING_TABLE: Record<TaskType, ModelCandidate[]> = {
     { model: "google/gemini-2.5-flash", rationale: "Fallback", cost: "low", speed: "fast" },
   ],
   "expansion": [
-    { model: "openai/gpt-4o", rationale: "Strongest lateral/creative thinking", cost: "medium", speed: "medium" },
+    { model: "openai/gpt-5", rationale: "Strongest lateral/creative thinking", cost: "high", speed: "medium" },
     { model: "google/gemini-2.5-pro", rationale: "Fallback for creative expansion", cost: "medium", speed: "medium" },
     { model: "google/gemini-3-flash-preview", rationale: "Fast mode fallback", cost: "low", speed: "fast" },
   ],
   "distillation": [
-    { model: "anthropic/claude-sonnet-4-20250514", rationale: "Best at critical analysis and ruthless scoping", cost: "high", speed: "medium" },
+    { model: "openai/gpt-5", rationale: "Best at critical analysis and ruthless scoping", cost: "high", speed: "medium" },
     { model: "google/gemini-2.5-pro", rationale: "Fallback", cost: "medium", speed: "medium" },
     { model: "google/gemini-3-flash-preview", rationale: "Fast mode fallback", cost: "low", speed: "fast" },
   ],
   "synthesis": [
-    { model: "anthropic/claude-sonnet-4-20250514", rationale: "Excels at comparing complex multi-source inputs", cost: "high", speed: "medium" },
+    { model: "openai/gpt-5", rationale: "Excels at comparing complex multi-source inputs", cost: "high", speed: "medium" },
     { model: "google/gemini-2.5-pro", rationale: "Fallback for synthesis", cost: "medium", speed: "medium" },
   ],
   "prompt-engineering": [
-    { model: "anthropic/claude-sonnet-4-20250514", rationale: "Most precise structured output for build specs", cost: "high", speed: "medium" },
-    { model: "google/gemini-2.5-pro", rationale: "Fallback", cost: "medium", speed: "medium" },
+    { model: "google/gemini-2.5-pro", rationale: "Most precise structured output for build specs", cost: "medium", speed: "medium" },
+    { model: "openai/gpt-5", rationale: "Alternative high-quality prompt generation", cost: "high", speed: "medium" },
+    { model: "google/gemini-3-flash-preview", rationale: "Fast mode", cost: "low", speed: "fast" },
   ],
   "html-generation": [
     { model: "google/gemini-2.5-flash", rationale: "Fast, cheap, good at HTML/code generation", cost: "low", speed: "fast" },
@@ -90,7 +91,7 @@ const ROUTING_TABLE: Record<TaskType, ModelCandidate[]> = {
     { model: "google/gemini-3-flash-preview", rationale: "Fallback", cost: "low", speed: "fast" },
   ],
   "quick-classification": [
-    { model: "anthropic/claude-3-haiku", rationale: "Cheapest and fastest for classification", cost: "low", speed: "fast" },
+    { model: "google/gemini-2.5-flash-lite", rationale: "Cheapest and fastest for classification", cost: "low", speed: "fast" },
     { model: "google/gemini-3-flash-preview", rationale: "Fallback", cost: "low", speed: "fast" },
   ],
 };
