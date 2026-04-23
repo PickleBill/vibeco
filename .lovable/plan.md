@@ -1,127 +1,138 @@
 
 
-# VibeCo: Production-Ready Reset
+# State of VibeCo — Honest Eval & Sprint 4 Plan
 
-You're right — we have a lot of cool features sitting next to each other but the core promise ("paste an idea → get something you can actually build") is broken. Let's fix the engine first, then prune.
+## TL;DR
 
-## What's Actually Broken (verified in code)
+**The skeleton is right. Three things make it feel broken:** (1) the deployed `synthesize` agent is still calling a disallowed model, (2) the brief phase shows three "do something" surfaces stacked on top of each other with no clear primary action, (3) the Lovable Prompt — the actual product — is buried at the bottom of the final report behind ~1,500px of scroll.
 
-1. **Build is red.** Two TypeScript errors block deploy:
-   - `orchestrate/index.ts:47` — inserts into `agent_events` table that exists in a migration but isn't in the generated `types.ts` yet (Supabase types are stale).
-   - `Inbox.tsx:71` — selects `auto_score`/`auto_verdict`/`auto_source` columns that exist in a migration but aren't in `types.ts`.
-   - **Fix:** force a Supabase types regeneration by touching the migrations or running them, then cast the two queries through `as unknown as` to unblock immediately.
-
-2. **The Lovable Prompt copy with highlights doesn't actually copy in some browsers.** `copyToClipboard` has the fallback, but the button only calls `handleCopyPromptWithHighlights` when `lovablePrompt` exists. If `simulate-idea` finishes without returning `lovable_prompt` (possible when round 3 hits an error path), the copy block never renders. **Fix:** always show the prompt area; if the prompt is missing, show a "Generate Prompt" button that calls `refine-prompt` directly.
-
-3. **Deep Dive (Thunderdome) is gated behind email unlock and only appears at the very bottom of the final report.** Users never find it. The Perspectives/Expand/Distill panels work but produce output that doesn't feed back anywhere — there's no "apply this" loop. **Fix:** surface Deep Dive in the brief phase too, and make every Perspective/Expansion/Distillation result have a single primary action ("Apply to brief" / "Replace prompt").
-
-4. **"This resonates" / "Not quite" buttons do nothing visible.** They mutate `highlights`/`antiHighlights` state, which only takes effect when a *new* round runs or the prompt is copied. Users click them and see no feedback. **Fix:** show a tiny inline "Will sharpen the prompt" pill the moment a highlight is toggled, and add a "Sharpen prompt now" button that re-calls `refine-prompt` without forcing a full new round.
-
-5. **Landing page generation is orphaned.** `generate-landing-page` exists, no UI calls it. Either wire it into ActionHub as one option or delete the function. Recommended: delete for now.
-
-6. **Two simultaneous "deep dive" surfaces** (per-section ChevronDown deep dives in `FinalReport`, plus the bottom Thunderdome) create the confusion you're describing. Both are useful but unlabeled. **Fix:** rename clearly — per-section becomes "Go deeper on this section", bottom panel becomes "Stress-test the whole idea".
-
-7. **Claude Code branch (`claude/ai-agent-architecture-Xc8pG`) is partially merged.** The `_shared/agents/*`, `orchestrate`, `synthesize`, `auto-evaluate` files exist but no UI uses `orchestrate` and the Inbox query is broken. The work is sitting dormant. **Fix:** either wire `orchestrate` into a single "Auto-Analyze" button at the top of the brief phase (1 call replaces 7) or hide `/inbox` from nav until it's connected to real data.
-
-## The Plan: Three Sequential Sprints
-
-### Sprint 1 — Unblock & Stabilize (this session)
-
-Goal: green build, every existing button does something visible.
-
-- Fix the two TS errors with `as unknown as` casts and a comment explaining the types-regen gap
-- Make the Lovable Prompt always visible on the final report (no email gate on the prompt itself; keep email gate on PDF/share only)
-- Add the inline "Sharpen prompt now" action on highlight toggles, calling `refine-prompt`
-- Rename the two deep-dive surfaces so they're distinguishable
-- Add a single "Run full Deep Dive" CTA in the brief phase that opens Thunderdome inline (don't wait for final report)
-- Hide `/inbox` from nav until Sprint 3 wires it up
-
-### Sprint 2 — Make the Loop Real (next session)
-
-Goal: every panel feeds back into the brief or prompt.
-
-- Wire `orchestrate` to a single "Auto-Analyze" button at the top of the brief — fires all 5 personas + expand + distill + synthesize in one call, shows progress via Realtime `agent_events`
-- Build a `SynthesisPanel` showing consensus, tensions, confidence score, and **a single "Apply to brief" button** that calls `refine-prompt` with the synthesis as input
-- Each persona perspective gets an "Apply this critique" button → re-runs `simulate-idea` with that perspective injected
-- Each expansion gets a "Fork into new simulation" button (already exists in ActionHub, surface earlier)
-- Distill output replaces the prompt directly with a confirmation
-
-### Sprint 3 — Connect the Flywheel (later)
-
-Goal: VibeCo becomes the hub for your 65 projects.
-
-- Wire `/inbox` to `auto-evaluate` so external sources (Idea Lab, MCP) can pipe ideas in
-- Portfolio → Simulator round-trip: register Courtana Pulse, run Auto-Analyze, push the refined prompt back as a "next iteration spec" attached to the project_registry row
-- Re-evaluate Impeccable Style: audit the simulator screens against the 9 SKILL files (probably means: less card-grid, more typographic moments in `IdeaBrief` and `PerspectivesPanel`)
-
-## What to Cut
-
-These features are dormant or confusing. Recommend deleting in Sprint 1 to reduce surface area:
-
-- **`generate-landing-page` edge function + any UI references** — orphaned, not part of the core loop
-- **The "history" tab in `SimulatorShell`** when there's only 1 prior round — show inline instead
-- **The brief-phase "Analysis" vs "Questions" tab toggle** — collapse into one scrollable view; the toggle hides what the user just generated
-
-## On the Claude Code Branch
-
-The shared infrastructure (`_shared/agents/*`, `cors.ts`, `llm-client.ts`, `model-router.ts`, `error-handler.ts`) is solid and already in place. Keep it. The `orchestrate` and `synthesize` agents are also good — they just need a UI. **Don't merge anything new from that branch until Sprint 2** when we actually wire `orchestrate` to a button. The risk of further drift between branch and main grows with every unmerged change.
-
-## On Impeccable Style
-
-The 9 SKILL files in your root are the right framework but the simulator screens haven't been audited against them. After Sprint 1 stabilizes the flow, run `Run impeccable audit /simulate` to catalog the violations (probable hits: card monoculture in `IdeaBrief`, decorative gradients without justification in `ThunderdomePanel`, button variant proliferation). For other projects, the consolidated `/mnt/documents/impeccable-style-v2.1-complete.md` file is the right artifact — paste its core principles into each project's Knowledge settings.
-
-## Files Changed in Sprint 1
-
-| File | Change |
-|---|---|
-| `src/pages/Inbox.tsx` | Cast query result; hide route from nav |
-| `src/components/Navbar.tsx` | Remove Inbox link until Sprint 3 |
-| `supabase/functions/orchestrate/index.ts` | Cast `agent_events` insert |
-| `src/components/simulator/FinalReport.tsx` | Always render Lovable Prompt; rename per-section deep dive; add "Sharpen prompt now" |
-| `src/components/simulator/SimulatorShell.tsx` | Add "Run Deep Dive" CTA in brief phase; collapse Questions/Analysis tabs |
-| `src/components/simulator/ThunderdomePanel.tsx` | Header rename + clearer subtext |
-| `supabase/functions/generate-landing-page/` | Delete |
-| `supabase/functions/_shared/agents/landing-page.ts` | Delete |
-
-### Open Questions Before Sprint 1
-
-1. **Email gate scope:** keep email required for PDF/share but free the Lovable Prompt itself? Or remove the email gate entirely since most users bounce at it?
-2. **Deep Dive timing:** offer it during the brief phase (after round 1) or only after round 3 is complete?
-3. **Auto-Analyze default mode:** should clicking "Auto-Analyze" use Quick mode (~30s) or Deep mode (~90s)?
-
+We don't need new features. We need to **redeploy edge functions, fix the synthesis model, and re-rank the page so the prompt is the hero.**
 
 ---
 
-## Sprint 2 Retro — Auto-Analyze + SynthesisPanel (DONE)
+## Current State Snapshot
 
-**Shipped**
-- New `SynthesisPanel.tsx` — renders `orchestrate` output: confidence ring, executive summary, consensus, tensions (with "Your call" badges), ranked recommendations, brief suggestions. One-click "Apply to prompt" calls `refine-prompt` with synthesis as `refinement_context`.
-- `ThunderdomePanel` now has 4 tabs with **Auto-Analyze as the default first tab**. The 3 manual tabs (Perspectives / Expand / Distill) remain for users who want one lens at a time.
-- Threaded `lovablePrompt` + `onPromptUpdate` through SimulatorShell → ThunderdomePanel → SynthesisPanel so synthesis can mutate the prompt in place.
-- Added semantic `--warning` design token (HSL amber) to `index.css` + `tailwind.config.ts` — replaced all raw `amber-*` Tailwind classes.
-- Deployed `orchestrate` + `synthesize` edge functions.
-- Fast (~30s) / Deep (~90s) mode toggle on the Auto-Analyze CTA.
+### Functionality — what actually works
 
-**Discovered while building → recommended Sprint 3 changes**
+| Capability | Status | Notes |
+|---|---|---|
+| 3-round simulator (idea → brief → final) | ✅ Working | Stable since Sprint 1 |
+| Lovable Prompt generation | ⚠️ Partial | Generated end-of-round-3, but no "Generate now" button works *until* the email gate is passed in some flows |
+| Copy prompt + highlights | ✅ Working | Logic confirmed in `FinalReport.tsx:366` |
+| Stress-test inline (brief phase) | ✅ Working | Sprint 1 added `showStressTest` toggle |
+| Auto-Analyze (orchestrate + synthesis) | 🔴 **Broken in prod** | Logs show `invalid model: anthropic/claude-sonnet-4-20250514`. Code is fixed; **deployment is stale.** |
+| Per-section "Go deeper" | ✅ Working | Renders inline via `simulate-idea` deep_dive mode |
+| Sharpen prompt now | ✅ Working | But discoverable only when ≥1 highlight is set |
+| Email gate | ⚠️ Confusing | Now only gates PDF/Share, but UI copy still implies it gates the prompt |
+| Resume from `/report/:id` and dashboard | ✅ Working | DB persistence solid |
+| Inbox / auto-evaluate flywheel | ⏸ Hidden | Route commented out, not wired |
+| Portfolio Command Center | ✅ Working but unconnected | Not yet round-tripping with Simulator |
 
-1. **No realtime progress yet.** `orchestrate/index.ts` already emits events to `agent_events` (each persona, expand, distill report when they complete) but the UI just shows a single spinner. **Sprint 3 add:** Supabase Realtime channel subscription in SynthesisPanel showing "Skeptic ✓ · Champion ✓ · Competitor… · Builder… · Distill ✓" as agents finish. Massive UX win for free since the events are already firing.
+### Operational — what's actually deployed
 
-2. **Synthesis output should auto-update the brief, not just the prompt.** `synthesis.refined_brief_suggestions` are passive text. **Sprint 3 add:** "Apply suggestion" button per item that re-runs `simulate-idea` with the suggestion in `refinement_context`, regenerating the brief.
+- **9 edge functions deployed**, but **at least one (`synthesize`) is running stale code** — the `model-router.ts` fix from last session never propagated, OR `synthesize.ts` is bundling a snapshot that hardcoded the model. Logs from 1776976380 prove this.
+- `_shared/` modules require a redeploy of every function that imports them. Likely the orchestrator/synthesize functions weren't redeployed.
+- Supabase types are still stale — `agent_events`, `auto_score`, `auto_verdict` columns require `as unknown as` casts. Tolerable but tech debt.
+- `agent_events` realtime stream exists in DB but is never subscribed to from the client — progress bar in `SynthesisPanel` is fake (just shows 0/7).
 
-3. **Per-persona "Apply this critique" is still missing.** PerspectivesPanel today just shows the perspective + saves user responses. The original Sprint 2 plan called for an "Apply this critique" button per persona. **Move to Sprint 3** — implementation is small but PerspectivesPanel needs the same `lovablePrompt` / `onPromptUpdate` plumbing.
+### Design — Impeccable audit (against `.impeccable.md` + SKILL files)
 
-4. **`agent_events` table needs RLS audit before Sprint 3 realtime.** The orchestrate function inserts via service-role, but if we subscribe from the browser we need a `public read` policy on the table. Same pattern as `idea_perspectives`.
+**Anti-pattern verdict: 2 / 4 — Some AI tells, but not slop.**
 
-5. **Confidence threshold gating.** When `confidence_score < 50` we should *strongly* warn before applying to prompt — high tensions mean the agents disagree and the prompt could regress. Currently we just show a colored badge.
+| Violation | Location | Severity |
+|---|---|---|
+| Card-grid monoculture in `IdeaBrief.tsx` (7 identical cards) | `IdeaBrief.tsx:301-394` | P1 |
+| Hardcoded `yellow-500` color (not a token) | `FinalReport.tsx:719-728`, `IdeaBrief.tsx:238-260` | P2 |
+| Hardcoded `emerald/blue/amber/pink-400` accent palette | `ExpandContractPanel.tsx:42-46`, `:279-294` | P2 |
+| Decorative gradients without justification | `ThunderdomePanel.tsx:42-47, 60-62` | P2 |
+| Hierarchy collapse on final report — Lovable Prompt is below 7 sections + scale + builder badge + supporting sections | `FinalReport.tsx:763-957` | **P0** |
+| Tab toggle in Thunderdome (4 tabs of equal weight) hides the primary action (Auto-Analyze) | `ThunderdomePanel.tsx:75-100` | P1 |
+| 3 progressive email banners (`IdeaBrief` round-1, round-2, `FinalReport` top) — feels naggy | Multiple | P1 |
 
-6. **Cost surfacing.** Each Auto-Analyze fires 8 LLM calls. Should show `(7/7 agents · 9.2s · ~$0.04)` style metadata under the synthesis header so users understand the spend. Need usage data from the gateway response.
+**Layout hierarchy (Section 3 of Impeccable): "no monoculture"** is violated in `IdeaBrief` and final report — every section gets the same card treatment. Hero/supporting split exists in `FinalReport.tsx:762-880` but only between Problem+Features and the rest. The prompt itself is buried.
 
-7. **Caching.** Re-running Auto-Analyze on an unchanged brief re-fires all 8 calls. Could hash `(brief, idea, highlights, mode)` and cache to `idea_reports.synthesis_cache JSONB` for free re-renders.
+**Score: 11/20 (Acceptable)** — Accessibility 3, Performance 3, Theming 2 (hardcoded colors), Responsive 3, Anti-Pattern 2. Improvement target: 16+ after Sprint 4.
 
-**Plan adjustment for Sprint 3 (was: flywheel only)**
+---
 
-Reframe Sprint 3 as **two parallel tracks**:
-- **3a: Polish the loop** — items 1, 2, 3, 5 above. Makes Auto-Analyze feel finished.
-- **3b: Connect the flywheel** — Inbox → auto-evaluate, Portfolio ↔ Simulator round-trip (original Sprint 3 scope).
+## What's Actually Broken vs What Just Feels Broken
 
-Recommend doing 3a first — it directly improves the surface users will touch most.
+| Issue | Type | Fix complexity |
+|---|---|---|
+| Auto-Analyze 400/500 errors in prod | **Real bug** — stale deploy | Trivial (redeploy + verify) |
+| Synthesis confidence ring renders fake progress | **Real bug** — never subscribed to realtime | Small (`agent_events` channel) |
+| Lovable Prompt buried under 7 sections | **UX failure** | Medium (re-rank `FinalReport`) |
+| 4 equal-weight tabs in Thunderdome | **UX failure** | Small (promote Auto-Analyze, demote others) |
+| 3 email banners | **UX failure** | Small (consolidate to 1) |
+| Hardcoded colors (`yellow-500`, `emerald-400`) | **Theming debt** | Small (semantic tokens already exist) |
+| Card monoculture in IdeaBrief | **Design debt** | Medium (alternate layouts for hero sections) |
+
+---
+
+## Sprint 4 Plan — "Make the Prompt the Hero"
+
+Goal: anyone landing on the final report sees the Lovable Prompt within one viewport. Auto-Analyze works in production. Visual hierarchy reflects actual importance.
+
+### 4a — Stop the bleeding (this session)
+
+1. **Redeploy all edge functions** so the model-router fix actually takes effect. Verify with a curl test against `synthesize` and `orchestrate`.
+2. **Add timing log + retry** in `synthesize.ts` so a model failure auto-falls-back to `google/gemini-2.5-pro` instead of returning null.
+3. **Wire `agent_events` realtime** in `SynthesisPanel` — subscribe on mount, show actual per-agent completion (Skeptic ✓, Champion ⏳…). Replaces the fake progress.
+
+### 4b — Re-rank the final report (this session)
+
+4. **Promote the Lovable Prompt to position 2** in `FinalReport.tsx`, right after the title block:
+   - Position 1: idea + scores + scale assessment (~300px)
+   - Position 2: **Lovable Prompt** — fully expanded, with a sticky "Copy + highlights" button (~400px)
+   - Position 3: Hero sections (Problem + Core Features) with deep-dive
+   - Position 4: Supporting sections
+   - Position 5: Stress-test (`ThunderdomePanel`)
+   - Position 6: ActionHub
+5. **Promote Auto-Analyze in the Thunderdome tabs** — make it a full-width primary CTA at top instead of one of four equal tabs. The other three (Perspectives / Expand / Distill) become a secondary "or explore one lens" row underneath.
+6. **Consolidate email banners** — one banner only, on the final report top, with copy "Save your report (PDF + share link). Your prompt is below either way."
+
+### 4c — Theming pass (this session)
+
+7. **Replace hardcoded colors** with semantic tokens:
+   - `yellow-500` → `warning` (already defined)
+   - `emerald-400`, `blue-400`, `amber-400`, `pink-400` in ExpandContractPanel → introduce `accent-1`, `accent-2`, `accent-3`, `accent-4` or use `chart-*` tokens already in `index.css`
+8. **Break the IdeaBrief card monoculture** — Problem + Core Features get a typographic hero treatment (no card border, larger type), the other 5 stay as cards. Mirrors the FinalReport pattern.
+
+### 4d — Defer to Sprint 5 (Flywheel)
+
+These are scoped out of Sprint 4 to keep it shippable in one session:
+- `/inbox` route + `auto-evaluate` cron
+- Portfolio ↔ Simulator round-trip ("rebuild this project")
+- Per-persona "Apply critique" buttons (still in plan, but not blocking core UX)
+- Confidence-gated destructive prompt overwrites
+- Cost surfacing in SynthesisPanel
+
+---
+
+## On the Claude Code Branch
+
+The shared infrastructure (`_shared/agents/*`, `cors.ts`, `llm-client.ts`, `model-router.ts`) is in `main` and working — just deploy-stale. Don't merge new code from `claude/ai-agent-architecture-Xc8pG` until Sprint 5. Every unmerged change widens the drift.
+
+## On Impeccable Style
+
+After Sprint 4 ships, run `Run impeccable audit /simulate` to score the new state. Target: 16/20 (Good). The biggest wins will come from breaking the IdeaBrief monoculture and replacing hardcoded color literals.
+
+## Files Sprint 4 Will Touch
+
+| File | Change |
+|---|---|
+| `supabase/functions/_shared/agents/synthesize.ts` | Add try/fallback to gemini-2.5-pro on model error |
+| `supabase/functions/orchestrate/index.ts` | Force redeploy via no-op edit + model fallback |
+| `src/components/simulator/SynthesisPanel.tsx` | Wire `agent_events` realtime channel, replace fake progress |
+| `src/components/simulator/FinalReport.tsx` | Re-rank: prompt to position 2, consolidate email banners |
+| `src/components/simulator/ThunderdomePanel.tsx` | Auto-Analyze becomes primary CTA, others become secondary tabs |
+| `src/components/simulator/IdeaBrief.tsx` | Hero typographic treatment for Problem + Core Features; replace `yellow-500` with `warning` |
+| `src/components/simulator/ExpandContractPanel.tsx` | Replace hardcoded `*-400` colors with semantic accent tokens |
+| `src/index.css` / `tailwind.config.ts` | Add `accent-1`..`accent-4` tokens if not present |
+
+### Open Questions Before Sprint 4
+
+1. **Final report ordering:** prompt at position 2 (right after title) or position 1 (before idea/scores)? Position 2 keeps context but position 1 is most aggressive.
+2. **Thunderdome layout:** keep Perspectives/Expand/Distill as visible tabs under Auto-Analyze, or hide behind an "Explore one lens at a time" disclosure?
+3. **Email banner:** keep on final report only, or also on round-2 brief? My instinct says final report only — stop nagging mid-flow.
+
