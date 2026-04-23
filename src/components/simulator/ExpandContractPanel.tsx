@@ -39,10 +39,10 @@ interface Props {
 }
 
 const potentialLabels: Record<string, { label: string; color: string }> = {
-  "bigger-market": { label: "Bigger market", color: "text-emerald-400" },
-  "easier-to-build": { label: "Easier to build", color: "text-blue-400" },
-  "less-competition": { label: "Less competition", color: "text-amber-400" },
-  "faster-revenue": { label: "Faster revenue", color: "text-pink-400" },
+  "bigger-market": { label: "Bigger market", color: "text-primary" },
+  "easier-to-build": { label: "Easier to build", color: "text-accent-foreground" },
+  "less-competition": { label: "Less competition", color: "text-warning" },
+  "faster-revenue": { label: "Faster revenue", color: "text-secondary" },
 };
 
 const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, onThesisGenerated, reportId }: Props) => {
@@ -276,22 +276,22 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="p-3 rounded-lg border border-border/30 bg-muted/10">
                 <div className="flex items-center gap-1.5 mb-1.5">
-                  <Target size={10} className="text-emerald-400" />
-                  <span className="text-[10px] text-emerald-400 uppercase">One Feature</span>
+                  <Target size={10} className="text-primary" />
+                  <span className="text-[10px] text-primary uppercase">One Feature</span>
                 </div>
                 <p className="text-xs text-foreground/80">{distillResult.one_feature}</p>
               </div>
               <div className="p-3 rounded-lg border border-border/30 bg-muted/10">
                 <div className="flex items-center gap-1.5 mb-1.5">
-                  <Target size={10} className="text-blue-400" />
-                  <span className="text-[10px] text-blue-400 uppercase">One Customer</span>
+                  <Target size={10} className="text-accent-foreground" />
+                  <span className="text-[10px] text-accent-foreground uppercase">One Customer</span>
                 </div>
                 <p className="text-xs text-foreground/80">{distillResult.one_customer}</p>
               </div>
               <div className="p-3 rounded-lg border border-border/30 bg-muted/10">
                 <div className="flex items-center gap-1.5 mb-1.5">
-                  <Target size={10} className="text-pink-400" />
-                  <span className="text-[10px] text-pink-400 uppercase">One Revenue</span>
+                  <Target size={10} className="text-secondary" />
+                  <span className="text-[10px] text-secondary uppercase">One Revenue</span>
                 </div>
                 <p className="text-xs text-foreground/80">{distillResult.one_revenue}</p>
               </div>
