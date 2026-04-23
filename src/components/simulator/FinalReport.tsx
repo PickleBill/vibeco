@@ -413,6 +413,67 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
     }
   };
 
+  const callRefinePrompt = async (context?: string) => {
+    const { data, error } = await supabase.functions.invoke("refine-prompt", {
+      body: {
+        brief,
+        idea,
+        original_prompt: lovablePrompt || undefined,
+        highlights: highlights ? Array.from(highlights) : [],
+        antiHighlights: antiHighlights ? Array.from(antiHighlights) : [],
+        refinement_context: context,
+      },
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data?.lovable_prompt as string | undefined;
+  };
+
+  const handleSharpenPrompt = async () => {
+    setIsSharpening(true);
+    try {
+      const newPrompt = await callRefinePrompt(
+        "Re-tighten the prompt around the user's resonating sections; deprioritize the flagged ones.",
+      );
+      if (newPrompt && onPromptUpdate) {
+        onPromptUpdate(newPrompt);
+        toast.success("Prompt sharpened with your highlights.");
+      } else if (newPrompt) {
+        // Fallback: copy to clipboard if no parent handler
+        await copyToClipboard(newPrompt);
+        toast.success("Sharpened prompt copied to clipboard.");
+      } else {
+        toast.error("Could not sharpen the prompt. Try again.");
+      }
+    } catch (e) {
+      console.error("Sharpen error:", e);
+      toast.error("Failed to sharpen prompt.");
+    } finally {
+      setIsSharpening(false);
+    }
+  };
+
+  const handleGeneratePrompt = async () => {
+    setIsGeneratingPrompt(true);
+    try {
+      const newPrompt = await callRefinePrompt();
+      if (newPrompt && onPromptUpdate) {
+        onPromptUpdate(newPrompt);
+        toast.success("Prompt generated.");
+      } else if (newPrompt) {
+        await copyToClipboard(newPrompt);
+        toast.success("Prompt generated and copied.");
+      } else {
+        toast.error("Could not generate prompt. Try again.");
+      }
+    } catch (e) {
+      console.error("Generate prompt error:", e);
+      toast.error("Failed to generate prompt.");
+    } finally {
+      setIsGeneratingPrompt(false);
+    }
+  };
+
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
     if (over && active.id !== over.id && onReorderFeatures) {
