@@ -952,6 +952,8 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
           reportId={reportId}
           highlights={highlights}
           antiHighlights={antiHighlights}
+          lovablePrompt={lovablePrompt}
+          onPromptUpdate={onPromptUpdate}
         />
 
         {/* Action Hub — always visible */}
