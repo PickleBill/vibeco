@@ -151,8 +151,7 @@ function StaticHero({ navigate }: { navigate: ReturnType<typeof useNavigate> }) 
               <span className="text-primary">One live product.</span>
             </h1>
             <p className="text-base text-foreground/80 leading-relaxed mb-4 max-w-lg">
-              Tell us what you need. We ship a working product — not a
-              pitch deck. Most go live the same day.
+              Tell us what you need. We ship — usually same day.
             </p>
             <div className="flex flex-wrap gap-4">
               <button
