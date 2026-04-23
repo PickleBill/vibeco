@@ -696,6 +696,82 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
             </h3>
           </div>
 
+          {/* ★ HERO: Lovable Prompt — the actual product. Sits right after the title. */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="mb-8"
+          >
+            {highlights && highlights.size > 0 && lovablePrompt && (
+              <div className="flex items-center justify-between gap-3 mb-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Sparkles size={12} className="text-primary fill-primary shrink-0" />
+                  <span className="text-xs text-primary truncate">
+                    {highlights.size} highlight{highlights.size > 1 ? "s" : ""}
+                    {antiHighlights && antiHighlights.size > 0 ? ` · ${antiHighlights.size} flag${antiHighlights.size > 1 ? "s" : ""}` : ""} will sharpen the prompt
+                  </span>
+                </div>
+                <button
+                  onClick={handleSharpenPrompt}
+                  disabled={isSharpening}
+                  className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-primary/40 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50 whitespace-nowrap"
+                >
+                  {isSharpening ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                  {isSharpening ? "Sharpening..." : "Sharpen prompt now"}
+                </button>
+              </div>
+            )}
+
+            {lovablePrompt ? (
+              <div className="border-2 border-primary/30 rounded-xl overflow-hidden bg-card/40"
+                style={{ boxShadow: "0 0 32px -10px hsl(var(--primary) / 0.18)" }}
+              >
+                <div className="flex items-center justify-between px-4 py-2.5 bg-primary/8 border-b border-primary/20">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Sparkles size={12} className="text-primary shrink-0" />
+                    <span className="text-xs font-semibold text-primary uppercase tracking-wider truncate">
+                      Your Lovable Prompt
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleCopyPromptWithHighlights}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-primary-foreground bg-primary px-3 py-1.5 rounded-sm hover:opacity-90 transition-opacity whitespace-nowrap"
+                  >
+                    {copied ? <Check size={12} /> : <Copy size={12} />}
+                    {copied ? "Copied" : highlights && highlights.size > 0 ? "Copy + highlights" : "Copy prompt"}
+                  </button>
+                </div>
+                <div className="p-4 max-h-72 overflow-y-auto">
+                  <pre className="text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap font-sans">
+                    {lovablePrompt}
+                  </pre>
+                </div>
+                <div className="px-4 py-2 bg-muted/20 border-t border-border/30">
+                  <p className="text-[10px] text-muted-foreground">
+                    Paste into <a href="https://lovable.dev" target="_blank" rel="noreferrer" className="text-primary hover:underline">Lovable</a> to build your app — full brief, scoring, and stress-test below.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="border-2 border-dashed border-primary/30 rounded-xl p-6 text-center bg-primary/5">
+                <Sparkles size={20} className="text-primary mx-auto mb-2" />
+                <p className="text-sm text-foreground mb-1 font-display font-semibold">Generate your build prompt</p>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Turn this brief into a Lovable-ready prompt you can paste and ship.
+                </p>
+                <button
+                  onClick={handleGeneratePrompt}
+                  disabled={isGeneratingPrompt}
+                  className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  {isGeneratingPrompt ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                  {isGeneratingPrompt ? "Generating..." : "Generate Lovable prompt"}
+                </button>
+              </div>
+            )}
+          </motion.div>
+
           {conceptImage && (
             <div className="mb-6 rounded-lg overflow-hidden border border-border/30">
               <div className="relative">
@@ -716,20 +792,20 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
               className={`mb-6 p-4 rounded-lg border ${
                 brief.scale_assessment.fits_intent
                   ? "border-primary/30 bg-primary/5"
-                  : "border-yellow-500/30 bg-yellow-500/5"
+                  : "border-warning/30 bg-warning/5"
               }`}
             >
               <div className="flex items-start gap-3">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm ${
                   brief.scale_assessment.fits_intent
                     ? "bg-primary/15 text-primary"
-                    : "bg-yellow-500/15 text-yellow-500"
+                    : "bg-warning/15 text-warning"
                 }`}>
                   {brief.scale_assessment.fits_intent ? "✓" : "⚖️"}
                 </div>
                 <div>
                   <p className={`text-xs font-bold ${
-                    brief.scale_assessment.fits_intent ? "text-primary" : "text-yellow-500"
+                    brief.scale_assessment.fits_intent ? "text-primary" : "text-warning"
                   }`}>
                     Scale: {brief.scale_assessment.current_scale.charAt(0).toUpperCase() + brief.scale_assessment.current_scale.slice(1)}
                     {brief.scale_assessment.fits_intent ? " — matches your intent" : " — might not match your intent"}
@@ -880,70 +956,7 @@ const FinalReport = ({ brief, idea, onRestart, conceptImage, logoImage, rounds, 
           </div>
         </div>
 
-        {/* Lovable Prompt — always visible (no email gate) */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="mb-8"
-        >
-          {highlights && highlights.size > 0 && lovablePrompt && (
-            <div className="flex items-center justify-between gap-3 mb-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20">
-              <div className="flex items-center gap-2 min-w-0">
-                <Sparkles size={12} className="text-primary fill-primary shrink-0" />
-                <span className="text-xs text-primary truncate">
-                  {highlights.size} highlight{highlights.size > 1 ? "s" : ""}
-                  {antiHighlights && antiHighlights.size > 0 ? ` · ${antiHighlights.size} flag${antiHighlights.size > 1 ? "s" : ""}` : ""} will sharpen the prompt
-                </span>
-              </div>
-              <button
-                onClick={handleSharpenPrompt}
-                disabled={isSharpening}
-                className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-primary/40 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50 whitespace-nowrap"
-              >
-                {isSharpening ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
-                {isSharpening ? "Sharpening..." : "Sharpen prompt now"}
-              </button>
-            </div>
-          )}
-
-          {lovablePrompt ? (
-            <div className="border border-border/30 rounded-lg overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/20">
-                <span className="text-xs text-muted-foreground uppercase tracking-wider">
-                  Your Lovable Prompt — paste into Lovable to build your app
-                </span>
-                <button
-                  onClick={handleCopyPromptWithHighlights}
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-muted/50"
-                >
-                  {copied ? <Check size={12} className="text-primary" /> : <Copy size={12} />}
-                  {copied ? "Copied" : highlights && highlights.size > 0 ? "Copy + highlights" : "Copy"}
-                </button>
-              </div>
-              <div className="p-4 max-h-72 overflow-y-auto">
-                <pre className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap font-sans">
-                  {lovablePrompt}
-                </pre>
-              </div>
-            </div>
-          ) : (
-            <div className="border border-dashed border-border/40 rounded-lg p-6 text-center bg-card/30">
-              <p className="text-sm text-foreground/80 mb-1 font-display font-semibold">No Lovable prompt yet</p>
-              <p className="text-xs text-muted-foreground mb-4">
-                The 3-round analysis didn't return a prompt. Generate one now from this brief.
-              </p>
-              <button
-                onClick={handleGeneratePrompt}
-                disabled={isGeneratingPrompt}
-                className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                {isGeneratingPrompt ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                {isGeneratingPrompt ? "Generating..." : "Generate Lovable prompt"}
-              </button>
-            </div>
-          )}
-        </motion.div>
+        {/* (Lovable Prompt now lives near the top — promoted to position 2) */}
 
         {/* Stress-test the whole idea — always visible */}
         <ThunderdomePanel

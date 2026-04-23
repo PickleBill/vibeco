@@ -125,8 +125,17 @@ export const synthesizeToolSchema = {
 
 // ─── Core Logic ───
 
+// Hard fallback chain — only models known to be allowed by the Lovable Gateway.
+// If selectModel() returns something unavailable, we walk through these in order.
+const SYNTHESIS_FALLBACK_MODELS = [
+  "google/gemini-2.5-pro",
+  "openai/gpt-5",
+  "google/gemini-3-flash-preview",
+];
+
 export async function synthesize(input: SynthesisInput): Promise<SynthesisResult> {
-  const model = selectModel("synthesis", { mode: input.mode });
+  const primaryModel = selectModel("synthesis", { mode: input.mode });
+  const modelChain = [primaryModel, ...SYNTHESIS_FALLBACK_MODELS.filter((m) => m !== primaryModel)];
 
   // Build a comprehensive context from all agent outputs
   let agentOutputs = "";
@@ -205,13 +214,26 @@ ${agentOutputs}
 
 Synthesize all of the above into a unified analysis. Find what they agree on, where they disagree, and what the founder should do next.`;
 
-  return callLLMWithTool<SynthesisResult>({
-    model,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userContent },
-    ],
-    tools: [synthesizeToolSchema],
-    toolChoice: { type: "function", function: { name: "generate_synthesis" } },
-  });
+  let lastError: unknown;
+  for (const model of modelChain) {
+    try {
+      const startedAt = Date.now();
+      const result = await callLLMWithTool<SynthesisResult>({
+        model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userContent },
+        ],
+        tools: [synthesizeToolSchema],
+        toolChoice: { type: "function", function: { name: "generate_synthesis" } },
+      });
+      console.log(`[synthesize] ✓ ${model} in ${Date.now() - startedAt}ms`);
+      return result;
+    } catch (e) {
+      lastError = e;
+      console.error(`[synthesize] ✗ ${model}: ${(e as Error).message}`);
+      // continue to next model in the chain
+    }
+  }
+  throw lastError ?? new Error("All synthesis models failed");
 }

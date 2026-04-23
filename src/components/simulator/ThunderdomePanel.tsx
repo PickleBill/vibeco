@@ -29,8 +29,7 @@ const ThunderdomePanel = ({
 }: Props) => {
   const [activeTab, setActiveTab] = useState<ThunderdomeTab>("synthesis");
 
-  const tabs = [
-    { id: "synthesis" as const, label: "Auto-Analyze", icon: Sparkles, description: "All 7 agents + synthesis" },
+  const secondaryTabs = [
     { id: "perspectives" as const, label: "Perspectives", icon: Zap, description: "5 personas, one at a time" },
     { id: "expand" as const, label: "Expand", icon: Maximize2, description: "What else could this be?" },
     { id: "contract" as const, label: "Distill", icon: Minimize2, description: "What's the one thing?" },
@@ -71,27 +70,49 @@ const ThunderdomePanel = ({
           </div>
         </div>
 
-        {/* Tabs — larger, bolder treatment */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
-          {tabs.map((tab) => {
+        {/* PRIMARY: Auto-Analyze — full-width, dominant */}
+        <button
+          onClick={() => setActiveTab("synthesis")}
+          className={`w-full flex items-center justify-between gap-3 px-5 py-4 rounded-xl border-2 mb-3 transition-all ${
+            activeTab === "synthesis"
+              ? "bg-primary/10 border-primary/50 shadow-sm ring-2 ring-primary/15"
+              : "bg-primary/5 border-primary/30 hover:border-primary/50 hover:bg-primary/8"
+          }`}
+          style={activeTab === "synthesis" ? { boxShadow: "0 0 32px -10px hsl(var(--primary) / 0.25)" } : {}}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center">
+              <Sparkles size={16} className="text-primary" />
+            </div>
+            <div className="text-left">
+              <p className="font-display text-sm font-bold text-foreground">Auto-Analyze</p>
+              <p className="text-[11px] text-muted-foreground">All 7 agents in parallel + synthesis</p>
+            </div>
+          </div>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-primary px-2 py-1 rounded-full bg-primary/10">
+            Recommended
+          </span>
+        </button>
+
+        {/* SECONDARY: Or explore one lens at a time */}
+        <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider mb-2 mt-4 px-1">
+          Or explore one lens at a time
+        </p>
+        <div className="grid grid-cols-3 gap-2 mb-6">
+          {secondaryTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
-            const isPrimary = tab.id === "synthesis";
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`relative flex flex-col items-center gap-1.5 px-4 py-3 rounded-lg text-xs transition-all border ${
+                className={`flex flex-col items-center gap-1 px-3 py-2.5 rounded-lg text-xs transition-all border ${
                   isActive
-                    ? isPrimary
-                      ? "bg-primary/15 border-primary/50 text-foreground shadow-sm ring-1 ring-primary/20"
-                      : "bg-primary/10 border-primary/30 text-foreground shadow-sm"
-                    : isPrimary
-                    ? "bg-primary/5 border-primary/30 text-foreground hover:border-primary/50"
-                    : "bg-card/30 border-border/30 text-muted-foreground hover:border-border/60 hover:text-foreground"
+                    ? "bg-card/60 border-primary/40 text-foreground shadow-sm"
+                    : "bg-card/20 border-border/30 text-muted-foreground hover:border-border/60 hover:text-foreground"
                 }`}
               >
-                <Icon size={16} className={isActive || isPrimary ? "text-primary" : ""} />
+                <Icon size={14} className={isActive ? "text-primary" : ""} />
                 <span className="font-semibold">{tab.label}</span>
                 <span className="text-[9px] text-muted-foreground hidden sm:block">{tab.description}</span>
               </button>

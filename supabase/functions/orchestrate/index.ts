@@ -17,6 +17,8 @@ import type { PersonaType, PerspectiveResult, ExpandResult, DistillResult } from
  *
  * Input:  { idea, brief, report_id?, mode?, highlights?, antiHighlights? }
  * Output: { perspectives, expansion, distillation, synthesis, timing, agents_completed, agents_total }
+ *
+ * Sprint 4: forced redeploy to pick up updated _shared/agents/synthesize.ts (model fallback chain).
  */
 
 const PERSONAS: PersonaType[] = ["skeptic", "champion", "competitor", "customer", "builder"];

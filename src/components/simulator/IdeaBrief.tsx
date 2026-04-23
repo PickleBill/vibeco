@@ -235,20 +235,20 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
         className={`mb-6 p-4 rounded-lg border ${
           brief.scale_assessment.fits_intent
             ? "border-primary/30 bg-primary/5"
-            : "border-yellow-500/30 bg-yellow-500/5"
+            : "border-warning/30 bg-warning/5"
         }`}
       >
         <div className="flex items-start gap-3">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm ${
             brief.scale_assessment.fits_intent
               ? "bg-primary/15 text-primary"
-              : "bg-yellow-500/15 text-yellow-500"
+              : "bg-warning/15 text-warning"
           }`}>
             {brief.scale_assessment.fits_intent ? "✓" : "⚖️"}
           </div>
           <div>
             <p className={`text-xs font-bold ${
-              brief.scale_assessment.fits_intent ? "text-primary" : "text-yellow-500"
+              brief.scale_assessment.fits_intent ? "text-primary" : "text-warning"
             }`}>
               Scale: {brief.scale_assessment.current_scale.charAt(0).toUpperCase() + brief.scale_assessment.current_scale.slice(1)}
               {brief.scale_assessment.fits_intent
@@ -298,8 +298,85 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
       <BriefScoreVisual brief={brief} />
     </motion.div>
 
-    <div className="grid gap-4">
-      {sections.map((section, i) => {
+    {/* Hero sections — Problem + Core Features get typographic treatment, no card chrome */}
+    <div className="space-y-8 mb-10">
+      {sections.filter(s => s.key === "problem" || s.key === "core_features").map((section, i) => {
+        const Icon = section.icon;
+        const value = brief[section.key as keyof BriefData];
+        const isHighlighted = highlights?.has(section.key);
+        const isAntiHighlighted = antiHighlights?.has(section.key);
+
+        return (
+          <motion.div
+            key={section.key}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 + i * 0.1 }}
+            className="relative pl-4 sm:pl-6 border-l-2 border-primary/30"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Icon size={18} className="text-primary" />
+              <h3 className="font-display text-base font-black text-foreground uppercase tracking-wide">
+                {section.label}
+              </h3>
+              {onToggleHighlight && (
+                <div className="ml-auto flex items-center gap-1.5">
+                  <button
+                    onClick={() => onToggleHighlight(section.key)}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-[9px] transition-all ${
+                      isHighlighted
+                        ? "bg-primary/20 text-primary border border-primary/30"
+                        : "bg-muted/30 text-muted-foreground/60 border border-transparent hover:text-primary hover:bg-primary/10"
+                    }`}
+                  >
+                    <Sparkles size={10} className={isHighlighted ? "fill-primary" : ""} />
+                    {isHighlighted ? "Resonates" : "This resonates"}
+                  </button>
+                  {onToggleAntiHighlight && (
+                    <button
+                      onClick={() => onToggleAntiHighlight(section.key)}
+                      className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] transition-all ${
+                        isAntiHighlighted
+                          ? "bg-destructive/15 border border-destructive/40 text-destructive"
+                          : "border border-border/50 text-muted-foreground/60 hover:border-destructive/30 hover:text-destructive/80"
+                      }`}
+                    >
+                      ✕ {isAntiHighlighted ? "Flagged" : "Not quite"}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            {section.key === "core_features" && Array.isArray(value) ? (
+              <div className="grid gap-3">
+                {(value as BriefData["core_features"]).map((feat, fi) => (
+                  <div key={fi} className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
+                      <Zap size={12} className="text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-base sm:text-lg text-foreground/90 leading-relaxed">
+                        <span className="font-semibold text-foreground">{feat.name}</span>
+                        <span className="text-muted-foreground"> — {feat.description}</span>
+                      </p>
+                      <FeatureStrengthBar name={feat.name} index={fi} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-base sm:text-lg text-foreground/90 leading-relaxed">
+                {typeof value === "string" ? value : ""}
+              </p>
+            )}
+          </motion.div>
+        );
+      })}
+    </div>
+
+    {/* Supporting sections — tighter cards */}
+    <div className="grid gap-3">
+      {sections.filter(s => s.key !== "problem" && s.key !== "core_features").map((section, i) => {
         const Icon = section.icon;
         const value = brief[section.key as keyof BriefData];
         const isHighlighted = highlights?.has(section.key);
@@ -310,22 +387,20 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
             key={section.key}
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 + i * 0.08, duration: 0.4 }}
-            className={`group relative p-5 rounded-lg bg-card/60 backdrop-blur-sm border transition-all duration-300 hover:bg-card/80 ${
+            transition={{ delay: 0.45 + i * 0.06, duration: 0.4 }}
+            className={`group relative p-4 rounded-lg bg-card/40 backdrop-blur-sm border transition-all duration-300 hover:bg-card/60 ${
               isHighlighted
                 ? "border-primary/40 bg-primary/5"
                 : isAntiHighlighted
                 ? "border-destructive/30 bg-destructive/5"
-                : "border-border/50 hover:border-primary/30"
+                : "border-border/40 hover:border-primary/30"
             }`}
-            style={isHighlighted ? { boxShadow: "0 0 20px hsl(var(--primary) / 0.1)" } : {}}
           >
-            {/* Highlight toggles */}
             {onToggleHighlight && (
               <div className="absolute top-3 right-3 flex items-center gap-1.5">
                 <button
                   onClick={() => onToggleHighlight(section.key)}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-full text-[9px] transition-all duration-200 ${
+                  className={`flex items-center gap-1 px-2 py-1 rounded-full text-[9px] transition-all ${
                     isHighlighted
                       ? "bg-primary/20 text-primary border border-primary/30"
                       : "bg-muted/30 text-muted-foreground/50 border border-transparent hover:text-primary hover:bg-primary/10"
@@ -343,61 +418,30 @@ const IdeaBrief = ({ brief, round, conceptImage, unlocked, onUnlock, highlights,
                         : "border border-border/50 text-muted-foreground/50 hover:border-destructive/30 hover:text-destructive/80"
                     }`}
                   >
-                    ✕
-                    {isAntiHighlighted ? "Flagged" : "Not quite"}
+                    ✕ {isAntiHighlighted ? "Flagged" : "Not quite"}
                   </button>
                 )}
               </div>
             )}
 
-            <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center">
-                <Icon size={14} className="text-primary" />
+            <div className="flex items-center gap-2 mb-2 pr-32">
+              <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
+                <Icon size={12} className="text-primary" />
               </div>
-              <h3 className="font-display text-sm font-bold text-foreground uppercase tracking-wide">
+              <h3 className="font-display text-xs font-bold text-foreground uppercase tracking-wide">
                 {section.label}
               </h3>
-              {section.key === "target_customer" && (
-                <span className="ml-auto mr-16 px-2 py-0.5 rounded-full bg-accent/10 border border-accent/20 text-[9px] text-accent">
-                  Persona
-                </span>
-              )}
             </div>
-            {section.key === "core_features" && Array.isArray(value) ? (
-              <div className="grid gap-3">
-                {(value as BriefData["core_features"]).map((feat, fi) => (
-                  <div key={fi}>
-                    <div className="flex items-start gap-2">
-                      <div className="w-5 h-5 rounded bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Zap size={10} className="text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <span className="text-sm text-foreground/90 font-semibold">
-                          {feat.name}
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {" "}— {feat.description}
-                        </span>
-                        <FeatureStrengthBar name={feat.name} index={fi} />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-foreground/80 leading-relaxed">
-                {typeof value === "string" ? value : ""}
-              </p>
-            )}
+            <p className="text-sm text-foreground/80 leading-relaxed">
+              {typeof value === "string" ? value : ""}
+            </p>
           </motion.div>
         );
       })}
     </div>
 
-    {/* Progressive email unlock banner */}
-    {!unlocked && onUnlock && (
-      <EmailUnlockBanner round={round} onUnlock={onUnlock} />
-    )}
+    {/* Email banner removed mid-flow — consolidated to final report only.
+        Sprint 4: stop nagging the user before they've seen the result. */}
   </div>
 );
 
