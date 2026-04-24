@@ -1,11 +1,20 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Import, Pencil } from "lucide-react";
+import { Sparkles, Import, Pencil, Sparkle, Flag, Layers } from "lucide-react";
 import ProjectImporter from "./ProjectImporter";
+
+interface IterationContext {
+  highlightCount: number;
+  flagCount: number;
+  roundCount: number;
+  reportId?: string | null;
+}
 
 interface Props {
   onSubmit: (idea: string, meta?: { project_id?: string; lovable_project_id?: string | null }) => void;
   initialValue?: string;
+  iterationContext?: IterationContext;
+  onStartFresh?: () => void;
 }
 
 const placeholders = [
