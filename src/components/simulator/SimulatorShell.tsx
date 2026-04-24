@@ -171,6 +171,10 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
   const abortControllerRef = useRef<AbortController | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [showStartFreshConfirm, setShowStartFreshConfirm] = useState(false);
+  const [stackOpen, setStackOpen] = useState(false);
+  const [stackHighlightId, setStackHighlightId] = useState<string | null>(null);
+  const [isStackSharpening, setIsStackSharpening] = useState(false);
+  const [isStackSnapshotting, setIsStackSnapshotting] = useState(false);
 
   // Vibe Stack — curated insight chits, falls back to localStorage when no reportId yet
   const stack = useVibeStack(reportId);
