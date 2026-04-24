@@ -1271,6 +1271,19 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
             Home
           </button>
         </div>
+
+        {/* "What now?" cue — closes the loop after the user has copied the prompt */}
+        {showPrompt && lovablePrompt && (
+          <p className="text-[11px] text-muted-foreground/60 text-center mt-4">
+            Built it?{" "}
+            <button
+              onClick={() => navigate("/my-simulations?import=1")}
+              className="text-primary hover:underline underline-offset-2"
+            >
+              Paste your project URL to import as a child idea →
+            </button>
+          </p>
+        )}
       </motion.div>
     </div>
   );
