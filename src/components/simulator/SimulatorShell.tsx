@@ -696,7 +696,27 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
     setLogoImage(null);
     // Scroll to top so the input is visible
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
-    toast.success("Iterating — your prior rounds and highlights are preserved.");
+    toast.success(
+      `Iterating — ${rounds.length} round${rounds.length === 1 ? "" : "s"} and ${highlights.size} highlight${highlights.size === 1 ? "" : "s"} preserved.`,
+    );
+  };
+
+  // Wipe everything from the iterate-input screen and start a brand-new run.
+  const handleStartFresh = () => {
+    setIdea("");
+    setRounds([]);
+    setCurrentRound(0);
+    setHighlights(new Set());
+    setAntiHighlights(new Set());
+    setReportId(null);
+    setLovablePrompt(null);
+    setConceptImage(null);
+    setLogoImage(null);
+    setUnlocked(false);
+    setUnlockEmail("");
+    setDepthRecommendation(undefined);
+    clearDraft();
+    toast("Cleared — start with a fresh idea.");
   };
 
   const handleDownloadPDF = () => {

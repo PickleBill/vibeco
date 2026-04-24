@@ -265,7 +265,7 @@ const IdeaInput = ({ onSubmit, initialValue, iterationContext, onStartFresh }: P
               transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             >
               <Sparkles size={16} />
-              Simulate This Idea
+              {isIterating ? "Continue with this idea" : "Simulate This Idea"}
             </motion.button>
           </motion.form>
         )}
