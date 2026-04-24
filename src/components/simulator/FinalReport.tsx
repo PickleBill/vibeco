@@ -37,6 +37,9 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { BriefData, QuestionData } from "./SimulatorShell";
+import { AddToStackButton } from "./VibeStack";
+import type { StackItem, StackKind, AddItemArgs } from "@/hooks/useVibeStack";
+import { Textarea } from "@/components/ui/textarea";
 
 interface RoundState {
   brief: BriefData;
@@ -63,6 +66,14 @@ interface Props {
   reportId?: string | null;
   onReorderFeatures?: (features: BriefData["core_features"]) => void;
   onPromptUpdate?: (newPrompt: string) => void;
+  // Iterate-in-place
+  editMode?: boolean;
+  onCancelEdit?: () => void;
+  onReSimulate?: (editedBrief: BriefData) => void;
+  // Vibe Stack wiring
+  stackItems?: StackItem[];
+  onAddToStack?: (args: AddItemArgs) => Promise<StackItem | null>;
+  stackHasItem?: (kind: StackKind, source: string | null | undefined, label: string) => boolean;
 }
 
 const sectionMeta = [
