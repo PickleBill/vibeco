@@ -447,6 +447,10 @@ const MySimulations = () => {
       });
     } else if (action === "deep-dive") {
       navigate(`/simulate?id=${reportId}`);
+    } else if (action === "continue") {
+      // Resume the same report at the right phase based on its status.
+      navigate(`/simulate?id=${reportId}`);
+      toast.success("Resuming where you left off…");
     }
   };
 
