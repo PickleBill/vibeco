@@ -1013,7 +1013,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
           )}
 
           {/* Hero sections — Problem & Core Features get dramatic treatment */}
-          <div className="space-y-1 mb-8">
+          <div id="fr-brief" className="space-y-1 mb-8 scroll-mt-24">
             {sectionMeta.filter(s => s.key === "problem" || s.key === "core_features").map((section, i) => {
               const Icon = section.icon;
               const value = brief[section.key as keyof BriefData];
@@ -1039,7 +1039,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                 >
                   <div className="flex items-center gap-2 mb-3">
                     <Icon size={isHero ? 18 : 14} className="text-primary" />
-                    <h4 className={`font-display font-bold text-foreground uppercase tracking-wide ${isHero ? "text-base" : "text-sm"}`}>
+                    <h4 className={`font-display font-black text-foreground uppercase tracking-wide ${isHero ? "text-base" : "text-sm"}`}>
                       {section.label}
                     </h4>
                     {renderHighlightToggles(section.key, isHighlighted, isAntiHighlighted, onToggleHighlight, onToggleAntiHighlight)}
@@ -1158,7 +1158,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <Icon size={14} className="text-primary/70" />
-                        <h4 className="font-display text-sm font-bold text-foreground uppercase tracking-wide">
+                        <h4 className="font-display text-sm font-black text-foreground uppercase tracking-wide">
                           {section.label}
                         </h4>
                         {renderHighlightToggles(section.key, isHighlighted, isAntiHighlighted, onToggleHighlight, onToggleAntiHighlight)}
@@ -1174,7 +1174,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                           placeholder={`Edit ${section.label.toLowerCase()}…`}
                         />
                       ) : (
-                        <p className="text-sm text-foreground/80 leading-relaxed ml-5">
+                        <p className="text-sm text-foreground/90 leading-relaxed ml-5">
                           {typeof value === "string" ? value : ""}
                         </p>
                       )}
@@ -1208,24 +1208,28 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
         {/* (Lovable Prompt now lives near the top — promoted to position 2) */}
 
         {/* Stress-test the whole idea — always visible */}
-        <ThunderdomePanel
-          brief={brief}
-          idea={idea}
-          reportId={reportId}
-          highlights={highlights}
-          antiHighlights={antiHighlights}
-          lovablePrompt={lovablePrompt}
-          onPromptUpdate={onPromptUpdate}
-        />
+        <div id="fr-stress-test" className="scroll-mt-24">
+          <ThunderdomePanel
+            brief={brief}
+            idea={idea}
+            reportId={reportId}
+            highlights={highlights}
+            antiHighlights={antiHighlights}
+            lovablePrompt={lovablePrompt}
+            onPromptUpdate={onPromptUpdate}
+          />
+        </div>
 
         {/* Action Hub — always visible */}
-        <ActionHub
-          brief={brief}
-          idea={idea}
-          lovablePrompt={lovablePrompt}
-          reportId={reportId}
-          onIterate={onIterate ?? onRestart}
-        />
+        <div id="fr-actions" className="scroll-mt-24 mt-8">
+          <ActionHub
+            brief={brief}
+            idea={idea}
+            lovablePrompt={lovablePrompt}
+            reportId={reportId}
+            onIterate={onIterate ?? onRestart}
+          />
+        </div>
 
         <div className="flex flex-wrap gap-4 justify-center mt-6">
           <button
