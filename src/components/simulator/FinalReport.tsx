@@ -1051,6 +1051,9 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                     <h4 className={`font-display font-black text-foreground uppercase tracking-wide ${isHero ? "text-base" : "text-sm"}`}>
                       {section.label}
                     </h4>
+                    {editMode && editedSections.has(section.key) && (
+                      <span className="text-[9px] text-primary tabular-nums" title="Edited — re-simulate to apply">● Edited</span>
+                    )}
                     {renderHighlightToggles(section.key, isHighlighted, isAntiHighlighted, wrappedToggleHighlight, wrappedToggleAntiHighlight)}
                   </div>
 
@@ -1170,6 +1173,9 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                         <h4 className="font-display text-sm font-black text-foreground uppercase tracking-wide">
                           {section.label}
                         </h4>
+                        {editMode && editedSections.has(section.key) && (
+                          <span className="text-[9px] text-primary tabular-nums" title="Edited — re-simulate to apply">● Edited</span>
+                        )}
                         {renderHighlightToggles(section.key, isHighlighted, isAntiHighlighted, wrappedToggleHighlight, wrappedToggleAntiHighlight)}
                       </div>
 
