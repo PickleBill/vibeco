@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   AlertTriangle,
@@ -10,7 +10,6 @@ import {
   MessageSquare,
   Target,
   Zap,
-  ImageIcon,
   type LucideIcon,
 } from "lucide-react";
 import { Mail, Sparkles } from "lucide-react";
@@ -52,13 +51,14 @@ const icons: Record<string, LucideIcon> = {
   customer_perspective: MessageSquare,
 };
 
+// Quiet typography — no emoji
 const intentLabels: Record<string, string> = {
-  experiment: "🧪 Quick experiment",
-  community: "👥 Community project",
-  "lead-magnet": "🎯 Lead generation",
-  lifestyle: "☀️ Lifestyle business",
-  venture: "🚀 Venture-scale startup",
-  fun: "🎮 Just for fun",
+  experiment: "a quick experiment",
+  community: "a community project",
+  "lead-magnet": "lead generation",
+  lifestyle: "a lifestyle business",
+  venture: "a venture-scale startup",
+  fun: "fun",
 };
 
 /* ----------------------------- Helpers ----------------------------- */
@@ -89,9 +89,10 @@ const HighlightChips = ({
             ? "bg-primary/20 text-primary border border-primary/30"
             : "bg-muted/30 text-muted-foreground/60 border border-transparent hover:text-primary hover:bg-primary/10"
         }`}
+        title={isHighlighted ? "Kept — click to undo" : "Keep this section"}
       >
         <Sparkles size={sz} className={isHighlighted ? "fill-primary" : ""} />
-        {isHighlighted ? "Resonates" : "This resonates"}
+        {isHighlighted ? "Kept" : "Keep"}
       </button>
       {onToggleAntiHighlight && (
         <button
@@ -101,79 +102,63 @@ const HighlightChips = ({
               ? "bg-destructive/15 border border-destructive/40 text-destructive"
               : "border border-border/50 text-muted-foreground/60 hover:border-destructive/30 hover:text-destructive/80"
           }`}
+          title={isAntiHighlighted ? "Cut — click to undo" : "Cut from prompt"}
         >
-          ✕ {isAntiHighlighted ? "Flagged" : "Not quite"}
+          ✕ {isAntiHighlighted ? "Cut" : "Cut"}
         </button>
       )}
     </div>
   );
 };
 
-/* ----------------------------- Email banner ----------------------------- */
+/* ----------------------------- Sticky brief sub-nav ----------------------------- */
 
-const EmailUnlockBanner = ({
-  round,
-  onUnlock,
-}: {
-  round: number;
-  onUnlock: (email: string) => void;
-}) => {
-  const [email, setEmail] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const isProminent = round >= 2;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.includes("@")) return;
-    setSubmitting(true);
-    onUnlock(email);
-  };
-
+const BriefSubNav = () => {
+  const [active, setActive] = useState<string>("analysis");
+  const sections = [
+    { id: "analysis", label: "Analysis" },
+    { id: "tension", label: "Tension" },
+    { id: "support", label: "Support" },
+  ];
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible) setActive(visible.target.id.replace("brief-", ""));
+      },
+      { rootMargin: "-100px 0px -60% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] },
+    );
+    sections.forEach((s) => {
+      const el = document.getElementById(`brief-${s.id}`);
+      if (el) obs.observe(el);
+    });
+    return () => obs.disconnect();
+  }, []);
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.6 }}
-      className={`mt-8 rounded-lg border transition-all ${
-        isProminent
-          ? "p-5 border-primary/30 bg-primary/5"
-          : "p-4 border-border/30 bg-card/30"
-      }`}
-      style={isProminent ? { boxShadow: "0 0 24px hsl(var(--primary) / 0.1)" } : {}}
-    >
-      <div className="flex items-center gap-2 mb-1.5">
-        {isProminent ? (
-          <Sparkles size={14} className="text-primary" />
-        ) : (
-          <Mail size={12} className="text-muted-foreground" />
-        )}
-        <span className={`text-xs ${isProminent ? "text-primary font-bold" : "text-muted-foreground"}`}>
-          {isProminent ? "Unlock your build prompt" : "Save this analysis"}
-        </span>
+    <nav className="sticky top-16 z-30 -mx-2 mb-6 px-2 py-2 bg-background/85 backdrop-blur-md border-y border-border/40">
+      <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+        {sections.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => {
+              const el = document.getElementById(`brief-${s.id}`);
+              if (!el) return;
+              const top = el.getBoundingClientRect().top + window.scrollY - 96;
+              window.scrollTo({ top, behavior: "smooth" });
+            }}
+            className={`shrink-0 text-[11px] px-3 py-1.5 rounded-full border transition-all ${
+              active === s.id
+                ? "border-primary/60 bg-primary/15 text-primary font-semibold"
+                : "border-border/40 text-muted-foreground hover:border-primary/30 hover:text-foreground"
+            }`}
+          >
+            {s.label}
+          </button>
+        ))}
       </div>
-      <p className="text-[10px] text-muted-foreground/70 mb-3 leading-relaxed">
-        {isProminent
-          ? "Your personalized build prompt, PDF export, and a shareable link — all yours."
-          : "Save progress, export PDF, and share via link."}
-      </p>
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <input
-          type="email"
-          placeholder="your@email.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="flex-1 px-3 py-2 rounded-sm bg-background/50 border border-border/50 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50"
-        />
-        <button
-          type="submit"
-          disabled={submitting}
-          className="flex items-center gap-1.5 bg-primary text-primary-foreground text-xs px-4 py-2 rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50"
-        >
-          <Mail size={12} />
-          {isProminent ? "Unlock" : "Save"}
-        </button>
-      </form>
-    </motion.div>
+    </nav>
   );
 };
 
@@ -182,7 +167,6 @@ const EmailUnlockBanner = ({
 const IdeaBrief = ({
   brief,
   round,
-  conceptImage,
   highlights,
   onToggleHighlight,
   antiHighlights,
@@ -209,8 +193,8 @@ const IdeaBrief = ({
 
         {brief.builder_intent && (
           <div className="flex justify-center mb-3">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-[11px] text-accent">
-              Building for: {intentLabels[brief.builder_intent] || brief.builder_intent}
+            <span className="inline-flex items-center px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-[11px] text-accent">
+              Building for {intentLabels[brief.builder_intent] || brief.builder_intent}
             </span>
           </div>
         )}
@@ -225,10 +209,13 @@ const IdeaBrief = ({
         </p>
         {highlights && highlights.size > 0 && (
           <p className="text-[10px] text-primary/70 mt-1">
-            ✦ {highlights.size} area{highlights.size > 1 ? "s" : ""} highlighted — these will shape your final prompt
+            ✦ {highlights.size} kept — these will shape your final prompt
           </p>
         )}
       </motion.div>
+
+      {/* Sticky sub-nav for the brief phase */}
+      <BriefSubNav />
 
       {/* Scale assessment callout */}
       {brief.scale_assessment && (
@@ -248,7 +235,7 @@ const IdeaBrief = ({
                 ? "bg-primary/15 text-primary"
                 : "bg-warning/15 text-warning"
             }`}>
-              {brief.scale_assessment.fits_intent ? "✓" : "⚖️"}
+              {brief.scale_assessment.fits_intent ? "✓" : "⚖"}
             </div>
             <div>
               <p className={`text-xs font-bold ${
@@ -265,31 +252,10 @@ const IdeaBrief = ({
         </motion.div>
       )}
 
-      {/* Concept image */}
-      {conceptImage && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.97 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="mb-8 rounded-lg overflow-hidden border border-border/30"
-          style={{ boxShadow: "0 0 40px hsl(var(--primary) / 0.1)" }}
-        >
-          <div className="relative">
-            <img
-              src={conceptImage}
-              alt="AI-generated concept visualization"
-              className="w-full h-48 sm:h-64 object-cover"
-            />
-            <div className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-1 rounded bg-background/80 backdrop-blur-sm">
-              <ImageIcon size={10} className="text-primary" />
-              <span className="text-[9px] text-muted-foreground">AI Concept Art</span>
-            </div>
-          </div>
-        </motion.div>
-      )}
+      {/* Concept image removed — was decorative filler with zero decision-value */}
 
       {/* ============ TIER 1: HERO — Problem + Core Features ============ */}
-      <div className="space-y-8 mb-12">
+      <div id="brief-analysis" className="space-y-8 mb-12 scroll-mt-24">
         {HERO_KEYS.map((key, i) => {
           const Icon = icons[key];
           const value = brief[key as keyof BriefData];
@@ -342,10 +308,11 @@ const IdeaBrief = ({
 
       {/* ============ TIER 2: TENSION — Investor vs Customer dialogue ============ */}
       <motion.div
+        id="brief-tension"
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="mb-12"
+        className="mb-12 scroll-mt-24"
       >
         <div className="flex items-center gap-2 mb-4">
           <span className="text-[10px] text-muted-foreground/60 uppercase tracking-[0.2em]">
@@ -392,8 +359,8 @@ const IdeaBrief = ({
         </div>
       </motion.div>
 
-      {/* ============ TIER 3: SUPPORTING — left-rule strip ============ */}
-      <div className="space-y-4">
+      {/* ============ TIER 3: SUPPORTING — left-rule strip, NO per-row chips ============ */}
+      <div id="brief-support" className="space-y-4 scroll-mt-24">
         {SUPPORT_KEYS.map((key, i) => {
           const Icon = icons[key];
           const value = brief[key as keyof BriefData];
@@ -411,21 +378,12 @@ const IdeaBrief = ({
                   : "border-border/40 hover:border-primary/30"
               }`}
             >
-              <div className="flex items-start justify-between gap-3 mb-1.5 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <Icon size={12} className="text-muted-foreground" />
-                  <h3 className="text-[11px] font-semibold text-foreground/80 uppercase tracking-wider">
-                    {labels[key]}
-                  </h3>
-                </div>
-                <HighlightChips
-                  sectionKey={key}
-                  isHighlighted={isHighlighted(key)}
-                  isAntiHighlighted={isAnti(key)}
-                  onToggleHighlight={onToggleHighlight}
-                  onToggleAntiHighlight={onToggleAntiHighlight}
-                  compact
-                />
+              <div className="flex items-center gap-2 mb-1.5">
+                <Icon size={12} className="text-muted-foreground" />
+                <h3 className="text-[11px] font-semibold text-foreground/80 uppercase tracking-wider">
+                  {labels[key]}
+                </h3>
+                {/* Tier-3 chips removed — header chip on hero + Vibe Stack handle this */}
               </div>
               <p className="text-sm text-foreground/75 leading-relaxed">
                 {typeof value === "string" ? value : ""}
