@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Clock, Sparkles, ArrowRight, Plus, Zap, Eye, EyeOff,
   GitBranch, BarChart3, ChevronDown, ChevronRight, Copy, X,
-  Maximize2, Minimize2, MessageSquare
+  Maximize2, Minimize2, MessageSquare, Play
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ import { copyToClipboard } from "@/lib/copyToClipboard";
 interface IdeaReport {
   id: string;
   idea: string;
+  title: string | null;
   created_at: string;
   status: string | null;
   brief: any;
@@ -283,28 +284,43 @@ const IdeaCard = ({
           <ArrowRight size={14} className="text-muted-foreground/40 group-hover:text-primary transition-colors shrink-0 mt-1" />
         </div>
 
-        {/* Quick actions — visible on hover */}
-        <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-border/20 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Quick actions — always visible on touch (hover:none), hover-revealed on desktop */}
+        <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-border/20 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            onClick={(e) => { e.stopPropagation(); onQuickAction("continue"); }}
+            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-primary/10 text-primary border border-primary/30 hover:bg-primary/15 transition-colors"
+            title="Resume where you left off"
+          >
+            <Play size={10} /> Continue
+          </motion.button>
           {report.lovable_prompt && (
-            <button
+            <motion.button
+              whileTap={{ scale: 0.92 }}
+              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
               onClick={(e) => { e.stopPropagation(); onQuickAction("copy-prompt"); }}
               className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             >
-              <Copy size={10} /> Copy Prompt
-            </button>
+              <Copy size={10} /> Copy
+            </motion.button>
           )}
-          <button
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
             onClick={(e) => { e.stopPropagation(); onQuickAction("fork"); }}
             className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <GitBranch size={10} /> Fork
-          </button>
-          <button
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
             onClick={(e) => { e.stopPropagation(); onQuickAction("deep-dive"); }}
             className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <Zap size={10} /> Deep Dive
-          </button>
+          </motion.button>
         </div>
       </div>
     </motion.div>
@@ -321,6 +337,8 @@ function getStatusInfo(report: IdeaReport) {
 }
 
 function getProductName(report: IdeaReport): string {
+  // Prefer the auto-generated title; fall back to first sentence of idea text.
+  if (report.title && report.title.trim().length > 0) return report.title;
   const idea = report.idea || "";
   if (idea.length <= 50) return idea;
   const firstSentence = idea.split(/[.!?]/)[0];
@@ -362,7 +380,7 @@ const MySimulations = () => {
       setIsAdmin(adminStatus);
 
       let query = (supabase.from("idea_reports") as any)
-        .select("id, idea, created_at, status, brief, lovable_prompt, concept_image_url, logo_image_url, thesis_statement, thunderdome_unlocked, parent_idea_id, user_id")
+        .select("id, idea, title, created_at, status, brief, lovable_prompt, concept_image_url, logo_image_url, thesis_statement, thunderdome_unlocked, parent_idea_id, user_id")
         .order("created_at", { ascending: false })
         .limit(50);
 
@@ -429,6 +447,10 @@ const MySimulations = () => {
       });
     } else if (action === "deep-dive") {
       navigate(`/simulate?id=${reportId}`);
+    } else if (action === "continue") {
+      // Resume the same report at the right phase based on its status.
+      navigate(`/simulate?id=${reportId}`);
+      toast.success("Resuming where you left off…");
     }
   };
 

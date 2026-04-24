@@ -16,8 +16,19 @@ import IdeaBrief from "./IdeaBrief";
 import FollowUpQuestions from "./FollowUpQuestions";
 import FinalReport, { generateStructuredPDF, computeScores } from "./FinalReport";
 import ThunderdomePanel from "./ThunderdomePanel";
+import VibeStack from "./VibeStack";
+import { useVibeStack } from "@/hooks/useVibeStack";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+// Derive a short, human-friendly title from the brief's problem statement.
+function deriveTitle(brief: BriefData | undefined, fallbackIdea: string): string {
+  const source = brief?.problem || fallbackIdea || "";
+  const firstClause = source.split(/[.!?:;–—]/)[0].trim();
+  const words = firstClause.split(/\s+/).slice(0, 6).join(" ");
+  if (!words) return "Untitled idea";
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
 
 const analysisMessages = [
   "Analyzing market size and competitive landscape...",
@@ -161,6 +172,9 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
   const abortControllerRef = useRef<AbortController | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [showStressTest, setShowStressTest] = useState(false);
+
+  // Vibe Stack — curated insight chits, falls back to localStorage when no reportId yet
+  const stack = useVibeStack(reportId);
 
   // Resume from DB when resumeId is provided
   useEffect(() => {
@@ -477,6 +491,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
             await (supabase.from("idea_reports") as any)
               .update({
                 brief: latestBrief,
+                title: deriveTitle(latestBrief, idea),
                 rounds: roundsData,
                 lovable_prompt: data.lovable_prompt || null,
                 concept_image_url: conceptImage || null,
@@ -489,6 +504,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
             const { data: reportData } = await (supabase.from("idea_reports") as any)
               .insert({
                 idea: idea.trim(),
+                title: deriveTitle(latestBrief, idea),
                 brief: latestBrief,
                 rounds: roundsData,
                 lovable_prompt: data.lovable_prompt || null,
