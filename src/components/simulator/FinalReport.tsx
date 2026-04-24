@@ -428,50 +428,94 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
     return data?.lovable_prompt as string | undefined;
   };
 
-  const handleSharpenPrompt = async () => {
-    setIsSharpening(true);
+  // Generate or sharpen, but route the new prompt through the diff confirmation
+  // step rather than silently overwriting. The user always gets to keep / revert.
+  const runRefine = async (
+    setLoading: (b: boolean) => void,
+    context: string | undefined,
+    successLabel: string,
+  ) => {
+    setLoading(true);
     try {
-      const newPrompt = await callRefinePrompt(
-        "Re-tighten the prompt around the user's resonating sections; deprioritize the flagged ones.",
-      );
-      if (newPrompt && onPromptUpdate) {
+      const newPrompt = await callRefinePrompt(context);
+      if (!newPrompt) {
+        toast.error("AI returned an empty prompt. Try again.");
+        return;
+      }
+      if (lovablePrompt && lovablePrompt.trim()) {
+        // Show diff for confirmation
+        setPendingPrompt(newPrompt);
+        toast.success(`${successLabel} — review the changes below.`);
+      } else if (onPromptUpdate) {
+        // First generation: apply directly, no diff needed
         onPromptUpdate(newPrompt);
-        toast.success("Prompt sharpened with your highlights.");
-      } else if (newPrompt) {
-        // Fallback: copy to clipboard if no parent handler
-        await copyToClipboard(newPrompt);
-        toast.success("Sharpened prompt copied to clipboard.");
+        toast.success(successLabel);
       } else {
-        toast.error("Could not sharpen the prompt. Try again.");
+        await copyToClipboard(newPrompt);
+        toast.success(`${successLabel} (copied to clipboard)`);
       }
     } catch (e) {
-      console.error("Sharpen error:", e);
-      toast.error("Failed to sharpen prompt.");
+      console.error("Refine error:", e);
+      toast.error(e instanceof Error ? e.message : "Failed. Try again.");
     } finally {
-      setIsSharpening(false);
+      setLoading(false);
     }
   };
 
-  const handleGeneratePrompt = async () => {
-    setIsGeneratingPrompt(true);
-    try {
-      const newPrompt = await callRefinePrompt();
-      if (newPrompt && onPromptUpdate) {
-        onPromptUpdate(newPrompt);
-        toast.success("Prompt generated.");
-      } else if (newPrompt) {
-        await copyToClipboard(newPrompt);
-        toast.success("Prompt generated and copied.");
-      } else {
-        toast.error("Could not generate prompt. Try again.");
-      }
-    } catch (e) {
-      console.error("Generate prompt error:", e);
-      toast.error("Failed to generate prompt.");
-    } finally {
-      setIsGeneratingPrompt(false);
-    }
+  const handleSharpenPrompt = () =>
+    runRefine(
+      setIsSharpening,
+      "Re-tighten the prompt around the user's resonating sections; deprioritize the flagged ones.",
+      "Prompt sharpened with your highlights",
+    );
+
+  const handleGeneratePrompt = () => runRefine(setIsGeneratingPrompt, undefined, "Prompt generated");
+
+  const handleUseDeepDiveInPrompt = (sectionKey: string) => {
+    const content = deepDiveContent[sectionKey];
+    if (!content) return;
+    const sectionLabel = sectionMeta.find((s) => s.key === sectionKey)?.label || sectionKey;
+    runRefine(
+      setIsSharpening,
+      `Emphasize the following insight from the deep-dive on "${sectionLabel}" — fold it into the prompt as a guiding direction:\n\n${content}`,
+      `Folded "${sectionLabel}" deep-dive into the prompt`,
+    );
   };
+
+  const handleAddDeepDiveToHighlights = (sectionKey: string) => {
+    if (!onToggleHighlight) return;
+    if (!highlights?.has(sectionKey)) {
+      onToggleHighlight(sectionKey);
+      setPulsedSection(sectionKey);
+      setTimeout(() => setPulsedSection(null), 900);
+    }
+    toast.success("Added to highlights — sharpen the prompt to apply.");
+  };
+
+  const handleAcceptPending = () => {
+    if (pendingPrompt && onPromptUpdate) {
+      onPromptUpdate(pendingPrompt);
+      toast.success("New prompt kept.");
+    }
+    setPendingPrompt(null);
+  };
+
+  const handleRevertPending = () => {
+    setPendingPrompt(null);
+    toast("Reverted to previous prompt.");
+  };
+
+  // Wrap toggle to add a brief visual pulse + ack
+  const wrappedToggleHighlight = onToggleHighlight
+    ? (k: string) => {
+        const wasOn = !!highlights?.has(k);
+        onToggleHighlight(k);
+        if (!wasOn) {
+          setPulsedSection(k);
+          setTimeout(() => setPulsedSection(null), 900);
+        }
+      }
+    : undefined;
 
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
