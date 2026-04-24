@@ -443,6 +443,12 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   };
 
   const handleShareReport = async () => {
+    if (!showPrompt) {
+      toast("Add an email to get a shareable link.");
+      const emailInput = document.querySelector<HTMLInputElement>('input[type="email"]');
+      emailInput?.focus();
+      return;
+    }
     if (!reportId) {
       toast.error("Report is still saving. Try again in a moment.");
       return;
@@ -558,7 +564,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
     toast("Reverted to previous prompt.");
   };
 
-  // Wrap toggle to add a brief visual pulse + ack
+  // Wrap toggle to add a brief visual pulse + ack + undo toast
   const wrappedToggleHighlight = onToggleHighlight
     ? (k: string) => {
         const wasOn = !!highlights?.has(k);
@@ -566,6 +572,25 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
         if (!wasOn) {
           setPulsedSection(k);
           setTimeout(() => setPulsedSection(null), 900);
+          const label = sectionMeta.find((s) => s.key === k)?.label || k;
+          toast.success(`✦ Kept "${label}"`, {
+            action: { label: "Undo", onClick: () => onToggleHighlight(k) },
+            duration: 4000,
+          });
+        }
+      }
+    : undefined;
+
+  const wrappedToggleAntiHighlight = onToggleAntiHighlight
+    ? (k: string) => {
+        const wasOn = !!antiHighlights?.has(k);
+        onToggleAntiHighlight(k);
+        if (!wasOn) {
+          const label = sectionMeta.find((s) => s.key === k)?.label || k;
+          toast(`✕ Cut "${label}"`, {
+            action: { label: "Undo", onClick: () => onToggleAntiHighlight(k) },
+            duration: 4000,
+          });
         }
       }
     : undefined;
@@ -580,7 +605,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
     }
   };
 
-  /* ─── Render helpers to avoid duplication ─── */
+  /* ─── Render helper: Keep / Cut chips (verbs, matches Vibe Stack vocab) ─── */
   const renderHighlightToggles = (
     key: string,
     isHighlighted: boolean | undefined,
@@ -598,9 +623,10 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
               ? "bg-primary/20 border border-primary/40 text-primary"
               : "border border-border/50 text-muted-foreground hover:border-primary/30 hover:text-primary/80"
           }`}
+          title={isHighlighted ? "Kept — click to undo" : "Keep this section (will shape the prompt)"}
         >
           <Sparkles size={10} className={isHighlighted ? "fill-primary" : ""} />
-          {isHighlighted ? "Resonates" : "This resonates"}
+          {isHighlighted ? "Kept" : "Keep"}
         </button>
         {onAntiToggle && (
           <button
@@ -610,8 +636,9 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                 ? "bg-destructive/15 border border-destructive/40 text-destructive"
                 : "border border-border/50 text-muted-foreground hover:border-destructive/30 hover:text-destructive/80"
             }`}
+            title={isAntiHighlighted ? "Cut — click to undo" : "Cut this from the prompt"}
           >
-            ✕ {isAntiHighlighted ? "Flagged" : "Not quite"}
+            ✕ {isAntiHighlighted ? "Cut" : "Cut"}
           </button>
         )}
       </div>
