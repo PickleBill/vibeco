@@ -902,21 +902,6 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                   </span>
                 </motion.div>
               ) : null}
-                    {highlights && highlights.size > 0 && (
-                      <>
-                        {highlights.size} highlight{highlights.size > 1 ? "s" : ""}
-                      </>
-                    )}
-                    {antiHighlights && antiHighlights.size > 0 && (
-                      <>
-                        {highlights && highlights.size > 0 ? " · " : ""}
-                        {antiHighlights.size} flag{antiHighlights.size > 1 ? "s" : ""}
-                      </>
-                    )}
-                    {lovablePrompt ? " — sharpen the prompt to apply" : " — generate the prompt to apply"}
-                  </span>
-                </motion.div>
-              ) : null}
 
             {/* Diff view supersedes the regular prompt view while pending */}
             {pendingPrompt ? (
