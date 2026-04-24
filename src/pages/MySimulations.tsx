@@ -337,6 +337,8 @@ function getStatusInfo(report: IdeaReport) {
 }
 
 function getProductName(report: IdeaReport): string {
+  // Prefer the auto-generated title; fall back to first sentence of idea text.
+  if (report.title && report.title.trim().length > 0) return report.title;
   const idea = report.idea || "";
   if (idea.length <= 50) return idea;
   const firstSentence = idea.split(/[.!?]/)[0];
