@@ -719,13 +719,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
     toast("Cleared — start with a fresh idea.");
   };
 
-  const handleDownloadPDF = () => {
-    const latestBrief = rounds[rounds.length - 1]?.brief;
-    if (!latestBrief) return;
-    const scores = computeScores(latestBrief);
-    generateStructuredPDF(latestBrief, idea, rounds, scores, lovablePrompt);
-    toast.success("PDF downloaded!");
-  };
+  // PDF download moved to FinalReport's action row.
 
   const latestRound = rounds[rounds.length - 1];
   const totalRounds = 3;
