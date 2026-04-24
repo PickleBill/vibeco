@@ -14,6 +14,9 @@ export interface StackItem {
   pinned: boolean;
   deleted_at: string | null;
   created_at: string;
+  /** Which round of the simulation this insight came from. Stored client-side
+   *  in `source` as `"<round>:<source>"` when persisted, parsed back on read. */
+  round?: number;
 }
 
 export interface AddItemArgs {
@@ -22,6 +25,7 @@ export interface AddItemArgs {
   label: string;
   content: string;
   pinned?: boolean;
+  round?: number;
 }
 
 const LOCAL_KEY = "vibeco_stack_local";
