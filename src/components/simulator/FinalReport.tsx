@@ -719,76 +719,105 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
       >
-        {/* Action buttons */}
+        {/* Unified action row — Copy/Open live in the prompt block; this is meta actions */}
         {showPrompt && (
           <div className="flex flex-wrap gap-2 justify-end mb-4">
             <button
               onClick={handleDownloadPDF}
               disabled={isExporting}
-              className="flex items-center gap-2 text-xs px-4 py-2 rounded-sm border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 text-xs px-3 py-2 rounded-sm border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors disabled:opacity-50"
             >
-              <Download size={14} />
+              <Download size={13} />
               {isExporting ? "Generating..." : "Download PDF"}
             </button>
             <button
               onClick={handleShareReport}
-              className="flex items-center gap-2 text-xs px-4 py-2 rounded-sm border border-primary/40 text-primary hover:bg-primary/10 transition-colors"
+              className="flex items-center gap-2 text-xs px-3 py-2 rounded-sm border border-primary/40 text-primary hover:bg-primary/10 transition-colors"
             >
-              {shareCopied ? <Check size={14} /> : <Share2 size={14} />}
-              {shareCopied ? "Link Copied!" : "Share Report"}
+              {shareCopied ? <Check size={13} /> : <Share2 size={13} />}
+              {shareCopied ? "Link Copied" : "Share Report"}
             </button>
           </div>
         )}
 
         <div ref={reportRef}>
-          <div className="text-center mb-6 p-6">
-            {logoImage && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="mb-4 flex justify-center"
-              >
-                <div className="w-20 h-20 rounded-2xl overflow-hidden border border-primary/20 bg-card/60"
-                  style={{ boxShadow: "0 0 20px hsl(var(--primary) / 0.15)" }}
-                >
-                  <img src={logoImage} alt="AI-generated product mark" className="w-full h-full object-cover" />
-                </div>
-              </motion.div>
-            )}
-            <p className="text-xs text-primary uppercase tracking-widest mb-1">VibeCo AI Report</p>
-            <h3 className="font-display text-xl font-bold text-foreground">
-              {idea.slice(0, 60)}{idea.length > 60 ? "..." : ""}
+          {/* Compact title — no decorative image, no logo card */}
+          <div className="mb-6">
+            <p className="text-[10px] text-primary uppercase tracking-[0.3em] mb-2">VibeCo AI Report</p>
+            <h3 className="font-display text-2xl sm:text-3xl font-black text-foreground leading-tight break-words">
+              {idea.slice(0, 80)}{idea.length > 80 ? "…" : ""}
             </h3>
+            {/* Builder intent — quiet pill, no emoji */}
+            {brief.builder_intent && (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Building for{" "}
+                <span className="text-foreground/80">
+                  {brief.builder_intent === 'experiment' ? 'a quick experiment' :
+                   brief.builder_intent === 'community' ? 'a community project' :
+                   brief.builder_intent === 'lead-magnet' ? 'lead generation' :
+                   brief.builder_intent === 'lifestyle' ? 'a lifestyle business' :
+                   brief.builder_intent === 'venture' ? 'a venture-scale startup' :
+                   brief.builder_intent === 'fun' ? 'fun' :
+                   brief.builder_intent}
+                </span>
+              </p>
+            )}
           </div>
 
-          {/* ★ HERO: Lovable Prompt — the actual product. Sits right after the title. */}
+          {/* ★ HERO: Single prompt block with three states (empty / shown / sharpening-diff) */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
             className="mb-8"
           >
-            {highlights && highlights.size > 0 && lovablePrompt && (
-              <div className="flex items-center justify-between gap-3 mb-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20">
+            {/* Persistent highlight summary banner — visible whenever there's input */}
+            {(highlights && highlights.size > 0) || (antiHighlights && antiHighlights.size > 0) ? (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex items-center justify-between gap-3 mb-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20"
+              >
                 <div className="flex items-center gap-2 min-w-0">
                   <Sparkles size={12} className="text-primary fill-primary shrink-0" />
                   <span className="text-xs text-primary truncate">
-                    {highlights.size} highlight{highlights.size > 1 ? "s" : ""}
-                    {antiHighlights && antiHighlights.size > 0 ? ` · ${antiHighlights.size} flag${antiHighlights.size > 1 ? "s" : ""}` : ""} will sharpen the prompt
+                    {highlights && highlights.size > 0 && (
+                      <>
+                        {highlights.size} highlight{highlights.size > 1 ? "s" : ""}
+                      </>
+                    )}
+                    {antiHighlights && antiHighlights.size > 0 && (
+                      <>
+                        {highlights && highlights.size > 0 ? " · " : ""}
+                        {antiHighlights.size} flag{antiHighlights.size > 1 ? "s" : ""}
+                      </>
+                    )}
+                    {lovablePrompt ? " — sharpen the prompt to apply" : " — generate the prompt to apply"}
                   </span>
                 </div>
-                <button
-                  onClick={handleSharpenPrompt}
-                  disabled={isSharpening}
-                  className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-primary/40 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50 whitespace-nowrap"
-                >
-                  {isSharpening ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
-                  {isSharpening ? "Sharpening..." : "Sharpen prompt now"}
-                </button>
-              </div>
-            )}
+                {lovablePrompt && !pendingPrompt && (
+                  <button
+                    onClick={handleSharpenPrompt}
+                    disabled={isSharpening}
+                    className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-primary/40 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50 whitespace-nowrap"
+                  >
+                    {isSharpening ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
+                    {isSharpening ? "Sharpening…" : "Sharpen now"}
+                  </button>
+                )}
+              </motion.div>
+            ) : null}
 
-            {lovablePrompt ? (
+            {/* Diff view supersedes the regular prompt view while pending */}
+            {pendingPrompt ? (
+              <PromptDiff
+                oldPrompt={lovablePrompt || ""}
+                newPrompt={pendingPrompt}
+                onKeep={handleAcceptPending}
+                onRevert={handleRevertPending}
+              />
+            ) : lovablePrompt ? (
               <div className="border-2 border-primary/30 rounded-xl overflow-hidden bg-card/40"
                 style={{ boxShadow: "0 0 32px -10px hsl(var(--primary) / 0.18)" }}
               >
@@ -805,7 +834,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                     {lovablePrompt}
                   </pre>
                 </div>
-                <div className="grid grid-cols-2 gap-2 p-3 bg-muted/15 border-t border-border/30">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 bg-muted/15 border-t border-border/30">
                   <button
                     onClick={handleCopyPromptWithHighlights}
                     className="flex items-center justify-center gap-1.5 text-xs font-semibold text-primary-foreground bg-primary px-3 py-2.5 rounded-sm hover:opacity-90 transition-opacity"
@@ -817,7 +846,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                     href="https://lovable.dev"
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center justify-center gap-1.5 text-xs font-semibold text-primary border border-primary/40 bg-primary/5 px-3 py-2.5 rounded-sm hover:bg-primary/10 transition-colors"
+                    className="flex items-center justify-center gap-1.5 text-xs font-semibold text-primary-foreground bg-primary px-3 py-2.5 rounded-sm hover:opacity-90 transition-opacity"
                   >
                     Open in Lovable
                     <ExternalLink size={12} />
@@ -837,73 +866,33 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                   className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
                 >
                   {isGeneratingPrompt ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                  {isGeneratingPrompt ? "Generating..." : "Generate Lovable prompt"}
+                  {isGeneratingPrompt ? "Generating…" : "Generate Lovable prompt"}
                 </button>
               </div>
             )}
           </motion.div>
 
-          {conceptImage && (
-            <div className="mb-6 rounded-lg overflow-hidden border border-border/30">
-              <div className="relative">
-                <img src={conceptImage} alt="Product concept" className="w-full h-48 sm:h-64 object-cover" />
-                <div className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-1 rounded bg-background/80 backdrop-blur-sm">
-                  <ImageIcon size={10} className="text-primary" />
-                  <span className="text-[10px] text-muted-foreground">Product Vision</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Scale assessment */}
+          {/* Scale assessment — kept, but moved below prompt and tightened */}
           {brief.scale_assessment && (
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`mb-6 p-4 rounded-lg border ${
+              className={`mb-6 px-4 py-3 rounded-lg border-l-2 ${
                 brief.scale_assessment.fits_intent
-                  ? "border-primary/30 bg-primary/5"
-                  : "border-warning/30 bg-warning/5"
+                  ? "border-primary/50 bg-primary/5"
+                  : "border-warning/50 bg-warning/5"
               }`}
             >
-              <div className="flex items-start gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm ${
-                  brief.scale_assessment.fits_intent
-                    ? "bg-primary/15 text-primary"
-                    : "bg-warning/15 text-warning"
-                }`}>
-                  {brief.scale_assessment.fits_intent ? "✓" : "⚖️"}
-                </div>
-                <div>
-                  <p className={`text-xs font-bold ${
-                    brief.scale_assessment.fits_intent ? "text-primary" : "text-warning"
-                  }`}>
-                    Scale: {brief.scale_assessment.current_scale.charAt(0).toUpperCase() + brief.scale_assessment.current_scale.slice(1)}
-                    {brief.scale_assessment.fits_intent ? " — matches your intent" : " — might not match your intent"}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    {brief.scale_assessment.recommendation}
-                  </p>
-                </div>
-              </div>
+              <p className={`text-xs font-bold ${
+                brief.scale_assessment.fits_intent ? "text-primary" : "text-warning"
+              }`}>
+                Scale: {brief.scale_assessment.current_scale.charAt(0).toUpperCase() + brief.scale_assessment.current_scale.slice(1)}
+                {brief.scale_assessment.fits_intent ? " — matches your intent" : " — might not match your intent"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                {brief.scale_assessment.recommendation}
+              </p>
             </motion.div>
-          )}
-
-          {/* Builder intent badge */}
-          {brief.builder_intent && (
-            <div className="flex justify-center mb-4">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-[11px] text-accent">
-                Building for: {
-                  brief.builder_intent === 'experiment' ? '🧪 Quick experiment' :
-                  brief.builder_intent === 'community' ? '👥 Community project' :
-                  brief.builder_intent === 'lead-magnet' ? '🎯 Lead generation' :
-                  brief.builder_intent === 'lifestyle' ? '☀️ Lifestyle business' :
-                  brief.builder_intent === 'venture' ? '🚀 Venture-scale startup' :
-                  brief.builder_intent === 'fun' ? '🎮 Just for fun' :
-                  brief.builder_intent
-                }
-              </span>
-            </div>
           )}
 
           {/* Hero sections — Problem & Core Features get dramatic treatment */}
