@@ -807,68 +807,53 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
         </motion.div>
       )}
 
-      {/* Email banner — only gates PDF/Share, NOT the prompt */}
-      {!showPrompt && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8 p-4 rounded-lg border border-primary/30 bg-primary/5"
-          style={{ boxShadow: "0 0 24px hsl(var(--primary) / 0.08)" }}
-        >
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-            <div className="flex-1">
-              <p className="font-display text-sm font-bold text-foreground">Save your report — unlock PDF + share link</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Your prompt is already below. Add an email to download a PDF and get a shareable URL.
-              </p>
-            </div>
-            <form onSubmit={handleEmailSubmit} className="flex gap-2 w-full sm:w-auto">
-              <input
-                type="email"
-                placeholder="your@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 sm:w-52 px-3 py-2 rounded-sm bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
-              />
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex items-center gap-2 bg-primary text-primary-foreground text-sm px-4 py-2 rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50 whitespace-nowrap"
-              >
-                <Mail size={14} />
-                {isSubmitting ? "..." : "Save"}
-              </button>
-            </form>
-          </div>
-        </motion.div>
-      )}
-
       {/* Full report — always visible */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
       >
-        {/* Unified action row — Copy/Open live in the prompt block; this is meta actions */}
-        {showPrompt && (
-          <div className="flex flex-wrap gap-2 justify-end mb-4">
-            <button
-              onClick={handleDownloadPDF}
-              disabled={isExporting}
-              className="flex items-center gap-2 text-xs px-3 py-2 rounded-sm border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors disabled:opacity-50"
-            >
-              <Download size={13} />
-              {isExporting ? "Generating..." : "Download PDF"}
-            </button>
-            <button
-              onClick={handleShareReport}
-              className="flex items-center gap-2 text-xs px-3 py-2 rounded-sm border border-primary/40 text-primary hover:bg-primary/10 transition-colors"
-            >
-              {shareCopied ? <Check size={13} /> : <Share2 size={13} />}
-              {shareCopied ? "Link Copied" : "Share Report"}
-            </button>
-          </div>
-        )}
+        {/* Unified action row — PDF + Share are always visible.
+            If not unlocked, clicking either opens an inline email field that
+            sits in the same row (no full-width banner). */}
+        <div className="flex flex-wrap gap-2 justify-end mb-4 items-center">
+          {!showPrompt && (
+            <form onSubmit={handleEmailSubmit} className="flex gap-2 mr-auto w-full sm:w-auto">
+              <input
+                type="email"
+                placeholder="email to unlock PDF + share"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="flex-1 sm:w-56 px-3 py-2 rounded-sm bg-background border border-border text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
+              />
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex items-center gap-1.5 bg-primary text-primary-foreground text-xs px-3 py-2 rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50 whitespace-nowrap"
+              >
+                <Mail size={12} />
+                {isSubmitting ? "..." : "Unlock"}
+              </button>
+            </form>
+          )}
+          <button
+            onClick={handleDownloadPDF}
+            disabled={isExporting}
+            className="flex items-center gap-2 text-xs px-3 py-2 rounded-sm border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors disabled:opacity-50"
+            title={showPrompt ? "Download structured PDF" : "Add an email to download"}
+          >
+            <Download size={13} />
+            {isExporting ? "Generating..." : "PDF"}
+          </button>
+          <button
+            onClick={handleShareReport}
+            className="flex items-center gap-2 text-xs px-3 py-2 rounded-sm border border-primary/40 text-primary hover:bg-primary/10 transition-colors"
+            title={showPrompt ? "Copy a shareable link" : "Add an email to share"}
+          >
+            {shareCopied ? <Check size={13} /> : <Share2 size={13} />}
+            {shareCopied ? "Copied" : "Share"}
+          </button>
+        </div>
 
         <div ref={reportRef}>
           {/* Compact title — no decorative image, no logo card */}
