@@ -81,6 +81,25 @@ export async function generateRefinedPrompt(input: RefinePromptInput): Promise<R
     context += `\nAdditional refinement context: ${input.refinement_context}\n`;
   }
 
+  if (input.stack_items?.length) {
+    const pinned = input.stack_items.filter((s) => s.pinned);
+    const suggested = input.stack_items.filter((s) => !s.pinned);
+    context += `\n--- VIBE STACK (curated insights the user has explicitly chosen to keep) ---\n`;
+    if (pinned.length) {
+      context += `\n[PINNED — these are MANDATORY context, fold each into the prompt]\n`;
+      for (const s of pinned) {
+        context += `• (${s.kind}${s.source ? ` · ${s.source}` : ""}) ${s.label}\n  ${s.content.slice(0, 600)}\n`;
+      }
+    }
+    if (suggested.length) {
+      context += `\n[SUGGESTED — incorporate where it strengthens the prompt; OK to compress]\n`;
+      for (const s of suggested) {
+        context += `• (${s.kind}${s.source ? ` · ${s.source}` : ""}) ${s.label}\n  ${s.content.slice(0, 400)}\n`;
+      }
+    }
+    context += `\n`;
+  }
+
   const systemPrompt = `You are a Lovable prompt engineer. Your job is to generate a REFINED version of a Lovable build prompt that incorporates feedback from multiple AI perspectives, user annotations, and distillation.
 
 LANGUAGE RULE: RESPOND ONLY IN ENGLISH.
@@ -92,7 +111,8 @@ RULES:
 4. If perspective data exists, incorporate the strongest feedback — especially from The Skeptic (risks to address) and The Customer (what they'd actually pay for).
 5. If annotations exist, treat them as direct overrides — the user knows their product better than the AI.
 6. Sections the user highlighted get 2x detail. Sections they flagged get minimal treatment or are removed.
-7. 800-1500 words. Specific and actionable.`;
+7. If a VIBE STACK is provided, treat PINNED items as mandatory: every pinned chit must visibly shape the prompt. SUGGESTED items should reinforce the direction.
+8. 800-1500 words. Specific and actionable.`;
 
   return callLLMWithTool<RefinePromptResult>({
     model,
