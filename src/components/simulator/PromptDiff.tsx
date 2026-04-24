@@ -35,7 +35,7 @@ const PromptDiff = ({ oldPrompt, newPrompt, onKeep, onRevert, isApplying }: Prop
             Sharpened Prompt
           </span>
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-            <span className="text-emerald-400">+{additions}</span>
+            <span className="text-primary">+{additions}</span>
             <span className="text-destructive/70">−{removals}</span>
           </div>
         </div>
@@ -57,7 +57,7 @@ const PromptDiff = ({ oldPrompt, newPrompt, onKeep, onRevert, isApplying }: Prop
                 return (
                   <span
                     key={i}
-                    className="bg-emerald-500/15 text-emerald-300 rounded px-0.5"
+                    className="bg-primary/15 text-primary rounded px-0.5"
                   >
                     {part.value}
                   </span>
