@@ -987,7 +987,26 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                           <SortableContext items={(value as BriefData["core_features"]).map((_, i) => `feature-${i}`)} strategy={verticalListSortingStrategy}>
                             <div className="grid gap-3">
                               {(value as BriefData["core_features"]).map((feat, fi) => (
-                                <SortableFeature key={`feature-${fi}`} feat={feat} index={fi} id={`feature-${fi}`} />
+                                <div key={`feature-${fi}`} className="flex items-start gap-2 group/featrow">
+                                  <div className="flex-1">
+                                    <SortableFeature feat={feat} index={fi} id={`feature-${fi}`} />
+                                  </div>
+                                  {onAddToStack && stackHasItem && (
+                                    <div className="opacity-0 group-hover/featrow:opacity-100 transition-opacity mt-1.5">
+                                      <AddToStackButton
+                                        added={stackHasItem("highlight", "core_features", feat.name)}
+                                        onAdd={() =>
+                                          onAddToStack({
+                                            kind: "highlight",
+                                            source: "core_features",
+                                            label: feat.name,
+                                            content: `${feat.name} — ${feat.description}`,
+                                          })
+                                        }
+                                      />
+                                    </div>
+                                  )}
+                                </div>
                               ))}
                             </div>
                           </SortableContext>
@@ -1008,14 +1027,40 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                         </p>
                       )}
                     </div>
+                  ) : editMode ? (
+                    <Textarea
+                      value={(editedBrief[section.key as keyof BriefData] as string) || ""}
+                      onChange={(e) =>
+                        setEditedBrief((prev) => ({ ...prev, [section.key]: e.target.value }))
+                      }
+                      className={`text-foreground/90 leading-relaxed bg-background/50 border-primary/30 focus-visible:ring-primary/40 ${isHero ? "min-h-[120px] text-base" : "min-h-[100px] text-base"}`}
+                      placeholder={`Edit ${section.label.toLowerCase()}…`}
+                    />
                   ) : (
                     <p className={`text-foreground/90 leading-relaxed ${isHero ? "text-base sm:text-lg" : "text-base"}`}>
                       {typeof value === "string" ? value : ""}
                     </p>
                   )}
 
-                  {renderDeepDiveButton(section.key, isExpanded, isLoadingThis, isHighlighted, handleDeepDive)}
-                  {renderDeepDiveContent(section.key, isExpanded, isLoadingThis, hasContent, deepDiveContent)}
+                  {/* +stack — text sections */}
+                  {!editMode && section.key !== "core_features" && typeof value === "string" && onAddToStack && stackHasItem && (
+                    <div className="mt-2 flex justify-end">
+                      <AddToStackButton
+                        added={stackHasItem("highlight", section.key, section.label)}
+                        onAdd={() =>
+                          onAddToStack({
+                            kind: "highlight",
+                            source: section.key,
+                            label: section.label,
+                            content: value as string,
+                          })
+                        }
+                      />
+                    </div>
+                  )}
+
+                  {!editMode && renderDeepDiveButton(section.key, isExpanded, isLoadingThis, isHighlighted, handleDeepDive)}
+                  {!editMode && renderDeepDiveContent(section.key, isExpanded, isLoadingThis, hasContent, deepDiveContent)}
                 </motion.div>
               );
             })}
