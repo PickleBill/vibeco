@@ -1,144 +1,138 @@
 
 
-# Sprint 8 — Close the Loop. Make Every Surface Interactive.
+# Sprint 9 — `/distill` + `/shorten`: Cut, Tighten, Trust the Loop
 
-You're right on every count. The seams I see, ranked by how much they hurt the loop:
+## The honest read
 
-1. **Iterate dead-ends.** `handleIterate` preserves rounds + highlights in memory, but the user lands on a blank `IdeaInput` and the brief they were just editing is gone. There's no path *back into* the same brief to keep refining the live thing.
-2. **Dashboard quick actions are hover-only** (`opacity-0 group-hover:opacity-100`). On your 402px touch viewport they're invisible. Cards also lack the *idea title* you mentioned because we use `getProductName(report)` which collapses to "first 50 chars of idea text" — no real title.
-3. **Final page lacks contrast + navigation.** It's one long scroll: brief → stress-test → prompt → deep-dive insights → actions. No way to jump, no sense of place.
-4. **No "Save Progress" snapshot.** Highlights, deep-dives, perspective calls, expand/distill outputs all live in *separate* tables or in-memory state. There's no single "this is where I am" bundle the user can name, stash, and roll forward.
-5. **Components aren't curatable.** Deep-dive content, expansion variations, persona insights — the user can read them but can't *grab one*, reorder, delete, or drag into the prompt.
+You're right. The loop works now, but the **surface area is bloated**: too many sections, too many chips, too many footers, too many buttons that mean almost the same thing. Three concrete examples I found in the code:
 
-## The fix: a Vibe Stack
+1. **The concept image in `IdeaBrief`** — a 192-256px hero image that adds zero decision-value. Just visual filler.
+2. **`HighlightChips` is rendered twice per section** in `IdeaBrief` (header chip) AND in `FinalReport` (`renderHighlightToggles` + `AddToStackButton` footer). Same job, two places.
+3. **`SimulatorShell` mounts `ThunderdomePanel` twice** — once inline during the `brief` phase ("Run stress-test" inline) and again at the bottom of `FinalReport`. Two state trees, two sources of truth, same component.
 
-One mental model that ties everything together. Every action that produces value (highlight, deep-dive paragraph, expansion variation, persona insight, distillation) becomes an **insight chit** that lands in a single, visible **Vibe Stack** sidebar. The user curates the stack. The stack feeds the prompt. The prompt evolves visibly. That's the loop.
+Plus accumulated debt I can see: emoji intent labels in `MySimulations` (we already cleaned them in `FinalReport`, never finished the dashboard), `SortableFeature` has no keyboard escape if someone accidentally grabs it, the Vibe Stack has no "what is this?" explainer for first-timers.
 
-```text
-   ┌─────────────────────────────┐    ┌─────────────────────┐
-   │      WORKING SURFACE         │    │     VIBE STACK      │
-   │  brief · perspectives ·      │ →  │  ✦ highlights       │
-   │  deep-dives · expansions     │    │  ▣ deep-dives       │
-   │  ↑ every result has a "+ "   │    │  ✚ expansions       │
-   │    to add to stack           │    │  drag · pin · cut   │
-   └─────────────────────────────┘    └─────────────────────┘
-                                                 │
-                                                 ▼
-                                       ┌─────────────────────┐
-                                       │  YOUR LOVABLE PROMPT │
-                                       │  rebuilt from stack  │
-                                       │  diff · keep · revert│
-                                       └─────────────────────┘
-```
+This sprint: **remove three things for every one we add**.
 
 ---
 
-## Phase 8.1 — Close the iterate loop (the highest-impact fix)
+## Where Sprint 8 actually landed (audit)
 
-**Current**: `Iterate` dumps you on a blank input. **After**: `Iterate` keeps you on the FinalReport with a "Round 4 — refine in place" mode, where:
-- The brief becomes editable in line (textareas appear next to each section, pre-filled with the current brief text).
-- The Vibe Stack shows everything carried in (highlights + deep-dives + accepted insights).
-- A new "Re-simulate with these changes" CTA runs `simulate-idea` with the edited brief as new history → produces a new round on top of the existing one.
-- "Start fresh instead" stays as the escape hatch.
+| Phase | Status | Notes |
+|---|---|---|
+| 8.1 Iterate-in-place | ✅ Built | `editMode` toggles inline `<Textarea>` per section, `handleReSimulateWithEdits` runs a new round. **Untested edge case**: re-simulate while pendingPrompt diff is open — might lose the diff silently. |
+| 8.2 Vibe Stack | ✅ Built | DB table, hook with localStorage fallback, drawer, `+ stack` on most sections, `refine-prompt` accepts `stack_items`. **Gap**: no first-run explainer; chits don't show *which round* they came from. |
+| 8.3 Sub-nav + contrast | ✅ Built | Sticky pill nav (Prompt/Brief/Stress-test/Actions), `IntersectionObserver` tracks active. **Gap**: nav only on FinalReport, not the brief phase; on 402px the 4 pills barely fit. |
+| 8.4 Dashboard polish | ✅ Built | Title column, always-visible quick actions on touch, `Continue` button, tap microinteractions. **Gap**: emoji intent labels still leaking, "selection checkbox" still hover-gated (`opacity-0 group-hover:opacity-100`). |
+| 8.5 Cmd+K + drag/hover micro-rules | ⚠️ Partial | Drag works on features + stack, hover `+ stack` on feature rows, but **no Cmd+K palette**, no `j`/`k` nav. |
+| 8.6 Cleanup | ⚠️ Partial | PDF fake scores fixed, ThunderdomePanel duplication NOT collapsed, motion-ease audit not run. |
 
-This is what *progressive and accretive* means. You build *on* the brief, not next to it.
+**Verdict: B+, not A+.** The loop is functional but rough. Three things stand between us and shipping: the duplications, the unguided UX, and untested edges.
 
-## Phase 8.2 — Save Progress / Vibe Stack
+---
 
-Add a `idea_stack_items` table:
-```text
-idea_stack_items (
-  id, report_id, kind, source, content, label, position,
-  pinned, deleted_at, created_at
-)
-```
-- `kind` ∈ `highlight` | `deep_dive` | `expansion` | `persona` | `distill` | `note`
-- `source` = the section / persona / variation it came from
-- `position` for drag-reorder, `pinned` for "always include in prompt", `deleted_at` for soft-delete
+## Sprint 9 plan
 
-**A right-side `<VibeStack>` panel** (collapsible drawer on mobile, fixed sidebar on desktop) shows:
-- Each chit with kind icon, one-line label, source pill, and per-chit actions: pin · drag-handle · remove · "use in prompt"
-- A header counter: "12 in stack · 4 pinned · ↻ Sharpen prompt"
-- "Save snapshot" → writes a named version to `prompt_versions` (table already exists) and toasts the version name
+### Phase 9.A — `/shorten` (the cuts)
 
-**Every result-producing surface gets a `+` action**:
-- `IdeaBrief` highlight buttons stay, but a new `+ stack` icon writes a chit
-- Deep-dive panels — already have "Add to highlights" + "Use in prompt"; add "Pin to stack"
-- `ExpandContractPanel` variation cards — add "+ stack" per variation
-- `PerspectivesPanel` persona output — add "+ stack" per challenge question
+Things that go away. No replacement, no debate.
 
-When you click `Sharpen prompt`, we call `refine-prompt` with the **stack as context** instead of just `highlights[]`. Pinned chits are mandatory; unpinned are suggested.
+**FinalReport**
+- **Remove the concept image hero** in `IdeaBrief` entirely (lines 268-289). It's filler. Logo image stays in dashboard cards only.
+- **Collapse the duplicate Thunderdome mount** — remove the inline `showStressTest` panel from `SimulatorShell` brief phase. There's already a Stress-test section in FinalReport with proper sub-nav anchor. One source of truth.
+- **Kill the second email banner** at top of FinalReport (lines 786-820). The PDF/Share buttons should just *prompt for email on click* if not unlocked. One less always-on banner.
+- **Remove `computeScores` entirely** — including the export. It's dead deterministic-hash data, no longer rendered (we removed it from PDF cover but the function and the import survive).
+- **Strip the `intentLabels` emoji map in `IdeaBrief`** (🧪👥🎯☀️🚀🎮) and the matching map in `MySimulations` — quiet typography only, like FinalReport already does.
+- **Remove the redundant `HighlightChips` from `IdeaBrief` Tier 3 supporting sections** — the header chip + the per-section pulse is enough; the compact chip on every supporting row is noise on mobile.
 
-## Phase 8.3 — FinalReport sub-navigation + contrast pass
+**IdeaInput**
+- **Hide the `Import Project` toggle entirely** until the manifest API ships (memory says this was tabled). The "Beta" badge is honest but adds a decision the user shouldn't have to make. Move it behind a `?import=1` URL param for testing.
 
-Add a sticky sub-nav under the existing progress dots:
-```text
-[ Brief ] · [ Stress-test ] · [ Insights (12) ] · [ Prompt ] · [ Actions ]
-```
-- Smooth-scrolls to anchored sections
-- Shows live counts (insights = stack size, etc.)
-- Active section highlights as you scroll (intersection observer)
+**Dashboard**
+- **Remove the side-by-side compare panel checkbox flow** OR commit to it visibly (right now the checkbox is `opacity-0 group-hover:opacity-100` on touch — invisible). My vote: remove until Sprint 10. It's a feature for power users we don't have yet.
 
-Contrast fixes (the things that quietly read "draft"):
-- Boost section heading weight from `font-bold` → `font-black` and color from `text-foreground` → real `--ink` token (≥ 93% lightness)
-- Replace the gradient hero header with a left-rule `4px primary` accent + uppercase label (matches the rest of the report)
-- Increase Deep-dive expanded-panel border from `border-primary/30` to `border-primary/60` so the loop-footer ("Add to highlights / Use in prompt") reads as intentional, not decorative
-- Body text bumps from `text-foreground/80` → `text-foreground/90` everywhere it currently fades out
+### Phase 9.B — `/distill` (the tightening)
 
-## Phase 8.4 — Dashboard fixes (My Simulations)
+Things that stay but get sharper.
 
-- **Always-visible quick actions** on touch viewports: detect `(hover: none)` via media query and remove the `opacity-0 group-hover` gate.
-- **Idea title**: add `title` (text) column to `idea_reports`; auto-derive on first save (`brief.problem` → first ~6 words, title-case). Render in the card header *above* the truncated idea body.
-- **Confirm + polish the three quick actions** (Copy Prompt, Fork, Deep Dive) — verified working in code; add toast confirmations and a 200ms scale-tap microinteraction.
-- Add a fourth: **Continue** (resumes at the right phase based on `status`).
+**One-button sharpen rule**
+There are now 3 places to "sharpen":
+- `runRefine` in FinalReport (`handleSharpenPrompt`)
+- VibeStack drawer's `onSharpen` handler in SimulatorShell
+- Deep-dive footer's `Use in prompt`
 
-## Phase 8.5 — Make it interactable
+Collapse to **one entry point**: the Vibe Stack drawer is the canonical sharpen surface. Deep-dive's `Use in prompt` *adds the insight as a pinned chit + opens the drawer with the chit highlighted* — instead of running its own refine call. The drawer's "Sharpen prompt" button is the one true CTA. (Keeps the diff/keep/revert flow we built; just centralizes the trigger.)
 
-A small set of micro-rules applied everywhere:
-- Every list item (features, perspectives, expansions, deep-dive bullets) gets a hover state with `+ stack`, `↑ pin`, `✕ cut`.
-- Drag-handles on the Vibe Stack and the Core Features list (already drag-sortable — extend the pattern).
-- `Cmd+K` palette: "Add note to stack", "Sharpen prompt", "Jump to Prompt", "Snapshot this version".
-- Keyboard `j`/`k` to navigate stack items, `enter` to use in prompt.
+**Vibe Stack first-run guidance**
+Empty state inside the drawer currently shows nothing useful. Add:
+- A 3-line "How this works" hint: *Tap `+ stack` on anything that resonates → pin the must-haves → tap Sharpen.*
+- Per-chit, show a tiny round badge (`R1` / `R2` / `R3`) so the user knows *when* in their journey they captured it.
 
-## Phase 8.6 — Cleanup of past learnings (don't lose them)
+**Brief sub-nav (parity with FinalReport)**
+Add the same sticky pill nav to the brief phase: `Analysis · Stress-test · Questions`. Right now the brief is just a long scroll with no orientation.
 
-- Remove the deterministic `computeScores` hash percentages from PDF too (still leaks fake "Market 73 · Product 81" into the export).
-- Remove the unused `Builds` import path leftover from earlier sprints if any (audit).
-- The "Run stress-test" inline panel inside `phase==="brief"` and the same `ThunderdomePanel` rendered post-final are duplicate mounting paths — collapse to one source of state so highlights made in one are visible in the other.
-- Audit `framer-motion` blocks for the standardized `cubic-bezier(0.22, 1, 0.36, 1)` ease (Sprint 6.3 covered the big ones; verify `IdeaBrief` and `FinalReport` are aligned).
+**Highlight chip language**
+Today: "This resonates" / "Not quite". Both are 2 words but read flat. Tighten:
+- "✦ Keep" / "✕ Cut" — verbs, not adjectives. Matches the Vibe Stack's `pin` / `cut` vocabulary so the loop feels coherent.
+
+### Phase 9.C — `/refine` UX (drag, accidents, lost users)
+
+**Drag-and-drop accidents**
+- `SortableFeature` has `activationConstraint: { distance: 5 }` (good), but no escape. Add: `Escape` key cancels active drag (dnd-kit supports this with a custom keyboard sensor). Currently if you grab a feature on mobile and panic-scroll, you can't bail.
+- The Vibe Stack drawer drag has no visual placeholder gap — items snap awkwardly. Add a `DragOverlay` so the dragged chit floats and the destination shows a visible drop slot.
+
+**Accidental clicks**
+- Highlight chips and `+ stack` buttons have **no undo**. Today, click "Cut" on a section and it's silently flagged. Fix: every toggle action shows a `sonner` toast with "✓ Added to stack — Undo" for 4 seconds. Reuses what we already have.
+- The "Start over" / "Start fresh instead" CTA wipes all rounds + highlights with no confirmation (already wired in `handleStartFresh`). Add the same `AlertDialog` we use for `setShowRestartConfirm` — currently that confirm dialog exists but isn't gating "Start fresh" from `IdeaInput`.
+
+**Lost-user moments**
+- After "Refine in place" → edit a textarea → click outside → no visual save indicator. Add a quiet "● Edited" dot next to each section header that's been touched.
+- After a user pastes a prompt into Lovable, the FinalReport sits there with no "what now?" cue. Add a single quiet line in the action row: *"Built it? Paste the URL to import as a child idea →"* (links back to dashboard with `?import=1`). Closes the loop visually even if the import isn't auto.
+
+### Phase 9.D — Test the loop end-to-end (the A+ gate)
+
+Before we declare this sprint done, the three checkpoints from Sprint 7 still apply:
+1. Fresh idea → Vibe Stack curated → sharpened prompt → copied to clipboard, **under 90 seconds, with no "wait did that work?" moments**.
+2. Every button does something visible within 300ms or shows a real error with retry.
+3. Iterate-in-place → re-simulate → new round arrives → previous edits visible in history collapsible.
+
+I'll walk all three on the 402px viewport using the browser tools after the build, fix anything that's not crisp, and report back with what was checked.
 
 ---
 
 ## Sequencing
 
-| Phase | Scope | Why this order |
+| Phase | What | Why first |
 |---|---|---|
-| 8.1 | Iterate-in-place (Round 4 mode) | Fixes the most painful break first |
-| 8.2 | `idea_stack_items` + Vibe Stack drawer + `+ stack` everywhere | The unifying primitive — everything else hangs off it |
-| 8.3 | FinalReport sub-nav + contrast pass | Now that there's a stack, navigation has meaning |
-| 8.4 | Dashboard titles + always-on quick actions | Self-contained, can ship in parallel |
-| 8.5 | Interaction micro-rules (drag/hover/cmd-k) | Polish that compounds |
-| 8.6 | Cleanup loose ends | Final 5% |
+| 9.A | The cuts (image, dup mounts, dead code, emoji, redundant chips, import toggle, hover-only checkbox) | Removing complexity unblocks every other change. ~5 files touched, no risk. |
+| 9.B | One-sharpen rule + Vibe Stack guidance + brief sub-nav + chip language | The polish that makes the cuts feel intentional, not like things just disappeared. |
+| 9.C | Drag escape + undo toasts + edited indicator + "what now" cue | Forgiveness layer. Catches accidental clicks and orients lost users. |
+| 9.D | Live walkthrough on 402px viewport + fix list | The A+ gate. No declaring done without this. |
 
-Ship 8.1 + 8.2 + 8.4 first — that's the new loop in one push. 8.3, 8.5, 8.6 are the next sprint.
+All four fit in one sprint. Stop after 9.A + 9.B for a checkpoint if you want to feel the cuts before the polish.
 
 ---
 
-## /distill /expand /refine — your next-action menu
+## What's *not* in this sprint (parking lot)
 
-Pick one to send the project further; each is a follow-on sprint, not part of 8.
+- **`/critique`** — ready to run as a follow-up sprint. Best timing: *after* 9.D so we critique the tightened version, not the bloated one. Will produce a Nielsen-heuristic scored design report (per `SKILL_CRITIQUE.md`) with P0–P3 issues.
+- **`/audit`** — the technical health audit (per `SKILL_AUDIT.md`): a11y, performance, theming, responsive, anti-patterns. Best timing: same sprint as `/critique`, parallel pass. They're complementary — critique is design, audit is implementation.
+- **Cmd+K palette + j/k nav** — punted from 8.5, still valuable but only after the loop is *visibly* tight. Adding shortcuts to a noisy UI just hides the noise.
+- **Auto-fork on snapshot** (the `/expand` move) — still a great next-sprint idea after the loop is A+.
+- **Tagline-as-masthead** (the original `/distill` next-action) — folds naturally into Sprint 10 once the report is shorter.
 
-| Move | What it would do | Why it'd matter |
-|---|---|---|
-| **/distill** | Force every report to produce *one sentence* the user can ship as a tagline (already partly built in distill agent — surface it as the report's masthead). | Your "ruthless clarity" memory says taglines beat features. Make the simulator close on one. |
-| **/expand** | Auto-fork: when a Vibe Stack snapshot is saved, run `expand-idea` in the background and seed 3 child ideas in the dashboard tree without the user asking. | Turns saving into seeding. Dashboard becomes a garden, not a graveyard. |
-| **/refine** | Add `prompt_versions` time-travel UI: show a vertical timeline of every Sharpen, with "Restore" per version. | You already store them — you just don't show them. |
-| **/polish** | Apply Impeccable v2.1.1 to every secondary surface (Auth, Inbox, Portfolio, Report). Audit for nested cards, pure black/white, missing fluid type. | Brand consistency drop. The simulator looks great; the surrounding pages drift. |
-| **/overdrive** | Build the **agent-mediated import** chat command (`import @project:NAME`) we tabled in Sprint 6 — using my cross-project tools to populate `manifest_cache` directly. One-shot, no UI debt. | Unlocks the Portfolio play without waiting for a public API. |
+---
 
-My recommendation: ship 8.1 + 8.2 + 8.4 (the loop), then `/distill` next. The tagline-as-masthead would be the moment the simulator stops feeling like an analysis tool and starts feeling like a *founder's instrument*.
+## My recommendation on order of follow-on skills
+
+1. **This sprint (9): /shorten + /distill the UX itself** ← we are here
+2. **Sprint 10: /critique + /audit in parallel** (no new features, all measurement + fix list)
+3. **Sprint 11: tagline-as-masthead + Cmd+K** (the delight layer, on a known-clean foundation)
+4. **Sprint 12: /overdrive — agent-mediated portfolio import** (the unlock that's been waiting)
+
+This sequence stops the "build outward" pattern. Each sprint either *removes* surface area or *measures* what we have. We don't add a new feature again until Sprint 11, and even then it's on a foundation we've audited.
 
 ### One question before I start
 
-**The Vibe Stack panel** — prefer (a) right-side fixed sidebar that pushes content (desktop) + bottom sheet (mobile), or (b) a floating bubble in the corner that expands into a panel on click (less intrusive but less visible)?
+**The concept image** — confirming we kill it everywhere (brief, FinalReport, dashboard cards), or do you want to keep the dashboard logo image as a small avatar (it's currently 44px and reads more as identification than decoration)? My read: kill brief image, **keep dashboard logo** as a 44px identifier. If you disagree, say "kill all" or "keep all" and I'll align.
 
