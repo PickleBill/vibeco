@@ -173,6 +173,9 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
   const [showHistory, setShowHistory] = useState(false);
   const [showStressTest, setShowStressTest] = useState(false);
 
+  // Vibe Stack — curated insight chits, falls back to localStorage when no reportId yet
+  const stack = useVibeStack(reportId);
+
   // Resume from DB when resumeId is provided
   useEffect(() => {
     if (!resumeId) return;
