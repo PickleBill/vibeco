@@ -698,24 +698,37 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
     setDepthRecommendation(undefined);
   };
 
-  // Iterate: keep prior context (rounds, highlights, report link) but go back to
-  // input with the original idea pre-filled. The prior report stays in the user's
-  // dashboard and can be referenced; this run continues building on what was learned.
+  // Iterate-in-place: stay on the FinalReport with editable brief sections.
+  // The user keeps everything they've built (rounds, highlights, stack, report)
+  // and edits the brief in line, then re-simulates as a new round on top.
+  const [editMode, setEditMode] = useState(false);
   const handleIterate = () => {
-    // Keep idea, rounds (as history), highlights, antiHighlights, reportId.
-    // Reset only the surfaces that gate the next round.
-    setPhase("input");
-    setUnlocked(false);
-    setUnlockEmail("");
-    setLovablePrompt(null);
-    setConceptImage(null);
-    setLogoImage(null);
-    // Scroll to top so the input is visible
+    setEditMode(true);
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
     toast.success(
-      `Iterating — ${rounds.length} round${rounds.length === 1 ? "" : "s"} and ${highlights.size} highlight${highlights.size === 1 ? "" : "s"} preserved.`,
+      `Refine in place — edit any section then re-simulate. ${highlights.size} highlight${highlights.size === 1 ? "" : "s"} and ${stack.items.length} stack item${stack.items.length === 1 ? "" : "s"} carried in.`,
     );
   };
+
+  // Apply user edits to the latest brief, then run a new refinement round on top.
+  const handleReSimulateWithEdits = async (editedBrief: BriefData) => {
+    // Replace the current latest round's brief with the user's edits, then refine.
+    const updatedRounds = [...rounds];
+    if (updatedRounds.length === 0) return;
+    updatedRounds[updatedRounds.length - 1] = {
+      ...updatedRounds[updatedRounds.length - 1],
+      brief: editedBrief,
+    };
+    setRounds(updatedRounds);
+    setEditMode(false);
+    // Bump round and run refine. simulate-idea uses buildHistory(currentRound - 1)
+    // so we increment currentRound first (matches the in-flow path).
+    setCurrentRound((r) => r + 1);
+    // Defer to next tick so state is committed before history is built.
+    setTimeout(() => callSimulator("refine", undefined, currentRound + 2), 0);
+  };
+
+  const handleCancelEdit = () => setEditMode(false);
 
   // Wipe everything from the iterate-input screen and start a brand-new run.
   const handleStartFresh = () => {
