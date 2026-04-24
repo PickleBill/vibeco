@@ -271,6 +271,8 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   const [deepDiveLoading, setDeepDiveLoading] = useState<string | null>(null);
   const [isSharpening, setIsSharpening] = useState(false);
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
+  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null); // diff state
+  const [pulsedSection, setPulsedSection] = useState<string | null>(null);
   const reportRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
