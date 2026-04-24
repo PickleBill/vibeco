@@ -11,9 +11,9 @@ import {
   Target,
   Zap,
   ImageIcon,
-  Mail,
-  Sparkles,
+  type LucideIcon,
 } from "lucide-react";
+import { Mail, Sparkles } from "lucide-react";
 import type { BriefData } from "./SimulatorShell";
 
 interface Props {
@@ -42,7 +42,7 @@ const labels: Record<string, string> = {
   customer_perspective: "What Customers Would Say",
 };
 
-const icons: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+const icons: Record<string, LucideIcon> = {
   problem: AlertTriangle,
   target_customer: Users,
   core_features: Layers,
