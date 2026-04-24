@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Pin,
@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import {
   DndContext,
+  DragOverlay,
   closestCenter,
   PointerSensor,
   KeyboardSensor,
@@ -53,16 +54,54 @@ interface Props {
   isSharpening?: boolean;
   isSnapshotting?: boolean;
   hasPrompt?: boolean;
+  /** Controlled open state — lets parent open the drawer on demand
+   *  (e.g. after pinning a chit from a deep-dive footer). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Briefly outline a chit by id when the drawer opens — wakes up the eye. */
+  highlightId?: string | null;
 }
+
+const ChitBody = ({ item, dragging }: { item: StackItem; dragging?: boolean }) => {
+  const meta = kindMeta[item.kind];
+  const Icon = meta.icon;
+  return (
+    <div className="flex items-start gap-2">
+      <Icon size={12} className={`${meta.tone} mt-0.5 shrink-0`} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
+            {meta.label}
+          </span>
+          {item.round != null && (
+            <span className="text-[9px] px-1.5 py-px rounded-full bg-primary/15 text-primary tabular-nums">
+              R{item.round}
+            </span>
+          )}
+          {item.source && (
+            <span className="text-[9px] px-1.5 py-px rounded-full bg-muted/40 text-muted-foreground/60 truncate max-w-[140px]">
+              {item.source}
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-foreground/90 leading-snug mt-0.5 line-clamp-2">
+          {item.label}
+        </p>
+      </div>
+    </div>
+  );
+};
 
 const SortableChit = ({
   item,
   onTogglePin,
   onRemove,
+  flash,
 }: {
   item: StackItem;
   onTogglePin: (id: string) => void;
   onRemove: (id: string) => void;
+  flash?: boolean;
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
@@ -70,45 +109,31 @@ const SortableChit = ({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.3 : 1,
   };
-  const meta = kindMeta[item.kind];
-  const Icon = meta.icon;
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`group/chit relative rounded-md border ${
+      className={`group/chit relative rounded-md border p-2.5 transition-colors ${
         item.pinned
           ? "border-primary/40 bg-primary/5"
           : "border-border/40 bg-card/60"
-      } p-2.5 hover:border-primary/30 transition-colors`}
+      } hover:border-primary/30 ${flash ? "ring-2 ring-primary/60 ring-offset-1 ring-offset-background" : ""}`}
     >
       <div className="flex items-start gap-2">
         <button
           {...attributes}
           {...listeners}
           className="mt-0.5 text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing touch-none"
-          aria-label="Drag to reorder"
+          aria-label="Drag to reorder (use arrow keys; Esc cancels)"
+          title="Drag to reorder · Esc cancels"
         >
           <GripVertical size={12} />
         </button>
-        <Icon size={12} className={`${meta.tone} mt-0.5 shrink-0`} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
-              {meta.label}
-            </span>
-            {item.source && (
-              <span className="text-[9px] px-1.5 py-px rounded-full bg-muted/40 text-muted-foreground/60">
-                {item.source}
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-foreground/90 leading-snug mt-0.5 line-clamp-2">
-            {item.label}
-          </p>
+          <ChitBody item={item} />
         </div>
         <div className="flex items-center gap-0.5 opacity-60 group-hover/chit:opacity-100 transition-opacity">
           <button
@@ -144,8 +169,34 @@ const VibeStack = ({
   isSharpening,
   isSnapshotting,
   hasPrompt,
+  open: controlledOpen,
+  onOpenChange,
+  highlightId,
 }: Props) => {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? !!controlledOpen : internalOpen;
+  const setOpen = (next: boolean) => {
+    if (!isControlled) setInternalOpen(next);
+    onOpenChange?.(next);
+  };
+
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [flashId, setFlashId] = useState<string | null>(null);
+  const flashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // When the parent passes a highlightId AND opens the drawer, briefly flash that chit.
+  useEffect(() => {
+    if (open && highlightId) {
+      setFlashId(highlightId);
+      if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+      flashTimeoutRef.current = setTimeout(() => setFlashId(null), 1800);
+    }
+    return () => {
+      if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+    };
+  }, [open, highlightId]);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -153,8 +204,12 @@ const VibeStack = ({
 
   const pinnedCount = items.filter((i) => i.pinned).length;
   const count = items.length;
+  const activeItem = items.find((i) => i.id === activeId) || null;
 
+  const handleDragStart = (event: any) => setActiveId(event.active?.id || null);
+  const handleDragCancel = () => setActiveId(null);
   const handleDragEnd = (event: any) => {
+    setActiveId(null);
     const { active, over } = event;
     if (over && active.id !== over.id) {
       const oldIndex = items.findIndex((i) => i.id === active.id);
@@ -173,6 +228,7 @@ const VibeStack = ({
           open ? "opacity-0 pointer-events-none" : "opacity-100"
         }`}
         style={{ boxShadow: "0 8px 32px -8px hsl(var(--primary) / 0.5)" }}
+        aria-label="Open Vibe Stack"
       >
         <Sparkles size={14} />
         <span className="text-xs font-bold">Vibe Stack</span>
@@ -227,6 +283,7 @@ const VibeStack = ({
                       onClick={onSharpen}
                       disabled={isSharpening || count === 0}
                       className="flex items-center justify-center gap-1.5 text-[11px] font-semibold px-2.5 py-2 rounded-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+                      title={count === 0 ? "Add at least one chit first" : hasPrompt ? "Rebuild the prompt from this stack" : "Generate a prompt from this stack"}
                     >
                       {isSharpening ? (
                         <Loader2 size={11} className="animate-spin" />
@@ -256,24 +313,39 @@ const VibeStack = ({
               {/* Body */}
               <div className="flex-1 overflow-y-auto p-3">
                 {count === 0 ? (
-                  <div className="text-center py-12 px-4">
+                  <div className="text-center py-10 px-4">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
                       <Sparkles size={14} className="text-primary" />
                     </div>
-                    <p className="text-xs text-foreground/80 font-semibold mb-1">
+                    <p className="text-xs text-foreground/80 font-semibold mb-3">
                       Your stack is empty
                     </p>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Tap <span className="text-primary">+ stack</span> on any
-                      insight in the report — highlights, deep-dives, expansions, persona
-                      challenges — and they'll collect here. Pin the must-haves, then
-                      sharpen the prompt to fold them in.
+                    <ol className="text-left text-[11px] text-muted-foreground leading-relaxed space-y-2 mb-4 max-w-[260px] mx-auto">
+                      <li>
+                        <span className="text-primary font-bold">1.</span>{" "}
+                        Tap <span className="text-primary font-semibold">+ stack</span> on
+                        anything that resonates — highlights, deep-dives, expansions, persona challenges.
+                      </li>
+                      <li>
+                        <span className="text-primary font-bold">2.</span>{" "}
+                        Pin the must-haves so they're always folded into your prompt.
+                      </li>
+                      <li>
+                        <span className="text-primary font-bold">3.</span>{" "}
+                        Tap <span className="text-primary font-semibold">Sharpen</span> to
+                        regenerate the prompt around the curated stack.
+                      </li>
+                    </ol>
+                    <p className="text-[10px] text-muted-foreground/60 italic">
+                      Round badges (R1 · R2 · R3) show when each insight was captured.
                     </p>
                   </div>
                 ) : (
                   <DndContext
                     sensors={sensors}
                     collisionDetection={closestCenter}
+                    onDragStart={handleDragStart}
+                    onDragCancel={handleDragCancel}
                     onDragEnd={handleDragEnd}
                   >
                     <SortableContext
@@ -287,10 +359,18 @@ const VibeStack = ({
                             item={item}
                             onTogglePin={onTogglePin}
                             onRemove={onRemove}
+                            flash={flashId === item.id}
                           />
                         ))}
                       </div>
                     </SortableContext>
+                    <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(0.22, 1, 0.36, 1)" }}>
+                      {activeItem ? (
+                        <div className="rounded-md border border-primary/60 bg-card p-2.5 shadow-2xl shadow-primary/30">
+                          <ChitBody item={activeItem} dragging />
+                        </div>
+                      ) : null}
+                    </DragOverlay>
                   </DndContext>
                 )}
               </div>
@@ -299,7 +379,7 @@ const VibeStack = ({
               <div className="px-4 py-2.5 border-t border-border/30 bg-card/30">
                 <p className="text-[10px] text-muted-foreground/70 leading-snug">
                   <span className="text-primary">Pinned</span> chits are required
-                  context. Drag to reorder priority.
+                  context. Drag to reorder priority · <kbd className="px-1 rounded bg-muted/60 text-[9px]">Esc</kbd> cancels a drag.
                 </p>
               </div>
             </motion.aside>
