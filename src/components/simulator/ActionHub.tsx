@@ -1,11 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Rocket,
   MessageSquare,
   Palette,
   TestTube,
-  RefreshCw,
   Copy,
   Check,
   Loader2,
