@@ -21,6 +21,7 @@ import {
   Sparkles,
   Share2,
   GripVertical,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
@@ -735,23 +736,29 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                       Your Lovable Prompt
                     </span>
                   </div>
-                  <button
-                    onClick={handleCopyPromptWithHighlights}
-                    className="flex items-center gap-1.5 text-xs font-semibold text-primary-foreground bg-primary px-3 py-1.5 rounded-sm hover:opacity-90 transition-opacity whitespace-nowrap"
-                  >
-                    {copied ? <Check size={12} /> : <Copy size={12} />}
-                    {copied ? "Copied" : highlights && highlights.size > 0 ? "Copy + highlights" : "Copy prompt"}
-                  </button>
                 </div>
                 <div className="p-4 max-h-72 overflow-y-auto">
                   <pre className="text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap font-sans">
                     {lovablePrompt}
                   </pre>
                 </div>
-                <div className="px-4 py-2 bg-muted/20 border-t border-border/30">
-                  <p className="text-[10px] text-muted-foreground">
-                    Paste into <a href="https://lovable.dev" target="_blank" rel="noreferrer" className="text-primary hover:underline">Lovable</a> to build your app — full brief, scoring, and stress-test below.
-                  </p>
+                <div className="grid grid-cols-2 gap-2 p-3 bg-muted/15 border-t border-border/30">
+                  <button
+                    onClick={handleCopyPromptWithHighlights}
+                    className="flex items-center justify-center gap-1.5 text-xs font-semibold text-primary-foreground bg-primary px-3 py-2.5 rounded-sm hover:opacity-90 transition-opacity"
+                  >
+                    {copied ? <Check size={13} /> : <Copy size={13} />}
+                    {copied ? "Copied" : highlights && highlights.size > 0 ? "Copy + highlights" : "Copy prompt"}
+                  </button>
+                  <a
+                    href="https://lovable.dev"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-center gap-1.5 text-xs font-semibold text-primary border border-primary/40 bg-primary/5 px-3 py-2.5 rounded-sm hover:bg-primary/10 transition-colors"
+                  >
+                    Open in Lovable
+                    <ExternalLink size={12} />
+                  </a>
                 </div>
               </div>
             ) : (

@@ -90,8 +90,8 @@ const IdeaInput = ({ onSubmit, initialValue }: Props) => {
         {/* Segmented mode toggle with sliding indicator */}
         <div className="relative inline-flex items-center mt-6 p-1 rounded-md bg-card/40 border border-border/30">
           {[
-            { id: false, label: "Describe", Icon: Pencil },
-            { id: true, label: "Import Project", Icon: Import },
+            { id: false, label: "Describe", Icon: Pencil, beta: false },
+            { id: true, label: "Import Project", Icon: Import, beta: true },
           ].map((opt) => {
             const active = importMode === opt.id;
             return (
@@ -110,10 +110,20 @@ const IdeaInput = ({ onSubmit, initialValue }: Props) => {
                 )}
                 <opt.Icon size={11} className={active ? "text-primary" : "text-muted-foreground"} />
                 <span className={active ? "text-primary" : "text-muted-foreground"}>{opt.label}</span>
+                {opt.beta && (
+                  <span className="ml-0.5 text-[8px] uppercase tracking-wider px-1 py-px rounded-sm bg-warning/15 text-warning border border-warning/25 font-semibold">
+                    Beta
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
+        {importMode && (
+          <p className="text-[10px] text-muted-foreground/60 mt-2 max-w-md mx-auto leading-snug">
+            Beta — paste your project context manually. Auto-import is coming soon.
+          </p>
+        )}
       </motion.div>
 
       <AnimatePresence mode="wait">
