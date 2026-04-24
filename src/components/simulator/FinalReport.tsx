@@ -532,15 +532,34 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
 
   const handleGeneratePrompt = () => runRefine(setIsGeneratingPrompt, undefined, "Prompt generated");
 
-  const handleUseDeepDiveInPrompt = (sectionKey: string) => {
+  // Centralized sharpen rule (Sprint 9.B): instead of running a parallel refine,
+  // a deep-dive's "Use in prompt" pins the insight as a Vibe Stack chit and opens
+  // the drawer with that chit briefly highlighted. The drawer's "Sharpen prompt"
+  // button is the single canonical entry point for prompt regeneration.
+  const handleUseDeepDiveInPrompt = async (sectionKey: string) => {
     const content = deepDiveContent[sectionKey];
     if (!content) return;
     const sectionLabel = sectionMeta.find((s) => s.key === sectionKey)?.label || sectionKey;
-    runRefine(
-      setIsSharpening,
-      `Emphasize the following insight from the deep-dive on "${sectionLabel}" — fold it into the prompt as a guiding direction:\n\n${content}`,
-      `Folded "${sectionLabel}" deep-dive into the prompt`,
-    );
+    if (!onAddToStack) {
+      toast.error("Stack unavailable.");
+      return;
+    }
+    const alreadyIn = stackHasItem?.("deep_dive", sectionKey, sectionLabel);
+    let chitId: string | null = null;
+    if (!alreadyIn) {
+      const created = await onAddToStack({
+        kind: "deep_dive",
+        source: sectionKey,
+        label: sectionLabel,
+        content,
+        pinned: true,
+      });
+      chitId = created?.id || null;
+      toast.success(`Pinned "${sectionLabel}" — open Sharpen to fold it in.`);
+    } else {
+      toast.info(`"${sectionLabel}" is already in your stack.`);
+    }
+    onOpenStack?.(chitId);
   };
 
   const handleAddDeepDiveToHighlights = (sectionKey: string) => {
