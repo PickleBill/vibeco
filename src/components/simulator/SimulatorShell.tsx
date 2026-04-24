@@ -770,21 +770,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
           </motion.div>
         )}
 
-        {unlocked && rounds.length > 0 && phase !== "input" && phase !== "analyzing" && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="fixed bottom-6 right-6 z-50"
-          >
-            <button
-              onClick={handleDownloadPDF}
-              className="flex items-center gap-2 text-xs px-4 py-2.5 rounded-sm bg-primary text-primary-foreground shadow-lg hover:opacity-90 transition-opacity"
-            >
-              <Download size={14} />
-              Download PDF
-            </button>
-          </motion.div>
-        )}
+        {/* Floating PDF button removed — Download is now in the FinalReport action row. */}
 
         {rounds.length > 0 && phase !== "input" && (
           <motion.div
@@ -832,7 +818,21 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                   </span>
                 </div>
               )}
-              <IdeaInput onSubmit={handleIdeaSubmit} initialValue={prefillIdea} />
+              <IdeaInput
+                onSubmit={handleIdeaSubmit}
+                initialValue={idea || prefillIdea}
+                iterationContext={
+                  rounds.length > 0 || highlights.size > 0
+                    ? {
+                        highlightCount: highlights.size,
+                        flagCount: antiHighlights.size,
+                        roundCount: rounds.length,
+                        reportId,
+                      }
+                    : undefined
+                }
+                onStartFresh={handleStartFresh}
+              />
             </motion.div>
           )}
 
