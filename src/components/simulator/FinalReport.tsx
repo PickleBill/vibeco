@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import {
@@ -286,10 +286,11 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   const [pulsedSection, setPulsedSection] = useState<string | null>(null);
   // Editable copies of brief sections during iterate-in-place mode
   const [editedBrief, setEditedBrief] = useState<BriefData>(brief);
-  // Sync edits when brief changes from outside (new round) or edit mode toggles
-  if (editMode && editedBrief !== brief && editedBrief.problem === "" /* sentinel */) {
+  useEffect(() => {
+    // Reset editable copy whenever the underlying brief changes (new round)
+    // or edit mode is toggled on/off.
     setEditedBrief(brief);
-  }
+  }, [brief, editMode]);
   const reportRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
