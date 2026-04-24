@@ -183,18 +183,12 @@ export const generateStructuredPDF = (
   pdf.text(`Generated ${new Date().toLocaleDateString()} · ${rounds.length} rounds of analysis`, margin, y);
   y += 20;
 
-  scores.forEach((s) => {
-    pdf.setFontSize(10);
-    pdf.setTextColor(180, 180, 200);
-    pdf.text(`${s.label}:`, margin, y);
-    pdf.setFillColor(40, 40, 50);
-    pdf.roundedRect(margin + 25, y - 3.5, 60, 5, 2, 2, "F");
-    pdf.setFillColor(120, 120, 200);
-    pdf.roundedRect(margin + 25, y - 3.5, 60 * (s.value / 100), 5, 2, 2, "F");
-    pdf.setTextColor(200, 200, 220);
-    pdf.text(`${s.value}`, margin + 90, y);
-    y += 9;
-  });
+  // (Fake hash-based scores removed from PDF cover — they leaked deterministic
+  // "Market 73 / Product 81" numbers that weren't real signal.)
+  pdf.setFontSize(11);
+  pdf.setTextColor(180, 180, 200);
+  pdf.text(`${rounds.length} round${rounds.length === 1 ? "" : "s"} of analysis`, margin, y);
+  y += 12;
 
   pdf.addPage();
   addHeader();
@@ -884,16 +878,30 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
             className="mb-8"
           >
             {/* Persistent highlight summary banner — visible whenever there's input */}
-            {(highlights && highlights.size > 0) || (antiHighlights && antiHighlights.size > 0) ? (
-              <motion.div
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className="flex items-center justify-between gap-3 mb-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20"
-              >
-                <div className="flex items-center gap-2 min-w-0">
+              {(highlights && highlights.size > 0) || (antiHighlights && antiHighlights.size > 0) ? (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex items-center gap-3 mb-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20"
+                >
                   <Sparkles size={12} className="text-primary fill-primary shrink-0" />
                   <span className="text-xs text-primary truncate">
+                    {highlights && highlights.size > 0 && (
+                      <>
+                        {highlights.size} highlight{highlights.size > 1 ? "s" : ""}
+                      </>
+                    )}
+                    {antiHighlights && antiHighlights.size > 0 && (
+                      <>
+                        {highlights && highlights.size > 0 ? " · " : ""}
+                        {antiHighlights.size} flag{antiHighlights.size > 1 ? "s" : ""}
+                      </>
+                    )}
+                    {lovablePrompt ? " — sharpen from the Vibe Stack to apply" : " — generate the prompt to apply"}
+                  </span>
+                </motion.div>
+              ) : null}
                     {highlights && highlights.size > 0 && (
                       <>
                         {highlights.size} highlight{highlights.size > 1 ? "s" : ""}
