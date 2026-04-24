@@ -16,8 +16,19 @@ import IdeaBrief from "./IdeaBrief";
 import FollowUpQuestions from "./FollowUpQuestions";
 import FinalReport, { generateStructuredPDF, computeScores } from "./FinalReport";
 import ThunderdomePanel from "./ThunderdomePanel";
+import VibeStack from "./VibeStack";
+import { useVibeStack } from "@/hooks/useVibeStack";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+// Derive a short, human-friendly title from the brief's problem statement.
+function deriveTitle(brief: BriefData | undefined, fallbackIdea: string): string {
+  const source = brief?.problem || fallbackIdea || "";
+  const firstClause = source.split(/[.!?:;–—]/)[0].trim();
+  const words = firstClause.split(/\s+/).slice(0, 6).join(" ");
+  if (!words) return "Untitled idea";
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
 
 const analysisMessages = [
   "Analyzing market size and competitive landscape...",
