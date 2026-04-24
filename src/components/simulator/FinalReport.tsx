@@ -270,7 +270,7 @@ export const generateStructuredPDF = (
   pdf.save(fileName);
 };
 
-const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights, onToggleHighlight, antiHighlights, onToggleAntiHighlight, reportId, onReorderFeatures, onPromptUpdate }: Props) => {
+const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights, onToggleHighlight, antiHighlights, onToggleAntiHighlight, reportId, onReorderFeatures, onPromptUpdate, editMode, onCancelEdit, onReSimulate, stackItems, onAddToStack, stackHasItem }: Props) => {
   const [email, setEmail] = useState(unlockEmail || "");
   const [showPrompt, setShowPrompt] = useState(!!unlocked);
   const [isExporting, setIsExporting] = useState(false);
@@ -284,6 +284,12 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null); // diff state
   const [pulsedSection, setPulsedSection] = useState<string | null>(null);
+  // Editable copies of brief sections during iterate-in-place mode
+  const [editedBrief, setEditedBrief] = useState<BriefData>(brief);
+  // Sync edits when brief changes from outside (new round) or edit mode toggles
+  if (editMode && editedBrief !== brief && editedBrief.problem === "" /* sentinel */) {
+    setEditedBrief(brief);
+  }
   const reportRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
