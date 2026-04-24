@@ -123,19 +123,27 @@ const AddProjectDialog = ({ open, onOpenChange, onSave, initial }: Props) => {
               <Input
                 value={lovableId}
                 onChange={(e) => setLovableId(e.target.value)}
-                placeholder="e56b8988-..."
+                placeholder="14cfc7e9-e959-…"
                 className="mt-1 text-xs"
               />
+              <p className="text-[10px] text-muted-foreground/60 mt-1 leading-snug">
+                Find it in the project URL: <code className="text-foreground/70">lovable.dev/projects/<span className="text-primary">{`{this-id}`}</span></code>
+              </p>
             </div>
           </div>
           <div>
-            <Label className="text-xs">Notes</Label>
+            <Label className="text-xs">
+              Project Context <span className="text-muted-foreground/60 font-normal">(optional, but powerful)</span>
+            </Label>
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Priority build for Q3..."
-              className="mt-1 text-xs min-h-[60px]"
+              placeholder="Paste your .impeccable.md or brand doc here. The simulator will use this to ground every analysis in your real audience, voice, and anti-patterns."
+              className="mt-1 text-xs min-h-[100px] font-mono leading-relaxed"
             />
+            <p className="text-[10px] text-muted-foreground/60 mt-1 leading-snug">
+              The more context you paste, the sharper the simulation. Audience, brand voice, anti-patterns all help.
+            </p>
           </div>
           <Button type="submit" className="w-full text-sm">
             {initial ? "Update Project" : "Add Project"}

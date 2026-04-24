@@ -91,6 +91,7 @@ export type Database = {
           highlights: string[] | null
           id: string
           idea: string
+          imported_from_project_id: string | null
           logo_image_url: string | null
           lovable_prompt: string | null
           parent_idea_id: string | null
@@ -112,6 +113,7 @@ export type Database = {
           highlights?: string[] | null
           id?: string
           idea: string
+          imported_from_project_id?: string | null
           logo_image_url?: string | null
           lovable_prompt?: string | null
           parent_idea_id?: string | null
@@ -133,6 +135,7 @@ export type Database = {
           highlights?: string[] | null
           id?: string
           idea?: string
+          imported_from_project_id?: string | null
           logo_image_url?: string | null
           lovable_prompt?: string | null
           parent_idea_id?: string | null
@@ -144,6 +147,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "idea_reports_imported_from_project_id_fkey"
+            columns: ["imported_from_project_id"]
+            isOneToOne: false
+            referencedRelation: "project_registry"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "idea_reports_parent_idea_id_fkey"
             columns: ["parent_idea_id"]
@@ -161,6 +171,8 @@ export type Database = {
           id: string
           last_touched: string
           lovable_project_id: string | null
+          manifest_cache: Json | null
+          manifest_cached_at: string | null
           name: string
           notes: string | null
           parent_brand: string | null
@@ -177,6 +189,8 @@ export type Database = {
           id?: string
           last_touched?: string
           lovable_project_id?: string | null
+          manifest_cache?: Json | null
+          manifest_cached_at?: string | null
           name: string
           notes?: string | null
           parent_brand?: string | null
@@ -193,6 +207,8 @@ export type Database = {
           id?: string
           last_touched?: string
           lovable_project_id?: string | null
+          manifest_cache?: Json | null
+          manifest_cached_at?: string | null
           name?: string
           notes?: string | null
           parent_brand?: string | null

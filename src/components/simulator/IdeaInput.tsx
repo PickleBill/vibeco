@@ -1,12 +1,18 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Sparkles, Import } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles, Import, Pencil } from "lucide-react";
 import ProjectImporter from "./ProjectImporter";
 
 interface Props {
-  onSubmit: (idea: string) => void;
+  onSubmit: (idea: string, meta?: { project_id?: string; lovable_project_id?: string | null }) => void;
   initialValue?: string;
 }
+
+const placeholders = [
+  "An app that connects dog owners with verified pet sitters, featuring real-time GPS tracking and instant booking…",
+  "A SaaS tool that auto-generates investor updates from Stripe + HubSpot data — weekly digest, no editing required…",
+  "A marketplace where laid-off engineers can sell 30-minute career strategy calls to mid-career PMs trying to break into FAANG…",
+];
 
 const IdeaInput = ({ onSubmit, initialValue }: Props) => {
   const [text, setText] = useState(initialValue || "");
@@ -14,8 +20,24 @@ const IdeaInput = ({ onSubmit, initialValue }: Props) => {
   const [attempted, setAttempted] = useState(false);
   const [focused, setFocused] = useState(false);
   const [importMode, setImportMode] = useState(false);
+  const [placeholderIdx, setPlaceholderIdx] = useState(0);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const isTooShort = text.length > 0 && text.trim().length < 10;
+
+  // Rotate placeholder while idle
+  useEffect(() => {
+    if (text.length > 0 || focused) return;
+    const t = setInterval(() => setPlaceholderIdx((i) => (i + 1) % placeholders.length), 6000);
+    return () => clearInterval(t);
+  }, [text, focused]);
+
+  // Auto-focus on mount with a brief glow that decays
+  useEffect(() => {
+    if (importMode) return;
+    const t = setTimeout(() => textareaRef.current?.focus(), 250);
+    return () => clearTimeout(t);
+  }, [importMode]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,131 +71,142 @@ const IdeaInput = ({ onSubmit, initialValue }: Props) => {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.8 }}
+        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         className="text-center mb-10"
       >
         <p className="text-[10px] text-primary uppercase tracking-[0.4em] mb-5 opacity-60">
           AI Idea Simulator
         </p>
         <h1
-          className="font-display font-black text-foreground leading-[1.1] mb-3"
-          style={{ fontSize: "clamp(2.5rem, 5vw + 1rem, 4rem)" }}
+          className="font-display font-black text-foreground leading-[1.1] mb-3 break-words"
+          style={{ fontSize: "clamp(2.25rem, 5vw + 1rem, 4rem)" }}
         >
           What are you building?
         </h1>
         <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-          Describe it. We'll stress-test every assumption and hand you a build-ready prompt.
+          Describe it, or pull in one of your existing projects. We'll stress-test every assumption.
         </p>
 
-        {/* Mode toggle */}
-        <div className="flex items-center justify-center gap-4 mt-5">
-          <button
-            type="button"
-            onClick={() => setImportMode(false)}
-            className={`text-[11px] px-3 py-1.5 rounded-sm transition-colors ${
-              !importMode
-                ? "bg-primary/15 text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Describe Idea
-          </button>
-          <button
-            type="button"
-            onClick={() => setImportMode(true)}
-            className={`text-[11px] px-3 py-1.5 rounded-sm transition-colors flex items-center gap-1.5 ${
-              importMode
-                ? "bg-primary/15 text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Import size={11} />
-            Import Project
-          </button>
+        {/* Segmented mode toggle with sliding indicator */}
+        <div className="relative inline-flex items-center mt-6 p-1 rounded-md bg-card/40 border border-border/30">
+          {[
+            { id: false, label: "Describe", Icon: Pencil },
+            { id: true, label: "Import Project", Icon: Import },
+          ].map((opt) => {
+            const active = importMode === opt.id;
+            return (
+              <button
+                key={String(opt.id)}
+                type="button"
+                onClick={() => setImportMode(opt.id)}
+                className="relative z-10 flex items-center gap-1.5 px-3 py-1.5 text-[11px] transition-colors duration-300"
+              >
+                {active && (
+                  <motion.span
+                    layoutId="mode-indicator"
+                    className="absolute inset-0 rounded-sm bg-primary/15 border border-primary/25 -z-10"
+                    transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                  />
+                )}
+                <opt.Icon size={11} className={active ? "text-primary" : "text-muted-foreground"} />
+                <span className={active ? "text-primary" : "text-muted-foreground"}>{opt.label}</span>
+              </button>
+            );
+          })}
         </div>
       </motion.div>
 
-      {importMode ? (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="w-full max-w-2xl"
-        >
-          <ProjectImporter
-            onImport={(ideaText) => {
-              setText(ideaText);
-              setImportMode(false);
-              onSubmit(ideaText);
-            }}
-          />
-        </motion.div>
-      ) : (
-        <motion.form
-          onSubmit={handleSubmit}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="w-full max-w-2xl"
-        >
+      <AnimatePresence mode="wait">
+        {importMode ? (
           <motion.div
-            className="relative"
-            animate={shaking ? { x: [0, -8, 8, -6, 6, -3, 3, 0] } : {}}
-            transition={{ duration: 0.5 }}
+            key="import"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full max-w-2xl"
           >
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onFocus={() => setFocused(true)}
-              onBlur={() => setFocused(false)}
-              placeholder="An app that connects dog owners with verified pet sitters, featuring real-time GPS tracking and instant booking..."
-              className={`w-full min-h-[200px] p-6 rounded-lg bg-transparent border text-foreground text-sm leading-relaxed placeholder:text-muted-foreground/30 focus:outline-none resize-none transition-all duration-300 ${
-                attempted && isTooShort
-                  ? "border-destructive/40 focus:border-destructive/60"
-                  : focused
-                  ? "border-primary/30 shadow-[0_0_40px_-12px_hsl(var(--primary)/0.15)]"
-                  : "border-border/20 hover:border-border/40"
-              }`}
+            <ProjectImporter
+              onImport={(ideaText, meta) => {
+                setText(ideaText);
+                setImportMode(false);
+                onSubmit(ideaText, meta);
+              }}
             />
-            <div className="absolute bottom-3 right-4 flex items-center gap-4">
-              <span className="text-[10px] text-muted-foreground/30">
-                ↵ to simulate
-              </span>
-              <span
-                className={`text-[10px] transition-colors ${
-                  attempted && isTooShort
-                    ? "text-destructive/60"
-                    : "text-muted-foreground/25"
-                }`}
-              >
-                {text.length}
-              </span>
-            </div>
           </motion.div>
-
-          {attempted && isTooShort && (
-            <motion.p
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-xs text-destructive/70 mt-2 ml-1"
-            >
-              A bit more detail — at least 10 characters.
-            </motion.p>
-          )}
-
-          <motion.button
-            type="submit"
-            disabled={text.trim().length < 10}
-            className="mt-6 w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground text-sm px-6 py-4 rounded-sm hover:opacity-90 transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
+        ) : (
+          <motion.form
+            key="describe"
+            onSubmit={handleSubmit}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full max-w-2xl"
           >
-            <Sparkles size={16} />
-            Simulate This Idea
-          </motion.button>
-        </motion.form>
-      )}
+            <motion.div
+              className="relative"
+              animate={shaking ? { x: [0, -8, 8, -6, 6, -3, 3, 0] } : {}}
+              transition={{ duration: 0.5 }}
+            >
+              <textarea
+                ref={textareaRef}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                placeholder={placeholders[placeholderIdx]}
+                className={`w-full min-h-[200px] p-6 rounded-lg bg-transparent border text-foreground text-sm leading-relaxed placeholder:text-muted-foreground/30 focus:outline-none resize-none transition-all duration-300 ${
+                  attempted && isTooShort
+                    ? "border-destructive/40 focus:border-destructive/60"
+                    : focused
+                    ? "border-primary/40 shadow-[0_0_40px_-12px_hsl(var(--primary)/0.18)]"
+                    : "border-border/20 hover:border-border/40"
+                }`}
+              />
+              <div className="absolute bottom-3 right-4 flex items-center gap-3">
+                <span className="text-[10px] text-muted-foreground/40 hidden sm:inline">
+                  ↵ to simulate · Shift+↵ for newline
+                </span>
+                <span
+                  className={`text-[10px] tabular-nums transition-colors ${
+                    attempted && isTooShort
+                      ? "text-destructive/60"
+                      : text.length > 0
+                      ? "text-muted-foreground/50"
+                      : "text-muted-foreground/25"
+                  }`}
+                >
+                  {text.length}
+                </span>
+              </div>
+            </motion.div>
+
+            {attempted && isTooShort && (
+              <motion.p
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-xs text-destructive/70 mt-2 ml-1"
+              >
+                A bit more detail — at least 10 characters.
+              </motion.p>
+            )}
+
+            <motion.button
+              type="submit"
+              disabled={text.trim().length < 10}
+              className="mt-6 w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground text-sm px-6 py-4 rounded-sm hover:opacity-90 transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
+              whileHover={{ scale: 1.005 }}
+              whileTap={{ scale: 0.995 }}
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <Sparkles size={16} />
+              Simulate This Idea
+            </motion.button>
+          </motion.form>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
