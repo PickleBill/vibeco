@@ -284,6 +284,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null); // diff state
   const [pulsedSection, setPulsedSection] = useState<string | null>(null);
+  const [activeNavSection, setActiveNavSection] = useState<string>("prompt");
   // Editable copies of brief sections during iterate-in-place mode
   const [editedBrief, setEditedBrief] = useState<BriefData>(brief);
   useEffect(() => {
@@ -300,6 +301,42 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+
+  // Sub-nav: smooth scroll + intersection-observer to track active section
+  const navSections = [
+    { id: "prompt", label: "Prompt" },
+    { id: "brief", label: "Brief" },
+    { id: "stress-test", label: "Stress-test" },
+    { id: "actions", label: "Actions" },
+  ];
+
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(`fr-${id}`);
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - 96;
+    window.scrollTo({ top, behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    const ids = navSections.map((s) => `fr-${s.id}`);
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible) {
+          const id = visible.target.id.replace("fr-", "");
+          setActiveNavSection(id);
+        }
+      },
+      { rootMargin: "-100px 0px -60% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] },
+    );
+    ids.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) obs.observe(el);
+    });
+    return () => obs.disconnect();
+  }, []);
 
   const handleDeepDive = async (sectionKey: string) => {
     if (expandedSection === sectionKey) {
