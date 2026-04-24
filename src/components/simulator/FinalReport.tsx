@@ -616,23 +616,45 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                 ))}
               </div>
             ) : (
-              <div className="prose prose-sm prose-invert max-w-none py-2">
-                <ReactMarkdown
-                  components={{
-                    p: ({ children }) => <p className="text-sm text-foreground/80 leading-relaxed mb-2">{children}</p>,
-                    ul: ({ children }) => <ul className="space-y-1.5 mb-2">{children}</ul>,
-                    li: ({ children }) => (
-                      <li className="text-sm text-foreground/80 leading-relaxed flex gap-2">
-                        <span className="text-primary mt-0.5 shrink-0">•</span>
-                        <span>{children}</span>
-                      </li>
-                    ),
-                    strong: ({ children }) => <strong className="text-foreground font-semibold">{children}</strong>,
-                  }}
-                >
-                  {content[key]}
-                </ReactMarkdown>
-              </div>
+              <>
+                <div className="prose prose-sm prose-invert max-w-none py-2">
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p className="text-sm text-foreground/80 leading-relaxed mb-2">{children}</p>,
+                      ul: ({ children }) => <ul className="space-y-1.5 mb-2">{children}</ul>,
+                      li: ({ children }) => (
+                        <li className="text-sm text-foreground/80 leading-relaxed flex gap-2">
+                          <span className="text-primary mt-0.5 shrink-0">•</span>
+                          <span>{children}</span>
+                        </li>
+                      ),
+                      strong: ({ children }) => <strong className="text-foreground font-semibold">{children}</strong>,
+                    }}
+                  >
+                    {content[key]}
+                  </ReactMarkdown>
+                </div>
+                {/* Deep-dive → loop footer */}
+                <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-border/30">
+                  <button
+                    onClick={() => handleAddDeepDiveToHighlights(key)}
+                    className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-sm border border-border/60 text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
+                  >
+                    <Star size={11} />
+                    Add to highlights
+                  </button>
+                  <button
+                    onClick={() => handleUseDeepDiveInPrompt(key)}
+                    disabled={isSharpening || !lovablePrompt}
+                    className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-sm bg-primary/10 border border-primary/40 text-primary hover:bg-primary/15 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    title={!lovablePrompt ? "Generate a prompt first" : "Fold this insight into your prompt"}
+                  >
+                    {isSharpening ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
+                    Use in prompt
+                    <ArrowRight size={10} />
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </motion.div>
