@@ -270,13 +270,13 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
 
   if (running) {
     const agentList = [
-      { key: "persona-skeptic", label: "Skeptic" },
-      { key: "persona-champion", label: "Champion" },
-      { key: "persona-competitor", label: "Competitor" },
-      { key: "persona-customer", label: "Customer" },
-      { key: "persona-builder", label: "Builder" },
-      { key: "expand", label: "Expand" },
-      { key: "distill", label: "Distill" },
+      { key: "persona-skeptic", label: "Skeptic", role: "Pokes holes" },
+      { key: "persona-champion", label: "Champion", role: "Finds the win" },
+      { key: "persona-competitor", label: "Competitor", role: "Plays defense" },
+      { key: "persona-customer", label: "Customer", role: "Will they buy?" },
+      { key: "persona-builder", label: "Builder", role: "Can we ship it?" },
+      { key: "expand", label: "Expand", role: "What else could this be?" },
+      { key: "distill", label: "Distill", role: "What's the one thing?" },
     ];
     const completed = progress?.completed ?? 0;
     const total = progress?.total ?? 7;
@@ -294,34 +294,49 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
             <Loader2 size={18} className="animate-spin text-primary" />
             <p className="text-sm text-foreground font-medium">Running agents in parallel…</p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+
+          {/* Living 2-line cards: name + role/teaser */}
+          <div className="grid sm:grid-cols-2 gap-2">
             {agentList.map((a) => {
               const done = agentStatus[a.key] === "done";
+              const teaser = agentTeasers[a.key];
               return (
                 <div
                   key={a.key}
-                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-[11px] border transition-all ${
+                  className={`flex items-start gap-2 px-3 py-2 rounded-md border transition-all ${
                     done
-                      ? "bg-primary/10 border-primary/30 text-primary"
-                      : "bg-muted/20 border-border/30 text-muted-foreground"
+                      ? "bg-primary/8 border-primary/25"
+                      : "bg-muted/15 border-border/30"
                   }`}
                 >
-                  {done ? <Check size={11} /> : <Circle size={9} className="animate-pulse" />}
-                  <span className="truncate">{a.label}</span>
+                  {done ? (
+                    <Check size={12} className="text-primary mt-0.5 shrink-0" />
+                  ) : (
+                    <Loader2 size={11} className="text-muted-foreground/60 mt-0.5 shrink-0 animate-spin" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className={`text-[11px] font-semibold leading-tight ${done ? "text-foreground" : "text-muted-foreground"}`}>
+                      {a.label}
+                    </p>
+                    <p className={`text-[10px] mt-0.5 leading-snug truncate ${done && teaser ? "text-foreground/70 italic" : "text-muted-foreground/60"}`}>
+                      {done && teaser ? `"${teaser}"` : a.role}
+                    </p>
+                  </div>
                 </div>
               );
             })}
           </div>
+
           <div className="mt-4 h-1 rounded-full bg-muted/30 overflow-hidden">
             <motion.div
               className="h-full bg-primary"
               initial={{ width: 0 }}
               animate={{ width: `${(completed / total) * 100}%` }}
-              transition={{ duration: 0.4 }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             />
           </div>
           <p className="text-[10px] text-muted-foreground mt-2 text-center">
-            Then synthesis reads them all and produces consensus + tensions.
+            Synthesis reads them all and produces consensus + tensions.
           </p>
         </div>
       </div>
