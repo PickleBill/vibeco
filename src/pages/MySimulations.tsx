@@ -284,28 +284,43 @@ const IdeaCard = ({
           <ArrowRight size={14} className="text-muted-foreground/40 group-hover:text-primary transition-colors shrink-0 mt-1" />
         </div>
 
-        {/* Quick actions — visible on hover */}
-        <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-border/20 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Quick actions — always visible on touch (hover:none), hover-revealed on desktop */}
+        <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-border/20 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            onClick={(e) => { e.stopPropagation(); onQuickAction("continue"); }}
+            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-primary/10 text-primary border border-primary/30 hover:bg-primary/15 transition-colors"
+            title="Resume where you left off"
+          >
+            <Play size={10} /> Continue
+          </motion.button>
           {report.lovable_prompt && (
-            <button
+            <motion.button
+              whileTap={{ scale: 0.92 }}
+              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
               onClick={(e) => { e.stopPropagation(); onQuickAction("copy-prompt"); }}
               className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             >
-              <Copy size={10} /> Copy Prompt
-            </button>
+              <Copy size={10} /> Copy
+            </motion.button>
           )}
-          <button
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
             onClick={(e) => { e.stopPropagation(); onQuickAction("fork"); }}
             className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <GitBranch size={10} /> Fork
-          </button>
-          <button
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
             onClick={(e) => { e.stopPropagation(); onQuickAction("deep-dive"); }}
             className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <Zap size={10} /> Deep Dive
-          </button>
+          </motion.button>
         </div>
       </div>
     </motion.div>
