@@ -380,7 +380,7 @@ const MySimulations = () => {
       setIsAdmin(adminStatus);
 
       let query = (supabase.from("idea_reports") as any)
-        .select("id, idea, created_at, status, brief, lovable_prompt, concept_image_url, logo_image_url, thesis_statement, thunderdome_unlocked, parent_idea_id, user_id")
+        .select("id, idea, title, created_at, status, brief, lovable_prompt, concept_image_url, logo_image_url, thesis_statement, thunderdome_unlocked, parent_idea_id, user_id")
         .order("created_at", { ascending: false })
         .limit(50);
 
