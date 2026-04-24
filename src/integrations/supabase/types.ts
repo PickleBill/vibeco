@@ -100,6 +100,7 @@ export type Database = {
           status: string | null
           thesis_statement: string | null
           thunderdome_unlocked: boolean | null
+          title: string | null
           user_id: string | null
         }
         Insert: {
@@ -122,6 +123,7 @@ export type Database = {
           status?: string | null
           thesis_statement?: string | null
           thunderdome_unlocked?: boolean | null
+          title?: string | null
           user_id?: string | null
         }
         Update: {
@@ -144,6 +146,7 @@ export type Database = {
           status?: string | null
           thesis_statement?: string | null
           thunderdome_unlocked?: boolean | null
+          title?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -157,6 +160,53 @@ export type Database = {
           {
             foreignKeyName: "idea_reports_parent_idea_id_fkey"
             columns: ["parent_idea_id"]
+            isOneToOne: false
+            referencedRelation: "idea_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      idea_stack_items: {
+        Row: {
+          content: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          kind: string
+          label: string
+          pinned: boolean
+          position: number
+          report_id: string
+          source: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          kind: string
+          label: string
+          pinned?: boolean
+          position?: number
+          report_id: string
+          source?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          kind?: string
+          label?: string
+          pinned?: boolean
+          position?: number
+          report_id?: string
+          source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "idea_stack_items_report_id_fkey"
+            columns: ["report_id"]
             isOneToOne: false
             referencedRelation: "idea_reports"
             referencedColumns: ["id"]
