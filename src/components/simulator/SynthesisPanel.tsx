@@ -376,19 +376,21 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
       transition={{ duration: 0.3 }}
       className="space-y-5"
     >
-      {/* Header with confidence ring */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h3 className="font-display text-sm font-semibold text-foreground">Synthesis</h3>
-          <p className="text-[10px] text-muted-foreground mt-0.5">
-            {result.agents_completed}/{result.agents_total} agents · {(result.timing.total / 1000).toFixed(1)}s
+      {/* Header — confidence as typographic centerpiece */}
+      <div className="flex items-end justify-between gap-4 pb-4 border-b border-border/30">
+        <div className="min-w-0">
+          <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground/70 mb-1">Synthesis</p>
+          <div className="flex items-baseline gap-2">
+            <span className={`font-display font-black tabular-nums leading-none ${conf.color}`} style={{ fontSize: "clamp(2rem, 4vw, 2.75rem)" }}>
+              {synthesis.confidence_score}%
+            </span>
+            <span className={`text-sm font-semibold ${conf.color}`}>{conf.label.toLowerCase()}</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1.5 leading-snug">
+            {synthesis.consensus.length} agreement{synthesis.consensus.length !== 1 ? "s" : ""} · {synthesis.tensions.length} tension{synthesis.tensions.length !== 1 ? "s" : ""} across {result.agents_completed} agents
           </p>
         </div>
-        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${conf.bg} ring-1 ${conf.ring}`}>
-          <Gauge size={12} className={conf.color} />
-          <span className={`text-xs font-bold ${conf.color}`}>{synthesis.confidence_score}</span>
-          <span className="text-[10px] text-muted-foreground">{conf.label}</span>
-        </div>
+        <Gauge size={28} className={`${conf.color} opacity-50 shrink-0 mb-2`} />
       </div>
 
       {/* Executive summary — the headline */}
