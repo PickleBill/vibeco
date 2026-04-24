@@ -203,20 +203,12 @@ export const generateStructuredPDF = (
     if (section.key === "core_features" && Array.isArray(val)) {
       (val as BriefData["core_features"]).forEach((feat, fi) => {
         ensureSpace(12);
-        const strength = 60 + (hashStr(feat.name + fi) % 35);
         pdf.setFontSize(10);
         pdf.setTextColor(210, 210, 225);
         pdf.text(`${fi + 1}. ${feat.name}`, margin + 2, y);
         y += 5;
         writeWrapped(feat.description, margin + 6, contentW - 6, 9, [160, 160, 175]);
-        pdf.setFillColor(40, 40, 50);
-        pdf.roundedRect(margin + 6, y - 1, 50, 3, 1, 1, "F");
-        pdf.setFillColor(100, 100, 180);
-        pdf.roundedRect(margin + 6, y - 1, 50 * (strength / 100), 3, 1, 1, "F");
-        pdf.setFontSize(7);
-        pdf.setTextColor(130, 130, 150);
-        pdf.text(`${strength}%`, margin + 60, y + 1.5);
-        y += 7;
+        y += 2;
       });
     } else if (typeof val === "string") {
       writeWrapped(val, margin + 2, contentW - 2, 9.5, [200, 200, 215]);
