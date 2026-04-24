@@ -1034,11 +1034,87 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                 reportId={reportId}
                 onReorderFeatures={handleReorderFeatures}
                 onPromptUpdate={(p) => setLovablePrompt(p)}
+                editMode={editMode}
+                onCancelEdit={handleCancelEdit}
+                onReSimulate={handleReSimulateWithEdits}
+                stackItems={stack.items}
+                onAddToStack={stack.add}
+                stackHasItem={stack.hasItem}
               />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      {/* Vibe Stack — always-visible floating drawer once there's any work to curate */}
+      {(phase === "brief" || phase === "final") && (
+        <VibeStack
+          items={stack.items}
+          onTogglePin={stack.togglePin}
+          onRemove={stack.remove}
+          onReorder={stack.reorder}
+          hasPrompt={!!lovablePrompt}
+          onSharpen={async () => {
+            try {
+              const { data, error } = await supabase.functions.invoke("refine-prompt", {
+                body: {
+                  brief: latestRound?.brief,
+                  idea,
+                  original_prompt: lovablePrompt || undefined,
+                  highlights: Array.from(highlights),
+                  antiHighlights: Array.from(antiHighlights),
+                  stack_items: stack.items.map((it) => ({
+                    kind: it.kind,
+                    source: it.source,
+                    label: it.label,
+                    content: it.content,
+                    pinned: it.pinned,
+                  })),
+                  refinement_context: "Rebuild the prompt from the curated Vibe Stack — pinned items are mandatory, suggested items strengthen direction.",
+                },
+              });
+              if (error) throw error;
+              if (data?.error) throw new Error(data.error);
+              if (data?.lovable_prompt) {
+                setLovablePrompt(data.lovable_prompt);
+                toast.success("Prompt sharpened from your Vibe Stack.");
+              }
+            } catch (e) {
+              console.error("Stack sharpen error:", e);
+              toast.error(e instanceof Error ? e.message : "Failed to sharpen.");
+            }
+          }}
+          onSnapshot={async () => {
+            if (!reportId) {
+              toast.error("Save the report first (add an email).");
+              return;
+            }
+            try {
+              const label = `Snapshot · ${new Date().toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`;
+              const { data: existing } = await (supabase.from("idea_reports") as any)
+                .select("prompt_versions")
+                .eq("id", reportId)
+                .single();
+              const versions = Array.isArray(existing?.prompt_versions) ? existing.prompt_versions : [];
+              versions.push({
+                label,
+                prompt: lovablePrompt || null,
+                stack: stack.items.map((it) => ({
+                  kind: it.kind, source: it.source, label: it.label, pinned: it.pinned,
+                })),
+                created_at: new Date().toISOString(),
+              });
+              await (supabase.from("idea_reports") as any)
+                .update({ prompt_versions: versions })
+                .eq("id", reportId);
+              toast.success(`Saved: ${label}`);
+            } catch (e) {
+              console.error("Snapshot error:", e);
+              toast.error("Failed to save snapshot.");
+            }
+          }}
+        />
+      )}
 
       <AlertDialog open={showRestartConfirm} onOpenChange={setShowRestartConfirm}>
         <AlertDialogContent>
