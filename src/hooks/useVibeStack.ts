@@ -111,7 +111,7 @@ export function useVibeStack(reportId: string | null | undefined): UseVibeStackR
   );
 
   const add = useCallback(
-    async ({ kind, source = null, label, content, pinned = false }: AddItemArgs) => {
+    async ({ kind, source = null, label, content, pinned = false, round }: AddItemArgs) => {
       const nextPosition = items.length;
       if (!reportId) {
         const local: StackItem = {
@@ -125,6 +125,7 @@ export function useVibeStack(reportId: string | null | undefined): UseVibeStackR
           pinned,
           deleted_at: null,
           created_at: new Date().toISOString(),
+          round,
         };
         const next = [...items, local];
         setItems(next);
@@ -136,7 +137,7 @@ export function useVibeStack(reportId: string | null | undefined): UseVibeStackR
           .insert({
             report_id: reportId,
             kind,
-            source,
+            source: encodeSource(source, round),
             label,
             content,
             position: nextPosition,
@@ -145,7 +146,7 @@ export function useVibeStack(reportId: string | null | undefined): UseVibeStackR
           .select()
           .single();
         if (error) throw error;
-        const created = data as StackItem;
+        const created = decodeItem(data);
         setItems((prev) => [...prev, created]);
         return created;
       } catch (e) {
