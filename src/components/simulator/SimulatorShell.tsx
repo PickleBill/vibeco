@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, Zap, Brain, X } from "lucide-react";
+import { Zap, Brain, X } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
