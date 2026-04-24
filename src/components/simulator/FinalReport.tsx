@@ -735,7 +735,9 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                     {content[key]}
                   </ReactMarkdown>
                 </div>
-                {/* Deep-dive → loop footer */}
+                {/* Deep-dive → loop footer.
+                    "Pin & open Stack" replaces the old "Use in prompt" + "+ pin to stack"
+                    duo so all sharpening converges on the Vibe Stack drawer. */}
                 <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-border/30">
                   <button
                     onClick={() => handleAddDeepDiveToHighlights(key)}
@@ -744,32 +746,21 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                     <Star size={11} />
                     Add to highlights
                   </button>
-                  {onAddToStack && stackHasItem && (
-                    <AddToStackButton
-                      size="sm"
-                      label="+ pin to stack"
-                      added={stackHasItem("deep_dive", key, sectionMeta.find((s) => s.key === key)?.label || key)}
-                      onAdd={() =>
-                        onAddToStack({
-                          kind: "deep_dive",
-                          source: key,
-                          label: sectionMeta.find((s) => s.key === key)?.label || key,
-                          content: content[key] || "",
-                          pinned: true,
-                        })
-                      }
-                    />
-                  )}
-                  <button
-                    onClick={() => handleUseDeepDiveInPrompt(key)}
-                    disabled={isSharpening || !lovablePrompt}
-                    className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-sm bg-primary/10 border border-primary/40 text-primary hover:bg-primary/15 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    title={!lovablePrompt ? "Generate a prompt first" : "Fold this insight into your prompt"}
-                  >
-                    {isSharpening ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
-                    Use in prompt
-                    <ArrowRight size={10} />
-                  </button>
+                  {onAddToStack && stackHasItem && (() => {
+                    const label = sectionMeta.find((s) => s.key === key)?.label || key;
+                    const alreadyIn = stackHasItem("deep_dive", key, label);
+                    return (
+                      <button
+                        onClick={() => handleUseDeepDiveInPrompt(key)}
+                        className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-sm bg-primary/10 border border-primary/40 text-primary hover:bg-primary/15 transition-colors"
+                        title={alreadyIn ? "Already pinned — open the Vibe Stack to sharpen" : "Pin this insight and open the Vibe Stack"}
+                      >
+                        <Sparkles size={11} className={alreadyIn ? "fill-primary" : ""} />
+                        {alreadyIn ? "Open in Stack" : "Pin & open Stack"}
+                        <ArrowRight size={10} />
+                      </button>
+                    );
+                  })()}
                 </div>
               </>
             )}
