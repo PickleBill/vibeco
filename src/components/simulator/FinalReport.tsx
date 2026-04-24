@@ -86,18 +86,7 @@ const sectionMeta = [
   { key: "customer_perspective", label: "Customer Perspective", icon: MessageSquare },
 ] as const;
 
-const hashStr = (s: string) => {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
-  return Math.abs(h);
-};
-
-export const computeScores = (brief: BriefData) => [
-  { label: "Market", value: 60 + (hashStr(brief.problem) % 30) },
-  { label: "Product", value: 55 + (hashStr(JSON.stringify(brief.core_features)) % 35) },
-  { label: "Revenue", value: 60 + (hashStr(brief.revenue_model) % 30) },
-  { label: "Timing", value: 50 + (hashStr(brief.industry_trends) % 35) },
-];
+/* (computeScores removed — was deterministic hash filler, no real signal) */
 
 /* ─── Sortable Feature ─── */
 const SortableFeature = ({ feat, index, id }: { feat: { name: string; description: string }; index: number; id: string }) => {
@@ -281,18 +270,19 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   const [activeNavSection, setActiveNavSection] = useState<string>("prompt");
   // Editable copies of brief sections during iterate-in-place mode
   const [editedBrief, setEditedBrief] = useState<BriefData>(brief);
+  const [editedSections, setEditedSections] = useState<Set<string>>(new Set());
   useEffect(() => {
     // Reset editable copy whenever the underlying brief changes (new round)
     // or edit mode is toggled on/off.
     setEditedBrief(brief);
+    setEditedSections(new Set());
   }, [brief, editMode]);
   const reportRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  const scores = computeScores(brief);
-
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    // Keyboard sensor — Escape cancels active drag automatically via dnd-kit
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
@@ -399,9 +389,16 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   };
 
   const handleDownloadPDF = () => {
+    if (!showPrompt) {
+      // Email-gate inline — focus the email field at the top of the action row
+      toast("Add an email to download the PDF.");
+      const emailInput = document.querySelector<HTMLInputElement>('input[type="email"]');
+      emailInput?.focus();
+      return;
+    }
     setIsExporting(true);
     try {
-      generateStructuredPDF(brief, idea, rounds, scores, lovablePrompt);
+      generateStructuredPDF(brief, idea, rounds, [], lovablePrompt);
       toast.success("PDF downloaded!");
     } catch (err) {
       console.error("PDF export error:", err);
