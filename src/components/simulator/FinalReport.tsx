@@ -690,10 +690,44 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
       >
         <div className="h-px flex-1 bg-border/30" />
         <p className="text-[10px] text-primary uppercase tracking-[0.3em]">
-          Simulation Complete · {rounds.length} round{rounds.length !== 1 ? "s" : ""}
+          {editMode ? `Refining · Round ${rounds.length + 1}` : `Simulation Complete · ${rounds.length} round${rounds.length !== 1 ? "s" : ""}`}
         </p>
         <div className="h-px flex-1 bg-border/30" />
       </motion.div>
+
+      {/* Iterate-in-place banner */}
+      {editMode && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 p-4 rounded-lg border border-primary/40 bg-primary/8"
+          style={{ boxShadow: "0 0 28px hsl(var(--primary) / 0.12)" }}
+        >
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex-1">
+              <p className="font-display text-sm font-bold text-foreground">Refine in place</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Edit any section below, then re-simulate. Your highlights, deep-dives, and Vibe Stack carry forward.
+              </p>
+            </div>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <button
+                onClick={onCancelEdit}
+                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-sm border border-border text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => onReSimulate?.(editedBrief)}
+                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+              >
+                <Wand2 size={12} />
+                Re-simulate with these changes
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Email banner — only gates PDF/Share, NOT the prompt */}
       {!showPrompt && (
