@@ -119,16 +119,18 @@ const AddProjectDialog = ({ open, onOpenChange, onSave, initial }: Props) => {
               />
             </div>
             <div>
-              <Label className="text-xs">Lovable Project ID</Label>
+              <Label className="text-xs flex items-center gap-1.5">
+                Lovable ID
+                <span className="text-[8px] uppercase tracking-wider px-1 py-px rounded-sm bg-warning/15 text-warning border border-warning/25 font-semibold">
+                  Beta
+                </span>
+              </Label>
               <Input
                 value={lovableId}
                 onChange={(e) => setLovableId(e.target.value)}
-                placeholder="14cfc7e9-e959-…"
+                placeholder="optional"
                 className="mt-1 text-xs"
               />
-              <p className="text-[10px] text-muted-foreground/60 mt-1 leading-snug">
-                Find it in the project URL: <code className="text-foreground/70">lovable.dev/projects/<span className="text-primary">{`{this-id}`}</span></code>
-              </p>
             </div>
           </div>
           <div>
