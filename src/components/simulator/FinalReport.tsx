@@ -21,6 +21,7 @@ import {
   Sparkles,
   Share2,
   GripVertical,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
