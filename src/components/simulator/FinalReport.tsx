@@ -870,12 +870,35 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
             )}
           </div>
 
+          {/* Sticky sub-nav — quick jump between report regions */}
+          <nav className="sticky top-16 z-30 -mx-2 mb-6 px-2 py-2 bg-background/85 backdrop-blur-md border-y border-border/40">
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+              {navSections.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => scrollToSection(s.id)}
+                  className={`shrink-0 text-[11px] px-3 py-1.5 rounded-full border transition-all ${
+                    activeNavSection === s.id
+                      ? "border-primary/60 bg-primary/15 text-primary font-semibold"
+                      : "border-border/40 text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                  }`}
+                >
+                  {s.label}
+                  {s.id === "stress-test" && stackItems && stackItems.length > 0 && (
+                    <span className="ml-1.5 text-[9px] opacity-70">{stackItems.length}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </nav>
+
           {/* ★ HERO: Single prompt block with three states (empty / shown / sharpening-diff) */}
           <motion.div
+            id="fr-prompt"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className="mb-8"
+            className="mb-8 scroll-mt-24"
           >
             {/* Persistent highlight summary banner — visible whenever there's input */}
               {(highlights && highlights.size > 0) || (antiHighlights && antiHighlights.size > 0) ? (
