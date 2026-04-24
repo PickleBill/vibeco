@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Clock, Sparkles, ArrowRight, Plus, Zap, Eye, EyeOff,
   GitBranch, BarChart3, ChevronDown, ChevronRight, Copy, X,
-  Maximize2, Minimize2, MessageSquare
+  Maximize2, Minimize2, MessageSquare, Play
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
