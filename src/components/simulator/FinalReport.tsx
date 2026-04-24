@@ -1231,17 +1231,26 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
           />
         </div>
 
-        <div className="flex flex-wrap gap-4 justify-center mt-6">
+        <div className="flex flex-wrap gap-3 justify-center mt-10 pt-6 border-t border-border/30">
+          {onIterate && !editMode && (
+            <button
+              onClick={onIterate}
+              className="flex items-center gap-2 text-xs font-semibold text-primary px-4 py-2 rounded-sm border border-primary/40 hover:bg-primary/10 transition-colors"
+            >
+              <Wand2 size={12} />
+              Refine this idea in place
+            </button>
+          )}
           <button
             onClick={onRestart}
-            className="flex items-center gap-2 text-xs text-muted-foreground/50 px-4 py-2 rounded-sm hover:text-muted-foreground transition-colors"
+            className="flex items-center gap-2 text-xs text-muted-foreground/60 px-4 py-2 rounded-sm hover:text-muted-foreground transition-colors"
           >
             <RotateCcw size={12} />
-            Start fresh
+            Start over
           </button>
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-2 text-xs text-muted-foreground/50 px-4 py-2 rounded-sm hover:text-muted-foreground transition-colors"
+            className="flex items-center gap-2 text-xs text-muted-foreground/60 px-4 py-2 rounded-sm hover:text-muted-foreground transition-colors"
           >
             <ArrowLeft size={12} />
             Home
