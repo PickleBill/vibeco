@@ -491,6 +491,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
             await (supabase.from("idea_reports") as any)
               .update({
                 brief: latestBrief,
+                title: deriveTitle(latestBrief, idea),
                 rounds: roundsData,
                 lovable_prompt: data.lovable_prompt || null,
                 concept_image_url: conceptImage || null,
@@ -503,6 +504,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
             const { data: reportData } = await (supabase.from("idea_reports") as any)
               .insert({
                 idea: idea.trim(),
+                title: deriveTitle(latestBrief, idea),
                 brief: latestBrief,
                 rounds: roundsData,
                 lovable_prompt: data.lovable_prompt || null,
