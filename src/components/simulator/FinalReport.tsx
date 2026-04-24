@@ -74,6 +74,8 @@ interface Props {
   stackItems?: StackItem[];
   onAddToStack?: (args: AddItemArgs) => Promise<StackItem | null>;
   stackHasItem?: (kind: StackKind, source: string | null | undefined, label: string) => boolean;
+  /** Open the Vibe Stack drawer; optionally flash a specific chit by id. */
+  onOpenStack?: (highlightId?: string | null) => void;
 }
 
 const sectionMeta = [
@@ -253,7 +255,7 @@ export const generateStructuredPDF = (
   pdf.save(fileName);
 };
 
-const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights, onToggleHighlight, antiHighlights, onToggleAntiHighlight, reportId, onReorderFeatures, onPromptUpdate, editMode, onCancelEdit, onReSimulate, stackItems, onAddToStack, stackHasItem }: Props) => {
+const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights, onToggleHighlight, antiHighlights, onToggleAntiHighlight, reportId, onReorderFeatures, onPromptUpdate, editMode, onCancelEdit, onReSimulate, stackItems, onAddToStack, stackHasItem, onOpenStack }: Props) => {
   const [email, setEmail] = useState(unlockEmail || "");
   const [showPrompt, setShowPrompt] = useState(!!unlocked);
   const [isExporting, setIsExporting] = useState(false);
@@ -530,15 +532,34 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
 
   const handleGeneratePrompt = () => runRefine(setIsGeneratingPrompt, undefined, "Prompt generated");
 
-  const handleUseDeepDiveInPrompt = (sectionKey: string) => {
+  // Centralized sharpen rule (Sprint 9.B): instead of running a parallel refine,
+  // a deep-dive's "Use in prompt" pins the insight as a Vibe Stack chit and opens
+  // the drawer with that chit briefly highlighted. The drawer's "Sharpen prompt"
+  // button is the single canonical entry point for prompt regeneration.
+  const handleUseDeepDiveInPrompt = async (sectionKey: string) => {
     const content = deepDiveContent[sectionKey];
     if (!content) return;
     const sectionLabel = sectionMeta.find((s) => s.key === sectionKey)?.label || sectionKey;
-    runRefine(
-      setIsSharpening,
-      `Emphasize the following insight from the deep-dive on "${sectionLabel}" — fold it into the prompt as a guiding direction:\n\n${content}`,
-      `Folded "${sectionLabel}" deep-dive into the prompt`,
-    );
+    if (!onAddToStack) {
+      toast.error("Stack unavailable.");
+      return;
+    }
+    const alreadyIn = stackHasItem?.("deep_dive", sectionKey, sectionLabel);
+    let chitId: string | null = null;
+    if (!alreadyIn) {
+      const created = await onAddToStack({
+        kind: "deep_dive",
+        source: sectionKey,
+        label: sectionLabel,
+        content,
+        pinned: true,
+      });
+      chitId = created?.id || null;
+      toast.success(`Pinned "${sectionLabel}" — open Sharpen to fold it in.`);
+    } else {
+      toast.info(`"${sectionLabel}" is already in your stack.`);
+    }
+    onOpenStack?.(chitId);
   };
 
   const handleAddDeepDiveToHighlights = (sectionKey: string) => {
@@ -714,7 +735,9 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                     {content[key]}
                   </ReactMarkdown>
                 </div>
-                {/* Deep-dive → loop footer */}
+                {/* Deep-dive → loop footer.
+                    "Pin & open Stack" replaces the old "Use in prompt" + "+ pin to stack"
+                    duo so all sharpening converges on the Vibe Stack drawer. */}
                 <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-border/30">
                   <button
                     onClick={() => handleAddDeepDiveToHighlights(key)}
@@ -723,32 +746,21 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                     <Star size={11} />
                     Add to highlights
                   </button>
-                  {onAddToStack && stackHasItem && (
-                    <AddToStackButton
-                      size="sm"
-                      label="+ pin to stack"
-                      added={stackHasItem("deep_dive", key, sectionMeta.find((s) => s.key === key)?.label || key)}
-                      onAdd={() =>
-                        onAddToStack({
-                          kind: "deep_dive",
-                          source: key,
-                          label: sectionMeta.find((s) => s.key === key)?.label || key,
-                          content: content[key] || "",
-                          pinned: true,
-                        })
-                      }
-                    />
-                  )}
-                  <button
-                    onClick={() => handleUseDeepDiveInPrompt(key)}
-                    disabled={isSharpening || !lovablePrompt}
-                    className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-sm bg-primary/10 border border-primary/40 text-primary hover:bg-primary/15 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    title={!lovablePrompt ? "Generate a prompt first" : "Fold this insight into your prompt"}
-                  >
-                    {isSharpening ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
-                    Use in prompt
-                    <ArrowRight size={10} />
-                  </button>
+                  {onAddToStack && stackHasItem && (() => {
+                    const label = sectionMeta.find((s) => s.key === key)?.label || key;
+                    const alreadyIn = stackHasItem("deep_dive", key, label);
+                    return (
+                      <button
+                        onClick={() => handleUseDeepDiveInPrompt(key)}
+                        className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-sm bg-primary/10 border border-primary/40 text-primary hover:bg-primary/15 transition-colors"
+                        title={alreadyIn ? "Already pinned — open the Vibe Stack to sharpen" : "Pin this insight and open the Vibe Stack"}
+                      >
+                        <Sparkles size={11} className={alreadyIn ? "fill-primary" : ""} />
+                        {alreadyIn ? "Open in Stack" : "Pin & open Stack"}
+                        <ArrowRight size={10} />
+                      </button>
+                    );
+                  })()}
                 </div>
               </>
             )}

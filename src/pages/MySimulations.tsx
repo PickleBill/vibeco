@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
-  ArrowLeft, Clock, Sparkles, ArrowRight, Plus, Zap, Eye, EyeOff,
-  GitBranch, BarChart3, ChevronDown, ChevronRight, Copy, X,
-  Maximize2, Minimize2, MessageSquare, Play
+  Clock, Sparkles, ArrowRight, Plus, Zap, Eye, EyeOff,
+  GitBranch, Copy, Play
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -27,11 +26,6 @@ interface IdeaReport {
   user_id: string | null;
 }
 
-interface PerspectiveCount {
-  report_id: string;
-  count: number;
-}
-
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
   "in-progress": { label: "In Progress", color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/30" },
   "brief-complete": { label: "Brief Ready", color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/30" },
@@ -39,143 +33,28 @@ const statusConfig: Record<string, { label: string; color: string; bg: string }>
   "prompt-ready": { label: "Prompt Ready", color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/30" },
 };
 
-/* (Intent emoji map removed — quiet typography only, like FinalReport) */
-
 /* ─── Progress helpers ─── */
 const computeProgress = (report: IdeaReport, pCount: number) => {
   let steps = 0;
   let total = 5; // brief, perspectives (5), expand, distill, prompt
   if (report.brief) steps++;
-  steps += Math.min(pCount, 5) * 0.6; // Each perspective = 0.6 of a step (max 3)
+  steps += Math.min(pCount, 5) * 0.6;
   if (report.thunderdome_unlocked) steps += 0.5;
   if (report.lovable_prompt) steps++;
   return Math.min(Math.round((steps / total) * 100), 100);
-};
-
-/* ─── Lineage helpers ─── */
-interface TreeNode {
-  report: IdeaReport;
-  children: TreeNode[];
-}
-
-function buildLineageTree(reports: IdeaReport[]): TreeNode[] {
-  const map = new Map<string, TreeNode>();
-  reports.forEach(r => map.set(r.id, { report: r, children: [] }));
-
-  const roots: TreeNode[] = [];
-  reports.forEach(r => {
-    if (r.parent_idea_id && map.has(r.parent_idea_id)) {
-      map.get(r.parent_idea_id)!.children.push(map.get(r.id)!);
-    } else {
-      roots.push(map.get(r.id)!);
-    }
-  });
-  return roots;
-}
-
-/* ─── Compare Panel ─── */
-const ComparePanel = ({ ideas, onClose }: { ideas: IdeaReport[]; onClose: () => void }) => {
-  const [a, b] = ideas;
-  const sections = ["problem", "target_customer", "revenue_model", "industry_trends"] as const;
-  const sectionLabels: Record<string, string> = {
-    problem: "Problem",
-    target_customer: "Target Customer",
-    revenue_model: "Revenue Model",
-    industry_trends: "Industry & Trends",
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-      className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm overflow-y-auto"
-    >
-      <div className="max-w-5xl mx-auto px-6 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="font-display text-xl font-bold text-foreground">Side-by-Side Compare</h2>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-muted transition-colors">
-            <X size={18} className="text-muted-foreground" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-6">
-          {/* Headers */}
-          {[a, b].map((idea) => (
-            <div key={idea.id} className="p-4 rounded-lg border border-border bg-card/50">
-              <p className="font-display text-sm font-bold text-foreground truncate">{idea.idea.slice(0, 60)}</p>
-              <p className="text-[10px] text-muted-foreground mt-1">
-                {new Date(idea.created_at).toLocaleDateString()}
-              </p>
-            </div>
-          ))}
-
-          {/* Section comparisons */}
-          {sections.map((key) => (
-            <div key={key} className="contents">
-              {[a, b].map((idea) => (
-                <div key={`${idea.id}-${key}`} className="p-4 rounded-lg border border-border/30">
-                  <p className="text-[10px] text-primary uppercase tracking-wider mb-2">
-                    {sectionLabels[key]}
-                  </p>
-                  <p className="text-xs text-foreground/80 leading-relaxed">
-                    {idea.brief?.[key] || "—"}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ))}
-
-          {/* Feature count */}
-          {[a, b].map((idea) => (
-            <div key={`${idea.id}-features`} className="p-4 rounded-lg border border-border/30">
-              <p className="text-[10px] text-primary uppercase tracking-wider mb-2">Core Features</p>
-              {Array.isArray(idea.brief?.core_features) ? (
-                <ul className="space-y-1">
-                  {idea.brief.core_features.map((f: any, i: number) => (
-                    <li key={i} className="text-xs text-foreground/80">
-                      <span className="text-primary font-bold">{i + 1}.</span> {f.name}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-xs text-muted-foreground">—</p>
-              )}
-            </div>
-          ))}
-
-          {/* Thesis */}
-          {[a, b].map((idea) => (
-            <div key={`${idea.id}-thesis`} className="p-4 rounded-lg border border-primary/20 bg-primary/5">
-              <p className="text-[10px] text-primary uppercase tracking-wider mb-2">Thesis</p>
-              <p className="text-xs text-foreground/80 italic leading-relaxed">
-                {idea.thesis_statement || "Not yet generated"}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </motion.div>
-  );
 };
 
 /* ─── Idea Card ─── */
 const IdeaCard = ({
   report,
   perspectiveCount,
-  isSelected,
-  onSelect,
   onNavigate,
   onQuickAction,
-  depth = 0,
 }: {
   report: IdeaReport;
   perspectiveCount: number;
-  isSelected: boolean;
-  onSelect: () => void;
   onNavigate: () => void;
   onQuickAction: (action: string) => void;
-  depth?: number;
 }) => {
   const status = getStatusInfo(report);
   const progress = computeProgress(report, perspectiveCount);
@@ -186,33 +65,11 @@ const IdeaCard = ({
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`group relative border rounded-lg transition-all cursor-pointer ${
-        isSelected
-          ? "border-primary/60 bg-primary/5 shadow-lg shadow-primary/10"
-          : "border-border bg-card hover:border-primary/30 hover:shadow-md hover:shadow-primary/5"
-      }`}
-      style={{ marginLeft: depth * 24 }}
+      className="group relative border border-border bg-card rounded-lg transition-all cursor-pointer hover:border-primary/30 hover:shadow-md hover:shadow-primary/5"
     >
-      {/* Selection checkbox */}
-      <button
-        onClick={(e) => { e.stopPropagation(); onSelect(); }}
-        className={`absolute top-3 left-3 w-5 h-5 rounded border-2 flex items-center justify-center transition-all z-10 ${
-          isSelected
-            ? "border-primary bg-primary text-primary-foreground"
-            : "border-border/50 opacity-0 group-hover:opacity-100"
-        }`}
-      >
-        {isSelected && <span className="text-[10px]">✓</span>}
-      </button>
-
-      {/* Lineage connector */}
-      {depth > 0 && (
-        <div className="absolute -left-3 top-6 w-3 h-px bg-primary/30" />
-      )}
-
-      <div className="p-4 pl-10" onClick={onNavigate}>
+      <div className="p-4" onClick={onNavigate}>
         <div className="flex items-start gap-3">
-          {/* Logo */}
+          {/* Logo (44px identifier) */}
           {report.logo_image_url ? (
             <div className="w-11 h-11 rounded-lg overflow-hidden border border-border/50 shrink-0">
               <img src={report.logo_image_url} alt="" className="w-full h-full object-cover" />
@@ -306,14 +163,6 @@ const IdeaCard = ({
           >
             <GitBranch size={10} /> Fork
           </motion.button>
-          <motion.button
-            whileTap={{ scale: 0.92 }}
-            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-            onClick={(e) => { e.stopPropagation(); onQuickAction("deep-dive"); }}
-            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          >
-            <Zap size={10} /> Deep Dive
-          </motion.button>
         </div>
       </div>
     </motion.div>
@@ -330,7 +179,6 @@ function getStatusInfo(report: IdeaReport) {
 }
 
 function getProductName(report: IdeaReport): string {
-  // Prefer the auto-generated title; fall back to first sentence of idea text.
   if (report.title && report.title.trim().length > 0) return report.title;
   const idea = report.idea || "";
   if (idea.length <= 50) return idea;
@@ -349,9 +197,6 @@ const MySimulations = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAll, setShowAll] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string>("");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [showCompare, setShowCompare] = useState(false);
-  const [viewMode, setViewMode] = useState<"flat" | "tree">("flat");
 
   useEffect(() => {
     (async () => {
@@ -409,21 +254,6 @@ const MySimulations = () => {
     })();
   }, [navigate]);
 
-  const toggleSelect = (id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else if (next.size < 2) next.add(id);
-      else {
-        // Replace oldest selection
-        const arr = Array.from(next);
-        next.delete(arr[0]);
-        next.add(id);
-      }
-      return next;
-    });
-  };
-
   const handleQuickAction = async (reportId: string, action: string) => {
     const report = reports.find(r => r.id === reportId);
     if (!report) return;
@@ -438,10 +268,7 @@ const MySimulations = () => {
           forkedFrom: report.idea,
         },
       });
-    } else if (action === "deep-dive") {
-      navigate(`/simulate?id=${reportId}`);
     } else if (action === "continue") {
-      // Resume the same report at the right phase based on its status.
       navigate(`/simulate?id=${reportId}`);
       toast.success("Resuming where you left off…");
     }
@@ -451,30 +278,6 @@ const MySimulations = () => {
   const filteredReports = isAdmin && !showAll
     ? reports.filter(r => r.user_id === currentUserId)
     : reports;
-
-  const lineageTree = buildLineageTree(filteredReports);
-
-  const selectedReports = filteredReports.filter(r => selectedIds.has(r.id));
-
-  const renderTreeNode = (node: TreeNode, depth = 0): React.ReactNode => (
-    <div key={node.report.id}>
-      <IdeaCard
-        report={node.report}
-        perspectiveCount={perspectiveCounts[node.report.id] || 0}
-        isSelected={selectedIds.has(node.report.id)}
-        onSelect={() => toggleSelect(node.report.id)}
-        onNavigate={() => navigate(`/simulate?id=${node.report.id}`)}
-        onQuickAction={(action) => handleQuickAction(node.report.id, action)}
-        depth={depth}
-      />
-      {node.children.length > 0 && (
-        <div className="mt-2 space-y-2 relative">
-          <div className="absolute left-5 top-0 bottom-4 w-px bg-primary/15" style={{ marginLeft: depth * 24 }} />
-          {node.children.map(child => renderTreeNode(child, depth + 1))}
-        </div>
-      )}
-    </div>
-  );
 
   return (
     <>
@@ -502,9 +305,9 @@ const MySimulations = () => {
             </button>
           </div>
 
-          {/* Toolbar: Admin toggle + View mode + Compare */}
-          <div className="flex flex-wrap items-center gap-2 mb-6">
-            {isAdmin && (
+          {/* Toolbar — admin-only */}
+          {isAdmin && (
+            <div className="flex flex-wrap items-center gap-2 mb-6">
               <button
                 onClick={() => setShowAll(prev => !prev)}
                 className={`flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-full border transition-all ${
@@ -516,45 +319,11 @@ const MySimulations = () => {
                 {showAll ? <Eye size={12} /> : <EyeOff size={12} />}
                 {showAll ? "All ideas" : "My ideas only"}
               </button>
-            )}
-
-            {filteredReports.length > 1 && (
-              <>
-                <button
-                  onClick={() => setViewMode(prev => prev === "flat" ? "tree" : "flat")}
-                  className={`flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-full border transition-all ${
-                    viewMode === "tree"
-                      ? "border-primary/40 bg-primary/10 text-primary"
-                      : "border-border bg-card text-muted-foreground"
-                  }`}
-                >
-                  <GitBranch size={11} />
-                  {viewMode === "tree" ? "Lineage view" : "Flat view"}
-                </button>
-
-                <AnimatePresence>
-                  {selectedIds.size === 2 && (
-                    <motion.button
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      onClick={() => setShowCompare(true)}
-                      className="flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-full border border-accent/40 bg-accent/10 text-accent"
-                    >
-                      <BarChart3 size={11} />
-                      Compare selected
-                    </motion.button>
-                  )}
-                </AnimatePresence>
-              </>
-            )}
-
-            {isAdmin && (
               <span className="text-[10px] text-muted-foreground ml-auto">
                 Admin · {filteredReports.length} showing
               </span>
-            )}
-          </div>
+            </div>
+          )}
 
           {loading ? (
             <div className="flex items-center justify-center py-20">
@@ -577,10 +346,6 @@ const MySimulations = () => {
                 Run Your First Simulation
               </button>
             </div>
-          ) : viewMode === "tree" ? (
-            <div className="space-y-3">
-              {lineageTree.map(node => renderTreeNode(node))}
-            </div>
           ) : (
             <div className="space-y-3">
               {filteredReports.map((report) => (
@@ -588,8 +353,6 @@ const MySimulations = () => {
                   key={report.id}
                   report={report}
                   perspectiveCount={perspectiveCounts[report.id] || 0}
-                  isSelected={selectedIds.has(report.id)}
-                  onSelect={() => toggleSelect(report.id)}
                   onNavigate={() => navigate(`/simulate?id=${report.id}`)}
                   onQuickAction={(action) => handleQuickAction(report.id, action)}
                 />
@@ -598,13 +361,6 @@ const MySimulations = () => {
           )}
         </div>
       </div>
-
-      {/* Compare overlay */}
-      <AnimatePresence>
-        {showCompare && selectedReports.length === 2 && (
-          <ComparePanel ideas={selectedReports} onClose={() => setShowCompare(false)} />
-        )}
-      </AnimatePresence>
     </>
   );
 };

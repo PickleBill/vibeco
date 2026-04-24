@@ -14,6 +14,9 @@ export interface StackItem {
   pinned: boolean;
   deleted_at: string | null;
   created_at: string;
+  /** Which round of the simulation this insight came from. Stored client-side
+   *  in `source` as `"<round>:<source>"` when persisted, parsed back on read. */
+  round?: number;
 }
 
 export interface AddItemArgs {
@@ -22,6 +25,7 @@ export interface AddItemArgs {
   label: string;
   content: string;
   pinned?: boolean;
+  round?: number;
 }
 
 const LOCAL_KEY = "vibeco_stack_local";
@@ -47,6 +51,23 @@ export function useVibeStack(reportId: string | null | undefined): UseVibeStackR
 
   const localKey = reportId ? `${LOCAL_KEY}_${reportId}` : LOCAL_KEY;
 
+  // Encode/decode `round` inside the `source` column without a schema change:
+  //   stored:    "r2|deep_dive_problem"   or just "r2|" for round-only.
+  //   round-less items keep their source untouched.
+  const encodeSource = (source: string | null | undefined, round?: number): string | null => {
+    if (round == null) return source ?? null;
+    return `r${round}|${source ?? ""}`;
+  };
+  const decodeItem = (raw: any): StackItem => {
+    const src: string = raw?.source ?? "";
+    const m = typeof src === "string" ? src.match(/^r(\d+)\|(.*)$/) : null;
+    return {
+      ...raw,
+      source: m ? (m[2] || null) : (raw?.source ?? null),
+      round: m ? Number(m[1]) : undefined,
+    } as StackItem;
+  };
+
   const refresh = useCallback(async () => {
     if (!reportId) {
       // Local-only fallback
@@ -66,7 +87,7 @@ export function useVibeStack(reportId: string | null | undefined): UseVibeStackR
         .is("deleted_at", null)
         .order("position", { ascending: true });
       if (error) throw error;
-      setItems((data as StackItem[]) || []);
+      setItems(((data as any[]) || []).map(decodeItem));
     } catch (e) {
       console.error("Stack fetch error:", e);
     } finally {
@@ -90,7 +111,7 @@ export function useVibeStack(reportId: string | null | undefined): UseVibeStackR
   );
 
   const add = useCallback(
-    async ({ kind, source = null, label, content, pinned = false }: AddItemArgs) => {
+    async ({ kind, source = null, label, content, pinned = false, round }: AddItemArgs) => {
       const nextPosition = items.length;
       if (!reportId) {
         const local: StackItem = {
@@ -104,6 +125,7 @@ export function useVibeStack(reportId: string | null | undefined): UseVibeStackR
           pinned,
           deleted_at: null,
           created_at: new Date().toISOString(),
+          round,
         };
         const next = [...items, local];
         setItems(next);
@@ -115,7 +137,7 @@ export function useVibeStack(reportId: string | null | undefined): UseVibeStackR
           .insert({
             report_id: reportId,
             kind,
-            source,
+            source: encodeSource(source, round),
             label,
             content,
             position: nextPosition,
@@ -124,7 +146,7 @@ export function useVibeStack(reportId: string | null | undefined): UseVibeStackR
           .select()
           .single();
         if (error) throw error;
-        const created = data as StackItem;
+        const created = decodeItem(data);
         setItems((prev) => [...prev, created]);
         return created;
       } catch (e) {
