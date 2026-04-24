@@ -80,13 +80,14 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<{ completed: number; total: number } | null>(null);
   const [agentStatus, setAgentStatus] = useState<Record<string, "pending" | "done">>({});
+  const [agentTeasers, setAgentTeasers] = useState<Record<string, string>>({});
   const [result, setResult] = useState<OrchestrateResult | null>(null);
   const [mode, setMode] = useState<"fast" | "deep">("fast");
   const [applying, setApplying] = useState(false);
   const [showRecs, setShowRecs] = useState(true);
   const [showBriefSuggestions, setShowBriefSuggestions] = useState(false);
 
-  // ─── Realtime: subscribe to agent_events for live progress ───
+  // ─── Realtime: subscribe to agent_events for live progress + teasers ───
   useEffect(() => {
     if (!running || !reportId) return;
 
@@ -96,10 +97,18 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "agent_events", filter: `report_id=eq.${reportId}` },
         (payload) => {
-          const ev = payload.new as { agent: string; event_type: string };
+          const ev = payload.new as { agent: string; event_type: string; data?: Record<string, unknown> };
           if (ev.event_type === "completed" && ev.agent) {
             setAgentStatus((prev) => ({ ...prev, [ev.agent]: "done" }));
             setProgress((prev) => prev ? { ...prev, completed: prev.completed + 1 } : prev);
+            // Capture live teaser from agent payload
+            const teaser =
+              (ev.data?.headline as string) ||
+              (ev.data?.core_insight as string) ||
+              (ev.data?.thesis as string);
+            if (teaser) {
+              setAgentTeasers((prev) => ({ ...prev, [ev.agent]: teaser }));
+            }
           }
         },
       )
@@ -114,6 +123,7 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
     setRunning(true);
     setResult(null);
     setAgentStatus({});
+    setAgentTeasers({});
     setProgress({ completed: 0, total: 7 });
 
     try {
