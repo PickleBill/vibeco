@@ -557,10 +557,10 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
         </section>
       )}
 
-      {/* Re-run footer */}
-      <div className="pt-4 border-t border-border/30 flex items-center justify-between">
-        <span className="text-[10px] text-muted-foreground">
-          Synthesis from {result.agents_completed} agents
+      {/* Re-run footer with cost/timing */}
+      <div className="pt-4 border-t border-border/30 flex items-center justify-between gap-3 flex-wrap">
+        <span className="text-[10px] text-muted-foreground/80 tabular-nums">
+          {result.agents_completed}/{result.agents_total} agents · {(result.timing.total / 1000).toFixed(1)}s · ~${(result.agents_completed * 0.006).toFixed(3)} spent
         </span>
         <button
           onClick={runOrchestrate}
