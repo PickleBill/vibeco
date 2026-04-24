@@ -74,6 +74,8 @@ interface Props {
   stackItems?: StackItem[];
   onAddToStack?: (args: AddItemArgs) => Promise<StackItem | null>;
   stackHasItem?: (kind: StackKind, source: string | null | undefined, label: string) => boolean;
+  /** Open the Vibe Stack drawer; optionally flash a specific chit by id. */
+  onOpenStack?: (highlightId?: string | null) => void;
 }
 
 const sectionMeta = [
@@ -253,7 +255,7 @@ export const generateStructuredPDF = (
   pdf.save(fileName);
 };
 
-const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights, onToggleHighlight, antiHighlights, onToggleAntiHighlight, reportId, onReorderFeatures, onPromptUpdate, editMode, onCancelEdit, onReSimulate, stackItems, onAddToStack, stackHasItem }: Props) => {
+const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights, onToggleHighlight, antiHighlights, onToggleAntiHighlight, reportId, onReorderFeatures, onPromptUpdate, editMode, onCancelEdit, onReSimulate, stackItems, onAddToStack, stackHasItem, onOpenStack }: Props) => {
   const [email, setEmail] = useState(unlockEmail || "");
   const [showPrompt, setShowPrompt] = useState(!!unlocked);
   const [isExporting, setIsExporting] = useState(false);
