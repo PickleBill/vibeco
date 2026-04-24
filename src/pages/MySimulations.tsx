@@ -14,6 +14,7 @@ import { copyToClipboard } from "@/lib/copyToClipboard";
 interface IdeaReport {
   id: string;
   idea: string;
+  title: string | null;
   created_at: string;
   status: string | null;
   brief: any;
