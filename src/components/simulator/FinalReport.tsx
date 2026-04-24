@@ -661,6 +661,22 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                     <Star size={11} />
                     Add to highlights
                   </button>
+                  {onAddToStack && stackHasItem && (
+                    <AddToStackButton
+                      size="sm"
+                      label="+ pin to stack"
+                      added={stackHasItem("deep_dive", key, sectionMeta.find((s) => s.key === key)?.label || key)}
+                      onAdd={() =>
+                        onAddToStack({
+                          kind: "deep_dive",
+                          source: key,
+                          label: sectionMeta.find((s) => s.key === key)?.label || key,
+                          content: content[key] || "",
+                          pinned: true,
+                        })
+                      }
+                    />
+                  )}
                   <button
                     onClick={() => handleUseDeepDiveInPrompt(key)}
                     disabled={isSharpening || !lovablePrompt}
