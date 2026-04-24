@@ -1066,7 +1066,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                     <h4 className={`font-display font-black text-foreground uppercase tracking-wide ${isHero ? "text-base" : "text-sm"}`}>
                       {section.label}
                     </h4>
-                    {renderHighlightToggles(section.key, isHighlighted, isAntiHighlighted, onToggleHighlight, onToggleAntiHighlight)}
+                    {renderHighlightToggles(section.key, isHighlighted, isAntiHighlighted, wrappedToggleHighlight, wrappedToggleAntiHighlight)}
                   </div>
 
                   {section.key === "core_features" && Array.isArray(value) ? (
@@ -1185,7 +1185,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                         <h4 className="font-display text-sm font-black text-foreground uppercase tracking-wide">
                           {section.label}
                         </h4>
-                        {renderHighlightToggles(section.key, isHighlighted, isAntiHighlighted, onToggleHighlight, onToggleAntiHighlight)}
+                        {renderHighlightToggles(section.key, isHighlighted, isAntiHighlighted, wrappedToggleHighlight, wrappedToggleAntiHighlight)}
                       </div>
 
                       {editMode ? (
