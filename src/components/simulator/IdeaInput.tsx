@@ -23,7 +23,8 @@ const placeholders = [
   "A marketplace where laid-off engineers can sell 30-minute career strategy calls to mid-career PMs trying to break into FAANG…",
 ];
 
-const IdeaInput = ({ onSubmit, initialValue }: Props) => {
+const IdeaInput = ({ onSubmit, initialValue, iterationContext, onStartFresh }: Props) => {
+  const isIterating = !!iterationContext && (iterationContext.roundCount > 0 || iterationContext.highlightCount > 0);
   const [text, setText] = useState(initialValue || "");
   const [shaking, setShaking] = useState(false);
   const [attempted, setAttempted] = useState(false);
@@ -84,17 +85,56 @@ const IdeaInput = ({ onSubmit, initialValue }: Props) => {
         className="text-center mb-10"
       >
         <p className="text-[10px] text-primary uppercase tracking-[0.4em] mb-5 opacity-60">
-          AI Idea Simulator
+          {isIterating ? "Continue Refining" : "AI Idea Simulator"}
         </p>
         <h1
           className="font-display font-black text-foreground leading-[1.1] mb-3 break-words"
           style={{ fontSize: "clamp(2.25rem, 5vw + 1rem, 4rem)" }}
         >
-          What are you building?
+          {isIterating ? "What would you push further?" : "What are you building?"}
         </h1>
         <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-          Describe it, or pull in one of your existing projects. We'll stress-test every assumption.
+          {isIterating
+            ? "Your prior rounds and highlights are preserved. Edit the idea or add what you'd change."
+            : "Describe it, or pull in one of your existing projects. We'll stress-test every assumption."}
         </p>
+
+        {isIterating && iterationContext && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-wrap items-center justify-center gap-1.5 mt-5"
+          >
+            {iterationContext.roundCount > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary">
+                <Layers size={10} />
+                {iterationContext.roundCount} round{iterationContext.roundCount === 1 ? "" : "s"} preserved
+              </span>
+            )}
+            {iterationContext.highlightCount > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                <Sparkle size={10} />
+                {iterationContext.highlightCount} highlight{iterationContext.highlightCount === 1 ? "" : "s"}
+              </span>
+            )}
+            {iterationContext.flagCount > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                <Flag size={10} />
+                {iterationContext.flagCount} flag{iterationContext.flagCount === 1 ? "" : "s"}
+              </span>
+            )}
+            {onStartFresh && (
+              <button
+                type="button"
+                onClick={onStartFresh}
+                className="text-[10px] text-muted-foreground/60 hover:text-foreground transition-colors underline-offset-2 hover:underline ml-2"
+              >
+                Start fresh instead
+              </button>
+            )}
+          </motion.div>
+        )}
 
         {/* Segmented mode toggle with sliding indicator */}
         <div className="relative inline-flex items-center mt-6 p-1 rounded-md bg-card/40 border border-border/30">
