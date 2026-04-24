@@ -439,6 +439,13 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
         highlights: highlights ? Array.from(highlights) : [],
         antiHighlights: antiHighlights ? Array.from(antiHighlights) : [],
         refinement_context: context,
+        stack_items: (stackItems || []).map((it) => ({
+          kind: it.kind,
+          source: it.source,
+          label: it.label,
+          content: it.content,
+          pinned: it.pinned,
+        })),
       },
     });
     if (error) throw error;
