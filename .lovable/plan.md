@@ -1,134 +1,144 @@
-# Sprint 7 — Stop Adding. Start Connecting.
 
-## The honest read
 
-You're right. We've been stacking features on a foundation that hasn't been proven trustworthy. Symptoms:
+# Sprint 8 — Close the Loop. Make Every Surface Interactive.
 
-- **Three different "make me a prompt" buttons** (Generate prompt, Sharpen prompt, Build in Lovable in ActionHub) with overlapping behavior.
-- **"Iterate on This" lives in two places** (FinalReport footer + ActionHub) and neither one shows you what's preserved.
-- **Five "alt-prompt" actions** at the bottom (Build/Research/Design/Landing/Iterate) that quietly fail with a toast and zero recovery — no retry, no error detail, no fallback.
-- **Highlights are silent.** You click "This resonates" and nothing visibly changes until much later when a sharpen button appears in a banner.
-- **Deep-dive output goes nowhere.** You can expand the "4 value propositions" section, read good content, and have no way to push it back into the prompt or save the insight.
+You're right on every count. The seams I see, ranked by how much they hurt the loop:
 
-The product has *all the pieces* of a great experience. It just doesn't connect them into a loop the user can feel.
+1. **Iterate dead-ends.** `handleIterate` preserves rounds + highlights in memory, but the user lands on a blank `IdeaInput` and the brief they were just editing is gone. There's no path *back into* the same brief to keep refining the live thing.
+2. **Dashboard quick actions are hover-only** (`opacity-0 group-hover:opacity-100`). On your 402px touch viewport they're invisible. Cards also lack the *idea title* you mentioned because we use `getProductName(report)` which collapses to "first 50 chars of idea text" — no real title.
+3. **Final page lacks contrast + navigation.** It's one long scroll: brief → stress-test → prompt → deep-dive insights → actions. No way to jump, no sense of place.
+4. **No "Save Progress" snapshot.** Highlights, deep-dives, perspective calls, expand/distill outputs all live in *separate* tables or in-memory state. There's no single "this is where I am" bundle the user can name, stash, and roll forward.
+5. **Components aren't curatable.** Deep-dive content, expansion variations, persona insights — the user can read them but can't *grab one*, reorder, delete, or drag into the prompt.
 
-## The fix: one loop, three guarantees
+## The fix: a Vibe Stack
 
-Stop building outward. Spend this sprint on **the loop**: every action must (1) **acknowledge** it happened, (2) **show what changed**, (3) **let you act on it again or undo it.**
+One mental model that ties everything together. Every action that produces value (highlight, deep-dive paragraph, expansion variation, persona insight, distillation) becomes an **insight chit** that lands in a single, visible **Vibe Stack** sidebar. The user curates the stack. The stack feeds the prompt. The prompt evolves visibly. That's the loop.
 
 ```text
-   ┌──────────────────────────────────────────────────────┐
-   │   IDEA  →  BRIEF  →  HIGHLIGHT  →  PROMPT  →  SHIP   │
-   │            ▲                          │              │
-   │            └──── ITERATE ─────────────┘              │
-   └──────────────────────────────────────────────────────┘
+   ┌─────────────────────────────┐    ┌─────────────────────┐
+   │      WORKING SURFACE         │    │     VIBE STACK      │
+   │  brief · perspectives ·      │ →  │  ✦ highlights       │
+   │  deep-dives · expansions     │    │  ▣ deep-dives       │
+   │  ↑ every result has a "+ "   │    │  ✚ expansions       │
+   │    to add to stack           │    │  drag · pin · cut   │
+   └─────────────────────────────┘    └─────────────────────┘
+                                                 │
+                                                 ▼
+                                       ┌─────────────────────┐
+                                       │  YOUR LOVABLE PROMPT │
+                                       │  rebuilt from stack  │
+                                       │  diff · keep · revert│
+                                       └─────────────────────┘
 ```
 
-Everything else (deep dive, expand, distill, personas) feeds **into** that loop, not parallel to it.
-
 ---
 
-## What we'll do
+## Phase 8.1 — Close the iterate loop (the highest-impact fix)
 
-### 1. Collapse the prompt actions into one block (FinalReport)
+**Current**: `Iterate` dumps you on a blank input. **After**: `Iterate` keeps you on the FinalReport with a "Round 4 — refine in place" mode, where:
+- The brief becomes editable in line (textareas appear next to each section, pre-filled with the current brief text).
+- The Vibe Stack shows everything carried in (highlights + deep-dives + accepted insights).
+- A new "Re-simulate with these changes" CTA runs `simulate-idea` with the edited brief as new history → produces a new round on top of the existing one.
+- "Start fresh instead" stays as the escape hatch.
 
-**Remove:** the standalone "Generate Lovable prompt" button, the "Sharpen prompt now" banner button, the duplicate "Iterate" in ActionHub.
+This is what *progressive and accretive* means. You build *on* the brief, not next to it.
 
-**Keep one prompt block** with three states and three actions, always visible:
+## Phase 8.2 — Save Progress / Vibe Stack
 
+Add a `idea_stack_items` table:
+```text
+idea_stack_items (
+  id, report_id, kind, source, content, label, position,
+  pinned, deleted_at, created_at
+)
+```
+- `kind` ∈ `highlight` | `deep_dive` | `expansion` | `persona` | `distill` | `note`
+- `source` = the section / persona / variation it came from
+- `position` for drag-reorder, `pinned` for "always include in prompt", `deleted_at` for soft-delete
 
-| State         | What you see                                  | Actions                                                                                                                      |
-| ------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| No prompt yet | "Generate your build prompt" empty state      | `Generate` (primary)                                                                                                         |
-| Prompt exists | The prompt + a live "highlights summary" line | `Copy` (primary) · `Open in Lovable` (secondary) · `Sharpen with my highlights` (tertiary, only when highlights/flags exist) |
-| Sharpening    | Inline diff view (old → new prompt)           | `Keep new` · `Revert`                                                                                                        |
+**A right-side `<VibeStack>` panel** (collapsible drawer on mobile, fixed sidebar on desktop) shows:
+- Each chit with kind icon, one-line label, source pill, and per-chit actions: pin · drag-handle · remove · "use in prompt"
+- A header counter: "12 in stack · 4 pinned · ↻ Sharpen prompt"
+- "Save snapshot" → writes a named version to `prompt_versions` (table already exists) and toasts the version name
 
+**Every result-producing surface gets a `+` action**:
+- `IdeaBrief` highlight buttons stay, but a new `+ stack` icon writes a chit
+- Deep-dive panels — already have "Add to highlights" + "Use in prompt"; add "Pin to stack"
+- `ExpandContractPanel` variation cards — add "+ stack" per variation
+- `PerspectivesPanel` persona output — add "+ stack" per challenge question
 
-This kills three competing CTAs and makes "what does this button do" obvious.
+When you click `Sharpen prompt`, we call `refine-prompt` with the **stack as context** instead of just `highlights[]`. Pinned chits are mandatory; unpinned are suggested.
 
-### 2. Make highlights *visibly* affect the prompt
+## Phase 8.3 — FinalReport sub-navigation + contrast pass
 
-When you click "This resonates" on a section:
+Add a sticky sub-nav under the existing progress dots:
+```text
+[ Brief ] · [ Stress-test ] · [ Insights (12) ] · [ Prompt ] · [ Actions ]
+```
+- Smooth-scrolls to anchored sections
+- Shows live counts (insights = stack size, etc.)
+- Active section highlights as you scroll (intersection observer)
 
-- The section card pulses + gets a permanent left rule and sparkle
-- A **persistent toast stack** at the top right says: *"3 highlights, 1 flag — Sharpen prompt to apply →"* with a one-click sharpen button
-- The prompt block header shows a count badge: `Your Lovable Prompt · 3 highlights pending`
+Contrast fixes (the things that quietly read "draft"):
+- Boost section heading weight from `font-bold` → `font-black` and color from `text-foreground` → real `--ink` token (≥ 93% lightness)
+- Replace the gradient hero header with a left-rule `4px primary` accent + uppercase label (matches the rest of the report)
+- Increase Deep-dive expanded-panel border from `border-primary/30` to `border-primary/60` so the loop-footer ("Add to highlights / Use in prompt") reads as intentional, not decorative
+- Body text bumps from `text-foreground/80` → `text-foreground/90` everywhere it currently fades out
 
-You always know your input is being captured *and* what it'll do.
+## Phase 8.4 — Dashboard fixes (My Simulations)
 
-### 3. Wire deep-dive insights back into the loop
+- **Always-visible quick actions** on touch viewports: detect `(hover: none)` via media query and remove the `opacity-0 group-hover` gate.
+- **Idea title**: add `title` (text) column to `idea_reports`; auto-derive on first save (`brief.problem` → first ~6 words, title-case). Render in the card header *above* the truncated idea body.
+- **Confirm + polish the three quick actions** (Copy Prompt, Fork, Deep Dive) — verified working in code; add toast confirmations and a 200ms scale-tap microinteraction.
+- Add a fourth: **Continue** (resumes at the right phase based on `status`).
 
-Today: you expand a section, read insight, close it, lose it.
+## Phase 8.5 — Make it interactable
 
-After: every deep-dive panel gets a footer:
+A small set of micro-rules applied everywhere:
+- Every list item (features, perspectives, expansions, deep-dive bullets) gets a hover state with `+ stack`, `↑ pin`, `✕ cut`.
+- Drag-handles on the Vibe Stack and the Core Features list (already drag-sortable — extend the pattern).
+- `Cmd+K` palette: "Add note to stack", "Sharpen prompt", "Jump to Prompt", "Snapshot this version".
+- Keyboard `j`/`k` to navigate stack items, `enter` to use in prompt.
 
-- `★ Add to highlights` — appends this section's deep-dive content as context for the next sharpen
-- `→ Use this in the prompt` — runs `refine-prompt` with this specific insight as the focus and updates the prompt inline (with the same diff/keep/revert UX as #1)
+## Phase 8.6 — Cleanup of past learnings (don't lose them)
 
-The "4 value propositions" use case you described becomes: read them, click `Use this in the prompt` on the one you like, see the prompt update with that value prop emphasized, ship.
-
-### 4. Harden the alt-prompt actions (the ones that "don't work")
-
-The five action-hub buttons need:
-
-- **Real error surfacing** — replace `toast.error("Failed. Try again.")` with the actual gateway error (rate limit, JSON parse, timeout) and a `Retry` button inline in the disclosure panel
-- **Persistent results** — once generated, alt prompts stay open across navigation and re-renders (currently they evaporate if the component unmounts)
-- **Loading shimmer** in the disclosure panel itself, not just the icon, so the user knows where the result will appear
-- **Fallback model** if the primary model returns malformed JSON (Gemini 2.5-flash → fall back to gemini-3-flash-preview)
-
-### 5. Fix "Iterate" so it actually feels like iteration
-
-Today's `handleIterate` already preserves state (Sprint 5 fixed the wipe), but the UX is silent — you land back on input with no visual signal that anything carried over.
-
-Change:
-
-- Replace the input screen on iterate with a **"Continue refining"** view: shows a stack of "what's preserved" pills (`✦ 3 highlights` · `Round 2 brief` · `Linked to report #abc`) above the textarea, pre-populated with the current idea
-- The textarea label changes to *"What would you change or push further?"*
-- A `Start fresh instead` link in the corner gives an escape hatch
-
-You can *see* the iteration is real.
-
-### 6. One-time cleanup
-
-- Remove the `FeatureStrengthBar` deterministic-hash percentages from the PDF too (still leaking fake data into the export)
-- Move the floating "Download PDF" button into the unified action row — three floating UI elements is too many
-- Kill the "Run impeccable polish on..." style decorative gradients in `IdeaBrief` hero — replaced by the same left-rule treatment used elsewhere (consistency)
-- You can remove the image bc that's useless, along with the random emojis taking up valuable screen real estate.  The idea type little mini modal might be useful (and I like the design) but what's its function?
-- If the answer to "what is its function" is nothing...or minimal...than we should rethink having the element...or move it downwards/de-emphaisize...this is for all things!
-
----
-
-## Out of scope (by design)
-
-- New agents, new models, new edge functions
-- The Portfolio import flow (still tabled per Sprint 6.3 decision)
-- The Thunderdome layout — Sprint 6.3 polish stands until the loop above is solid
-- A/B variants, marketing site, auth flow — the simulator is the product right now
+- Remove the deterministic `computeScores` hash percentages from PDF too (still leaks fake "Market 73 · Product 81" into the export).
+- Remove the unused `Builds` import path leftover from earlier sprints if any (audit).
+- The "Run stress-test" inline panel inside `phase==="brief"` and the same `ThunderdomePanel` rendered post-final are duplicate mounting paths — collapse to one source of state so highlights made in one are visible in the other.
+- Audit `framer-motion` blocks for the standardized `cubic-bezier(0.22, 1, 0.36, 1)` ease (Sprint 6.3 covered the big ones; verify `IdeaBrief` and `FinalReport` are aligned).
 
 ---
-
-## How we'll know it worked
-
-Three usability checkpoints (no analytics needed — you'll feel them):
-
-1. From a fresh idea to a copied prompt **with at least one highlight reflected**, in under 90 seconds, with zero "wait did that work?" moments.
-2. Every button either does something visible within 300ms (loading state) or shows a real error with a retry inline.
-3. Clicking "Iterate" feels like *continuing*, not *restarting*.
 
 ## Sequencing
 
+| Phase | Scope | Why this order |
+|---|---|---|
+| 8.1 | Iterate-in-place (Round 4 mode) | Fixes the most painful break first |
+| 8.2 | `idea_stack_items` + Vibe Stack drawer + `+ stack` everywhere | The unifying primitive — everything else hangs off it |
+| 8.3 | FinalReport sub-nav + contrast pass | Now that there's a stack, navigation has meaning |
+| 8.4 | Dashboard titles + always-on quick actions | Self-contained, can ship in parallel |
+| 8.5 | Interaction micro-rules (drag/hover/cmd-k) | Polish that compounds |
+| 8.6 | Cleanup loose ends | Final 5% |
 
-| Phase | Scope                                                          | Why first                          |
-| ----- | -------------------------------------------------------------- | ---------------------------------- |
-| 7.1   | Collapse prompt actions + diff view (FinalReport prompt block) | Removes the most confusing UI      |
-| 7.2   | Persistent highlight toast stack + section pulse               | Makes input feel acknowledged      |
-| 7.3   | Deep-dive → prompt wiring (`Use this in the prompt`)           | Closes the loop the user described |
-| 7.4   | ActionHub error/retry hardening + result persistence           | Fixes "the buttons don't work"     |
-| 7.5   | "Continue refining" iterate screen + cleanup                   | Polishes the seam                  |
+Ship 8.1 + 8.2 + 8.4 first — that's the new loop in one push. 8.3, 8.5, 8.6 are the next sprint.
 
+---
 
-All five fit in one sprint. Stop after 7.3 for a checkpoint if you want to test the loop before the polish.
+## /distill /expand /refine — your next-action menu
+
+Pick one to send the project further; each is a follow-on sprint, not part of 8.
+
+| Move | What it would do | Why it'd matter |
+|---|---|---|
+| **/distill** | Force every report to produce *one sentence* the user can ship as a tagline (already partly built in distill agent — surface it as the report's masthead). | Your "ruthless clarity" memory says taglines beat features. Make the simulator close on one. |
+| **/expand** | Auto-fork: when a Vibe Stack snapshot is saved, run `expand-idea` in the background and seed 3 child ideas in the dashboard tree without the user asking. | Turns saving into seeding. Dashboard becomes a garden, not a graveyard. |
+| **/refine** | Add `prompt_versions` time-travel UI: show a vertical timeline of every Sharpen, with "Restore" per version. | You already store them — you just don't show them. |
+| **/polish** | Apply Impeccable v2.1.1 to every secondary surface (Auth, Inbox, Portfolio, Report). Audit for nested cards, pure black/white, missing fluid type. | Brand consistency drop. The simulator looks great; the surrounding pages drift. |
+| **/overdrive** | Build the **agent-mediated import** chat command (`import @project:NAME`) we tabled in Sprint 6 — using my cross-project tools to populate `manifest_cache` directly. One-shot, no UI debt. | Unlocks the Portfolio play without waiting for a public API. |
+
+My recommendation: ship 8.1 + 8.2 + 8.4 (the loop), then `/distill` next. The tagline-as-masthead would be the moment the simulator stops feeling like an analysis tool and starts feeling like a *founder's instrument*.
 
 ### One question before I start
 
-**Diff view for sharpened prompts:** prefer (a) side-by-side old vs new with `Keep / Revert`, or (b) inline strikethrough/insertion (like git diff) with one `Keep` / `Revert` button below? Option (a) is clearer on desktop, (b) is cleaner on mobile (your current viewport is 402px).  Option B I think.  Could you do an in between where default is strikethru but there's and action buttons to compare side by side in some way?
+**The Vibe Stack panel** — prefer (a) right-side fixed sidebar that pushes content (desktop) + bottom sheet (mobile), or (b) a floating bubble in the corner that expands into a panel on click (less intrusive but less visible)?
+
