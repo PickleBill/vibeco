@@ -1105,7 +1105,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                     <Textarea
                       value={(editedBrief[section.key as keyof BriefData] as string) || ""}
                       onChange={(e) =>
-                        setEditedBrief((prev) => ({ ...prev, [section.key]: e.target.value }))
+                        { setEditedBrief((prev) => ({ ...prev, [section.key]: e.target.value })); setEditedSections((prev) => new Set(prev).add(section.key)); }
                       }
                       className={`text-foreground/90 leading-relaxed bg-background/50 border-primary/30 focus-visible:ring-primary/40 ${isHero ? "min-h-[120px] text-base" : "min-h-[100px] text-base"}`}
                       placeholder={`Edit ${section.label.toLowerCase()}…`}
@@ -1177,7 +1177,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                         <Textarea
                           value={(editedBrief[section.key as keyof BriefData] as string) || ""}
                           onChange={(e) =>
-                            setEditedBrief((prev) => ({ ...prev, [section.key]: e.target.value }))
+                            { setEditedBrief((prev) => ({ ...prev, [section.key]: e.target.value })); setEditedSections((prev) => new Set(prev).add(section.key)); }
                           }
                           className="ml-5 text-sm bg-background/50 border-primary/30 focus-visible:ring-primary/40 min-h-[80px]"
                           placeholder={`Edit ${section.label.toLowerCase()}…`}
