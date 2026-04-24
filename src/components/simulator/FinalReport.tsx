@@ -1099,12 +1099,39 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                         {renderHighlightToggles(section.key, isHighlighted, isAntiHighlighted, onToggleHighlight, onToggleAntiHighlight)}
                       </div>
 
-                      <p className="text-sm text-foreground/80 leading-relaxed ml-5">
-                        {typeof value === "string" ? value : ""}
-                      </p>
+                      {editMode ? (
+                        <Textarea
+                          value={(editedBrief[section.key as keyof BriefData] as string) || ""}
+                          onChange={(e) =>
+                            setEditedBrief((prev) => ({ ...prev, [section.key]: e.target.value }))
+                          }
+                          className="ml-5 text-sm bg-background/50 border-primary/30 focus-visible:ring-primary/40 min-h-[80px]"
+                          placeholder={`Edit ${section.label.toLowerCase()}…`}
+                        />
+                      ) : (
+                        <p className="text-sm text-foreground/80 leading-relaxed ml-5">
+                          {typeof value === "string" ? value : ""}
+                        </p>
+                      )}
 
-                      {renderDeepDiveButton(section.key, isExpanded, isLoadingThis, isHighlighted, handleDeepDive)}
-                      {renderDeepDiveContent(section.key, isExpanded, isLoadingThis, hasContent, deepDiveContent)}
+                      {!editMode && typeof value === "string" && onAddToStack && stackHasItem && (
+                        <div className="ml-5 mt-2 flex justify-end">
+                          <AddToStackButton
+                            added={stackHasItem("highlight", section.key, section.label)}
+                            onAdd={() =>
+                              onAddToStack({
+                                kind: "highlight",
+                                source: section.key,
+                                label: section.label,
+                                content: value as string,
+                              })
+                            }
+                          />
+                        </div>
+                      )}
+
+                      {!editMode && renderDeepDiveButton(section.key, isExpanded, isLoadingThis, isHighlighted, handleDeepDive)}
+                      {!editMode && renderDeepDiveContent(section.key, isExpanded, isLoadingThis, hasContent, deepDiveContent)}
                     </motion.div>
                   );
                 })}
