@@ -698,24 +698,37 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
     setDepthRecommendation(undefined);
   };
 
-  // Iterate: keep prior context (rounds, highlights, report link) but go back to
-  // input with the original idea pre-filled. The prior report stays in the user's
-  // dashboard and can be referenced; this run continues building on what was learned.
+  // Iterate-in-place: stay on the FinalReport with editable brief sections.
+  // The user keeps everything they've built (rounds, highlights, stack, report)
+  // and edits the brief in line, then re-simulates as a new round on top.
+  const [editMode, setEditMode] = useState(false);
   const handleIterate = () => {
-    // Keep idea, rounds (as history), highlights, antiHighlights, reportId.
-    // Reset only the surfaces that gate the next round.
-    setPhase("input");
-    setUnlocked(false);
-    setUnlockEmail("");
-    setLovablePrompt(null);
-    setConceptImage(null);
-    setLogoImage(null);
-    // Scroll to top so the input is visible
+    setEditMode(true);
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
     toast.success(
-      `Iterating — ${rounds.length} round${rounds.length === 1 ? "" : "s"} and ${highlights.size} highlight${highlights.size === 1 ? "" : "s"} preserved.`,
+      `Refine in place — edit any section then re-simulate. ${highlights.size} highlight${highlights.size === 1 ? "" : "s"} and ${stack.items.length} stack item${stack.items.length === 1 ? "" : "s"} carried in.`,
     );
   };
+
+  // Apply user edits to the latest brief, then run a new refinement round on top.
+  const handleReSimulateWithEdits = async (editedBrief: BriefData) => {
+    // Replace the current latest round's brief with the user's edits, then refine.
+    const updatedRounds = [...rounds];
+    if (updatedRounds.length === 0) return;
+    updatedRounds[updatedRounds.length - 1] = {
+      ...updatedRounds[updatedRounds.length - 1],
+      brief: editedBrief,
+    };
+    setRounds(updatedRounds);
+    setEditMode(false);
+    // Bump round and run refine. simulate-idea uses buildHistory(currentRound - 1)
+    // so we increment currentRound first (matches the in-flow path).
+    setCurrentRound((r) => r + 1);
+    // Defer to next tick so state is committed before history is built.
+    setTimeout(() => callSimulator("refine", undefined, currentRound + 2), 0);
+  };
+
+  const handleCancelEdit = () => setEditMode(false);
 
   // Wipe everything from the iterate-input screen and start a brand-new run.
   const handleStartFresh = () => {
@@ -1021,11 +1034,87 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                 reportId={reportId}
                 onReorderFeatures={handleReorderFeatures}
                 onPromptUpdate={(p) => setLovablePrompt(p)}
+                editMode={editMode}
+                onCancelEdit={handleCancelEdit}
+                onReSimulate={handleReSimulateWithEdits}
+                stackItems={stack.items}
+                onAddToStack={stack.add}
+                stackHasItem={stack.hasItem}
               />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      {/* Vibe Stack — always-visible floating drawer once there's any work to curate */}
+      {(phase === "brief" || phase === "final") && (
+        <VibeStack
+          items={stack.items}
+          onTogglePin={stack.togglePin}
+          onRemove={stack.remove}
+          onReorder={stack.reorder}
+          hasPrompt={!!lovablePrompt}
+          onSharpen={async () => {
+            try {
+              const { data, error } = await supabase.functions.invoke("refine-prompt", {
+                body: {
+                  brief: latestRound?.brief,
+                  idea,
+                  original_prompt: lovablePrompt || undefined,
+                  highlights: Array.from(highlights),
+                  antiHighlights: Array.from(antiHighlights),
+                  stack_items: stack.items.map((it) => ({
+                    kind: it.kind,
+                    source: it.source,
+                    label: it.label,
+                    content: it.content,
+                    pinned: it.pinned,
+                  })),
+                  refinement_context: "Rebuild the prompt from the curated Vibe Stack — pinned items are mandatory, suggested items strengthen direction.",
+                },
+              });
+              if (error) throw error;
+              if (data?.error) throw new Error(data.error);
+              if (data?.lovable_prompt) {
+                setLovablePrompt(data.lovable_prompt);
+                toast.success("Prompt sharpened from your Vibe Stack.");
+              }
+            } catch (e) {
+              console.error("Stack sharpen error:", e);
+              toast.error(e instanceof Error ? e.message : "Failed to sharpen.");
+            }
+          }}
+          onSnapshot={async () => {
+            if (!reportId) {
+              toast.error("Save the report first (add an email).");
+              return;
+            }
+            try {
+              const label = `Snapshot · ${new Date().toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`;
+              const { data: existing } = await (supabase.from("idea_reports") as any)
+                .select("prompt_versions")
+                .eq("id", reportId)
+                .single();
+              const versions = Array.isArray(existing?.prompt_versions) ? existing.prompt_versions : [];
+              versions.push({
+                label,
+                prompt: lovablePrompt || null,
+                stack: stack.items.map((it) => ({
+                  kind: it.kind, source: it.source, label: it.label, pinned: it.pinned,
+                })),
+                created_at: new Date().toISOString(),
+              });
+              await (supabase.from("idea_reports") as any)
+                .update({ prompt_versions: versions })
+                .eq("id", reportId);
+              toast.success(`Saved: ${label}`);
+            } catch (e) {
+              console.error("Snapshot error:", e);
+              toast.error("Failed to save snapshot.");
+            }
+          }}
+        />
+      )}
 
       <AlertDialog open={showRestartConfirm} onOpenChange={setShowRestartConfirm}>
         <AlertDialogContent>

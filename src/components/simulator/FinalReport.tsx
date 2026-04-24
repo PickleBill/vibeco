@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import {
@@ -37,6 +37,9 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { BriefData, QuestionData } from "./SimulatorShell";
+import { AddToStackButton } from "./VibeStack";
+import type { StackItem, StackKind, AddItemArgs } from "@/hooks/useVibeStack";
+import { Textarea } from "@/components/ui/textarea";
 
 interface RoundState {
   brief: BriefData;
@@ -63,6 +66,14 @@ interface Props {
   reportId?: string | null;
   onReorderFeatures?: (features: BriefData["core_features"]) => void;
   onPromptUpdate?: (newPrompt: string) => void;
+  // Iterate-in-place
+  editMode?: boolean;
+  onCancelEdit?: () => void;
+  onReSimulate?: (editedBrief: BriefData) => void;
+  // Vibe Stack wiring
+  stackItems?: StackItem[];
+  onAddToStack?: (args: AddItemArgs) => Promise<StackItem | null>;
+  stackHasItem?: (kind: StackKind, source: string | null | undefined, label: string) => boolean;
 }
 
 const sectionMeta = [
@@ -259,7 +270,7 @@ export const generateStructuredPDF = (
   pdf.save(fileName);
 };
 
-const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights, onToggleHighlight, antiHighlights, onToggleAntiHighlight, reportId, onReorderFeatures, onPromptUpdate }: Props) => {
+const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights, onToggleHighlight, antiHighlights, onToggleAntiHighlight, reportId, onReorderFeatures, onPromptUpdate, editMode, onCancelEdit, onReSimulate, stackItems, onAddToStack, stackHasItem }: Props) => {
   const [email, setEmail] = useState(unlockEmail || "");
   const [showPrompt, setShowPrompt] = useState(!!unlocked);
   const [isExporting, setIsExporting] = useState(false);
@@ -273,6 +284,13 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null); // diff state
   const [pulsedSection, setPulsedSection] = useState<string | null>(null);
+  // Editable copies of brief sections during iterate-in-place mode
+  const [editedBrief, setEditedBrief] = useState<BriefData>(brief);
+  useEffect(() => {
+    // Reset editable copy whenever the underlying brief changes (new round)
+    // or edit mode is toggled on/off.
+    setEditedBrief(brief);
+  }, [brief, editMode]);
   const reportRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -421,6 +439,13 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
         highlights: highlights ? Array.from(highlights) : [],
         antiHighlights: antiHighlights ? Array.from(antiHighlights) : [],
         refinement_context: context,
+        stack_items: (stackItems || []).map((it) => ({
+          kind: it.kind,
+          source: it.source,
+          label: it.label,
+          content: it.content,
+          pinned: it.pinned,
+        })),
       },
     });
     if (error) throw error;
@@ -643,6 +668,22 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                     <Star size={11} />
                     Add to highlights
                   </button>
+                  {onAddToStack && stackHasItem && (
+                    <AddToStackButton
+                      size="sm"
+                      label="+ pin to stack"
+                      added={stackHasItem("deep_dive", key, sectionMeta.find((s) => s.key === key)?.label || key)}
+                      onAdd={() =>
+                        onAddToStack({
+                          kind: "deep_dive",
+                          source: key,
+                          label: sectionMeta.find((s) => s.key === key)?.label || key,
+                          content: content[key] || "",
+                          pinned: true,
+                        })
+                      }
+                    />
+                  )}
                   <button
                     onClick={() => handleUseDeepDiveInPrompt(key)}
                     disabled={isSharpening || !lovablePrompt}
@@ -672,10 +713,44 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
       >
         <div className="h-px flex-1 bg-border/30" />
         <p className="text-[10px] text-primary uppercase tracking-[0.3em]">
-          Simulation Complete · {rounds.length} round{rounds.length !== 1 ? "s" : ""}
+          {editMode ? `Refining · Round ${rounds.length + 1}` : `Simulation Complete · ${rounds.length} round${rounds.length !== 1 ? "s" : ""}`}
         </p>
         <div className="h-px flex-1 bg-border/30" />
       </motion.div>
+
+      {/* Iterate-in-place banner */}
+      {editMode && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 p-4 rounded-lg border border-primary/40 bg-primary/8"
+          style={{ boxShadow: "0 0 28px hsl(var(--primary) / 0.12)" }}
+        >
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex-1">
+              <p className="font-display text-sm font-bold text-foreground">Refine in place</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Edit any section below, then re-simulate. Your highlights, deep-dives, and Vibe Stack carry forward.
+              </p>
+            </div>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <button
+                onClick={onCancelEdit}
+                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-sm border border-border text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => onReSimulate?.(editedBrief)}
+                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+              >
+                <Wand2 size={12} />
+                Re-simulate with these changes
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Email banner — only gates PDF/Share, NOT the prompt */}
       {!showPrompt && (
@@ -935,7 +1010,26 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                           <SortableContext items={(value as BriefData["core_features"]).map((_, i) => `feature-${i}`)} strategy={verticalListSortingStrategy}>
                             <div className="grid gap-3">
                               {(value as BriefData["core_features"]).map((feat, fi) => (
-                                <SortableFeature key={`feature-${fi}`} feat={feat} index={fi} id={`feature-${fi}`} />
+                                <div key={`feature-${fi}`} className="flex items-start gap-2 group/featrow">
+                                  <div className="flex-1">
+                                    <SortableFeature feat={feat} index={fi} id={`feature-${fi}`} />
+                                  </div>
+                                  {onAddToStack && stackHasItem && (
+                                    <div className="opacity-0 group-hover/featrow:opacity-100 transition-opacity mt-1.5">
+                                      <AddToStackButton
+                                        added={stackHasItem("highlight", "core_features", feat.name)}
+                                        onAdd={() =>
+                                          onAddToStack({
+                                            kind: "highlight",
+                                            source: "core_features",
+                                            label: feat.name,
+                                            content: `${feat.name} — ${feat.description}`,
+                                          })
+                                        }
+                                      />
+                                    </div>
+                                  )}
+                                </div>
                               ))}
                             </div>
                           </SortableContext>
@@ -956,14 +1050,40 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                         </p>
                       )}
                     </div>
+                  ) : editMode ? (
+                    <Textarea
+                      value={(editedBrief[section.key as keyof BriefData] as string) || ""}
+                      onChange={(e) =>
+                        setEditedBrief((prev) => ({ ...prev, [section.key]: e.target.value }))
+                      }
+                      className={`text-foreground/90 leading-relaxed bg-background/50 border-primary/30 focus-visible:ring-primary/40 ${isHero ? "min-h-[120px] text-base" : "min-h-[100px] text-base"}`}
+                      placeholder={`Edit ${section.label.toLowerCase()}…`}
+                    />
                   ) : (
                     <p className={`text-foreground/90 leading-relaxed ${isHero ? "text-base sm:text-lg" : "text-base"}`}>
                       {typeof value === "string" ? value : ""}
                     </p>
                   )}
 
-                  {renderDeepDiveButton(section.key, isExpanded, isLoadingThis, isHighlighted, handleDeepDive)}
-                  {renderDeepDiveContent(section.key, isExpanded, isLoadingThis, hasContent, deepDiveContent)}
+                  {/* +stack — text sections */}
+                  {!editMode && section.key !== "core_features" && typeof value === "string" && onAddToStack && stackHasItem && (
+                    <div className="mt-2 flex justify-end">
+                      <AddToStackButton
+                        added={stackHasItem("highlight", section.key, section.label)}
+                        onAdd={() =>
+                          onAddToStack({
+                            kind: "highlight",
+                            source: section.key,
+                            label: section.label,
+                            content: value as string,
+                          })
+                        }
+                      />
+                    </div>
+                  )}
+
+                  {!editMode && renderDeepDiveButton(section.key, isExpanded, isLoadingThis, isHighlighted, handleDeepDive)}
+                  {!editMode && renderDeepDiveContent(section.key, isExpanded, isLoadingThis, hasContent, deepDiveContent)}
                 </motion.div>
               );
             })}
@@ -1002,12 +1122,39 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                         {renderHighlightToggles(section.key, isHighlighted, isAntiHighlighted, onToggleHighlight, onToggleAntiHighlight)}
                       </div>
 
-                      <p className="text-sm text-foreground/80 leading-relaxed ml-5">
-                        {typeof value === "string" ? value : ""}
-                      </p>
+                      {editMode ? (
+                        <Textarea
+                          value={(editedBrief[section.key as keyof BriefData] as string) || ""}
+                          onChange={(e) =>
+                            setEditedBrief((prev) => ({ ...prev, [section.key]: e.target.value }))
+                          }
+                          className="ml-5 text-sm bg-background/50 border-primary/30 focus-visible:ring-primary/40 min-h-[80px]"
+                          placeholder={`Edit ${section.label.toLowerCase()}…`}
+                        />
+                      ) : (
+                        <p className="text-sm text-foreground/80 leading-relaxed ml-5">
+                          {typeof value === "string" ? value : ""}
+                        </p>
+                      )}
 
-                      {renderDeepDiveButton(section.key, isExpanded, isLoadingThis, isHighlighted, handleDeepDive)}
-                      {renderDeepDiveContent(section.key, isExpanded, isLoadingThis, hasContent, deepDiveContent)}
+                      {!editMode && typeof value === "string" && onAddToStack && stackHasItem && (
+                        <div className="ml-5 mt-2 flex justify-end">
+                          <AddToStackButton
+                            added={stackHasItem("highlight", section.key, section.label)}
+                            onAdd={() =>
+                              onAddToStack({
+                                kind: "highlight",
+                                source: section.key,
+                                label: section.label,
+                                content: value as string,
+                              })
+                            }
+                          />
+                        </div>
+                      )}
+
+                      {!editMode && renderDeepDiveButton(section.key, isExpanded, isLoadingThis, isHighlighted, handleDeepDive)}
+                      {!editMode && renderDeepDiveContent(section.key, isExpanded, isLoadingThis, hasContent, deepDiveContent)}
                     </motion.div>
                   );
                 })}
