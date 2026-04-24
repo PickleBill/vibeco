@@ -142,6 +142,14 @@ export interface DistillInput extends BriefContext {
   antiHighlights?: string[];
 }
 
+export interface StackItemInput {
+  kind: "highlight" | "deep_dive" | "expansion" | "persona" | "distill" | "note";
+  source?: string | null;
+  label: string;
+  content: string;
+  pinned?: boolean;
+}
+
 export interface RefinePromptInput extends BriefContext {
   original_prompt?: string;
   perspectives?: PerspectiveResult[];
@@ -150,6 +158,7 @@ export interface RefinePromptInput extends BriefContext {
   highlights?: string[];
   antiHighlights?: string[];
   refinement_context?: string;
+  stack_items?: StackItemInput[];
 }
 
 export interface AltPromptInput {
