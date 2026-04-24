@@ -699,6 +699,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
     setAntiHighlights(new Set());
     setReportId(null);
     setDepthRecommendation(undefined);
+    setEditMode(false);
   };
 
   // Iterate-in-place: stay on the FinalReport with editable brief sections.
@@ -747,9 +748,98 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
     setUnlocked(false);
     setUnlockEmail("");
     setDepthRecommendation(undefined);
+    setEditMode(false);
     clearDraft();
     toast("Cleared — start with a fresh idea.");
   };
+
+  // Stamp the current round (1-indexed) onto every newly-added stack chit so
+  // the drawer can show R1/R2/R3 badges. Wraps the hook's `add` for callers.
+  const addToStackWithRound = useCallback(
+    (args: Parameters<typeof stack.add>[0]) =>
+      stack.add({ ...args, round: args.round ?? currentRound + 1 }),
+    [stack, currentRound],
+  );
+
+  // Centralized "open the Vibe Stack and flash this chit" — used by Deep Dive's
+  // "Use in prompt" so all sharpening converges on the drawer instead of
+  // running parallel refine calls scattered across the report.
+  const openStackHighlighting = useCallback((id: string | null) => {
+    setStackHighlightId(id);
+    setStackOpen(true);
+  }, []);
+
+  const runStackSharpen = useCallback(async () => {
+    if (stack.items.length === 0) {
+      toast.error("Add at least one chit to the stack first.");
+      return;
+    }
+    setIsStackSharpening(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("refine-prompt", {
+        body: {
+          brief: rounds[rounds.length - 1]?.brief,
+          idea,
+          original_prompt: lovablePrompt || undefined,
+          highlights: Array.from(highlights),
+          antiHighlights: Array.from(antiHighlights),
+          stack_items: stack.items.map((it) => ({
+            kind: it.kind,
+            source: it.source,
+            label: it.label,
+            content: it.content,
+            pinned: it.pinned,
+          })),
+          refinement_context:
+            "Rebuild the prompt from the curated Vibe Stack — pinned items are mandatory, suggested items strengthen direction.",
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.lovable_prompt) {
+        setLovablePrompt(data.lovable_prompt);
+        toast.success("Prompt sharpened from your Vibe Stack.");
+      }
+    } catch (e) {
+      console.error("Stack sharpen error:", e);
+      toast.error(e instanceof Error ? e.message : "Failed to sharpen.");
+    } finally {
+      setIsStackSharpening(false);
+    }
+  }, [stack.items, rounds, idea, lovablePrompt, highlights, antiHighlights]);
+
+  const runStackSnapshot = useCallback(async () => {
+    if (!reportId) {
+      toast.error("Save the report first (add an email).");
+      return;
+    }
+    setIsStackSnapshotting(true);
+    try {
+      const label = `Snapshot · ${new Date().toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`;
+      const { data: existing } = await (supabase.from("idea_reports") as any)
+        .select("prompt_versions")
+        .eq("id", reportId)
+        .single();
+      const versions = Array.isArray(existing?.prompt_versions) ? existing.prompt_versions : [];
+      versions.push({
+        label,
+        prompt: lovablePrompt || null,
+        stack: stack.items.map((it) => ({
+          kind: it.kind, source: it.source, label: it.label, pinned: it.pinned,
+        })),
+        created_at: new Date().toISOString(),
+      });
+      await (supabase.from("idea_reports") as any)
+        .update({ prompt_versions: versions })
+        .eq("id", reportId);
+      toast.success(`Saved: ${label}`);
+    } catch (e) {
+      console.error("Snapshot error:", e);
+      toast.error("Failed to save snapshot.");
+    } finally {
+      setIsStackSnapshotting(false);
+    }
+  }, [reportId, lovablePrompt, stack.items]);
 
   // PDF download moved to FinalReport's action row.
 
