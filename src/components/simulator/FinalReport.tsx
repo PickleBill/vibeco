@@ -86,18 +86,7 @@ const sectionMeta = [
   { key: "customer_perspective", label: "Customer Perspective", icon: MessageSquare },
 ] as const;
 
-const hashStr = (s: string) => {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
-  return Math.abs(h);
-};
-
-export const computeScores = (brief: BriefData) => [
-  { label: "Market", value: 60 + (hashStr(brief.problem) % 30) },
-  { label: "Product", value: 55 + (hashStr(JSON.stringify(brief.core_features)) % 35) },
-  { label: "Revenue", value: 60 + (hashStr(brief.revenue_model) % 30) },
-  { label: "Timing", value: 50 + (hashStr(brief.industry_trends) % 35) },
-];
+/* (computeScores removed — was deterministic hash filler, no real signal) */
 
 /* ─── Sortable Feature ─── */
 const SortableFeature = ({ feat, index, id }: { feat: { name: string; description: string }; index: number; id: string }) => {
@@ -281,18 +270,19 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   const [activeNavSection, setActiveNavSection] = useState<string>("prompt");
   // Editable copies of brief sections during iterate-in-place mode
   const [editedBrief, setEditedBrief] = useState<BriefData>(brief);
+  const [editedSections, setEditedSections] = useState<Set<string>>(new Set());
   useEffect(() => {
     // Reset editable copy whenever the underlying brief changes (new round)
     // or edit mode is toggled on/off.
     setEditedBrief(brief);
+    setEditedSections(new Set());
   }, [brief, editMode]);
   const reportRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  const scores = computeScores(brief);
-
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    // Keyboard sensor — Escape cancels active drag automatically via dnd-kit
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
@@ -399,9 +389,16 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   };
 
   const handleDownloadPDF = () => {
+    if (!showPrompt) {
+      // Email-gate inline — focus the email field at the top of the action row
+      toast("Add an email to download the PDF.");
+      const emailInput = document.querySelector<HTMLInputElement>('input[type="email"]');
+      emailInput?.focus();
+      return;
+    }
     setIsExporting(true);
     try {
-      generateStructuredPDF(brief, idea, rounds, scores, lovablePrompt);
+      generateStructuredPDF(brief, idea, rounds, [], lovablePrompt);
       toast.success("PDF downloaded!");
     } catch (err) {
       console.error("PDF export error:", err);
@@ -446,6 +443,12 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   };
 
   const handleShareReport = async () => {
+    if (!showPrompt) {
+      toast("Add an email to get a shareable link.");
+      const emailInput = document.querySelector<HTMLInputElement>('input[type="email"]');
+      emailInput?.focus();
+      return;
+    }
     if (!reportId) {
       toast.error("Report is still saving. Try again in a moment.");
       return;
@@ -561,7 +564,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
     toast("Reverted to previous prompt.");
   };
 
-  // Wrap toggle to add a brief visual pulse + ack
+  // Wrap toggle to add a brief visual pulse + ack + undo toast
   const wrappedToggleHighlight = onToggleHighlight
     ? (k: string) => {
         const wasOn = !!highlights?.has(k);
@@ -569,6 +572,25 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
         if (!wasOn) {
           setPulsedSection(k);
           setTimeout(() => setPulsedSection(null), 900);
+          const label = sectionMeta.find((s) => s.key === k)?.label || k;
+          toast.success(`✦ Kept "${label}"`, {
+            action: { label: "Undo", onClick: () => onToggleHighlight(k) },
+            duration: 4000,
+          });
+        }
+      }
+    : undefined;
+
+  const wrappedToggleAntiHighlight = onToggleAntiHighlight
+    ? (k: string) => {
+        const wasOn = !!antiHighlights?.has(k);
+        onToggleAntiHighlight(k);
+        if (!wasOn) {
+          const label = sectionMeta.find((s) => s.key === k)?.label || k;
+          toast(`✕ Cut "${label}"`, {
+            action: { label: "Undo", onClick: () => onToggleAntiHighlight(k) },
+            duration: 4000,
+          });
         }
       }
     : undefined;
@@ -583,7 +605,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
     }
   };
 
-  /* ─── Render helpers to avoid duplication ─── */
+  /* ─── Render helper: Keep / Cut chips (verbs, matches Vibe Stack vocab) ─── */
   const renderHighlightToggles = (
     key: string,
     isHighlighted: boolean | undefined,
@@ -601,9 +623,10 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
               ? "bg-primary/20 border border-primary/40 text-primary"
               : "border border-border/50 text-muted-foreground hover:border-primary/30 hover:text-primary/80"
           }`}
+          title={isHighlighted ? "Kept — click to undo" : "Keep this section (will shape the prompt)"}
         >
           <Sparkles size={10} className={isHighlighted ? "fill-primary" : ""} />
-          {isHighlighted ? "Resonates" : "This resonates"}
+          {isHighlighted ? "Kept" : "Keep"}
         </button>
         {onAntiToggle && (
           <button
@@ -613,8 +636,9 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                 ? "bg-destructive/15 border border-destructive/40 text-destructive"
                 : "border border-border/50 text-muted-foreground hover:border-destructive/30 hover:text-destructive/80"
             }`}
+            title={isAntiHighlighted ? "Cut — click to undo" : "Cut this from the prompt"}
           >
-            ✕ {isAntiHighlighted ? "Flagged" : "Not quite"}
+            ✕ {isAntiHighlighted ? "Cut" : "Cut"}
           </button>
         )}
       </div>
@@ -783,68 +807,53 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
         </motion.div>
       )}
 
-      {/* Email banner — only gates PDF/Share, NOT the prompt */}
-      {!showPrompt && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8 p-4 rounded-lg border border-primary/30 bg-primary/5"
-          style={{ boxShadow: "0 0 24px hsl(var(--primary) / 0.08)" }}
-        >
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-            <div className="flex-1">
-              <p className="font-display text-sm font-bold text-foreground">Save your report — unlock PDF + share link</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Your prompt is already below. Add an email to download a PDF and get a shareable URL.
-              </p>
-            </div>
-            <form onSubmit={handleEmailSubmit} className="flex gap-2 w-full sm:w-auto">
-              <input
-                type="email"
-                placeholder="your@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 sm:w-52 px-3 py-2 rounded-sm bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
-              />
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex items-center gap-2 bg-primary text-primary-foreground text-sm px-4 py-2 rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50 whitespace-nowrap"
-              >
-                <Mail size={14} />
-                {isSubmitting ? "..." : "Save"}
-              </button>
-            </form>
-          </div>
-        </motion.div>
-      )}
-
       {/* Full report — always visible */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
       >
-        {/* Unified action row — Copy/Open live in the prompt block; this is meta actions */}
-        {showPrompt && (
-          <div className="flex flex-wrap gap-2 justify-end mb-4">
-            <button
-              onClick={handleDownloadPDF}
-              disabled={isExporting}
-              className="flex items-center gap-2 text-xs px-3 py-2 rounded-sm border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors disabled:opacity-50"
-            >
-              <Download size={13} />
-              {isExporting ? "Generating..." : "Download PDF"}
-            </button>
-            <button
-              onClick={handleShareReport}
-              className="flex items-center gap-2 text-xs px-3 py-2 rounded-sm border border-primary/40 text-primary hover:bg-primary/10 transition-colors"
-            >
-              {shareCopied ? <Check size={13} /> : <Share2 size={13} />}
-              {shareCopied ? "Link Copied" : "Share Report"}
-            </button>
-          </div>
-        )}
+        {/* Unified action row — PDF + Share are always visible.
+            If not unlocked, clicking either opens an inline email field that
+            sits in the same row (no full-width banner). */}
+        <div className="flex flex-wrap gap-2 justify-end mb-4 items-center">
+          {!showPrompt && (
+            <form onSubmit={handleEmailSubmit} className="flex gap-2 mr-auto w-full sm:w-auto">
+              <input
+                type="email"
+                placeholder="email to unlock PDF + share"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="flex-1 sm:w-56 px-3 py-2 rounded-sm bg-background border border-border text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
+              />
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex items-center gap-1.5 bg-primary text-primary-foreground text-xs px-3 py-2 rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50 whitespace-nowrap"
+              >
+                <Mail size={12} />
+                {isSubmitting ? "..." : "Unlock"}
+              </button>
+            </form>
+          )}
+          <button
+            onClick={handleDownloadPDF}
+            disabled={isExporting}
+            className="flex items-center gap-2 text-xs px-3 py-2 rounded-sm border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors disabled:opacity-50"
+            title={showPrompt ? "Download structured PDF" : "Add an email to download"}
+          >
+            <Download size={13} />
+            {isExporting ? "Generating..." : "PDF"}
+          </button>
+          <button
+            onClick={handleShareReport}
+            className="flex items-center gap-2 text-xs px-3 py-2 rounded-sm border border-primary/40 text-primary hover:bg-primary/10 transition-colors"
+            title={showPrompt ? "Copy a shareable link" : "Add an email to share"}
+          >
+            {shareCopied ? <Check size={13} /> : <Share2 size={13} />}
+            {shareCopied ? "Copied" : "Share"}
+          </button>
+        </div>
 
         <div ref={reportRef}>
           {/* Compact title — no decorative image, no logo card */}
@@ -1042,7 +1051,10 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                     <h4 className={`font-display font-black text-foreground uppercase tracking-wide ${isHero ? "text-base" : "text-sm"}`}>
                       {section.label}
                     </h4>
-                    {renderHighlightToggles(section.key, isHighlighted, isAntiHighlighted, onToggleHighlight, onToggleAntiHighlight)}
+                    {editMode && editedSections.has(section.key) && (
+                      <span className="text-[9px] text-primary tabular-nums" title="Edited — re-simulate to apply">● Edited</span>
+                    )}
+                    {renderHighlightToggles(section.key, isHighlighted, isAntiHighlighted, wrappedToggleHighlight, wrappedToggleAntiHighlight)}
                   </div>
 
                   {section.key === "core_features" && Array.isArray(value) ? (
@@ -1096,7 +1108,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                     <Textarea
                       value={(editedBrief[section.key as keyof BriefData] as string) || ""}
                       onChange={(e) =>
-                        setEditedBrief((prev) => ({ ...prev, [section.key]: e.target.value }))
+                        { setEditedBrief((prev) => ({ ...prev, [section.key]: e.target.value })); setEditedSections((prev) => new Set(prev).add(section.key)); }
                       }
                       className={`text-foreground/90 leading-relaxed bg-background/50 border-primary/30 focus-visible:ring-primary/40 ${isHero ? "min-h-[120px] text-base" : "min-h-[100px] text-base"}`}
                       placeholder={`Edit ${section.label.toLowerCase()}…`}
@@ -1161,14 +1173,17 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                         <h4 className="font-display text-sm font-black text-foreground uppercase tracking-wide">
                           {section.label}
                         </h4>
-                        {renderHighlightToggles(section.key, isHighlighted, isAntiHighlighted, onToggleHighlight, onToggleAntiHighlight)}
+                        {editMode && editedSections.has(section.key) && (
+                          <span className="text-[9px] text-primary tabular-nums" title="Edited — re-simulate to apply">● Edited</span>
+                        )}
+                        {renderHighlightToggles(section.key, isHighlighted, isAntiHighlighted, wrappedToggleHighlight, wrappedToggleAntiHighlight)}
                       </div>
 
                       {editMode ? (
                         <Textarea
                           value={(editedBrief[section.key as keyof BriefData] as string) || ""}
                           onChange={(e) =>
-                            setEditedBrief((prev) => ({ ...prev, [section.key]: e.target.value }))
+                            { setEditedBrief((prev) => ({ ...prev, [section.key]: e.target.value })); setEditedSections((prev) => new Set(prev).add(section.key)); }
                           }
                           className="ml-5 text-sm bg-background/50 border-primary/30 focus-visible:ring-primary/40 min-h-[80px]"
                           placeholder={`Edit ${section.label.toLowerCase()}…`}
@@ -1256,6 +1271,19 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
             Home
           </button>
         </div>
+
+        {/* "What now?" cue — closes the loop after the user has copied the prompt */}
+        {showPrompt && lovablePrompt && (
+          <p className="text-[11px] text-muted-foreground/60 text-center mt-4">
+            Built it?{" "}
+            <button
+              onClick={() => navigate("/my-simulations?import=1")}
+              className="text-primary hover:underline underline-offset-2"
+            >
+              Paste your project URL to import as a child idea →
+            </button>
+          </p>
+        )}
       </motion.div>
     </div>
   );

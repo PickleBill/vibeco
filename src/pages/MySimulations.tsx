@@ -39,14 +39,7 @@ const statusConfig: Record<string, { label: string; color: string; bg: string }>
   "prompt-ready": { label: "Prompt Ready", color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/30" },
 };
 
-const intentEmoji: Record<string, string> = {
-  experiment: "🧪",
-  community: "👥",
-  "lead-magnet": "🎯",
-  lifestyle: "☀️",
-  venture: "🚀",
-  fun: "🎮",
-};
+/* (Intent emoji map removed — quiet typography only, like FinalReport) */
 
 /* ─── Progress helpers ─── */
 const computeProgress = (report: IdeaReport, pCount: number) => {
@@ -248,8 +241,8 @@ const IdeaCard = ({
                 {new Date(report.created_at).toLocaleDateString()}
               </span>
               {intent && (
-                <span className="text-[11px] text-muted-foreground">
-                  {intentEmoji[intent] || ""} {intent}
+                <span className="text-[11px] text-muted-foreground capitalize">
+                  {String(intent).replace(/-/g, " ")}
                 </span>
               )}
               {perspectiveCount > 0 && (

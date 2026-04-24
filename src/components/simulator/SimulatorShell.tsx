@@ -14,8 +14,7 @@ import {
 import IdeaInput from "./IdeaInput";
 import IdeaBrief from "./IdeaBrief";
 import FollowUpQuestions from "./FollowUpQuestions";
-import FinalReport, { generateStructuredPDF, computeScores } from "./FinalReport";
-import ThunderdomePanel from "./ThunderdomePanel";
+import FinalReport from "./FinalReport";
 import VibeStack from "./VibeStack";
 import { useVibeStack } from "@/hooks/useVibeStack";
 import { supabase } from "@/integrations/supabase/client";
@@ -171,7 +170,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [showStressTest, setShowStressTest] = useState(false);
+  const [showStartFreshConfirm, setShowStartFreshConfirm] = useState(false);
 
   // Vibe Stack — curated insight chits, falls back to localStorage when no reportId yet
   const stack = useVibeStack(reportId);
@@ -854,7 +853,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                       }
                     : undefined
                 }
-                onStartFresh={handleStartFresh}
+                onStartFresh={() => setShowStartFreshConfirm(true)}
               />
             </motion.div>
           )}
@@ -903,7 +902,6 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                 <IdeaBrief
                   brief={latestRound.brief}
                   round={currentRound}
-                  conceptImage={conceptImage}
                   unlocked={unlocked}
                   onUnlock={handleUnlock}
                   highlights={highlights}
@@ -912,47 +910,8 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                   onToggleAntiHighlight={toggleAntiHighlight}
                 />
 
-                {/* Run Stress-test CTA — surface Thunderdome during the brief phase */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-4 rounded-lg border border-border/40 bg-card/40">
-                  <div className="flex-1">
-                    <p className="font-display text-sm font-bold text-foreground">Want to stress-test before answering more?</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      Run all 5 personas, expand into adjacent shapes, and distill to the one thing — without leaving this screen.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setShowStressTest((v) => !v)}
-                    className="flex items-center justify-center gap-2 text-xs font-semibold px-4 py-2 rounded-sm border border-primary/40 text-primary hover:bg-primary/10 transition-colors whitespace-nowrap"
-                  >
-                    <Zap size={12} />
-                    {showStressTest ? "Hide stress-test" : "Run stress-test"}
-                  </button>
-                </div>
-
-                <AnimatePresence>
-                  {showStressTest && (
-                    <motion.div
-                      key="inline-stress-test"
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.25 }}
-                      className="overflow-hidden"
-                    >
-                      <ThunderdomePanel
-                        brief={latestRound.brief}
-                        idea={idea}
-                        reportId={reportId}
-                        highlights={highlights}
-                        antiHighlights={antiHighlights}
-                        lovablePrompt={lovablePrompt}
-                        onPromptUpdate={(p) => setLovablePrompt(p)}
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Follow-up questions — always inline below */}
+                {/* Follow-up questions — always inline below.
+                    Stress-test moved to FinalReport only — single source of truth. */}
                 <FollowUpQuestions
                   questions={latestRound.questions}
                   onSubmit={handleAnswersSubmit}
@@ -1134,6 +1093,30 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Yes, start over
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Start fresh confirm — gates the iterate-input "Start fresh instead" link */}
+      <AlertDialog open={showStartFreshConfirm} onOpenChange={setShowStartFreshConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Start a fresh idea?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This clears your current rounds, highlights, and Vibe Stack. Your saved reports stay safe in the dashboard.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep this idea</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowStartFreshConfirm(false);
+                handleStartFresh();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Yes, start fresh
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

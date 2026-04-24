@@ -29,6 +29,9 @@ const IdeaInput = ({ onSubmit, initialValue, iterationContext, onStartFresh }: P
   const [shaking, setShaking] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const [focused, setFocused] = useState(false);
+  // Import mode is gated behind ?import=1 until the manifest API ships.
+  const importEnabled =
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("import") === "1";
   const [importMode, setImportMode] = useState(false);
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -136,8 +139,8 @@ const IdeaInput = ({ onSubmit, initialValue, iterationContext, onStartFresh }: P
           </motion.div>
         )}
 
-        {/* Segmented mode toggle — hidden during iteration to keep focus */}
-        {!isIterating && (
+        {/* Segmented mode toggle — hidden during iteration AND until ?import=1 */}
+        {!isIterating && importEnabled && (
           <>
             <div className="relative inline-flex items-center mt-6 p-1 rounded-md bg-card/40 border border-border/30">
               {[
