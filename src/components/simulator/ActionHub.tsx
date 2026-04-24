@@ -150,7 +150,7 @@ const ActionHub = ({ brief, idea, lovablePrompt, reportId, onIterate }: Props) =
     {
       id: "iterate",
       label: "Iterate on This",
-      description: "Re-enter the simulator with everything you've learned",
+      description: "Re-enter the simulator — your highlights, prompt, and brief carry over",
       icon: RefreshCw,
       priority: 5,
       action: onIterate,
