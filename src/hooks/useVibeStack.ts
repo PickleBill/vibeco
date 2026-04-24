@@ -51,6 +51,23 @@ export function useVibeStack(reportId: string | null | undefined): UseVibeStackR
 
   const localKey = reportId ? `${LOCAL_KEY}_${reportId}` : LOCAL_KEY;
 
+  // Encode/decode `round` inside the `source` column without a schema change:
+  //   stored:    "r2|deep_dive_problem"   or just "r2|" for round-only.
+  //   round-less items keep their source untouched.
+  const encodeSource = (source: string | null | undefined, round?: number): string | null => {
+    if (round == null) return source ?? null;
+    return `r${round}|${source ?? ""}`;
+  };
+  const decodeItem = (raw: any): StackItem => {
+    const src: string = raw?.source ?? "";
+    const m = typeof src === "string" ? src.match(/^r(\d+)\|(.*)$/) : null;
+    return {
+      ...raw,
+      source: m ? (m[2] || null) : (raw?.source ?? null),
+      round: m ? Number(m[1]) : undefined,
+    } as StackItem;
+  };
+
   const refresh = useCallback(async () => {
     if (!reportId) {
       // Local-only fallback
@@ -70,7 +87,7 @@ export function useVibeStack(reportId: string | null | undefined): UseVibeStackR
         .is("deleted_at", null)
         .order("position", { ascending: true });
       if (error) throw error;
-      setItems((data as StackItem[]) || []);
+      setItems(((data as any[]) || []).map(decodeItem));
     } catch (e) {
       console.error("Stack fetch error:", e);
     } finally {
