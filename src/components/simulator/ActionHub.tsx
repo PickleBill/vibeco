@@ -1,11 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Rocket,
   MessageSquare,
   Palette,
   TestTube,
-  RefreshCw,
   Copy,
   Check,
   Loader2,
@@ -162,28 +160,17 @@ const ActionHub = ({ brief, idea, lovablePrompt, reportId, onIterate }: Props) =
     runAltPrompt(promptType);
   };
 
-  // Contextual ordering based on builder intent
+  // Contextual ordering based on builder intent.
+  // Note: "Build in Lovable" + "Iterate" intentionally NOT here — they live in the
+  // prompt block ("Open in Lovable") and the refine-in-place banner respectively.
+  // ActionHub is *generative side-quests* only, to avoid duplicate CTAs.
   const actions = [
-    {
-      id: "lovable",
-      label: "Build in Lovable",
-      description: "Paste this prompt to generate your app",
-      icon: Rocket,
-      priority: builderIntent === "fun" || builderIntent === "community" ? 1 : 2,
-      action: () => {
-        if (lovablePrompt) handleCopy(lovablePrompt, "lovable");
-      },
-      available: !!lovablePrompt,
-      generative: false,
-      accentClass: "border-primary/30 hover:border-primary/60",
-      iconClass: "text-primary",
-    },
     {
       id: "research",
       label: "Research Prompt",
       description: "Deep-dive prompt for ChatGPT or Claude",
       icon: MessageSquare,
-      priority: builderIntent === "venture" ? 1 : 3,
+      priority: builderIntent === "venture" ? 1 : 2,
       action: () => handleAction("research"),
       available: true,
       generative: true,
@@ -213,18 +200,6 @@ const ActionHub = ({ brief, idea, lovablePrompt, reportId, onIterate }: Props) =
       generative: true,
       accentClass: "border-amber-500/20 hover:border-amber-500/40",
       iconClass: "text-amber-400",
-    },
-    {
-      id: "iterate",
-      label: "Iterate on This",
-      description: "Re-enter the simulator — your highlights, prompt, and brief carry over",
-      icon: RefreshCw,
-      priority: 5,
-      action: onIterate,
-      available: true,
-      generative: false,
-      accentClass: "border-border/40 hover:border-foreground/30",
-      iconClass: "text-muted-foreground",
     },
   ]
     .filter((a) => a.available)

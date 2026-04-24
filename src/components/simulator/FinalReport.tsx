@@ -183,18 +183,12 @@ export const generateStructuredPDF = (
   pdf.text(`Generated ${new Date().toLocaleDateString()} · ${rounds.length} rounds of analysis`, margin, y);
   y += 20;
 
-  scores.forEach((s) => {
-    pdf.setFontSize(10);
-    pdf.setTextColor(180, 180, 200);
-    pdf.text(`${s.label}:`, margin, y);
-    pdf.setFillColor(40, 40, 50);
-    pdf.roundedRect(margin + 25, y - 3.5, 60, 5, 2, 2, "F");
-    pdf.setFillColor(120, 120, 200);
-    pdf.roundedRect(margin + 25, y - 3.5, 60 * (s.value / 100), 5, 2, 2, "F");
-    pdf.setTextColor(200, 200, 220);
-    pdf.text(`${s.value}`, margin + 90, y);
-    y += 9;
-  });
+  // (Fake hash-based scores removed from PDF cover — they leaked deterministic
+  // "Market 73 / Product 81" numbers that weren't real signal.)
+  pdf.setFontSize(11);
+  pdf.setTextColor(180, 180, 200);
+  pdf.text(`${rounds.length} round${rounds.length === 1 ? "" : "s"} of analysis`, margin, y);
+  y += 12;
 
   pdf.addPage();
   addHeader();
@@ -284,6 +278,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null); // diff state
   const [pulsedSection, setPulsedSection] = useState<string | null>(null);
+  const [activeNavSection, setActiveNavSection] = useState<string>("prompt");
   // Editable copies of brief sections during iterate-in-place mode
   const [editedBrief, setEditedBrief] = useState<BriefData>(brief);
   useEffect(() => {
@@ -300,6 +295,42 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+
+  // Sub-nav: smooth scroll + intersection-observer to track active section
+  const navSections = [
+    { id: "prompt", label: "Prompt" },
+    { id: "brief", label: "Brief" },
+    { id: "stress-test", label: "Stress-test" },
+    { id: "actions", label: "Actions" },
+  ];
+
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(`fr-${id}`);
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - 96;
+    window.scrollTo({ top, behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    const ids = navSections.map((s) => `fr-${s.id}`);
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible) {
+          const id = visible.target.id.replace("fr-", "");
+          setActiveNavSection(id);
+        }
+      },
+      { rootMargin: "-100px 0px -60% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] },
+    );
+    ids.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) obs.observe(el);
+    });
+    return () => obs.disconnect();
+  }, []);
 
   const handleDeepDive = async (sectionKey: string) => {
     if (expandedSection === sectionKey) {
@@ -839,22 +870,44 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
             )}
           </div>
 
+          {/* Sticky sub-nav — quick jump between report regions */}
+          <nav className="sticky top-16 z-30 -mx-2 mb-6 px-2 py-2 bg-background/85 backdrop-blur-md border-y border-border/40">
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+              {navSections.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => scrollToSection(s.id)}
+                  className={`shrink-0 text-[11px] px-3 py-1.5 rounded-full border transition-all ${
+                    activeNavSection === s.id
+                      ? "border-primary/60 bg-primary/15 text-primary font-semibold"
+                      : "border-border/40 text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                  }`}
+                >
+                  {s.label}
+                  {s.id === "stress-test" && stackItems && stackItems.length > 0 && (
+                    <span className="ml-1.5 text-[9px] opacity-70">{stackItems.length}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </nav>
+
           {/* ★ HERO: Single prompt block with three states (empty / shown / sharpening-diff) */}
           <motion.div
+            id="fr-prompt"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className="mb-8"
+            className="mb-8 scroll-mt-24"
           >
             {/* Persistent highlight summary banner — visible whenever there's input */}
-            {(highlights && highlights.size > 0) || (antiHighlights && antiHighlights.size > 0) ? (
-              <motion.div
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className="flex items-center justify-between gap-3 mb-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20"
-              >
-                <div className="flex items-center gap-2 min-w-0">
+              {(highlights && highlights.size > 0) || (antiHighlights && antiHighlights.size > 0) ? (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex items-center gap-3 mb-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20"
+                >
                   <Sparkles size={12} className="text-primary fill-primary shrink-0" />
                   <span className="text-xs text-primary truncate">
                     {highlights && highlights.size > 0 && (
@@ -868,21 +921,10 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                         {antiHighlights.size} flag{antiHighlights.size > 1 ? "s" : ""}
                       </>
                     )}
-                    {lovablePrompt ? " — sharpen the prompt to apply" : " — generate the prompt to apply"}
+                    {lovablePrompt ? " — sharpen from the Vibe Stack to apply" : " — generate the prompt to apply"}
                   </span>
-                </div>
-                {lovablePrompt && !pendingPrompt && (
-                  <button
-                    onClick={handleSharpenPrompt}
-                    disabled={isSharpening}
-                    className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-primary/40 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50 whitespace-nowrap"
-                  >
-                    {isSharpening ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
-                    {isSharpening ? "Sharpening…" : "Sharpen now"}
-                  </button>
-                )}
-              </motion.div>
-            ) : null}
+                </motion.div>
+              ) : null}
 
             {/* Diff view supersedes the regular prompt view while pending */}
             {pendingPrompt ? (
@@ -971,7 +1013,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
           )}
 
           {/* Hero sections — Problem & Core Features get dramatic treatment */}
-          <div className="space-y-1 mb-8">
+          <div id="fr-brief" className="space-y-1 mb-8 scroll-mt-24">
             {sectionMeta.filter(s => s.key === "problem" || s.key === "core_features").map((section, i) => {
               const Icon = section.icon;
               const value = brief[section.key as keyof BriefData];
@@ -997,7 +1039,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                 >
                   <div className="flex items-center gap-2 mb-3">
                     <Icon size={isHero ? 18 : 14} className="text-primary" />
-                    <h4 className={`font-display font-bold text-foreground uppercase tracking-wide ${isHero ? "text-base" : "text-sm"}`}>
+                    <h4 className={`font-display font-black text-foreground uppercase tracking-wide ${isHero ? "text-base" : "text-sm"}`}>
                       {section.label}
                     </h4>
                     {renderHighlightToggles(section.key, isHighlighted, isAntiHighlighted, onToggleHighlight, onToggleAntiHighlight)}
@@ -1116,7 +1158,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <Icon size={14} className="text-primary/70" />
-                        <h4 className="font-display text-sm font-bold text-foreground uppercase tracking-wide">
+                        <h4 className="font-display text-sm font-black text-foreground uppercase tracking-wide">
                           {section.label}
                         </h4>
                         {renderHighlightToggles(section.key, isHighlighted, isAntiHighlighted, onToggleHighlight, onToggleAntiHighlight)}
@@ -1132,7 +1174,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                           placeholder={`Edit ${section.label.toLowerCase()}…`}
                         />
                       ) : (
-                        <p className="text-sm text-foreground/80 leading-relaxed ml-5">
+                        <p className="text-sm text-foreground/90 leading-relaxed ml-5">
                           {typeof value === "string" ? value : ""}
                         </p>
                       )}
@@ -1166,36 +1208,49 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
         {/* (Lovable Prompt now lives near the top — promoted to position 2) */}
 
         {/* Stress-test the whole idea — always visible */}
-        <ThunderdomePanel
-          brief={brief}
-          idea={idea}
-          reportId={reportId}
-          highlights={highlights}
-          antiHighlights={antiHighlights}
-          lovablePrompt={lovablePrompt}
-          onPromptUpdate={onPromptUpdate}
-        />
+        <div id="fr-stress-test" className="scroll-mt-24">
+          <ThunderdomePanel
+            brief={brief}
+            idea={idea}
+            reportId={reportId}
+            highlights={highlights}
+            antiHighlights={antiHighlights}
+            lovablePrompt={lovablePrompt}
+            onPromptUpdate={onPromptUpdate}
+          />
+        </div>
 
         {/* Action Hub — always visible */}
-        <ActionHub
-          brief={brief}
-          idea={idea}
-          lovablePrompt={lovablePrompt}
-          reportId={reportId}
-          onIterate={onIterate ?? onRestart}
-        />
+        <div id="fr-actions" className="scroll-mt-24 mt-8">
+          <ActionHub
+            brief={brief}
+            idea={idea}
+            lovablePrompt={lovablePrompt}
+            reportId={reportId}
+            onIterate={onIterate ?? onRestart}
+          />
+        </div>
 
-        <div className="flex flex-wrap gap-4 justify-center mt-6">
+        <div className="flex flex-wrap gap-3 justify-center mt-10 pt-6 border-t border-border/30">
+          {onIterate && !editMode && (
+            <button
+              onClick={onIterate}
+              className="flex items-center gap-2 text-xs font-semibold text-primary px-4 py-2 rounded-sm border border-primary/40 hover:bg-primary/10 transition-colors"
+            >
+              <Wand2 size={12} />
+              Refine this idea in place
+            </button>
+          )}
           <button
             onClick={onRestart}
-            className="flex items-center gap-2 text-xs text-muted-foreground/50 px-4 py-2 rounded-sm hover:text-muted-foreground transition-colors"
+            className="flex items-center gap-2 text-xs text-muted-foreground/60 px-4 py-2 rounded-sm hover:text-muted-foreground transition-colors"
           >
             <RotateCcw size={12} />
-            Start fresh
+            Start over
           </button>
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-2 text-xs text-muted-foreground/50 px-4 py-2 rounded-sm hover:text-muted-foreground transition-colors"
+            className="flex items-center gap-2 text-xs text-muted-foreground/60 px-4 py-2 rounded-sm hover:text-muted-foreground transition-colors"
           >
             <ArrowLeft size={12} />
             Home
