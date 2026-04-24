@@ -556,8 +556,11 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
     }
   };
 
-  const handleIdeaSubmit = (text: string) => {
+  const [importedFromProjectId, setImportedFromProjectId] = useState<string | null>(null);
+
+  const handleIdeaSubmit = (text: string, meta?: { project_id?: string; lovable_project_id?: string | null }) => {
     setIdea(text);
+    if (meta?.project_id) setImportedFromProjectId(meta.project_id);
     generateImages(text);
     callSimulator("initial", text);
   };
