@@ -12,7 +12,6 @@ import {
   Mail,
   RotateCcw,
   Download,
-  ImageIcon,
   ArrowLeft,
   Copy,
   Check,
@@ -22,6 +21,9 @@ import {
   Share2,
   GripVertical,
   ExternalLink,
+  Wand2,
+  Star,
+  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
@@ -29,6 +31,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import ThunderdomePanel from "./ThunderdomePanel";
 import ActionHub from "./ActionHub";
+import PromptDiff from "./PromptDiff";
 import { copyToClipboard } from "@/lib/copyToClipboard";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
