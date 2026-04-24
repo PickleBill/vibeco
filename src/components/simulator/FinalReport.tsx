@@ -915,19 +915,8 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                     )}
                     {lovablePrompt ? " — sharpen the prompt to apply" : " — generate the prompt to apply"}
                   </span>
-                </div>
-                {lovablePrompt && !pendingPrompt && (
-                  <button
-                    onClick={handleSharpenPrompt}
-                    disabled={isSharpening}
-                    className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-primary/40 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50 whitespace-nowrap"
-                  >
-                    {isSharpening ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
-                    {isSharpening ? "Sharpening…" : "Sharpen now"}
-                  </button>
-                )}
-              </motion.div>
-            ) : null}
+                </motion.div>
+              ) : null}
 
             {/* Diff view supersedes the regular prompt view while pending */}
             {pendingPrompt ? (
