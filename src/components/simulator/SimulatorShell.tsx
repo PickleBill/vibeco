@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, Zap, Brain, X } from "lucide-react";
+import { Zap, Brain, X } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -696,16 +696,30 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
     setLogoImage(null);
     // Scroll to top so the input is visible
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
-    toast.success("Iterating — your prior rounds and highlights are preserved.");
+    toast.success(
+      `Iterating — ${rounds.length} round${rounds.length === 1 ? "" : "s"} and ${highlights.size} highlight${highlights.size === 1 ? "" : "s"} preserved.`,
+    );
   };
 
-  const handleDownloadPDF = () => {
-    const latestBrief = rounds[rounds.length - 1]?.brief;
-    if (!latestBrief) return;
-    const scores = computeScores(latestBrief);
-    generateStructuredPDF(latestBrief, idea, rounds, scores, lovablePrompt);
-    toast.success("PDF downloaded!");
+  // Wipe everything from the iterate-input screen and start a brand-new run.
+  const handleStartFresh = () => {
+    setIdea("");
+    setRounds([]);
+    setCurrentRound(0);
+    setHighlights(new Set());
+    setAntiHighlights(new Set());
+    setReportId(null);
+    setLovablePrompt(null);
+    setConceptImage(null);
+    setLogoImage(null);
+    setUnlocked(false);
+    setUnlockEmail("");
+    setDepthRecommendation(undefined);
+    clearDraft();
+    toast("Cleared — start with a fresh idea.");
   };
+
+  // PDF download moved to FinalReport's action row.
 
   const latestRound = rounds[rounds.length - 1];
   const totalRounds = 3;
@@ -750,21 +764,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
           </motion.div>
         )}
 
-        {unlocked && rounds.length > 0 && phase !== "input" && phase !== "analyzing" && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="fixed bottom-6 right-6 z-50"
-          >
-            <button
-              onClick={handleDownloadPDF}
-              className="flex items-center gap-2 text-xs px-4 py-2.5 rounded-sm bg-primary text-primary-foreground shadow-lg hover:opacity-90 transition-opacity"
-            >
-              <Download size={14} />
-              Download PDF
-            </button>
-          </motion.div>
-        )}
+        {/* Floating PDF button removed — Download is now in the FinalReport action row. */}
 
         {rounds.length > 0 && phase !== "input" && (
           <motion.div
@@ -812,7 +812,21 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                   </span>
                 </div>
               )}
-              <IdeaInput onSubmit={handleIdeaSubmit} initialValue={prefillIdea} />
+              <IdeaInput
+                onSubmit={handleIdeaSubmit}
+                initialValue={idea || prefillIdea}
+                iterationContext={
+                  rounds.length > 0 || highlights.size > 0
+                    ? {
+                        highlightCount: highlights.size,
+                        flagCount: antiHighlights.size,
+                        roundCount: rounds.length,
+                        reportId,
+                      }
+                    : undefined
+                }
+                onStartFresh={handleStartFresh}
+              />
             </motion.div>
           )}
 
