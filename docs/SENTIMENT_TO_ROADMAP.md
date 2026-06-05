@@ -108,7 +108,7 @@ Order:
 | Phase | What | Why this order |
 |---|---|---|
 | **P0 — done** | Signal Mine v1 on NiceAce (Reddit + reviews → Signal Board) | The pipeline exists and renders. Prove extraction on one product. |
-| **P1 — Theme persistence** | Promote clusters to *durable themes* (dedupe across runs, trend over time) | Without memory, every scan starts from scratch — no trend, no CPO value. Highest leverage. |
+| **P1 — Theme persistence** ✅ done | Durable `signal_themes` (matched across scans via `matchThemes`, pain-score history) + a "Trending themes" strip with sparklines on `/signal` | Without memory, every scan starts from scratch — no trend, no CPO value. Highest leverage. |
 | **P2 — Opportunity scoring** | Add RICE/impact + strategy-fit; make inputs human-editable | This is the CPO leap from "complaints" to "prioritized bets." |
 | **P3 — The `/pulse` cockpit** | Multi-product roadmap view (Now/Next/Later) with provenance + diffing | The artifact you actually run the business from. |
 | **P4 — Owned sources** | Support tickets, NPS, churn, sales-call transcripts | Your *own* data is the highest-signal, lowest-compliance-risk source. Bigger than X. |
