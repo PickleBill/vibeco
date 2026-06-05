@@ -132,24 +132,25 @@ const SignalBoard = () => {
   const runScan = async () => {
     setScanning(true);
     try {
+      // Stage 1: collect + persist raw items to signal_raw (de-duped, hashed authors).
       const { data: collected, error: cErr } = await supabase.functions.invoke("signal-collect", {
-        body: { product: "niceace", persist: false },
+        body: { product: "niceace", persist: true },
       });
       if (cErr) throw cErr;
-      const items = (collected as any)?.items ?? [];
-      if (!items.length) { toast.error("No items collected (source rate-limit?). Showing sample."); return; }
+      toast.message(`Collected ${(collected as any)?.collected ?? 0} items (${(collected as any)?.persisted ?? 0} new)`);
 
+      // Stages 2-4 + theme persistence: process unprocessed rows from the DB.
       const { data: result, error: pErr } = await supabase.functions.invoke("signal-process", {
-        body: { product: "niceace", items },
+        body: { product: "niceace", persist: true },
       });
       if (pErr) throw pErr;
 
       const r = result as any;
-      setCandidates(r.candidates ?? []);
+      if ((r.candidates ?? []).length) setCandidates(r.candidates);
       if (r.themes?.length) setThemes(r.themes);
       setCounts(r.counts ?? null);
       setUsingSample(false);
-      toast.success(`Scan complete — ${r.counts?.candidates ?? 0} candidates from ${r.counts?.collected ?? items.length} items`);
+      toast.success(`Scan complete — ${r.counts?.candidates ?? 0} candidates from ${r.counts?.collected ?? 0} items`);
     } catch (e: any) {
       toast.error(`Scan failed: ${e?.message ?? "unknown"} — showing sample board`);
     } finally {
