@@ -9,6 +9,7 @@ import Auth from "./pages/Auth.tsx";
 import Report from "./pages/Report.tsx";
 import MySimulations from "./pages/MySimulations.tsx";
 import Portfolio from "./pages/Portfolio.tsx";
+import SignalBoard from "./pages/SignalBoard.tsx";
 // Inbox route hidden until Sprint 3 (auto-evaluate flywheel wiring)
 // import Inbox from "./pages/Inbox.tsx";
 import NotFound from "./pages/NotFound.tsx";
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/report/:id" element={<Report />} />
           <Route path="/my-simulations" element={<MySimulations />} />
           <Route path="/portfolio" element={<Portfolio />} />
+          <Route path="/signal" element={<SignalBoard />} />
           {/* <Route path="/inbox" element={<Inbox />} /> hidden until Sprint 3 */}
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

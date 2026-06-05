@@ -1,9 +1,27 @@
 # PRD — Signal Mine: social pain-point → product-feature pipeline
 
-**Owner:** Bill / Courtana · **Status:** Draft v1 · **Codename:** Signal Mine
+**Owner:** Bill / Courtana · **Status:** v1 scaffolded (code shipped) · **Codename:** Signal Mine
 **Relationship to other docs:** This is the *input firehose* for Loop B in
 [`VIBECO_X_ACES_INTEGRATION.md`](./VIBECO_X_ACES_INTEGRATION.md). It can run standalone
 for any Courtana product, but NiceAce is the first beneficiary.
+
+> ### Build status — v1 scaffolded (pointed at NiceAce)
+> Shipped in this repo, following the existing agent conventions:
+> - **DB:** `supabase/migrations/20260605000000_signal_mine.sql` — `signal_raw`,
+>   `signal_clusters`, `feature_candidates` (+ pgvector + RLS).
+> - **Agent:** `supabase/functions/_shared/agents/signal-mine.ts` — classify → cluster →
+>   synthesize, via the existing `llm-client` + new `pain-classification` /
+>   `feedback-synthesis` task types in `model-router.ts`.
+> - **Endpoints:** `signal-collect` (Stage 1 — Reddit + App-Store RSS, **public, no-key,
+>   ToS-compliant**) and `signal-process` (Stages 2–4).
+> - **Surface:** `src/pages/SignalBoard.tsx` at route **`/signal`** — ranked candidates with
+>   pain score, evidence, quotes, and one-tap **Promote / Dismiss** (the Stage-5 human gate).
+>   Ships with sample data so it renders before backend wiring.
+>
+> **To go live:** apply the migration, deploy the two functions, ensure
+> `LOVABLE_API_KEY` + `SUPABASE_SERVICE_ROLE_KEY` are set, then hit **Run scan** on `/signal`
+> (or schedule `signal-collect`+`signal-process` daily). Nothing here touches the live app
+> except adding the new `/signal` route.
 
 ---
 
