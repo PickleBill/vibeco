@@ -41,6 +41,69 @@ export type Database = {
         }
         Relationships: []
       }
+      feature_candidates: {
+        Row: {
+          cluster_id: string | null
+          confidence: number | null
+          created_at: string | null
+          effort: string | null
+          evidence: Json | null
+          id: string
+          pain_score: number | null
+          problem: string
+          product_tag: string | null
+          proposed_solution: string
+          representative_quotes: Json | null
+          status: string | null
+          theme_id: string | null
+        }
+        Insert: {
+          cluster_id?: string | null
+          confidence?: number | null
+          created_at?: string | null
+          effort?: string | null
+          evidence?: Json | null
+          id?: string
+          pain_score?: number | null
+          problem: string
+          product_tag?: string | null
+          proposed_solution: string
+          representative_quotes?: Json | null
+          status?: string | null
+          theme_id?: string | null
+        }
+        Update: {
+          cluster_id?: string | null
+          confidence?: number | null
+          created_at?: string | null
+          effort?: string | null
+          evidence?: Json | null
+          id?: string
+          pain_score?: number | null
+          problem?: string
+          product_tag?: string | null
+          proposed_solution?: string
+          representative_quotes?: Json | null
+          status?: string | null
+          theme_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_candidates_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "signal_clusters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feature_candidates_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "signal_themes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       idea_perspectives: {
         Row: {
           challenge_questions: Json | null
@@ -278,6 +341,129 @@ export type Database = {
           },
         ]
       }
+      signal_clusters: {
+        Row: {
+          created_at: string | null
+          id: string
+          member_count: number | null
+          pain_score: number | null
+          product_tag: string | null
+          theme: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          member_count?: number | null
+          pain_score?: number | null
+          product_tag?: string | null
+          theme: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          member_count?: number | null
+          pain_score?: number | null
+          product_tag?: string | null
+          theme?: string
+        }
+        Relationships: []
+      }
+      signal_raw: {
+        Row: {
+          author_hash: string | null
+          body: string
+          cluster_id: string | null
+          collected_at: string | null
+          embedding: string | null
+          id: string
+          label: string | null
+          label_confidence: number | null
+          processed: boolean | null
+          product_tag: string | null
+          raw: Json | null
+          source: string
+          source_url: string | null
+          title: string | null
+        }
+        Insert: {
+          author_hash?: string | null
+          body: string
+          cluster_id?: string | null
+          collected_at?: string | null
+          embedding?: string | null
+          id?: string
+          label?: string | null
+          label_confidence?: number | null
+          processed?: boolean | null
+          product_tag?: string | null
+          raw?: Json | null
+          source: string
+          source_url?: string | null
+          title?: string | null
+        }
+        Update: {
+          author_hash?: string | null
+          body?: string
+          cluster_id?: string | null
+          collected_at?: string | null
+          embedding?: string | null
+          id?: string
+          label?: string | null
+          label_confidence?: number | null
+          processed?: boolean | null
+          product_tag?: string | null
+          raw?: Json | null
+          source?: string
+          source_url?: string | null
+          title?: string | null
+        }
+        Relationships: []
+      }
+      signal_themes: {
+        Row: {
+          candidate_count: number | null
+          embedding: string | null
+          first_seen: string | null
+          id: string
+          last_seen: string | null
+          occurrence_count: number | null
+          pain_score: number | null
+          product_tag: string | null
+          sample_quotes: Json | null
+          score_history: Json | null
+          status: string | null
+          title: string
+        }
+        Insert: {
+          candidate_count?: number | null
+          embedding?: string | null
+          first_seen?: string | null
+          id?: string
+          last_seen?: string | null
+          occurrence_count?: number | null
+          pain_score?: number | null
+          product_tag?: string | null
+          sample_quotes?: Json | null
+          score_history?: Json | null
+          status?: string | null
+          title: string
+        }
+        Update: {
+          candidate_count?: number | null
+          embedding?: string | null
+          first_seen?: string | null
+          id?: string
+          last_seen?: string | null
+          occurrence_count?: number | null
+          pain_score?: number | null
+          product_tag?: string | null
+          sample_quotes?: Json | null
+          score_history?: Json | null
+          status?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       simulator_captures: {
         Row: {
           concept_image_url: string | null
@@ -357,6 +543,20 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      match_signal_raw: {
+        Args: {
+          filter_product?: string
+          match_count?: number
+          query_embedding: string
+        }
+        Returns: {
+          body: string
+          id: string
+          similarity: number
+          source: string
+          title: string
+        }[]
       }
     }
     Enums: {
