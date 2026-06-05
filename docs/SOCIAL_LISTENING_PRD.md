@@ -3,7 +3,7 @@
 **Owner:** Bill / Courtana · **Status:** Draft v1 · **Codename:** Signal Mine
 **Relationship to other docs:** This is the *input firehose* for Loop B in
 [`VIBECO_X_ACES_INTEGRATION.md`](./VIBECO_X_ACES_INTEGRATION.md). It can run standalone
-for any Courtana product, but Aces is the first beneficiary.
+for any Courtana product, but NiceAce is the first beneficiary.
 
 ---
 
@@ -83,7 +83,7 @@ us what to build, the agents decide if it's worth building, and Claude Code ship
 
 - **Signal Board** — a ranked feed of clusters: pain score, trend sparkline, sample quotes,
   the agent-proposed feature, confidence. One-tap → "promote to change request" or "dismiss."
-- **Per-product digest** — weekly "here's what the market said about Aces / VibeCo / [project]
+- **Per-product digest** — weekly "here's what the market said about NiceAce / VibeCo / [project]
   and the 3 things worth building." Delivered to Slack/email (MCP servers for both are
   already connected to this environment).
 - **Provenance drawer** — every feature candidate links back to its source evidence. No
@@ -93,7 +93,7 @@ us what to build, the agents decide if it's worth building, and Claude Code ship
 
 ### v1 (prove the signal)
 - **Reddit + app-store reviews only** (the two most compliant, highest-signal sources).
-- One target product (**Aces**) to validate the pipeline end-to-end.
+- One target product (**NiceAce**) to validate the pipeline end-to-end.
 - Stages 1–4 + the **Signal Board** surface. Stage 5 routing is *manual* (Bill promotes).
 - Daily collection job; weekly digest.
 
@@ -138,8 +138,8 @@ us what to build, the agents decide if it's worth building, and Claude Code ship
 
 ## 9. Open questions (for Bill)
 
-1. Start Signal Mine on **Aces** (validate on a product we control) or on **VibeCo itself**?
-   *(Recommend Aces — clearer pain space, and it proves Prong 2's return path.)*
+1. Start Signal Mine on **NiceAce** (validate on a product we control) or on **VibeCo itself**?
+   *(Recommend NiceAce — clearer pain space, and it proves Prong 2's return path.)*
 2. Budget appetite for the **X/Twitter API** (it's the costly, ToS-volatile source) vs.
    staying on Reddit + reviews for v1?
 3. Should the weekly digest go to **Slack, email, or both**? (Both MCP integrations are live

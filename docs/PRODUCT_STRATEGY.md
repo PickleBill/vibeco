@@ -1,4 +1,4 @@
-# Courtana Product Strategy — Aces + the VibeCo "on-demand" ecosystem
+# Courtana Product Strategy — NiceAce + the VibeCo "on-demand" ecosystem
 
 **Status:** Draft v1 for Bill · **Author:** Claude Code session
 **Scope:** the two-pronged plan + the social-listening initiative, and how they connect.
@@ -7,14 +7,16 @@
 
 ## TL;DR
 
-1. **Prong 1 — Ship Aces.** A social golf app built around the **hole-in-one moment** —
-   the most viral, least-productized event in golf. Aces owns that moment and uses it as
-   the hook for a side-game ledger (skins/Nassau/etc.). White space is real: 18Birdies
-   owns *tracking*; the insurance incumbents own *B2B coverage*; **nobody owns the
-   consumer ace moment.** → [`ACES_PRD.md`](./ACES_PRD.md) · prototype at
-   [`/aces/prototype/aces-prototype.html`](../aces/prototype/aces-prototype.html).
+1. **Prong 1 — Ship NiceAce.** *Scan the QR on the tee, pay $10, ace the hole, win the whole
+   pot.* A single-hole, QR-activated, **winner-takes-all hole-in-one jackpot** — no app
+   install, entry in three taps via Apple Pay. It owns golf's most viral moment and turns it
+   into a live, growing pot. It's also the **B2B course-contest tool** (the course deploys
+   the QR) productized for consumers. White space is real: 18Birdies owns side-game
+   *tracking*; the insurance incumbents own *B2B coverage*; **nobody owns the consumer ace
+   jackpot.** → [`NICEACE_PRD.md`](./NICEACE_PRD.md) · prototype at
+   [`/aces/prototype/niceace-prototype.html`](../aces/prototype/niceace-prototype.html).
 
-2. **Prong 2 — Bring it home to VibeCo.** Make Aces VibeCo's first *living* portfolio
+2. **Prong 2 — Bring it home to VibeCo.** Make NiceAce VibeCo's first *living* portfolio
    product: its users, feedback, and metrics flow **back** into the same agent mesh that
    vetted the idea (change requests → code, feedback → insight, agent-built customer
    profiles, ongoing expand/distill). The backbone — the Courtana MCP server, the agent
@@ -35,11 +37,11 @@ Together these turn "vibe coding on demand" from a tagline into a literal machin
 ## How the pieces connect
 
 ```
-  Signal Mine ──pain points──▶ VibeCo agent mesh ──vetted features──▶ Aces (live)
+  Signal Mine ──pain points──▶ VibeCo agent mesh ──vetted features──▶ NiceAce (live)
        ▲                            (debate, synthesize,                   │
        │                             expand, distill,                      │
        │                             auto-evaluate)                        │
-       └──────────────── users talk about Aces in public ◀────────────────┘
+       └──────────────── users talk about NiceAce in public ◀────────────────┘
                                                                            │
                          change requests · feedback · metrics ────────────┘
                                         │
@@ -57,11 +59,11 @@ a compounding portfolio brain, not a one-shot idea generator.
 
 | Phase | Focus | Outcome |
 |---|---|---|
-| **Now** | Align on this strategy + the Aces interpretation; get me the design file | Shared direction; I re-skin the prototype to match your design. |
-| **Sprint A** | **Aces v1 MVP** (Prong 1): Skins + the Ace Moment, on the VibeCo stack | A real, shippable consumer app. The proof-of-portfolio. |
-| **Sprint B** | **Prong 2 P2.0–P2.2**: register Aces in the portfolio, feedback inbox, feedback-synthesis | The return path opens. Cheap — infra already exists. |
+| **Now** | Align on this strategy; design is in-repo (`/aces/design/source`); prototype matches it | Shared direction; faithful NiceAce prototype delivered. |
+| **Sprint A** | **NiceAce v1 MVP** (Prong 1): the QR-jackpot signature moment (Arrive→Pay→Celebrate→Live→Ace win), on the VibeCo stack + a payments/insurance partner | A real, shippable consumer app. The proof-of-portfolio. |
+| **Sprint B** | **Prong 2 P2.0–P2.2**: register NiceAce in the portfolio, feedback inbox, feedback-synthesis | The return path opens. Cheap — infra already exists. |
 | **Sprint C** | **Signal Mine v1** (Reddit + reviews → Signal Board) + **Prong 2 P2.3** (change-request loop) | Market signal starts driving the backlog; feedback becomes code with a human gate. |
-| **Later** | Real-money (licensed partner), B2B course contest engine, multi-product Signal Mine | Monetization + scale, once the loop is proven on Aces. |
+| **Later** | Multi-hole/course, course self-serve onboarding (B2B engine), sponsored pots, multi-product Signal Mine | Monetization + scale, once the loop is proven on NiceAce. |
 
 Discipline borrowed from `.lovable/plan.md` (Sprint 9): **remove three things for every
 one we add.** Ship the distilled core first; let the agents (and the market) earn every
@@ -69,31 +71,39 @@ expansion.
 
 ---
 
-## Decisions I need from you
+## Decisions — resolved + still open
 
-1. **Aces interpretation** — I built the *consumer social ace app*. Is your existing
-   Lovable build that, a B2B course-contest tool, or different? (Changes how much is new
-   vs. reframe.)
-2. **Brand** — **Aces** or **NiceAce**?
-3. **Design file** — the shared Claude design link 404s from this cloud environment (it
-   needs your authenticated session). Paste the HTML or screenshots and I'll match it exactly.
+**Resolved this round:**
+- ✅ **Brand = NiceAce.**
+- ✅ **Concept** confirmed from the design: single-hole QR winner-takes-all hole-in-one
+  jackpot (not the skins tracker I first guessed). Prototype + PRD rewritten to match.
+- ✅ **Design** is in-repo at `/aces/design/source/`; prototype is a faithful rebuild.
+
+**Still open (see [`NICEACE_PRD.md`](./NICEACE_PRD.md) §11):**
+1. **GTM fork** — B2B-led (sign courses, they bring players) vs. B2C-led? *Recommend B2B-led.*
+2. **Insurance/payments partner** — existing relationship, or should I scope partners?
+3. **Lead aesthetic** — Jackpot (default) vs. Broadcast. *Recommend Jackpot leads, Broadcast
+   as clubhouse/venue mode.*
 4. **Repo strategy** — my recommendation: keep everything here on this branch for review
-   now, then **spin Aces into its own repo** before it grows a backend (clean compliance +
+   now, then **spin NiceAce into its own repo** before it grows a backend (clean compliance +
    release boundary). The MCP server likely graduates to its own repo too, since both
-   VibeCo and Aces depend on it. Confirm and I'll execute the split.
-5. **Where to point Signal Mine first** — recommend **Aces** (clearer pain space; proves the
-   return path). And Twitter API budget: yes, or Reddit + reviews only for v1?
+   VibeCo and NiceAce depend on it. Confirm and I'll execute the split.
+5. **Where to point Signal Mine first** — recommend **NiceAce** (clearer pain space + maps the
+   sweepstakes/legal minefield early). And Twitter API budget: yes, or Reddit + reviews only for v1?
 
 ---
 
-## What I've delivered in this pass
+## What I've delivered so far
 
-- ✅ A **functioning, interactive Aces prototype** (live skins engine + the Ace Moment).
-- ✅ **Aces v1 PRD** (Prong 1) — market, wedge, scope, model, compliance, metrics.
-- ✅ **Aces × VibeCo integration strategy** (Prong 2) — grounded in the actual MCP/agent
+- ✅ A **functioning, interactive NiceAce prototype** — faithful rebuild of your Claude
+  Design export: full Arrive→Pay→Celebrate→Live→Ace-win flow, Jackpot/Broadcast looks,
+  live pot. Source design version-controlled in `/aces/design/source/`.
+- ✅ **NiceAce v1 PRD** (Prong 1) — the QR jackpot: market, mechanic, model, compliance, metrics.
+- ✅ **NiceAce × VibeCo integration strategy** (Prong 2) — grounded in the actual MCP/agent
   code already in this repo, with a phased build plan.
 - ✅ **Signal Mine PRD** — the social pain-point → feature pipeline.
+- ✅ **Design intake convention** (`/aces/design/INTAKE.md`) + honest read on the
+  Claude-Design↔Claude-Code bridge.
 
-What I have **not** done: matched a specific design (couldn't access it), written any
-production Aces backend code, or touched the existing VibeCo app. All four deliverables
-are additive (new `/aces` + `/docs` files) — nothing in the live product changed.
+What I have **not** done: written any production NiceAce backend code, or touched the live
+VibeCo app. Everything is additive (`/aces` + `/docs`) — the live product is unchanged.

@@ -1,71 +1,75 @@
-# Aces
+# NiceAce
 
-**The social home for golf side games and hole-in-one moments.**
+**Scan the QR on the tee. Pay $10. Ace the hole, win the whole pot.**
 
-Aces turns the bets you already make on the course — skins, Nassau, nearest-the-pin,
-and the hole-in-one pool — into a tracked, celebrated, shareable experience. The
-wedge is the **Ace Moment**: the hole-in-one is golf's most viral event and today it
-happens with no system of record, no payout rails, and no shareable artifact. Aces
-owns that moment and uses it as the hook for the broader side-game ledger.
+NiceAce turns any Par 3 into a live, growing, **winner-takes-all hole-in-one jackpot** —
+no app install, entry in three taps via Apple Pay. The hole-in-one is golf's most viral
+moment; NiceAce attaches money, verification, and a shareable win to it, and uses the
+course as the distribution channel.
 
-> Part of the **Courtana** ecosystem. Aces is the first consumer vertical we're
-> spinning out of the VibeCo "vibe-coding-on-demand" engine — see
+> Part of the **Courtana** ecosystem and the first consumer vertical spun out of the
+> VibeCo "vibe-coding-on-demand" engine — see
 > [`/docs/VIBECO_X_ACES_INTEGRATION.md`](../docs/VIBECO_X_ACES_INTEGRATION.md).
 
 ---
 
 ## Run the prototype
 
-It's a single self-contained file — **no build step**.
+Single self-contained file — **no build step.**
 
 ```sh
-open aces/prototype/aces-prototype.html        # macOS
-# or just drag the file into any browser
+open aces/prototype/niceace-prototype.html      # macOS — or drag into any browser
 ```
 
-It loads React + Tailwind from CDNs, so the first paint needs network access. State is
-seeded with a live 9-hole round so you land mid-game.
+It's a faithful reconstruction of the Claude Design export (the export referenced external
+`aces.css`/`aces.js` that weren't included, so those are rebuilt inline from the HTML
+structure + concept board).
 
-### What works in the prototype
-- **Today** — live round hero, ace-pool card, recent moments.
-- **Round** — tap your score hole-by-hole; the group is simulated so **skins standings
-  recompute live** (lowest unique score wins; ties carry over). Tap **`1`** on any hole
-  to fire the **Ace Moment** (confetti, overlay, pool payout, feed post, Ace Wall card).
-- **Feed** — aces / birdies / stolen skins as a social timeline.
-- **Wallet** — net settlement per player + ace-pool resolution.
-- **You** — profile, career aces, the **Ace Wall** of shareable hole-in-one cards.
+### What works
+- **Full five-view flow:** Arrive (post-QR) → Pay (tap the Face-ID ring) → Celebrate →
+  Live Pot → **Ace win**. The pot and field count update live; the live feed tickers.
+- **Look toggle:** **Jackpot** (Vegas/gold) ↔ **Broadcast** (sportsbook feed).
+- **Button toggle:** Classic ↔ Kinetic CTA. **↺ Restart** resets the flow.
+- Try **"Simulate: I aced it"** (Celebrate) or **"I aced it"** (Live) to fire the win overlay.
 
-### What's mocked
-- No backend, auth, or payments — all state is local and resets on refresh.
-- The group's scores are simulated when you log a hole, so standings move on their own.
-- Tokens are **social credits**, not real money. Real-money wagering is a
-  jurisdiction-gated, licensed-partner decision — see the PRD's Compliance section.
+### Mocked
+- No real payments, auth, verification, or backend. Pot math is the design's ($10/entry).
+- Real money is a licensed-partner + jurisdiction decision — see the PRD's Compliance section.
 
 ---
 
-## ⚠️ Design fidelity note
+## Folder layout
 
-This prototype was built **without access to the source design file**
-(`prototype/Aces - Prototype.html` in the shared Claude design package). That link
-(`api.anthropic.com/v1/design/...`) requires an authenticated browser session and
-404s from the cloud build environment.
+```
+aces/
+  README.md                       ← you are here
+  prototype/
+    niceace-prototype.html        ← the working prototype (canonical)
+  design/
+    source/                       ← original Claude Design exports (reference, version-controlled)
+      Aces-Prototype.html
+      Aces-Concept-Board.html     ← 5 aesthetic directions
+      design-canvas.jsx           ← the Figma-like canvas wrapper (infra, not product design)
+    INTAKE.md                     ← how to bring new Claude Design files into the repo
+```
 
-So the visual language here is an **interpretation** built to be easily re-skinned:
-it follows VibeCo's cinematic-dark aesthetic (matte charcoal `#0B0D0C`, electric-lime
-"ace" accent `#C6FF3A`, Sora/Albert Sans) from `.impeccable.md`. The information
-architecture and interaction loops are the substance; colors and type are one config
-block (`tailwind.config` at the top of the HTML).
+---
 
-**To align with your design:** paste the design's HTML or a few screenshots into the
-session and I'll match the layout, palette, and components exactly.
+## Design intake (Claude Design → Claude Code)
+
+There is **no direct, automated bridge** from Claude Design to this Claude Code environment
+today: the design API (`api.anthropic.com/v1/design/...`) needs your authenticated browser
+session, and this cloud session has no computer-use/browser tool to log in as you. The
+working path is: **download the design package from Claude Design → upload it here** (what
+you did). See [`design/INTAKE.md`](./design/INTAKE.md) for the lightweight convention.
 
 ---
 
 ## Docs
 
-| Doc | What it covers |
+| Doc | What |
 |---|---|
-| [`/docs/PRODUCT_STRATEGY.md`](../docs/PRODUCT_STRATEGY.md) | Executive overview — the two-pronged plan, sequencing, and how the three docs fit together. |
-| [`/docs/ACES_PRD.md`](../docs/ACES_PRD.md) | **Prong 1** — Aces v1 PRD: market, wedge, scope, model, compliance, metrics. |
-| [`/docs/VIBECO_X_ACES_INTEGRATION.md`](../docs/VIBECO_X_ACES_INTEGRATION.md) | **Prong 2** — wiring Aces back into the VibeCo agent/MCP ecosystem (change requests, feedback, customer profiles, expand/distill, perspective agents). |
-| [`/docs/SOCIAL_LISTENING_PRD.md`](../docs/SOCIAL_LISTENING_PRD.md) | PRD for the Twitter/Reddit → pain-point → product-feature pipeline. |
+| [`/docs/PRODUCT_STRATEGY.md`](../docs/PRODUCT_STRATEGY.md) | Executive overview — the two-pronged plan + sequencing. |
+| [`/docs/NICEACE_PRD.md`](../docs/NICEACE_PRD.md) | **Prong 1** — NiceAce v1 PRD (the QR jackpot). |
+| [`/docs/VIBECO_X_ACES_INTEGRATION.md`](../docs/VIBECO_X_ACES_INTEGRATION.md) | **Prong 2** — wiring NiceAce back into the VibeCo agent/MCP ecosystem. |
+| [`/docs/SOCIAL_LISTENING_PRD.md`](../docs/SOCIAL_LISTENING_PRD.md) | Signal Mine — Reddit/X/reviews → pain-point → feature pipeline. |
