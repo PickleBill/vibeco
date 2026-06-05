@@ -15,7 +15,9 @@ export type TaskType =
   | "html-generation"       // Landing page HTML
   | "image-generation"      // Visual asset creation
   | "alt-prompt"            // Research/design prompts for other tools
-  | "quick-classification"; // Fast categorization/routing
+  | "quick-classification"  // Fast categorization/routing
+  | "pain-classification"   // Signal Mine: label social items (pain/feature/noise)
+  | "feedback-synthesis";   // Signal Mine: cluster → feature candidate synthesis
 
 // ─── Model Selection ───
 
@@ -94,6 +96,15 @@ const ROUTING_TABLE: Record<TaskType, ModelCandidate[]> = {
   "quick-classification": [
     { model: "google/gemini-2.5-flash-lite", rationale: "Cheapest and fastest for classification", cost: "low", speed: "fast" },
     { model: "google/gemini-3-flash-preview", rationale: "Fallback", cost: "low", speed: "fast" },
+  ],
+  "pain-classification": [
+    { model: "google/gemini-2.5-flash-lite", rationale: "High-recall, dirt-cheap first-pass filter over a noisy firehose", cost: "low", speed: "fast" },
+    { model: "google/gemini-3-flash-preview", rationale: "Fallback", cost: "low", speed: "fast" },
+  ],
+  "feedback-synthesis": [
+    { model: "google/gemini-2.5-pro", rationale: "Reasoning depth to turn a cluster of complaints into a crisp feature candidate", cost: "medium", speed: "medium" },
+    { model: "openai/gpt-5", rationale: "Higher-quality fallback", cost: "high", speed: "slow" },
+    { model: "google/gemini-3-flash-preview", rationale: "Fast-mode fallback", cost: "low", speed: "fast" },
   ],
 };
 
