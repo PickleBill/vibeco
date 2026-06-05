@@ -60,6 +60,80 @@ export interface SignalMineResult {
   timing: Record<string, number>;
 }
 
+// Pulse P1: match new candidate themes against durable themes so trends persist.
+export interface ExistingTheme { id: string; title: string; }
+export interface ThemeMatch { candidate_index: number; theme_id: string | null; } // null = new theme
+
+const themeMatchSchema = {
+  type: "function" as const,
+  function: {
+    name: "match_themes",
+    description: "Map each new candidate theme to an existing durable theme, or mark it new.",
+    parameters: {
+      type: "object",
+      properties: {
+        matches: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              candidate_index: { type: "number", description: "Index into the new candidates list." },
+              theme_id: { type: ["string", "null"], description: "Existing theme id if this is the same underlying pain, else null for a new theme." },
+            },
+            required: ["candidate_index", "theme_id"],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["matches"],
+      additionalProperties: false,
+    },
+  },
+};
+
+/**
+ * Semantically match newly-synthesized candidates to existing durable themes.
+ * Pure same-meaning matching (different wording is fine); only return an
+ * existing id when it's genuinely the same pain, else null (a new theme).
+ */
+export async function matchThemes(
+  candidates: FeatureCandidate[],
+  existing: ExistingTheme[],
+  product: string,
+  mode?: AnalysisMode,
+): Promise<ThemeMatch[]> {
+  if (!candidates.length) return [];
+  if (!existing.length) return candidates.map((_, i) => ({ candidate_index: i, theme_id: null }));
+
+  const model = selectModel("feedback-synthesis", { mode });
+  const newList = candidates.map((c, i) => `[${i}] ${c.cluster_theme} — ${c.problem}`).join("\n");
+  const oldList = existing.map((t) => `(${t.id}) ${t.title}`).join("\n");
+  const system = `You maintain a durable list of product pain themes for "${product}". Decide whether each NEW candidate is the SAME underlying pain as an EXISTING theme (wording may differ) — if so return that theme's id; otherwise return null (a genuinely new theme). Be conservative: only match when it's clearly the same pain.`;
+
+  try {
+    const out = await callLLMWithTool<{ matches: ThemeMatch[] }>({
+      model,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: `EXISTING THEMES:\n${oldList}\n\nNEW CANDIDATES:\n${newList}\n\nMap each new candidate.` },
+      ],
+      tools: [themeMatchSchema],
+      toolChoice: { type: "function", function: { name: "match_themes" } },
+      maxTokens: 1024,
+    });
+    const valid = new Set(existing.map((t) => t.id));
+    const byIdx = new Map(out.matches.map((m) => [m.candidate_index, m]));
+    return candidates.map((_, i) => {
+      const m = byIdx.get(i);
+      const id = m && m.theme_id && valid.has(m.theme_id) ? m.theme_id : null;
+      return { candidate_index: i, theme_id: id };
+    });
+  } catch {
+    // Matching is best-effort; on failure treat everything as new (no crash).
+    return candidates.map((_, i) => ({ candidate_index: i, theme_id: null }));
+  }
+}
+
 // ─── Tool schemas ───
 
 const classifySchema = {

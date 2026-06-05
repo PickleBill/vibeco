@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCors, jsonResponse } from "../_shared/cors.ts";
 import { handleFunctionError } from "../_shared/error-handler.ts";
-import { runSignalMine, type RawItem } from "../_shared/agents/signal-mine.ts";
+import { runSignalMine, matchThemes, type RawItem, type ExistingTheme } from "../_shared/agents/signal-mine.ts";
 
 /**
  * Signal Mine — Stages 2-4: Classify → Cluster → Synthesize.
@@ -20,6 +20,12 @@ import { runSignalMine, type RawItem } from "../_shared/agents/signal-mine.ts";
  *   mode?: 'fast' | 'deep'
  * }
  */
+
+// Trend = latest score minus the previous appearance's score (0 if first time).
+function trendOf(history: { s: number }[]): number {
+  if (!history || history.length < 2) return 0;
+  return Math.round(history[history.length - 1].s - history[history.length - 2].s);
+}
 
 const DEFAULT_CONTEXT =
   "NiceAce is a single-hole, QR-activated, winner-takes-all hole-in-one jackpot for golfers: scan a QR on a Par 3, pay ~$10, and win the whole pot if you ace it. Relevant pains: on-course betting/side-games, scoring disputes, settle-up friction, proving a hole-in-one, golf app UX complaints, payout trust.";
@@ -60,22 +66,54 @@ serve(async (req) => {
 
     const result = await runSignalMine({ items, product, product_context: productContext, mode: body.mode });
 
-    // Persist clusters + candidates (Stage 4 output) and mark raw processed.
+    // Persist clusters + candidates (Stage 4) + durable themes (Pulse P1).
+    const themes: { title: string; pain_score: number; trend: number; occurrence_count: number; score_history: { t: string; s: number }[] }[] = [];
     if (body.persist && supabase) {
-      for (const c of result.candidates) {
-        const { data: cluster, error: cErr } = await supabase
-          .from("signal_clusters")
+      // Pulse P1: match new candidates against existing durable themes so trends persist.
+      const { data: existingRows } = await supabase
+        .from("signal_themes").select("id, title").eq("product_tag", product).eq("status", "open");
+      const existing: ExistingTheme[] = (existingRows ?? []).map((r: Record<string, any>) => ({ id: r.id, title: r.title }));
+      const matches = await matchThemes(result.candidates, existing, product, body.mode);
+      const now = new Date().toISOString();
+
+      for (let i = 0; i < result.candidates.length; i++) {
+        const c = result.candidates[i];
+        const matchedId = matches.find((m) => m.candidate_index === i)?.theme_id ?? null;
+
+        // 1) upsert the durable theme
+        let themeId = matchedId;
+        if (matchedId) {
+          const { data: t } = await supabase.from("signal_themes").select("score_history, occurrence_count").eq("id", matchedId).single();
+          const history = [...((t?.score_history as any[]) ?? []), { t: now, s: c.pain_score, c: c.evidence.member_count }].slice(-30);
+          await supabase.from("signal_themes").update({
+            pain_score: c.pain_score, score_history: history,
+            occurrence_count: ((t?.occurrence_count as number) ?? 1) + 1,
+            candidate_count: c.evidence.member_count, sample_quotes: c.representative_quotes, last_seen: now,
+          }).eq("id", matchedId);
+          themes.push({ title: c.cluster_theme, pain_score: c.pain_score, trend: trendOf(history), occurrence_count: ((t?.occurrence_count as number) ?? 1) + 1, score_history: history });
+        } else {
+          const history = [{ t: now, s: c.pain_score, c: c.evidence.member_count }];
+          const { data: nt } = await supabase.from("signal_themes").insert({
+            product_tag: product, title: c.cluster_theme, pain_score: c.pain_score, score_history: history,
+            occurrence_count: 1, candidate_count: c.evidence.member_count, sample_quotes: c.representative_quotes,
+          }).select("id").single();
+          themeId = nt?.id ?? null;
+          themes.push({ title: c.cluster_theme, pain_score: c.pain_score, trend: 0, occurrence_count: 1, score_history: history });
+        }
+
+        // 2) cluster + candidate, linked to the theme
+        const { data: cluster } = await supabase.from("signal_clusters")
           .insert({ product_tag: product, theme: c.cluster_theme, pain_score: c.pain_score, member_count: c.evidence.member_count })
           .select("id").single();
-        if (cErr) { console.error("cluster insert:", cErr.message); continue; }
         const { error: fErr } = await supabase.from("feature_candidates").insert({
-          cluster_id: cluster.id, product_tag: product,
+          cluster_id: cluster?.id, theme_id: themeId, product_tag: product,
           problem: c.problem, proposed_solution: c.proposed_solution,
           representative_quotes: c.representative_quotes, evidence: c.evidence,
           pain_score: c.pain_score, confidence: c.confidence, effort: c.effort, status: "open",
         });
         if (fErr) console.error("candidate insert:", fErr.message);
       }
+
       if (loadedRows.length) {
         const ids = loadedRows.map((r) => r.id);
         const { error } = await supabase.from("signal_raw").update({ processed: true }).in("id", ids);
@@ -83,7 +121,7 @@ serve(async (req) => {
       }
     }
 
-    return jsonResponse(result);
+    return jsonResponse({ ...result, themes });
   } catch (e) {
     return handleFunctionError("signal-process", e);
   }

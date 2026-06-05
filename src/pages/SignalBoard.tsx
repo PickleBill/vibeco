@@ -56,16 +56,49 @@ const SAMPLE: Candidate[] = [
   },
 ];
 
+interface Theme {
+  id?: string;
+  title: string;
+  pain_score: number;
+  trend: number;          // latest score − previous appearance
+  occurrence_count: number;
+  score_history: { t: string; s: number }[];
+}
+
+// Sample durable themes with history so the sparkline + trend render pre-backend.
+const SAMPLE_THEMES: Theme[] = [
+  { title: "No proof of a hole-in-one", pain_score: 86, trend: 9, occurrence_count: 5, score_history: [{ t: "", s: 61 }, { t: "", s: 70 }, { t: "", s: 74 }, { t: "", s: 77 }, { t: "", s: 86 }] },
+  { title: "Settle-up after side bets is awkward", pain_score: 72, trend: -4, occurrence_count: 4, score_history: [{ t: "", s: 80 }, { t: "", s: 79 }, { t: "", s: 76 }, { t: "", s: 72 }] },
+  { title: "Distrust of payout legitimacy", pain_score: 68, trend: 12, occurrence_count: 3, score_history: [{ t: "", s: 44 }, { t: "", s: 56 }, { t: "", s: 68 }] },
+];
+
 const painTone = (s: number) =>
   s >= 75 ? "text-destructive" : s >= 55 ? "text-warning" : "text-muted-foreground";
 
+const trendLabel = (t: number) =>
+  t > 1 ? { icon: "▲", cls: "text-rose-400" } : t < -1 ? { icon: "▼", cls: "text-emerald-400" } : { icon: "→", cls: "text-muted-foreground" };
+
+// Tiny inline sparkline from a score history.
+function Sparkline({ points }: { points: number[] }) {
+  if (points.length < 2) return null;
+  const w = 64, h = 20, min = Math.min(...points), max = Math.max(...points), span = max - min || 1;
+  const d = points.map((p, i) => `${(i / (points.length - 1)) * w},${h - ((p - min) / span) * h}`).join(" ");
+  const up = points[points.length - 1] >= points[0];
+  return (
+    <svg width={w} height={h} className="overflow-visible">
+      <polyline points={d} fill="none" strokeWidth="1.5" className={up ? "stroke-rose-400" : "stroke-emerald-400"} />
+    </svg>
+  );
+}
+
 const SignalBoard = () => {
   const [candidates, setCandidates] = useState<Candidate[]>(SAMPLE);
+  const [themes, setThemes] = useState<Theme[]>(SAMPLE_THEMES);
   const [scanning, setScanning] = useState(false);
   const [counts, setCounts] = useState<{ collected: number; pain: number; clusters: number; candidates: number } | null>(null);
   const [usingSample, setUsingSample] = useState(true);
 
-  // Try to load any persisted candidates on mount (falls back to sample).
+  // Try to load persisted candidates + durable themes on mount (falls back to sample).
   useEffect(() => {
     (async () => {
       try {
@@ -79,7 +112,20 @@ const SignalBoard = () => {
           setCandidates(data as Candidate[]);
           setUsingSample(false);
         }
-      } catch { /* table not migrated yet — keep sample */ }
+        const { data: th } = await (supabase as any)
+          .from("signal_themes")
+          .select("*")
+          .eq("status", "open")
+          .order("pain_score", { ascending: false })
+          .limit(12);
+        if (th && th.length) {
+          setThemes(th.map((t: any) => ({
+            id: t.id, title: t.title, pain_score: t.pain_score, occurrence_count: t.occurrence_count,
+            score_history: t.score_history ?? [],
+            trend: (t.score_history?.length ?? 0) >= 2 ? Math.round(t.score_history.at(-1).s - t.score_history.at(-2).s) : 0,
+          })));
+        }
+      } catch { /* tables not migrated yet — keep sample */ }
     })();
   }, []);
 
@@ -100,6 +146,7 @@ const SignalBoard = () => {
 
       const r = result as any;
       setCandidates(r.candidates ?? []);
+      if (r.themes?.length) setThemes(r.themes);
       setCounts(r.counts ?? null);
       setUsingSample(false);
       toast.success(`Scan complete — ${r.counts?.candidates ?? 0} candidates from ${r.counts?.collected ?? items.length} items`);
@@ -171,8 +218,37 @@ const SignalBoard = () => {
             </p>
           )}
 
+          {/* Trending themes (Pulse P1) */}
+          {themes.length > 0 && (
+            <div className="mt-8">
+              <div className="flex items-center gap-2">
+                <h2 className="font-display text-lg font-bold">Trending themes</h2>
+                <span className="text-xs text-muted-foreground">durable across scans · trend vs. last appearance</span>
+              </div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                {themes.slice(0, 6).map((t, i) => {
+                  const tl = trendLabel(t.trend);
+                  return (
+                    <Card key={(t.id ?? t.title) + i} className="flex flex-col gap-2 p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-sm font-semibold leading-tight">{t.title}</span>
+                        <Sparkline points={(t.score_history ?? []).map((p) => p.s)} />
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className={`font-display text-lg font-extrabold ${painTone(t.pain_score)}`}>{Math.round(t.pain_score)}</span>
+                        <span className={`font-semibold ${tl.cls}`}>{tl.icon} {t.trend > 0 ? "+" : ""}{t.trend}</span>
+                        <span className="ml-auto text-muted-foreground">seen {t.occurrence_count}×</span>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Candidates */}
-          <div className="mt-6 space-y-4">
+          <div className="mt-8 space-y-4">
+            <h2 className="font-display text-lg font-bold">Feature candidates</h2>
             {visible.map((c, idx) => {
               const realIdx = candidates.indexOf(c);
               return (
