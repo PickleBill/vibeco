@@ -137,9 +137,11 @@ HTML report. Roadmap for the harness itself is in `docs/TESTING_HARNESS_PLAN.md`
 
 ## 5. Insights & constraints (what we learned building this)
 
-- **The build sandbox has no outbound network** (`Host not in allowlist`). Claude can write,
-  build, and commit code, but **cannot call your live Supabase or Reddit from here** — so
-  live scans run on *your* deployed infra (manual button or the cron), not from the session.
+- **Reddit/App-Store block datacenter IPs.** Direct fetches from the edge functions got
+  Reddit `403` and empty App-Store RSS. **Solved with Firecrawl** (proxy-rotating web
+  scraper, linked as a workspace connector) — live scans now return real signal. The Claude
+  build sandbox still has no outbound network, so verification of live scans runs from the
+  Lovable session / deployed infra (manual button or the cron), not from Claude's sandbox.
 - **The session is scoped to the `vibeco` repo only.** Even though `aces-only` is public,
   this session can't push to it (the repo-add tool isn't available here). Previews therefore
   live on `vibeco` and are shared via githack.
