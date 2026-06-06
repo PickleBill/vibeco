@@ -40,6 +40,9 @@ Run workflow, or ask Claude). Publishes to `https://picklebill.github.io/vibeco/
 | Pulse P1 (durable themes + trend sparklines) | ✅ Deployed | `/signal` + report §3 |
 | Signal Mine sample report | ✅ Rendered | preview hub → scan report |
 | Testing harness (report generator) | ✅ Working | `tools/signal-harness/` |
+| **Standalone live dashboard (no Lovable)** | ✅ Built | `signal-engine/dashboard.html` |
+| **Competitor App Store review scanning** | ✅ Built | `signal-collect` (iTunes Search by name) |
+| **Decoupled deploy guide (Supabase CLI)** | ✅ Documented | `docs/DECOUPLING.md`, `signal-engine/README.md` |
 | **Automatic daily scans (cron)** | 🟡 Best-effort | migration `20260605020000` |
 | Pulse P2 (opportunity scoring: RICE + strategy-fit) | 🔜 Next | — |
 | Close-the-loop (Promote → auto-PR) | 🔜 Planned | — |

@@ -32,6 +32,7 @@ jobs:
         run: |
           mkdir -p _site
           cp -r aces _site/aces
+          cp -r signal-engine _site/signal-engine
           cat > _site/index.html <<'EOF'
           <!doctype html><html lang="en"><head><meta charset="utf-8">
           <meta http-equiv="refresh" content="0; url=./aces/preview/index.html">

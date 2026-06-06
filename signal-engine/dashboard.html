@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Signal Mine — Live Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Albert+Sans:wght@400;500;600;700&family=Archivo:wght@700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1000px 600px at 50% -10%,#1a1622,#0b0a0f 60%);color:#fff;font-family:'Albert Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:960px;margin:0 auto;padding:32px 18px 80px}
+.eyebrow{color:#c6ff3a;font-size:12px;font-weight:700;letter-spacing:.22em;text-transform:uppercase}
+h1{font-family:'Archivo';font-weight:900;font-size:30px;margin:8px 0 2px}
+.sub{color:#9a97a6;font-size:14px}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:18px 0}
+button,.btn{font-family:'Sora';font-weight:700;font-size:13px;border-radius:12px;padding:11px 16px;cursor:pointer;border:1px solid #34313d;background:#16141d;color:#e9e6f0}
+button.primary{background:linear-gradient(180deg,#dfffa0,#c6ff3a);color:#1a1310;border:0}
+button:disabled{opacity:.5;cursor:default}
+input{font-family:inherit;background:#0e0d14;border:1px solid #2f2c39;border-radius:10px;padding:10px 12px;color:#fff;font-size:13px;width:100%}
+.card{border:1px solid #262b28;border-radius:16px;background:#121514;padding:16px;margin-bottom:12px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:8px 0 22px}
+.stat b{font-family:'Archivo';font-weight:900;font-size:24px;display:block;line-height:1}
+.stat span{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:#9a97a6;margin-top:6px;display:block}
+h2{font-family:'Sora';font-weight:700;font-size:18px;margin:28px 0 12px}
+.hint{color:#9a97a6;font-size:13px;font-weight:400;margin-left:8px}
+.grid-themes{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.theme-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.theme-title{font-weight:600;font-size:14px}
+.theme-meta{display:flex;align-items:center;gap:12px;margin-top:8px;font-size:12px;font-weight:700}
+.pain{font-family:'Archivo';font-weight:900;font-size:18px}.seen{margin-left:auto;color:#9a97a6;font-weight:400}
+.cand-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.cand-title{font-family:'Sora';font-weight:700;font-size:16px}
+.tags{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}.tag{font-size:11px;border:1px solid #2f2c39;border-radius:20px;padding:2px 8px;color:#cdcdd6}.tag.prio{background:#c6ff3a;color:#1a1310;border:0;font-weight:700}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}.k{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:#9a97a6}.k.accent{color:#c6ff3a}.grid2 p{font-size:13px;margin:5px 0 0;line-height:1.45}
+.quotes{margin-top:12px;border:1px solid #21261f;background:#0e0d14;border-radius:10px;padding:10px}.q{font-size:12px;color:#bdbdc8;font-style:italic;margin:3px 0}.srcs{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#6f6c7b;margin-top:6px}
+#log{font-family:'Source Code Pro',monospace;font-size:12px;color:#9a97a6;white-space:pre-wrap;background:#0e0d14;border:1px solid #21261f;border-radius:10px;padding:12px;max-height:160px;overflow:auto;margin-top:10px}
+.setup{border:1px dashed #34313d;border-radius:14px;padding:18px;margin:18px 0}
+.setup label{display:block;font-size:12px;color:#9a97a6;margin:10px 0 4px}
+.muted{color:#6f6c7b;font-size:12px}
+a{color:#c6ff3a}
+@media(max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}.grid2,.grid-themes{grid-template-columns:1fr}}
+</style>
+</head>
+<body><div class="wrap">
+
+  <div class="eyebrow">◎ Signal Mine · live dashboard</div>
+  <h1 id="title">Signal Mine</h1>
+  <div class="sub">Reads live themes + feature candidates straight from your Supabase project. No Lovable, no build — a single static file you can host anywhere (incl. GitHub Pages).</div>
+
+  <!-- Setup (shown when not configured) -->
+  <div class="setup" id="setup" style="display:none">
+    <b>Connect a Supabase project</b>
+    <div class="muted">Paste your project URL + <b>publishable (anon)</b> key — the public one, safe in a browser. Stored locally in this browser only. Or pass them as <code>?url=&key=&product=</code> in the link.</div>
+    <label>Supabase URL</label><input id="in-url" placeholder="https://YOUR-PROJECT.supabase.co"/>
+    <label>Anon (publishable) key</label><input id="in-key" placeholder="eyJ..."/>
+    <label>Product tag</label><input id="in-product" placeholder="niceace" value="niceace"/>
+    <div class="bar"><button class="primary" onclick="saveConfig()">Connect →</button></div>
+  </div>
+
+  <!-- Live view (shown when configured) -->
+  <div id="app" style="display:none">
+    <div class="bar">
+      <button class="primary" id="scanBtn" onclick="runScan()">▶ Run scan</button>
+      <button onclick="loadAll()">↻ Refresh</button>
+      <button onclick="clearConfig()">⚙ Change project</button>
+      <span class="muted" id="conn"></span>
+    </div>
+
+    <div class="stats">
+      <div class="card stat"><b id="s-cand">—</b><span>Candidates</span></div>
+      <div class="card stat"><b id="s-themes">—</b><span>Themes</span></div>
+      <div class="card stat"><b id="s-top">—</b><span>Top pain</span></div>
+      <div class="card stat"><b id="s-updated">—</b><span>Last updated</span></div>
+    </div>
+
+    <h2>Trending themes <span class="hint">durable across scans · trend vs. last appearance</span></h2>
+    <div class="grid-themes" id="themes"><div class="muted">Loading…</div></div>
+
+    <h2>Feature candidates <span class="hint">ranked by pain × confidence</span></h2>
+    <div id="candidates"><div class="muted">Loading…</div></div>
+
+    <h2>Activity</h2>
+    <div id="log">ready.</div>
+  </div>
+
+</div>
+<script>
+const CONFIG = { url:"", key:"", product:"niceace" }; // optional hardcode; query params / localStorage override
+let cfg = loadConfig();
+
+function loadConfig(){
+  const q = new URLSearchParams(location.search);
+  const url = q.get("url") || CONFIG.url || localStorage.getItem("sm_url") || "";
+  const key = q.get("key") || CONFIG.key || localStorage.getItem("sm_key") || "";
+  const product = q.get("product") || CONFIG.product || localStorage.getItem("sm_product") || "niceace";
+  return { url:url.replace(/\/$/,""), key, product };
+}
+function saveConfig(){
+  cfg = { url:val("in-url").replace(/\/$/,""), key:val("in-key"), product:val("in-product")||"niceace" };
+  localStorage.setItem("sm_url",cfg.url); localStorage.setItem("sm_key",cfg.key); localStorage.setItem("sm_product",cfg.product);
+  render();
+}
+function clearConfig(){ ["sm_url","sm_key","sm_product"].forEach(k=>localStorage.removeItem(k)); cfg={url:"",key:"",product:"niceace"}; render(); }
+const val = id => document.getElementById(id).value.trim();
+const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function log(m){ const el=document.getElementById("log"); el.textContent = "• "+m+"\n"+el.textContent; }
+
+function headers(){ return { "Content-Type":"application/json", "apikey":cfg.key, "Authorization":"Bearer "+cfg.key }; }
+function rest(path){ return fetch(cfg.url+"/rest/v1/"+path, { headers: headers() }).then(r=>r.ok?r.json():Promise.reject(r.status+" "+path)); }
+function fn(name, body){ return fetch(cfg.url+"/functions/v1/"+name, { method:"POST", headers:headers(), body:JSON.stringify(body) }).then(async r=>{ const j=await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||r.status); return j; }); }
+
+const painTone = s => s>=75?"#ff6b5e":s>=55?"#f5c451":"#9a97a6";
+const trendOf = h => (h&&h.length>=2)?Math.round(h[h.length-1].s - h[h.length-2].s):0;
+function spark(h){ const pts=(h||[]).map(p=>p.s); if(pts.length<2) return ""; const w=72,ht=22,mn=Math.min(...pts),mx=Math.max(...pts),sp=mx-mn||1; const d=pts.map((p,i)=>`${(i/(pts.length-1)*w).toFixed(1)},${(ht-(p-mn)/sp*ht).toFixed(1)}`).join(" "); const up=pts[pts.length-1]>=pts[0]; return `<svg width="${w}" height="${ht}" style="overflow:visible"><polyline points="${d}" fill="none" stroke="${up?'#ff6b5e':'#36e0a6'}" stroke-width="2"/></svg>`; }
+const prio = c => Math.round((c.pain_score*c.confidence)/100);
+
+async function loadAll(){
+  if(!cfg.url||!cfg.key) return;
+  document.getElementById("conn").textContent = cfg.url.replace("https://","");
+  try{
+    const p = encodeURIComponent(cfg.product);
+    const [themes, cands] = await Promise.all([
+      rest(`signal_themes?select=*&product_tag=eq.${p}&status=eq.open&order=pain_score.desc&limit=12`),
+      rest(`feature_candidates?select=*&product_tag=eq.${p}&status=eq.open&order=pain_score.desc&limit=30`),
+    ]);
+    renderThemes(themes); renderCands(cands);
+    document.getElementById("s-cand").textContent = cands.length;
+    document.getElementById("s-themes").textContent = themes.length;
+    document.getElementById("s-top").textContent = themes[0]?Math.round(themes[0].pain_score):"—";
+    document.getElementById("s-updated").textContent = new Date().toLocaleTimeString();
+    log(`loaded ${cands.length} candidates, ${themes.length} themes`);
+  }catch(e){ log("load error: "+e+" — is the migration applied + RLS readable? Is this the right project?"); }
+}
+
+function renderThemes(themes){
+  const el=document.getElementById("themes");
+  if(!themes.length){ el.innerHTML='<div class="muted">No themes yet — run a scan.</div>'; return; }
+  el.innerHTML = themes.map(t=>{ const tr=trendOf(t.score_history); const ti=tr>1?`<span style="color:#ff6b5e">▲ +${tr}</span>`:tr<-1?`<span style="color:#36e0a6">▼ ${tr}</span>`:`<span style="color:#9a97a6">→ ${tr}</span>`;
+    return `<div class="card"><div class="theme-top"><span class="theme-title">${esc(t.title)}</span>${spark(t.score_history)}</div>
+      <div class="theme-meta"><span class="pain" style="color:${painTone(t.pain_score)}">${Math.round(t.pain_score)}</span>${ti}<span class="seen">seen ${t.occurrence_count||1}×</span></div></div>`; }).join("");
+}
+function renderCands(cands){
+  const el=document.getElementById("candidates");
+  if(!cands.length){ el.innerHTML='<div class="muted">No candidates yet — run a scan.</div>'; return; }
+  el.innerHTML = cands.map(c=>{ const ev=c.evidence||{}; const q=(c.representative_quotes||[]);
+    return `<div class="card"><div class="cand-top">
+      <span class="pain" style="color:${painTone(c.pain_score)}">${Math.round(c.pain_score)}</span>
+      <span class="cand-title">${esc(c.problem? (c.problem.length>60?c.problem.slice(0,60)+"…":c.problem) : "candidate")}</span>
+      <span class="tags"><span class="tag">${c.confidence||0}% conf</span><span class="tag">effort ${esc(c.effort||"?")}</span><span class="tag">${ev.member_count||0} signals</span><span class="tag prio">P${prio(c)}</span></span></div>
+      <div class="grid2"><div><div class="k">Problem</div><p>${esc(c.problem)}</p></div><div><div class="k accent">Proposed feature</div><p>${esc(c.proposed_solution)}</p></div></div>
+      ${q.length?`<div class="quotes">${q.slice(0,3).map(x=>`<div class="q">“${esc(x)}”</div>`).join("")}<div class="srcs">sources: ${esc((ev.sources||[]).join(" · "))}</div></div>`:""}
+    </div>`; }).join("");
+}
+
+async function runScan(){
+  if(!cfg.url||!cfg.key){ alert("Connect a project first."); return; }
+  const btn=document.getElementById("scanBtn"); btn.disabled=true; btn.textContent="Scanning…";
+  try{
+    log("collecting public data (Reddit + competitor App Store reviews)…");
+    const col = await fn("signal-collect",{ product:cfg.product, persist:true });
+    log(`collected ${col.collected} items (${col.persisted} new). competitors: ${(col.sources?.competitors||[]).map(c=>c.name).join(", ")||"—"}`);
+    log("classifying → clustering → synthesizing (this can take ~30-60s)…");
+    const res = await fn("signal-process",{ product:cfg.product, persist:true });
+    log(`done — ${res.counts?.candidates||0} candidates from ${res.counts?.collected||0} items`);
+    await loadAll();
+  }catch(e){ log("scan failed: "+e+" (check LOVABLE_API_KEY / SUPABASE_SERVICE_ROLE_KEY are set on the project)"); }
+  finally{ btn.disabled=false; btn.textContent="▶ Run scan"; }
+}
+
+function render(){
+  const configured = cfg.url && cfg.key;
+  document.getElementById("setup").style.display = configured?"none":"block";
+  document.getElementById("app").style.display = configured?"block":"none";
+  document.getElementById("title").textContent = configured ? `Signal Mine — ${cfg.product}` : "Signal Mine";
+  if(configured) loadAll();
+}
+render();
+</script>
+</body>
+</html>

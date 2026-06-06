@@ -60,7 +60,7 @@ async function fetchReddit(sub: string, query: string, limit: number, product: s
   }).filter((it: Item) => it.body && it.body.length > 12);
 }
 
-async function fetchAppStore(appId: string, country: string, product: string): Promise<Item[]> {
+async function fetchAppStore(appId: string, country: string, product: string, competitor?: string): Promise<Item[]> {
   const url = `https://itunes.apple.com/${country}/rss/customerreviews/id=${encodeURIComponent(appId)}/sortBy=mostRecent/json`;
   const res = await fetch(url, { headers: { "User-Agent": UA, Accept: "application/json" } });
   if (!res.ok) { console.error(`appstore ${appId} -> ${res.status}`); return []; }
@@ -76,9 +76,21 @@ async function fetchAppStore(appId: string, country: string, product: string): P
       title: e?.title?.label,
       body: String(e?.content?.label ?? "").slice(0, 4000),
       product_tag: product,
-      raw: { app_id: appId, rating: e?.["im:rating"]?.label, version: e?.["im:version"]?.label },
+      raw: { app_id: appId, competitor, rating: e?.["im:rating"]?.label, version: e?.["im:version"]?.label },
     } as Item))
     .filter((it: Item) => it.body && it.body.length > 8);
+}
+
+// Resolve a competitor app NAME → App Store id(s) via the public iTunes Search
+// API (no key). Lets callers pass "18Birdies" instead of a numeric id.
+async function resolveAppIds(term: string, country: string, limit = 1): Promise<{ id: string; name: string }[]> {
+  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&country=${country}&entity=software&limit=${limit}`;
+  const res = await fetch(url, { headers: { "User-Agent": UA, Accept: "application/json" } });
+  if (!res.ok) { console.error(`itunes search "${term}" -> ${res.status}`); return []; }
+  const json = await res.json();
+  return (json?.results ?? [])
+    .filter((r: Record<string, any>) => r?.trackId)
+    .map((r: Record<string, any>) => ({ id: String(r.trackId), name: String(r.trackName ?? term) }));
 }
 
 serve(async (req) => {
@@ -91,13 +103,23 @@ serve(async (req) => {
     const subreddits: string[] = body.subreddits || ["golf", "golfclubs"];
     const queries: string[] = body.queries || ["hole in one", "golf betting app", "18birdies", "skins app golf"];
     const appstoreIds: string[] = body.appstore_ids || [];
+    // Competitor apps by NAME — resolved to App Store ids at runtime (iTunes Search).
+    const appstoreTerms: string[] = body.appstore_terms ||
+      ["18Birdies", "Golf GameBook", "Golfshot", "TheGrint", "Hole19"];
     const country = body.appstore_country || "us";
     const limit = Math.min(body.limit || 25, 50);
+
+    // Resolve competitor names → ids (skip any already given explicitly).
+    const resolved = (await Promise.allSettled(appstoreTerms.map((t) => resolveAppIds(t, country))))
+      .flatMap((r) => (r.status === "fulfilled" ? r.value : []));
+    const idToName = new Map<string, string>();
+    for (const r of resolved) idToName.set(r.id, r.name);
+    const allAppIds = [...new Set([...appstoreIds, ...resolved.map((r) => r.id)])];
 
     // Fan out compliant collection jobs in parallel.
     const jobs: Promise<Item[]>[] = [];
     for (const sub of subreddits) for (const q of queries) jobs.push(fetchReddit(sub, q, limit, product));
-    for (const id of appstoreIds) jobs.push(fetchAppStore(id, country, product));
+    for (const id of allAppIds) jobs.push(fetchAppStore(id, country, product, idToName.get(id)));
 
     const settled = await Promise.allSettled(jobs);
     let items = settled.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
@@ -130,7 +152,12 @@ serve(async (req) => {
       product,
       collected: items.length,
       persisted,
-      sources: { subreddits, queries, appstore_ids: appstoreIds },
+      sources: {
+        subreddits,
+        queries,
+        competitors: resolved.map((r) => ({ id: r.id, name: r.name })),
+        appstore_ids: appstoreIds,
+      },
       items: body.persist ? undefined : items, // when not persisting, return the items for direct processing
     });
   } catch (e) {
