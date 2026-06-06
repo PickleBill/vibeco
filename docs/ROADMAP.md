@@ -51,10 +51,17 @@ Run workflow, or ask Claude). Publishes to `https://picklebill.github.io/vibeco/
 Two paths — both now in place:
 
 ### Path 1 — Manual (instant, fully reliable)
-1. Open the VibeCo app's **`/signal`** page (after Lovable finishes deploying `main`).
-2. Click **Run scan**. It collects from Reddit + App-Store reviews, classifies, clusters,
-   synthesizes candidates, and saves durable themes. Toasts show progress.
+1. Open the VibeCo app's **`/signal`** page.
+2. Click **Run scan**. It mines live public discussions **via Firecrawl** (which scrapes the
+   real web with proxy rotation, bypassing the datacenter-IP blocks that broke direct Reddit
+   /App-Store fetches), classifies, clusters, synthesizes candidates, and saves durable
+   themes. Toasts show progress.
 3. Reload anytime — persisted themes/candidates load automatically; trends build each run.
+
+> **Why Firecrawl?** Reddit's public search JSON returns `403` and Apple's review RSS returns
+> empty when called from datacenter IPs (Supabase edge functions). Firecrawl is the
+> live-data engine that makes scans actually return real signal. It's linked as a workspace
+> connector, exposing `FIRECRAWL_API_KEY` to the edge functions.
 
 ### Path 2 — Automatic daily (no clicks)
 Migration `20260605020000_signal_mine_cron.sql` schedules the scan server-side via
@@ -68,14 +75,16 @@ accumulate on their own; trend sparklines become meaningful after 2+ days.
 - **See runs:** `select * from cron.job_run_details order by start_time desc limit 10;`
 
 ### Requirements for live data (already true for the VibeCo project)
+- `FIRECRAWL_API_KEY` set → live collection (Firecrawl connector linked to the project).
 - `LOVABLE_API_KEY` set (your other AI features use it) → powers classify/cluster/synthesize.
 - `SUPABASE_SERVICE_ROLE_KEY` → auto-injected by Supabase into edge functions.
 - The migration + functions deployed by Lovable from `main`.
 
 ### Tuning the sources
-Defaults target r/golf + r/golfclubs and golf-betting/hole-in-one terms. To change, pass
-`subreddits`, `queries`, `appstore_ids` to `signal-collect` (and update the cron body), or
-tell Claude your target competitors' App-Store IDs and subreddits.
+Defaults search golf-betting / hole-in-one / scoring-app pain terms scoped to `reddit.com`.
+To change, pass `queries` (search phrases), `sites` (domains to scope to, e.g.
+`["reddit.com","apps.apple.com"]`), and `limit` (results per query) to `signal-collect`, or
+tell Claude your target competitor forums, subreddits, or review pages.
 
 ---
 
@@ -128,9 +137,11 @@ HTML report. Roadmap for the harness itself is in `docs/TESTING_HARNESS_PLAN.md`
 
 ## 5. Insights & constraints (what we learned building this)
 
-- **The build sandbox has no outbound network** (`Host not in allowlist`). Claude can write,
-  build, and commit code, but **cannot call your live Supabase or Reddit from here** — so
-  live scans run on *your* deployed infra (manual button or the cron), not from the session.
+- **Reddit/App-Store block datacenter IPs.** Direct fetches from the edge functions got
+  Reddit `403` and empty App-Store RSS. **Solved with Firecrawl** (proxy-rotating web
+  scraper, linked as a workspace connector) — live scans now return real signal. The Claude
+  build sandbox still has no outbound network, so verification of live scans runs from the
+  Lovable session / deployed infra (manual button or the cron), not from Claude's sandbox.
 - **The session is scoped to the `vibeco` repo only.** Even though `aces-only` is public,
   this session can't push to it (the repo-add tool isn't available here). Previews therefore
   live on `vibeco` and are shared via githack.
