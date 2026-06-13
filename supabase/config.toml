@@ -1,1 +1,3 @@
 project_id = "ulgoahsxkrkzoquvntei"
+[functions.ask-bill]
+verify_jwt = false

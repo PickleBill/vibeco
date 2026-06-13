@@ -17,7 +17,8 @@ export type TaskType =
   | "alt-prompt"            // Research/design prompts for other tools
   | "quick-classification"  // Fast categorization/routing
   | "pain-classification"   // Signal Mine: label social items (pain/feature/noise)
-  | "feedback-synthesis";   // Signal Mine: cluster → feature candidate synthesis
+  | "feedback-synthesis"    // Signal Mine: cluster → feature candidate synthesis
+  | "bill-qa";              // bricker-os: corpus-grounded Q&A in Bill's voice
 
 // ─── Model Selection ───
 
@@ -105,6 +106,11 @@ const ROUTING_TABLE: Record<TaskType, ModelCandidate[]> = {
     { model: "google/gemini-2.5-pro", rationale: "Reasoning depth to turn a cluster of complaints into a crisp feature candidate", cost: "medium", speed: "medium" },
     { model: "openai/gpt-5", rationale: "Higher-quality fallback", cost: "high", speed: "slow" },
     { model: "google/gemini-3-flash-preview", rationale: "Fast-mode fallback", cost: "low", speed: "fast" },
+  ],
+  "bill-qa": [
+    { model: "anthropic/claude-3.5-sonnet", rationale: "Best voice fidelity for first-person answers grounded in a corpus", cost: "medium", speed: "medium" },
+    { model: "anthropic/claude-3-haiku", rationale: "Cheap/fast fallback, still strong at grounded Q&A", cost: "low", speed: "fast" },
+    { model: "google/gemini-2.5-flash", rationale: "Last-resort fallback", cost: "low", speed: "fast" },
   ],
 };
 
