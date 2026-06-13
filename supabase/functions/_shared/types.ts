@@ -176,3 +176,21 @@ export interface ImageInput {
   idea: string;
   type: ImageType;
 }
+
+// ─── ask-bill (bricker-os terminal on Bill's dynamic résumé) ───
+
+export interface AskBillMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface AskBillInput {
+  question: string;
+  history?: AskBillMessage[];
+}
+
+export interface AskBillResult {
+  answer: string;
+  model: string;
+  latencyMs: number;
+}
