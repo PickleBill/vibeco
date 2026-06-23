@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, Maximize2, Minimize2, ArrowRight, Scissors, Target, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureSession } from "@/lib/ensureSession";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import type { BriefData } from "./SimulatorShell";
@@ -104,6 +105,7 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
         variation_title: exp.title,
       };
 
+      const userId = await ensureSession();
       const { data: newReport, error } = await (supabase.from("idea_reports") as any)
         .insert({
           idea: exp.idea_text,
@@ -112,6 +114,7 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
           parent_idea_id: reportId || null,
           forked_context: forkedContext,
           status: "in-progress",
+          ...(userId ? { user_id: userId } : {}),
         })
         .select("id")
         .single();

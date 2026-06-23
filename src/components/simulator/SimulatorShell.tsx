@@ -15,9 +15,12 @@ import IdeaInput from "./IdeaInput";
 import IdeaBrief from "./IdeaBrief";
 import FollowUpQuestions from "./FollowUpQuestions";
 import FinalReport from "./FinalReport";
+import SimulatorStepper from "./SimulatorStepper";
+import type { OrchestrateResult } from "./SynthesisPanel";
 import VibeStack from "./VibeStack";
 import { useVibeStack } from "@/hooks/useVibeStack";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureSession } from "@/lib/ensureSession";
 import { toast } from "sonner";
 
 // Derive a short, human-friendly title from the brief's problem statement.
@@ -165,6 +168,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
   const [highlights, setHighlights] = useState<Set<string>>(new Set(draft?.highlights || []));
   const [antiHighlights, setAntiHighlights] = useState<Set<string>>(new Set(draft?.antiHighlights || []));
   const [reportId, setReportId] = useState<string | null>(draft?.reportId || null);
+  const [autoAnalysis, setAutoAnalysis] = useState<OrchestrateResult | null>(null);
   const [depthRecommendation, setDepthRecommendation] = useState<string | undefined>();
   const [thinkingMode, setThinkingMode] = useState<"fast" | "deep">("fast");
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
@@ -207,6 +211,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
         setLogoImage(report.logo_image_url || null);
         setLovablePrompt(report.lovable_prompt || null);
         setHighlights(new Set(report.highlights || []));
+        if (report.auto_analysis) setAutoAnalysis(report.auto_analysis as OrchestrateResult);
         setReportId(report.id);
 
         // Determine phase from data
@@ -296,10 +301,10 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
     });
   };
 
-  // Helper to get current user ID
+  // Helper to get current user ID — mints an anonymous session if needed so
+  // every insert sets user_id and passes owner-scoped RLS.
   const getUserId = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.user?.id || null;
+    return ensureSession();
   };
 
   // Helper to update report status
@@ -865,6 +870,9 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
   return (
     <div className="min-h-screen bg-background pt-20 pb-16">
       <div className="max-w-4xl mx-auto px-6">
+        {/* Linear spine: Describe → Analyze → Verdict → Build prompt → Next actions */}
+        <SimulatorStepper phase={phase} />
+
         {/* Thinking Mode Toggle */}
         {phase !== "input" && (
           <motion.div
@@ -1080,6 +1088,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                 unlockEmail={unlockEmail}
                 lovablePrompt={lovablePrompt}
                 sessionId={sessionId}
+                autoAnalysis={autoAnalysis}
                 highlights={highlights}
                 onToggleHighlight={toggleHighlight}
                 antiHighlights={antiHighlights}

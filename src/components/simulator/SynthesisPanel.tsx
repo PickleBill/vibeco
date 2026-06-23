@@ -61,6 +61,7 @@ interface Props {
   antiHighlights?: Set<string>;
   lovablePrompt?: string | null;
   onPromptUpdate?: (prompt: string) => void;
+  initialAutoAnalysis?: OrchestrateResult | null;
 }
 
 const confidenceLabel = (n: number) => {
@@ -75,16 +76,21 @@ const confChip = (c: "high" | "medium" | "low") => {
   return "bg-muted/40 text-muted-foreground border-border/40";
 };
 
-const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lovablePrompt, onPromptUpdate }: Props) => {
+const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lovablePrompt, onPromptUpdate, initialAutoAnalysis }: Props) => {
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<{ completed: number; total: number } | null>(null);
   const [agentStatus, setAgentStatus] = useState<Record<string, "pending" | "done">>({});
   const [agentTeasers, setAgentTeasers] = useState<Record<string, string>>({});
-  const [result, setResult] = useState<OrchestrateResult | null>(null);
+  const [result, setResult] = useState<OrchestrateResult | null>(initialAutoAnalysis ?? null);
   const [mode, setMode] = useState<"fast" | "deep">("fast");
   const [applying, setApplying] = useState(false);
   const [showRecs, setShowRecs] = useState(true);
   const [showBriefSuggestions, setShowBriefSuggestions] = useState(false);
+
+  // Hydrate from a persisted Auto-Analyze run (e.g. after refresh/resume)
+  useEffect(() => {
+    if (initialAutoAnalysis) setResult(initialAutoAnalysis);
+  }, [initialAutoAnalysis]);
 
   // ─── Realtime: subscribe to agent_events for live progress + teasers ───
   useEffect(() => {
@@ -144,6 +150,17 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
       const r = data as OrchestrateResult;
       setResult(r);
       setProgress({ completed: r.agents_completed, total: r.agents_total });
+
+      // Persist the full Auto-Analyze result so it survives a refresh.
+      if (reportId) {
+        try {
+          await (supabase.from("idea_reports") as any)
+            .update({ auto_analysis: r })
+            .eq("id", reportId);
+        } catch (err) {
+          console.error("Failed to persist auto_analysis:", err);
+        }
+      }
 
       if (!r.synthesis) {
         toast.warning("Auto-Analyze finished but synthesis didn't complete. Try again or run agents individually.");

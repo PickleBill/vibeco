@@ -1,65 +1,78 @@
-# Make Auto-Analyze the headline verdict (connect the existing engine)
+## Goal
 
-This is an **additive wiring + placement** change. The `/orchestrate` engine, the synthesis agent, and almost all the UI already exist — the work is to (a) make the realtime progress actually fire, and (b) move the synthesis to the top of the report as the headline "Verdict." No engine rebuild.
+1. **Stop losing analysis on refresh** — persist every generated output and rehydrate from the DB.
+2. **Make the path obvious** — a 5-stage linear spine with a stepper, Auto-Analyze as the clear primary, and a clickable example idea.
+3. **Lock down privacy** — each visitor gets a private session; one visitor cannot read another's report; share links still work.
 
-## What already exists (confirmed by reading the code)
+---
 
-- `orchestrate/index.ts` runs 5 personas + Expand + Distill in parallel, emits `agent_events`, then calls `synthesize`, returning `{ perspectives, expansion, distillation, synthesis, timing, agents_completed, agents_total }`.
-- `synthesize.ts` returns exactly: `consensus[]`, `tensions[]`, `confidence_score` (0–100), `ranked_recommendations[]`, plus `refined_brief_suggestions[]`, `prompt_modifications[]`, `executive_summary`.
-- `SynthesisPanel.tsx` already: calls `orchestrate`, subscribes to `agent_events` realtime, shows a live "agents in parallel" progress grid with per-agent teasers, and renders Consensus / Tensions / Confidence / Ranked-recs.
-- `ThunderdomePanel.tsx` already defaults to the Auto-Analyze (synthesis) tab with Perspectives / Expand / Distill collapsed below.
+## A. Persistence (lower-risk choice: additive columns, NOT a new table)
 
-## The two real gaps
+Most outputs already have DB homes on `idea_reports` and are being written:
+- `lovable_prompt`, `alt_prompts` (research_prompt + design_brief + landing prompt — written by ActionHub), `expanded_ideas`, `thesis_statement` (distill), `highlights`, images.
+- Per-persona single-lens outputs persist to `idea_perspectives`.
 
-1. **`agent_events` does not exist in the live DB.** Verified: the table is absent and `supabase_realtime` has zero tables. A migration file exists in the repo but was never applied. So `orchestrate` writes events into a silent `try/catch` no-op and the realtime subscription never receives anything — the progress bar today only updates from the *final* response (the "dead wait" the request calls out).
-2. **Synthesis is tab-gated and low on the page**, not the report's headline above the persona tabs.
+Genuinely missing homes — add **two additive nullable columns** to `idea_reports` (lowest risk: the load path already does `select("*")`, no joins, no new RLS surface):
+- `auto_analysis jsonb` — the full Auto-Analyze (`/orchestrate`) result: **synthesis + the 5 persona outputs + expansion + distillation + agent timing/meta**, as one bundle.
+- `landing_page_html text` — the generated landing page (today it only lives in the email-gated `simulator_captures`).
 
-## Confirmed decisions
+**Write-on-generate:** `SynthesisPanel` writes `auto_analysis` to the report immediately after `/orchestrate` returns; the landing-page generator writes `landing_page_html`. ActionHub/expand/distill already persist.
 
-- **Synthesis model:** keep `google/gemini-2.5-pro` (your choice). `model-router.ts` already maps `synthesis → gemini-2.5-pro`; no router change.
+**Hydrate-on-load:** `SimulatorShell`'s resume path and `Report.tsx` read these columns and rehydrate the Verdict, expand, distill, alt-prompts, and landing page so a returning visitor sees everything.
 
-## Changes
+## B. Flow — 5-stage linear spine
 
-### 1. Migration — create `agent_events` (enables real live progress)
-Apply a migration that creates `public.agent_events` (matching the existing repo migration's shape: `report_id`, `agent`, `event_type`, `data jsonb`, `created_at`), with the required GRANTs and RLS, and adds it to the realtime publication:
-- `GRANT SELECT` to `anon` + `authenticated` (the simulator runs for signed-out visitors, so anonymous clients must be able to read their own report's progress stream), `GRANT ALL` to `service_role` (orchestrate inserts via the service-role key).
-- RLS enabled; `SELECT USING (true)` and `INSERT WITH CHECK (true)` (progress events are non-sensitive workflow signals keyed to an opaque report UUID).
-- `ALTER PUBLICATION supabase_realtime ADD TABLE public.agent_events`.
+New `SimulatorStepper` component rendered at the top of `SimulatorShell`:
 
-Scope is `agent_events` only (the unused `org_decisions` table in the old migration file is out of scope). After this, the existing subscription in the panel lights up with real events — no code change needed for the stream itself.
+```text
+1 Describe → 2 Analyze → 3 Verdict → 4 Build prompt → 5 Next actions
+```
 
-### 2. Promote synthesis to a top-of-report "Verdict" block
-- Render the synthesis as the **first block** of the report (after the title hero, above the brief/per-lens content) instead of inside the low `ThunderdomePanel` synthesis tab.
-- Keep it **one click**: empty state shows a prominent "Run Auto-Analyze (Recommended)" CTA + Quick/Deep toggle → clicking it calls `/orchestrate` (single call). No forced auto-run on report load.
-- While running: the existing live progress grid (driven by real `agent_events` now) showing the 7 lenses completing with teasers.
-- When done: a **Verdict** block with four clearly labeled parts, mapped from the real `synthesize` output:
-  - **Consensus** → `consensus[]`
-  - **Key tensions** → `tensions[]` (topic + positions + resolution)
-  - **Confidence** → `confidence_score` shown as the numeric value + qualitative label
-  - **Ranked recommendations** → `ranked_recommendations[]`, **numbered 1..n**
-- Retain the existing "Apply synthesis to prompt" action.
+- Current stage highlighted in **emerald**; completed stages filled, upcoming muted.
+- Stage derived from existing `phase` (`input`→1, `analyzing`/`brief`→2) plus scroll position within `final` (Verdict→3, prompt→4, ActionHub→5).
+- **Mobile (<768px):** collapses to a compact progress-dots row, no labels, no overflow.
 
-### 3. Reduce `ThunderdomePanel` to per-lens exploration (kept below, additive)
-- Remove its now-duplicate synthesis tab; keep **Perspectives / Expand / Distill** exactly as-is as "explore one lens at a time," below the brief. These continue to call their individual functions on demand — unchanged behavior.
+**Reduce the "wall of equal options":** On the analyze step, **Auto-Analyze is the single prominent emerald primary CTA**. Everything else (explore one lens at a time — Perspectives / Expand / Distill) is grouped under a secondary, collapsed "Advanced" disclosure. (ThunderdomePanel is already demoted; this finishes the visual hierarchy.)
 
-### 4. Mobile
-- Verdict block stacks single-column below `768px`; confidence + progress states are one-hand readable; no horizontal overflow.
+## C. First-run / empty state
 
-## Technical details
+In `IdeaInput`, when empty, show **one clickable example-idea chip** using a generic example (not Bill's projects), e.g. *"A monthly subscription box for houseplants with app-based care reminders."* Clicking it prefills the idea and runs the full flow end-to-end.
 
-- **Refactor approach:** extract `SynthesisPanel`'s run/subscribe logic into a small hook (e.g. `useOrchestrate`) and a presentational `VerdictBlock`, then mount the block at the top of `FinalReport.tsx`. Reuse the existing rendering and the `SynthesisData`/`OrchestrateResult` types verbatim — no invented fields.
-- **No engine/edge changes:** `orchestrate`, `synthesize.ts`, and `model-router.ts` are untouched.
-- **Types:** `agent_events` will appear in the regenerated Supabase types after the migration; the realtime subscription uses the generic channel API and needs no manual type edits.
+## D. Privacy / RLS — anonymous sessions (approved)
 
-### Files touched
-- `supabase/migrations/<new>.sql` (new — `agent_events` only)
-- `src/components/simulator/FinalReport.tsx` (mount Verdict at top)
-- `src/components/simulator/SynthesisPanel.tsx` (split into hook + presentational Verdict, relabel parts, number recs)
-- `src/components/simulator/ThunderdomePanel.tsx` (drop synthesis tab; keep per-lens)
+- **Enable anonymous auth.** On app bootstrap, if there is no session, call `signInAnonymously()` so every visitor has a private uid that survives refresh. All report/perspective writes set `user_id = auth.uid()`.
+- **Tighten `idea_reports` RLS:** replace the world-readable `SELECT (true)` with `SELECT USING (user_id = auth.uid())`; `INSERT`/`UPDATE` scoped to `user_id = auth.uid()`. Same owner-scoping for `idea_perspectives` and the new columns (they live on the owned report).
+- **Keep share links working:** add a `SECURITY DEFINER` function `get_shared_report(report_id uuid)` returning only non-PII display fields (idea, brief, prompt, images, `auto_analysis`, `landing_page_html`). The public `Report.tsx` calls this RPC instead of `select("*")`, so holders of a link still view a report, but the base table is no longer bulk-readable.
+- **Result:** a second anonymous session (different uid, no link) cannot read or enumerate another session's reports.
+
+## E. Report design cleanup (`Report.tsx`)
+
+Refresh the public read-only report to the design system (matte dark, emerald accents, fluid `clamp()` type, no nested cards): add a Verdict summary block (consensus / tensions / confidence / ranked recs from `auto_analysis`), surface the landing page and alt-prompts, and tighten spacing/hierarchy. Read-only, no PII.
+
+---
+
+## Files
+
+- **Migration** (new): add `auto_analysis jsonb`, `landing_page_html text` to `idea_reports`; rewrite RLS for `idea_reports` + `idea_perspectives` to owner-scoping; create `get_shared_report` RPC with `GRANT EXECUTE` to `anon, authenticated`.
+- **Auth config:** enable anonymous sign-ins.
+- `src/App.tsx` (or a small `useEnsureSession` hook) — bootstrap anonymous session.
+- `src/components/simulator/SimulatorStepper.tsx` (new) — desktop stepper / mobile dots.
+- `src/components/simulator/SimulatorShell.tsx` — mount stepper, set `user_id` on insert, hydrate new columns on resume.
+- `src/components/simulator/SynthesisPanel.tsx` — persist `auto_analysis` after orchestrate; hydrate from it.
+- `src/components/simulator/IdeaInput.tsx` — example-idea chip.
+- `src/components/simulator/ActionHub.tsx` — persist `landing_page_html` when generated.
+- `src/pages/Report.tsx` — call `get_shared_report` RPC; design refresh + Verdict block.
+
+## Notes / trade-offs
+
+- Existing anonymous reports (with `user_id IS NULL`) become unreadable under the new owner-scoped policy — acceptable, they were already ephemeral. Anonymous→Google account linking is out of scope (noted, not built).
+- Anonymous sessions count toward auth users but are the standard, robust way to enforce per-visitor RLS without forcing login.
 
 ## Post-build verification
-- Network: clicking Auto-Analyze fires a single `/orchestrate` call (not 5 persona calls).
-- Progress animates from real `agent_events` INSERTs (confirm rows land + realtime delivers).
-- Verdict shows Consensus / Key tensions / Confidence (with value) / numbered Ranked recs from real output.
-- Perspectives / Expand / Distill panels still work below.
-- Mobile: single column, no overflow.
+
+- [ ] Refresh the report restores synthesis, expand, distill, alt-prompts, landing page from DB.
+- [ ] Stepper shows 5 stages; Auto-Analyze is visually primary; others under "Advanced".
+- [ ] Example-idea chip runs the full flow end-to-end.
+- [ ] A second anonymous session cannot read the first session's report (via UI + direct table query).
+- [ ] Share link still opens a clean read-only report.
+- [ ] Mobile stepper renders as dots with no overflow.

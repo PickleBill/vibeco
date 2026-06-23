@@ -30,7 +30,7 @@ import { jsPDF } from "jspdf";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import ThunderdomePanel from "./ThunderdomePanel";
-import SynthesisPanel from "./SynthesisPanel";
+import SynthesisPanel, { type OrchestrateResult } from "./SynthesisPanel";
 import ActionHub from "./ActionHub";
 import PromptDiff from "./PromptDiff";
 import { copyToClipboard } from "@/lib/copyToClipboard";
@@ -65,6 +65,7 @@ interface Props {
   antiHighlights?: Set<string>;
   onToggleAntiHighlight?: (key: string) => void;
   reportId?: string | null;
+  autoAnalysis?: OrchestrateResult | null;
   onReorderFeatures?: (features: BriefData["core_features"]) => void;
   onPromptUpdate?: (newPrompt: string) => void;
   // Iterate-in-place
@@ -256,7 +257,7 @@ export const generateStructuredPDF = (
   pdf.save(fileName);
 };
 
-const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights, onToggleHighlight, antiHighlights, onToggleAntiHighlight, reportId, onReorderFeatures, onPromptUpdate, editMode, onCancelEdit, onReSimulate, stackItems, onAddToStack, stackHasItem, onOpenStack }: Props) => {
+const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights, onToggleHighlight, antiHighlights, onToggleAntiHighlight, reportId, autoAnalysis, onReorderFeatures, onPromptUpdate, editMode, onCancelEdit, onReSimulate, stackItems, onAddToStack, stackHasItem, onOpenStack }: Props) => {
   const [email, setEmail] = useState(unlockEmail || "");
   const [showPrompt, setShowPrompt] = useState(!!unlocked);
   const [isExporting, setIsExporting] = useState(false);
@@ -943,6 +944,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                 antiHighlights={antiHighlights}
                 lovablePrompt={lovablePrompt}
                 onPromptUpdate={onPromptUpdate}
+                initialAutoAnalysis={autoAnalysis}
               />
             </div>
           </motion.div>
