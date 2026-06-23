@@ -17,6 +17,7 @@ const Navbar = () => {
   const [user, setUser] = useState<any>(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const { open: openDiscovery } = useDiscoveryAudit();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
