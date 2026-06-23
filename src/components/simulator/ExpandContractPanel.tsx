@@ -105,6 +105,7 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
         variation_title: exp.title,
       };
 
+      const userId = await ensureSession();
       const { data: newReport, error } = await (supabase.from("idea_reports") as any)
         .insert({
           idea: exp.idea_text,
@@ -113,6 +114,7 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
           parent_idea_id: reportId || null,
           forked_context: forkedContext,
           status: "in-progress",
+          ...(userId ? { user_id: userId } : {}),
         })
         .select("id")
         .single();
