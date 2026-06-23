@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_events: {
+        Row: {
+          agent: string
+          created_at: string
+          data: Json | null
+          event_type: string
+          id: string
+          report_id: string | null
+        }
+        Insert: {
+          agent: string
+          created_at?: string
+          data?: Json | null
+          event_type?: string
+          id?: string
+          report_id?: string | null
+        }
+        Update: {
+          agent?: string
+          created_at?: string
+          data?: Json | null
+          event_type?: string
+          id?: string
+          report_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_events_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "idea_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_submissions: {
         Row: {
           created_at: string
