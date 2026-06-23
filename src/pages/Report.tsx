@@ -42,6 +42,20 @@ interface BriefData {
   customer_perspective: string;
 }
 
+interface SynthesisData {
+  consensus: string[];
+  tensions: { topic: string; resolution_suggestion?: string }[];
+  confidence_score: number;
+  ranked_recommendations: { action: string; rationale?: string; confidence?: string }[];
+  executive_summary: string;
+}
+
+interface AutoAnalysis {
+  synthesis: SynthesisData | null;
+  agents_completed?: number;
+  agents_total?: number;
+}
+
 interface ReportData {
   id: string;
   idea: string;
@@ -51,6 +65,7 @@ interface ReportData {
   logo_image_url: string | null;
   highlights: string[];
   created_at: string;
+  auto_analysis: AutoAnalysis | null;
 }
 
 const Report = () => {
