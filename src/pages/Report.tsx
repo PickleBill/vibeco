@@ -78,15 +78,15 @@ const Report = () => {
   useEffect(() => {
     if (!id) { setNotFound(true); setLoading(false); return; }
     (async () => {
-      const { data, error } = await (supabase.from("idea_reports") as any)
-        .select("*")
-        .eq("id", id)
-        .single();
+      // Capability-based read: the base table is owner-scoped (RLS), so shared
+      // links resolve through a security-definer RPC that returns non-PII fields.
+      const { data, error } = await (supabase.rpc as any)("get_shared_report", { _report_id: id });
       if (error || !data) { setNotFound(true); }
       else { setReport(data as ReportData); }
       setLoading(false);
     })();
   }, [id]);
+
 
   const handleCopyPrompt = async () => {
     if (!report?.lovable_prompt) return;
