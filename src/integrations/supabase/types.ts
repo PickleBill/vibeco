@@ -211,6 +211,7 @@ export type Database = {
         Row: {
           alt_prompts: Json | null
           annotations: Json | null
+          auto_analysis: Json | null
           brief: Json
           concept_image_url: string | null
           created_at: string
@@ -220,6 +221,7 @@ export type Database = {
           id: string
           idea: string
           imported_from_project_id: string | null
+          landing_page_html: string | null
           logo_image_url: string | null
           lovable_prompt: string | null
           parent_idea_id: string | null
@@ -234,6 +236,7 @@ export type Database = {
         Insert: {
           alt_prompts?: Json | null
           annotations?: Json | null
+          auto_analysis?: Json | null
           brief: Json
           concept_image_url?: string | null
           created_at?: string
@@ -243,6 +246,7 @@ export type Database = {
           id?: string
           idea: string
           imported_from_project_id?: string | null
+          landing_page_html?: string | null
           logo_image_url?: string | null
           lovable_prompt?: string | null
           parent_idea_id?: string | null
@@ -257,6 +261,7 @@ export type Database = {
         Update: {
           alt_prompts?: Json | null
           annotations?: Json | null
+          auto_analysis?: Json | null
           brief?: Json
           concept_image_url?: string | null
           created_at?: string
@@ -266,6 +271,7 @@ export type Database = {
           id?: string
           idea?: string
           imported_from_project_id?: string | null
+          landing_page_html?: string | null
           logo_image_url?: string | null
           lovable_prompt?: string | null
           parent_idea_id?: string | null
@@ -602,6 +608,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_shared_report: { Args: { _report_id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
