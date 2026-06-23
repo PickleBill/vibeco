@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import FadeIn from "./FadeIn";
 import { toast } from "sonner";
 import { Info } from "lucide-react";
@@ -29,7 +28,6 @@ const structures = [
 ];
 
 const ContactForm = () => {
-  const navigate = useNavigate();
   const [form, setForm] = useState({
     name: "",
     email: "",
