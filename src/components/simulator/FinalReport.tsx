@@ -65,6 +65,7 @@ interface Props {
   antiHighlights?: Set<string>;
   onToggleAntiHighlight?: (key: string) => void;
   reportId?: string | null;
+  autoAnalysis?: OrchestrateResult | null;
   onReorderFeatures?: (features: BriefData["core_features"]) => void;
   onPromptUpdate?: (newPrompt: string) => void;
   // Iterate-in-place
