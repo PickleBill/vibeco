@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import { ArrowRight, Mail, Phone, FileText, CalendarClock } from "lucide-react";
 import FadeIn from "./FadeIn";
+import { useDiscoveryAudit } from "./discovery/DiscoveryAuditProvider";
 
 const headlineWords = ["AI", "that", "reads", "your", "email", "and", "phone."];
 const wordSpring = { type: "spring" as const, stiffness: 90, damping: 14 };
@@ -17,6 +18,7 @@ const scrollTo = (id: string) =>
   document.querySelector(id)?.scrollIntoView({ behavior: "smooth" });
 
 const Hero = () => {
+  const { open: openDiscovery } = useDiscoveryAudit();
   const prefersReduced = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
@@ -93,7 +95,7 @@ const Hero = () => {
             <FadeIn delay={0.55}>
               <div className="flex flex-wrap gap-4">
                 <button
-                  onClick={() => scrollTo("#contact")}
+                  onClick={openDiscovery}
                   className="font-display text-sm font-semibold bg-violet text-violet-foreground px-7 py-3.5 rounded-full hover:brightness-110 transition-all inline-flex items-center gap-2 shadow-violet"
                 >
                   Book a discovery audit

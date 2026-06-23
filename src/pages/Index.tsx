@@ -9,6 +9,7 @@ import SocialProof from "../components/SocialProof";
 import ContactForm from "../components/ContactForm";
 import FinalCta from "../components/FinalCta";
 import Footer from "../components/Footer";
+import { DiscoveryAuditProvider } from "../components/discovery/DiscoveryAuditProvider";
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -91,20 +92,22 @@ const Index = () => {
         <script type="application/ld+json">{JSON.stringify(faqJsonLd)}</script>
       </Helmet>
 
-      <div className="min-h-screen bg-background text-foreground scroll-smooth">
-        <Navbar />
-        <main>
-          <Hero />
-          <StatsBar />
-          <Model />
-          <OpportunityScan />
-          <ProofShowcase />
-          <SocialProof />
-          <ContactForm />
-          <FinalCta />
-        </main>
-        <Footer />
-      </div>
+      <DiscoveryAuditProvider>
+        <div className="min-h-screen bg-background text-foreground scroll-smooth">
+          <Navbar />
+          <main>
+            <Hero />
+            <StatsBar />
+            <Model />
+            <OpportunityScan />
+            <ProofShowcase />
+            <SocialProof />
+            <ContactForm />
+            <FinalCta />
+          </main>
+          <Footer />
+        </div>
+      </DiscoveryAuditProvider>
     </HelmetProvider>
   );
 };

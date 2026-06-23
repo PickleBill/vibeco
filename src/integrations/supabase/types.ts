@@ -41,6 +41,36 @@ export type Database = {
         }
         Relationships: []
       }
+      discovery_leads: {
+        Row: {
+          bottleneck: string | null
+          company: string | null
+          created_at: string
+          email: string
+          engagement_preference: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          bottleneck?: string | null
+          company?: string | null
+          created_at?: string
+          email: string
+          engagement_preference?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          bottleneck?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string
+          engagement_preference?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       feature_candidates: {
         Row: {
           cluster_id: string | null

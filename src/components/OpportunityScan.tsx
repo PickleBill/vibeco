@@ -1,5 +1,6 @@
 import { useState } from "react";
 import FadeIn from "./FadeIn";
+import { useDiscoveryAudit } from "./discovery/DiscoveryAuditProvider";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Sparkles, FileText, Mail, CalendarClock, Phone, Inbox } from "lucide-react";
 
@@ -29,6 +30,7 @@ function scan(text: string): Suggestion[] {
 }
 
 const OpportunityScan = () => {
+  const { open: openDiscovery } = useDiscoveryAudit();
   const [text, setText] = useState("");
   const [results, setResults] = useState<Suggestion[] | null>(null);
 
@@ -109,7 +111,7 @@ const OpportunityScan = () => {
                   This is a quick read. A discovery audit turns it into a concrete plan — scoped to your real workflow.
                 </p>
                 <button
-                  onClick={() => document.querySelector("#contact")?.scrollIntoView({ behavior: "smooth" })}
+                  onClick={openDiscovery}
                   className="font-display text-sm font-semibold bg-violet text-violet-foreground px-6 py-3 rounded-full hover:brightness-110 transition-all inline-flex items-center gap-2 whitespace-nowrap shadow-violet"
                 >
                   Book a discovery audit

@@ -1,4 +1,5 @@
 import FadeIn from "./FadeIn";
+import { useDiscoveryAudit } from "./discovery/DiscoveryAuditProvider";
 import { ExternalLink, ArrowUpRight } from "lucide-react";
 
 type Proof = {
@@ -42,6 +43,7 @@ const statusStyles: Record<Proof["status"], string> = {
 };
 
 const ProofShowcase = () => {
+  const { open: openDiscovery } = useDiscoveryAudit();
   return (
     <section id="proofs" className="py-32 border-t border-border">
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
@@ -119,7 +121,7 @@ const ProofShowcase = () => {
           {/* Room for more — editorial placeholder */}
           <FadeIn delay={proofs.length * 0.06}>
             <button
-              onClick={() => document.querySelector("#contact")?.scrollIntoView({ behavior: "smooth" })}
+              onClick={openDiscovery}
               className="group flex flex-col items-start justify-center h-full min-h-[200px] rounded-lg border border-dashed border-border p-7 text-left hover:border-violet/40 transition-colors"
             >
               <ArrowUpRight size={22} className="text-violet mb-4" />
