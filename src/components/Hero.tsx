@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import { ArrowRight, Mail, Phone, FileText, CalendarClock } from "lucide-react";
 import FadeIn from "./FadeIn";
+import { useDiscoveryAudit } from "./discovery/DiscoveryAuditProvider";
 
 const headlineWords = ["AI", "that", "reads", "your", "email", "and", "phone."];
 const wordSpring = { type: "spring" as const, stiffness: 90, damping: 14 };
