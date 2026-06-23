@@ -41,6 +41,7 @@ import type { BriefData, QuestionData } from "./SimulatorShell";
 import { AddToStackButton } from "./VibeStack";
 import type { StackItem, StackKind, AddItemArgs } from "@/hooks/useVibeStack";
 import { Textarea } from "@/components/ui/textarea";
+import PromptGradeBadge, { type PromptGrade } from "./PromptGradeBadge";
 
 interface RoundState {
   brief: BriefData;
