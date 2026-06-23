@@ -27,7 +27,7 @@ const Footer = () => {
               VibeCo
             </a>
             <p className="text-sm text-muted-foreground mt-1">
-              Ideas to products. Fast.
+              AI operations, proven at scale.
             </p>
             <a href="https://vibeco.dev" className="text-xs text-primary/60 hover:text-primary transition-colors">
               vibeco.dev
@@ -35,8 +35,9 @@ const Footer = () => {
           </div>
           <div className="flex items-center gap-6">
             {[
-              { label: "How It Works", href: "#model" },
-              { label: "Builds", href: "#projects" },
+              { label: "How it works", href: "#model" },
+              { label: "Proofs", href: "#proofs" },
+              { label: "Scan", href: "#scan" },
               { label: "Contact", href: "#contact" },
             ].map((link) => (
               <button

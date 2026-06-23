@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Sparkles, User, History, FolderKanban } from "lucide-react";
+import { Menu, X, ArrowRight, User, History, FolderKanban } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 const navLinks = [
-  { label: "How It Works", href: "#model" },
-  { label: "Builds", href: "#projects" },
-  { label: "Contact", href: "#contact" },
+  { label: "How it works", href: "#model" },
+  { label: "Proofs", href: "#proofs" },
+  { label: "Scan", href: "#scan" },
 ];
 
 const Navbar = () => {
@@ -75,16 +75,6 @@ const Navbar = () => {
             </button>
           ))}
 
-          {/* Simulator CTA */}
-          <a
-            href="/simulate"
-            onClick={(e) => { e.preventDefault(); navigate("/simulate"); }}
-            className="font-display text-sm font-semibold px-5 py-2.5 rounded-full bg-primary text-primary-foreground hover:brightness-110 transition-all duration-300 flex items-center gap-2"
-          >
-            <Sparkles size={14} />
-            Simulate Your Idea
-          </a>
-
           {/* Auth */}
           {user ? (
             <>
@@ -123,6 +113,14 @@ const Navbar = () => {
             </a>
           )}
 
+          {/* Primary CTA */}
+          <button
+            onClick={() => handleNavClick("#contact")}
+            className="font-display text-sm font-semibold px-5 py-2.5 rounded-full bg-violet text-violet-foreground hover:brightness-110 transition-all duration-300 flex items-center gap-2"
+          >
+            Book a discovery audit
+            <ArrowRight size={14} />
+          </button>
         </div>
 
         {/* Mobile toggle */}
@@ -153,14 +151,6 @@ const Navbar = () => {
                 {link.label}
               </button>
             ))}
-            <a
-              href="/simulate"
-              onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/simulate"); }}
-              className="flex items-center gap-2 py-3 text-sm text-primary"
-            >
-              <Sparkles size={13} />
-              AI Idea Simulator
-            </a>
             {user ? (
               <>
                 <a
@@ -197,11 +187,11 @@ const Navbar = () => {
               </a>
             )}
             <button
-              onClick={() => { setMobileOpen(false); navigate("/simulate"); }}
-              className="flex items-center justify-center gap-2 mt-2 text-sm bg-primary text-primary-foreground px-4 py-2.5 rounded-full text-center w-full"
+              onClick={() => handleNavClick("#contact")}
+              className="flex items-center justify-center gap-2 mt-3 font-display font-semibold text-sm bg-violet text-violet-foreground px-4 py-2.5 rounded-full text-center w-full"
             >
-              <Sparkles size={14} />
-              Simulate Your Idea
+              Book a discovery audit
+              <ArrowRight size={14} />
             </button>
           </motion.div>
         )}

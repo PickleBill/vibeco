@@ -2,11 +2,12 @@ import { useRef, useEffect, useState } from "react";
 import { useInView } from "framer-motion";
 
 const stats = [
-  { value: 16, suffix: "+", label: "Products shipped", emphasis: true },
-  { value: 48, prefix: "< ", suffix: "hrs", label: "Idea to launch", emphasis: false },
-  { value: 7, suffix: "", label: "Industries", emphasis: false },
-  { value: 0, prefix: "$", suffix: " upfront", label: "Rev-share builds", emphasis: true },
+  { value: 24, suffix: "/7", label: "Email & phone covered", emphasis: true },
+  { value: 4, suffix: "", label: "Workflows handled end-to-end", emphasis: false },
+  { value: 2, prefix: "", suffix: "+", label: "Proofs already shipped", emphasis: false },
+  { value: 48, prefix: "< ", suffix: "hrs", label: "Scoped idea to demo", emphasis: true },
 ];
+
 
 const CountUp = ({ target, prefix = "", suffix = "", active }: { target: number; prefix?: string; suffix?: string; active: boolean }) => {
   const [count, setCount] = useState(0);

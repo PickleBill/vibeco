@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import FadeIn from "./FadeIn";
 import { toast } from "sonner";
 import { Info } from "lucide-react";
@@ -29,7 +28,6 @@ const structures = [
 ];
 
 const ContactForm = () => {
-  const navigate = useNavigate();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -72,11 +70,15 @@ const ContactForm = () => {
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
         <div className="max-w-2xl mx-auto">
           <FadeIn>
+            <p className="text-sm text-primary uppercase tracking-widest mb-4">
+              Book a discovery audit
+            </p>
             <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-4">
-              Got something worth building?
+              Find your first AI win.
             </h2>
             <p className="text-sm text-muted-foreground leading-relaxed mb-10">
-              Most ideas get a reply within 24 hours.
+              Tell us where the time goes. We'll map your inbound email and phone and come back
+              with the first workflow worth automating. Most get a reply within 24 hours.
             </p>
           </FadeIn>
 
@@ -88,16 +90,17 @@ const ContactForm = () => {
                   We'll be in touch within 24 hours.
                 </h3>
                 <p className="text-sm text-muted-foreground mb-8">
-                  Try the simulator while you wait — see your idea take shape.
+                  In the meantime, run a quick opportunity scan to see where AI could help.
                 </p>
                 <button
-                  onClick={() => navigate("/simulate")}
-                  className="text-sm bg-primary text-primary-foreground px-6 py-3 rounded-full hover:opacity-90 transition-opacity"
+                  onClick={() => document.querySelector("#scan")?.scrollIntoView({ behavior: "smooth" })}
+                  className="text-sm bg-primary text-primary-foreground px-6 py-3 rounded-full hover:brightness-110 transition-all"
                 >
-                  ✦ Test Your Idea
+                  Run an opportunity scan
                 </button>
               </div>
             </FadeIn>
+
           ) : (
             <FadeIn delay={0.1}>
               <form onSubmit={handleSubmit} className="space-y-5">
@@ -123,7 +126,7 @@ const ContactForm = () => {
                 </div>
 
                 <textarea
-                  placeholder="What's the idea? What problem does it solve, and for whom?"
+                  placeholder="What does your team spend too much time on? Quotes, order intake, scheduling, chasing replies?"
                   required
                   rows={4}
                   value={form.idea}
@@ -135,7 +138,7 @@ const ContactForm = () => {
                 {/* Structure selector */}
                 <div>
                   <label className="text-sm text-muted-foreground mb-3 flex items-center gap-1.5">
-                    Preferred partnership structure
+                    If we move forward, what fits best?
                     <Info size={14} className="text-primary/50" />
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -167,9 +170,9 @@ const ContactForm = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`w-full text-sm bg-primary text-primary-foreground px-6 py-3 rounded-full hover:opacity-90 hover:shadow-warm-lg transition-all duration-300 disabled:opacity-50 ${isSubmitting ? "animate-pulse" : ""}`}
+                  className={`w-full font-display font-semibold text-sm bg-violet text-violet-foreground px-6 py-3.5 rounded-full hover:brightness-110 transition-all duration-300 disabled:opacity-50 ${isSubmitting ? "animate-pulse" : ""}`}
                 >
-                  {isSubmitting ? "Sending..." : "Send Idea →"}
+                  {isSubmitting ? "Sending..." : "Book my discovery audit →"}
                 </button>
               </form>
             </FadeIn>
