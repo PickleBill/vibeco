@@ -62,9 +62,35 @@ const ActionHub = ({ brief, idea, lovablePrompt, reportId, onIterate }: Props) =
   const [errors, setErrors] = useState<Record<string, ErrorState>>({});
   const [expandedAction, setExpandedAction] = useState<string | null>(null);
 
-  // Re-hydrate cache when reportId changes
+  // Re-hydrate from session cache, then merge anything persisted to the DB so
+  // a refresh (or a different device) still shows previously generated prompts.
   useEffect(() => {
     setAltPrompts(loadCached(reportId));
+    if (!reportId) return;
+    (async () => {
+      try {
+        const { data } = await (supabase.from("idea_reports") as any)
+          .select("alt_prompts")
+          .eq("id", reportId)
+          .maybeSingle();
+        const arr = Array.isArray(data?.alt_prompts) ? data.alt_prompts : [];
+        if (arr.length === 0) return;
+        const fromDb: Record<string, GeneratedPrompt> = {};
+        for (const item of arr) {
+          if (item?.type) {
+            fromDb[item.type] = {
+              platform: item.platform,
+              prompt: item.prompt,
+              description: item.description,
+            };
+          }
+        }
+        // Session cache (set above) is freshest, so it wins on conflict.
+        setAltPrompts((prev) => ({ ...fromDb, ...prev }));
+      } catch (err) {
+        console.error("Failed to hydrate alt prompts from DB:", err);
+      }
+    })();
   }, [reportId]);
 
   const builderIntent = brief.builder_intent || "venture";
