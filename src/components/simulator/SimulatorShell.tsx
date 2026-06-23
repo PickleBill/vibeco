@@ -870,6 +870,9 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
   return (
     <div className="min-h-screen bg-background pt-20 pb-16">
       <div className="max-w-4xl mx-auto px-6">
+        {/* Linear spine: Describe → Analyze → Verdict → Build prompt → Next actions */}
+        <SimulatorStepper phase={phase} />
+
         {/* Thinking Mode Toggle */}
         {phase !== "input" && (
           <motion.div
