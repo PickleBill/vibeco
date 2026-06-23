@@ -76,12 +76,12 @@ const confChip = (c: "high" | "medium" | "low") => {
   return "bg-muted/40 text-muted-foreground border-border/40";
 };
 
-const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lovablePrompt, onPromptUpdate }: Props) => {
+const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lovablePrompt, onPromptUpdate, initialAutoAnalysis }: Props) => {
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<{ completed: number; total: number } | null>(null);
   const [agentStatus, setAgentStatus] = useState<Record<string, "pending" | "done">>({});
   const [agentTeasers, setAgentTeasers] = useState<Record<string, string>>({});
-  const [result, setResult] = useState<OrchestrateResult | null>(null);
+  const [result, setResult] = useState<OrchestrateResult | null>(initialAutoAnalysis ?? null);
   const [mode, setMode] = useState<"fast" | "deep">("fast");
   const [applying, setApplying] = useState(false);
   const [showRecs, setShowRecs] = useState(true);
