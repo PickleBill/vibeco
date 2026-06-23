@@ -915,6 +915,40 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
             </div>
           </nav>
 
+          {/* ★ VERDICT: Auto-Analyze synthesis — the headline result, one click to run */}
+          <motion.div
+            id="fr-verdict"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="mb-8 scroll-mt-24"
+          >
+            <div className="rounded-xl border-2 border-primary/30 bg-card/40 p-5 sm:p-6"
+              style={{ boxShadow: "0 0 32px -12px hsl(var(--primary) / 0.15)" }}
+            >
+              <div className="flex items-baseline justify-between gap-3 mb-5">
+                <div className="min-w-0">
+                  <p className="text-[10px] text-primary uppercase tracking-[0.3em] mb-1">Verdict</p>
+                  <h2 className="font-display text-lg sm:text-xl font-black text-foreground leading-tight">
+                    The whole idea, stress-tested at once
+                  </h2>
+                </div>
+                <span className="shrink-0 text-[10px] text-muted-foreground hidden sm:inline">7 lenses · 1 click</span>
+              </div>
+              <SynthesisPanel
+                brief={brief}
+                idea={idea}
+                reportId={reportId}
+                highlights={highlights}
+                antiHighlights={antiHighlights}
+                lovablePrompt={lovablePrompt}
+                onPromptUpdate={onPromptUpdate}
+              />
+            </div>
+          </motion.div>
+
+
+
           {/* ★ HERO: Single prompt block with three states (empty / shown / sharpening-diff) */}
           <motion.div
             id="fr-prompt"
