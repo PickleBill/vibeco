@@ -87,6 +87,11 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
   const [showRecs, setShowRecs] = useState(true);
   const [showBriefSuggestions, setShowBriefSuggestions] = useState(false);
 
+  // Hydrate from a persisted Auto-Analyze run (e.g. after refresh/resume)
+  useEffect(() => {
+    if (initialAutoAnalysis) setResult(initialAutoAnalysis);
+  }, [initialAutoAnalysis]);
+
   // ─── Realtime: subscribe to agent_events for live progress + teasers ───
   useEffect(() => {
     if (!running || !reportId) return;
