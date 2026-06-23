@@ -269,7 +269,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null); // diff state
   const [pulsedSection, setPulsedSection] = useState<string | null>(null);
-  const [activeNavSection, setActiveNavSection] = useState<string>("prompt");
+  const [activeNavSection, setActiveNavSection] = useState<string>("verdict");
   // Editable copies of brief sections during iterate-in-place mode
   const [editedBrief, setEditedBrief] = useState<BriefData>(brief);
   const [editedSections, setEditedSections] = useState<Set<string>>(new Set());
