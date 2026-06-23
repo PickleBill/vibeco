@@ -454,7 +454,7 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
           <div className="flex items-center gap-2">
             <AlertTriangle size={14} className="text-warning" />
             <h4 className="font-display text-xs font-bold text-foreground uppercase tracking-wider">
-              Tensions ({synthesis.tensions.length})
+              Key tensions ({synthesis.tensions.length})
             </h4>
           </div>
           <div className="space-y-3">
