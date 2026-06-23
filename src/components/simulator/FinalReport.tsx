@@ -944,6 +944,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                 antiHighlights={antiHighlights}
                 lovablePrompt={lovablePrompt}
                 onPromptUpdate={onPromptUpdate}
+                initialAutoAnalysis={autoAnalysis}
               />
             </div>
           </motion.div>
