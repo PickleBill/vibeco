@@ -80,20 +80,19 @@ const ROUTING_TABLE: Record<TaskType, ModelCandidate[]> = {
     { model: "google/gemini-3-flash-preview", rationale: "Last-resort fast fallback", cost: "low", speed: "fast" },
   ],
   // ── Marquee reasoning (verdict synthesis + grader + refine) ──
-  // NOTE: Claude is NOT on the Lovable Gateway allowlist (google/* + openai/* only)
-  // and no ANTHROPIC_API_KEY is set. So the requested "route marquee reasoning to
-  // Claude" is implemented with the strongest available gateway model (GPT-5.5).
-  // To switch to real Claude later: add ANTHROPIC_API_KEY and route via
-  // gateway: "anthropic-direct" in the relevant agent.
+  // DEFAULT is cheap Gemini. GPT-5.5 is an opt-in "premium" path, gated to
+  // admin/premium roles and enforced server-side (see _shared/premium.ts).
+  // When selectModel() is called with { premium: true }, PREMIUM_MODELS below
+  // overrides these defaults with openai/gpt-5.5.
   "grade-prompt": [
-    { model: "openai/gpt-5.5", rationale: "Strongest reasoning for grading prompt structure / anti-patterns", cost: "high", speed: "medium" },
+    { model: "google/gemini-2.5-pro", rationale: "Default: strong, cheaper reasoning for grading structure / anti-patterns", cost: "medium", speed: "medium" },
     { model: "openai/gpt-5", rationale: "High-quality fallback", cost: "high", speed: "medium" },
-    { model: "google/gemini-2.5-pro", rationale: "Reliable cheaper fallback", cost: "medium", speed: "medium" },
+    { model: "google/gemini-3-flash-preview", rationale: "Fast last-resort fallback", cost: "low", speed: "fast" },
   ],
   "prompt-engineering": [
-    { model: "openai/gpt-5.5", rationale: "Marquee: strongest structured build-spec reasoning", cost: "high", speed: "medium" },
-    { model: "google/gemini-2.5-pro", rationale: "Precise structured output fallback", cost: "medium", speed: "medium" },
-    { model: "openai/gpt-5", rationale: "Alternative high-quality fallback", cost: "high", speed: "medium" },
+    { model: "google/gemini-2.5-pro", rationale: "Default: precise structured build-spec output, cheaper", cost: "medium", speed: "medium" },
+    { model: "openai/gpt-5", rationale: "High-quality fallback", cost: "high", speed: "medium" },
+    { model: "google/gemini-3-flash-preview", rationale: "Fast last-resort fallback", cost: "low", speed: "fast" },
   ],
   "html-generation": [
     { model: "google/gemini-2.5-flash", rationale: "Fast, cheap, good at HTML/code generation", cost: "low", speed: "fast" },
@@ -126,6 +125,19 @@ const ROUTING_TABLE: Record<TaskType, ModelCandidate[]> = {
   ],
 };
 
+// ─── Premium Override ───
+
+/**
+ * Premium ("marquee") model per task. When selectModel is called with
+ * { premium: true } (already role-verified server-side), these override the
+ * cheap defaults. Tasks not listed here ignore the premium flag.
+ */
+const PREMIUM_MODELS: Partial<Record<TaskType, string>> = {
+  "grade-prompt": "openai/gpt-5.5",
+  "prompt-engineering": "openai/gpt-5.5",
+  "synthesis": "openai/gpt-5.5",
+};
+
 // ─── Legacy Compatibility ───
 
 /**
@@ -146,13 +158,15 @@ export function legacyModelSelect(mode?: AnalysisMode): string {
 interface SelectModelOptions {
   mode?: AnalysisMode;
   availability?: Record<string, boolean>; // from probe-models cache
+  premium?: boolean; // role-verified server-side; routes marquee tasks to GPT-5.5
 }
 
 /**
  * Select the optimal model for a given task type.
  *
- * In "fast" mode, picks the fastest available candidate.
- * In "deep" mode, picks the primary (best) candidate, falling back if unavailable.
+ * If { premium: true } and the task has a premium override, that model wins.
+ * Otherwise: "fast" mode picks the fastest available candidate; "deep" mode
+ * uses the primary (best) candidate, falling back if unavailable.
  */
 export function selectModel(
   taskType: TaskType,
@@ -163,7 +177,12 @@ export function selectModel(
     return LEGACY_MODEL_MAP.fast; // safe fallback
   }
 
-  const { mode = "fast", availability } = options;
+  const { mode = "fast", availability, premium } = options;
+
+  // Premium override (already role-verified upstream) takes precedence.
+  if (premium && PREMIUM_MODELS[taskType] && isAvailable(PREMIUM_MODELS[taskType]!, availability)) {
+    return PREMIUM_MODELS[taskType]!;
+  }
 
   if (mode === "fast") {
     // In fast mode, pick the cheapest/fastest available option

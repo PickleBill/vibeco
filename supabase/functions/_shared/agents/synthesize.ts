@@ -19,6 +19,7 @@ export interface SynthesisInput {
   highlights?: string[];
   antiHighlights?: string[];
   mode?: AnalysisMode;
+  premium?: boolean; // role-verified upstream; routes to GPT-5.5 when true
 }
 
 export interface SynthesisResult {
@@ -135,7 +136,7 @@ const SYNTHESIS_FALLBACK_MODELS = [
 ];
 
 export async function synthesize(input: SynthesisInput): Promise<SynthesisResult> {
-  const primaryModel = selectModel("synthesis", { mode: input.mode });
+  const primaryModel = selectModel("synthesis", { mode: input.mode, premium: input.premium });
   const modelChain = [primaryModel, ...SYNTHESIS_FALLBACK_MODELS.filter((m) => m !== primaryModel)];
 
   // Build a comprehensive context from all agent outputs

@@ -155,6 +155,26 @@ serve(async (req) => {
       }
     }
 
+    // Best-effort: log this run to the shared connector sync timeline so the Org
+    // Knowledge Hub (and v2 / other apps) can show real, recent connector activity.
+    // The Firecrawl connector is the live data source for signal-collect.
+    try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL");
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (supabaseUrl && supabaseKey) {
+        const logClient = createClient(supabaseUrl, supabaseKey);
+        await logClient.from("connector_sync_events").insert({
+          connector_key: "firecrawl",
+          project: "vibeco",
+          status: "ok",
+          items_collected: items.length,
+          message: `signal-collect: ${items.length} items for "${product}" (${persisted} persisted)`,
+        });
+      }
+    } catch (logErr) {
+      console.error("connector_sync_events log error:", (logErr as Error).message);
+    }
+
     return jsonResponse({
       product,
       collected: items.length,

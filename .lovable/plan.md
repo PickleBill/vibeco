@@ -1,79 +1,60 @@
-# VibeCo + Courtana — orchestration, knowledge, and the P2 build
+# Org System Setup — premium reasoning, knowledge hub, connector substrate
 
-## The big picture (how the pieces talk)
+Three outcomes, sequenced by leverage: (1) GPT-5.5 as a per-run *premium* option, gated to admin/premium roles and verified server-side; (2) the shared org-memory + connector tables the MCP server already expects but that don't exist yet; (3) a subtle in-app Org Knowledge Hub showing project pointers, org decisions, and connector sync status — the shared surface v2/VibeCo/other apps publish into.
 
-```text
-            ┌──────────────── CANONICAL TRUTH ────────────────┐
-            │  Courtana MCP server (courtana-mcp-server/)      │
-            │  • knowledge tools (reads each repo's *.md)      │
-            │  • org memory + project_registry (Supabase)      │
-            └───────▲───────────────────────────▲─────────────┘
-        reads/writes│                            │reads/writes
-     ┌──────────────┴───────┐          ┌─────────┴────────────┐
-     │ CLAUDE (orchestrator)│  specs   │  LOVABLE (builder)    │
-     │ forges spec + grades │ ───MCP──▶ │  React/TS + Supabase  │
-     │ reads diffs back     │ ◀──block─ │  returns Changed/...  │
-     └──────────────────────┘          └──────────────────────┘
-         each Lovable project's Knowledge field = thin POINTER
-         to canonical truth + the handshake contract (no copies)
-```
-
-Your decisions, locked in:
-- **Knowledge home:** Courtana MCP server (already built) as machine truth; per-project Knowledge = thin pointer, not a duplicate.
-- **Integration depth:** Claude drives via MCP, *gated* — hard stops on deploy/publish/secrets/destructive. Lovable pushes back through the return block (two-way, Claude isn't assumed right).
-- **Marquee model:** route synthesis + grader + refine to Claude (pairs with a spend cap).
-- **Naming:** decide "grade-and-refine" rename after P2 ships.
+## Coordination with VibeCo v2
+v2 (separate Lovable project) is wiring *live* workspace connectors (Firecrawl/Perplexity/Anthropic web search) into its own Signal Mine. This plan deliberately does **not** duplicate that. Instead it builds the **shared substrate both sides write to**: `connector_registry` + `connector_sync_events` + `org_decisions`, all in the shared Supabase project (`ulgoahsxkrkzoquvntei`) the MCP server already points at. v2's adapters log their syncs here; this hub displays them. No new live adapters are wired in v1.
 
 ---
 
-## Phase A — Knowledge architecture (no-drift, before more building)
-Goal: one source of truth, 65+ projects point at it instead of copying.
-1. **Standardize the per-project Knowledge field** to a short, fixed template: (a) the Claude collaboration handshake (already pasted here — keep it), (b) a pointer line naming the canonical files in the MCP registry, (c) the project's Supabase ref + a one-line "what this project is." Same skeleton in every project; only the identity lines differ.
-2. **Register VibeCo v1 and v2 in `project_registry`** with a shared `family: "vibeco"` tag so the MCP server can answer "show me both VibeCo projects" — this is how you "connect two" without merging codebases.
-3. **Author the canonical docs once** (in the AI-Opportunity-Engine repo the MCP server reads): the handshake contract, the design system, the model-routing policy. Lovable Knowledge fields reference these by name; they never re-state them.
-4. **Pitfall guardrail:** the Lovable Knowledge field is per-project and not shared — never treat it as the source of truth. If it and the canonical doc disagree, the contract already says "surface the conflict, don't guess."
+## Phase 1 — Premium reasoning toggle (per-run, role-gated)
+Goal: default marquee reasoning to cheap Gemini; let admins/premium users flip a single run to GPT-5.5.
 
-## Phase B — Tighten the Claude↔Lovable loop (this project, low risk)
-1. Confirm the handshake (Part A) is installed (done) and that every change here ends with the **Changed / Verification / Didn't apply / Open questions** block — this is the back-channel that lets Lovable disagree with Claude.
-2. Keep the **hard gates** explicit in the contract: nothing deploys/publishes, no secret rotation, no destructive migration without your explicit yes. MCP-driven ≠ ungated.
-3. Defer the **full graded auto-loop** until the grader (Phase C) is proven trustworthy on real runs.
+1. **Roles:** add `premium` to the `app_role` enum (keep `admin`, etc.). `has_role()` already exists.
+2. **Model router:** add a `premium?: boolean` option to `selectModel()`. For `grade-prompt`, `prompt-engineering`, and `synthesis`, the default candidate becomes `google/gemini-2.5-pro` (cost); when `premium` is true, it returns `openai/gpt-5.5` first. (Today GPT-5.5 is hardcoded as default — this inverts it so premium is opt-in.)
+3. **Server-side gate (critical):** `grade-prompt`, `refine-prompt`, and `synthesize` edge functions read the caller's JWT, look up `user_roles`, and only honor `premium: true` if the user has `admin` or `premium`. A spoofed flag from a non-privileged client is ignored and silently falls back to Gemini.
+4. **UI:** a small "Premium reasoning (GPT-5.5)" switch on the report/prompt surface in `FinalReport.tsx`, rendered only when the signed-in user has the role (via a `useUserRole` hook). Passes `premium` into the grade/refine calls. Non-privileged users never see it.
 
-## Phase C — P2 build: grader + grade→refine loop (the ready-to-paste work)
-This is Prompts 3 & 4 in the packet, plus the model-routing addendum.
-1. **New edge function `grade-prompt`** (route to Claude). Input: generated `lovable_prompt`. Output JSON: 6 dimension scores (context_goals, specificity, design_tokens, mobile_first, state_error_handling, avoiding_defaults), `overall`, `anti_patterns_found[]`, `top_fixes[]`. Detect the 5 named anti-patterns.
-2. **Inline score badge** above the "YOUR LOVABLE PROMPT" / Copy block in `FinalReport.tsx` — "Prompt strength: X/10" (emerald ≥8 / amber 5–7 / red <5) with failing anti-patterns as one-line fixes. Grades automatically on report render.
-3. **"Improve this prompt" loop:** button next to the badge → call existing `refine-prompt` (`generateRefinedPrompt`), feeding the grader's anti-patterns + top_fixes + the user's Vibe Stack highlights into `refinement_context` → auto re-grade → show new score + "What changed". **Version, never overwrite** (`version_label`, prior viewable).
-4. **Tighten the generator** in `_shared/agents/simulate.ts`: ensure the final-round `lovable_prompt` schema carries the full structured template + 8 engineering rules; add `app_type` to the brief to drive structure. Optional "split into 3 sequenced prompts" toggle (offer, don't force).
-5. **Model routing** in `_shared/model-router.ts`: point `synthesis`, the new `grade-prompt` task type, and `prompt-engineering` (refine) to Claude Sonnet as primary; keep `analysis-initial`/`perspective` on Gemini for cost. Print the resulting map.
+## Phase 2 — Org-memory + connector substrate (DB, additive)
+The MCP server's `save_decision`/`get_decisions`/`search_decisions` already target `org_decisions` + a `match_decisions` RPC that **do not exist**. Create them so both MCP and the UI work. Built generically (org-scoped, project-tagged) for reuse across all Courtana projects.
 
-## Phase D — Pre-public guardrails + the funnel bridge (highest-leverage)
-1. **Daily LLM spend cap** + **anonymous rate-limit** (per session/IP) before the project is public — a runaway loop on Claude is the main new cost risk. Surface 429/402 cleanly in the UI.
-2. **Label every ungrounded number "illustrative"** until web-grounding (Phase F) ships.
-3. **Funnel bridge:** wire the grader's *weakest dimension* into the discovery-audit CTA ("scored low on operations — that's exactly what we pressure-test") writing to the existing `discovery_leads` table (confirm v1 and v2 share one table — don't fork a third).
-4. **Resolve `landing_page_html`:** today it's scaffold-only (column + RPC exist, nothing generates HTML). Either wire a generator or drop the column — don't leave it half-done.
+New tables (additive, with GRANTs + RLS):
+- `org_decisions` — `session_id`, `project`, `category`, `title`, `content`, `embedding vector(1536)`, timestamps. RPC `match_decisions(query_embedding, match_count, filter_project, filter_category)` mirroring the existing `match_signal_raw` pattern.
+- `connector_registry` — `key` (e.g. `firecrawl`, `perplexity_sonar`, `anthropic_web_search`, `reddit`, `hackernews`), `display_name`, `project`, `status` (`active`/`dormant`/`error`), `auth_kind` (`workspace`/`secret`/`keyless`), `config` jsonb, timestamps. This is the canonical "what connectors exist + their state" list both v1 and v2 read.
+- `connector_sync_events` — `connector_key`, `project`, `status`, `items_collected`, `message`, `created_at`. The append-only sync log the dashboard renders.
 
-## Phase E — Connectors
-1. **For the Lovable agent (build-time):** connectors like Notion/Linear feed *me* context while building — they do not become features end users call. Since you barely use Notion, skip it; the MCP server already covers knowledge. Add a connector only when a specific external source needs to inform builds.
-2. **For the app (runtime):** if VibeCo should *call* an external tool at runtime, that's a Supabase edge function (MCP proxy or API), a separate, scoped build — not the same as agent connectors. Flag which you mean before we build either.
+RLS: authenticated users can read all three (org-internal); writes to `org_decisions` require auth; `connector_registry`/`connector_sync_events` writes are `service_role` only (edge functions/MCP). `anon` gets no access. Seed `connector_registry` with the known connectors and their current state.
 
-## Phase F — Parked (BACKLOG, sequence after P2 + funnel)
-- **P4 web-grounding** (competitor/market checks with citations) — the one net-new build; unlocks dropping "illustrative" labels.
-- **P3 DB-history priors** ("ideas like yours scored like this") — lowest friction, own DB.
-- **P3b corpus mining** — needs embeddings + a privacy filter (exclude financial/health/legal); server-side only.
+## Phase 3 — Org Knowledge Hub UI (subtle, in-app)
+A new route `/hub` (subtle nav entry, not in the portfolio area), viewable by authenticated users.
+- **Projects tab:** reads `project_registry`, renders each project as a *pointer card* (name, brand/family tag, status, canonical-doc pointer, link) — explicitly not a duplicated copy of project content. Reinforces "one source of truth, pointers everywhere."
+- **Decisions tab:** lists recent `org_decisions` (filter by project/category), with a "Record decision" form that writes a new decision. Shows whether it was embedded.
+- Empty/skeleton/error states throughout; house style (dark + emerald, one violet accent, Inter/Source Code Pro, `rounded-sm` mono buttons).
+
+## Phase 4 — Connector registry + sync-status dashboard
+A **Connectors tab** in `/hub`:
+- Reads `connector_registry` → status chips (active=emerald, dormant=muted, error=red), auth kind, owning project.
+- Reads `connector_sync_events` → recent sync timeline per connector (last run, items collected, message).
+- Lightweight "onboarding" affordance: a guided card per dormant connector explaining what's needed to activate it (auth source, where the key lives, link). Since real key/connector setup is a Lovable workspace-platform action, this surface *documents + tracks* rather than stores keys.
+- Wire v1's existing `signal-collect` to append a `connector_sync_events` row (service role) after each run, so the dashboard shows real data immediately and proves the contract v2 will follow.
+
+## Phase 5 — MCP server + canonical docs alignment (mostly outside this repo)
+- Confirm the MCP server's memory tools work against the now-real `org_decisions` (no code change needed; tables now exist). Optionally add `mcp_improvement_log` if we want `get_mcp_insights`/`analyze_mcp_usage` live (deferred unless wanted).
+- Draft the canonical "connector contract" doc (table shapes + how any app logs a sync) so v2 and future apps publish consistently. Lands in the MCP/AI-Opportunity-Engine repo, not here — I'll provide the content/SQL.
 
 ---
 
-## Pitfalls I'm explicitly calling out
-- **Knowledge drift across 65+ projects** is the #1 risk. Mitigate by making per-project Knowledge a *generated pointer*, never a hand-edited copy of the canon.
-- **"Connecting" two Lovable projects** has no native mechanism — the MCP `project_registry` + shared org memory is the only real connective tissue. Don't expect the Knowledge fields to sync.
-- **MCP-driven loop drift:** additive-only + hard gates + the mandatory return block. Claude proposes; Lovable can push back; you hold the deploy gate.
-- **Claude cost:** routing marquee reasoning to Claude without the Phase D spend cap is the fastest way to a surprise bill on a public anon tool. Cap first.
-- **Schema bloat on `grade-prompt`:** keep the output schema lean (short keys, no long enums) so it stays robust; Claude tolerates more than Gemini but don't push it.
-- **RLS already locked** to `user_id = auth.uid()`; pre-existing anon reports with `user_id IS NULL` are now unreadable — expected, just don't be surprised.
+## Technical notes / pitfalls
+- **Embeddings:** `org_decisions.embedding` is `vector(1536)` to match the MCP server's `text-embedding-3-small`. The in-app "Record decision" path can save without an embedding (filter-only) since the frontend won't call OpenAI; semantic search stays an MCP/edge concern. Note the dimension mismatch risk if anyone later swaps embedding models.
+- **Premium spoofing:** the per-run toggle MUST be enforced server-side via JWT→`user_roles`, never trusted from the client. This is the main security gate.
+- **Cost:** premium is opt-in per run, so no runaway default spend; a daily cap can be added later if usage grows (deferred per "gate behind a paywall later").
+- **Shared DB blast radius:** these tables live in the shared project; keep them additive and org-generic so v2 reuses them verbatim. No destructive changes.
+- **No deploy/publish/secret changes** without explicit approval; all migrations additive.
 
-## Suggested order
-A (knowledge skeleton) → B (loop hygiene) → C (P2 grader+loop+Claude routing) → D (guardrails + funnel) → E (only if a connector need is real) → F (parked).
-
-## What I can build from inside this project vs. what's outside it
-- **Inside (I build):** Phase C, D, the per-project Knowledge pointer template (Phase A.1), and runtime connector edge functions (Phase E.2).
-- **Outside this project (you/Claude via the MCP repo):** the canonical docs (Phase A.3), `project_registry` cross-project tagging (Phase A.2), and build-time agent connectors (Phase E.1). I can draft the content/SQL for those, but they land in the MCP server repo, not here.
+## Files touched (this project)
+- DB migration: `org_decisions` (+`match_decisions`), `connector_registry`, `connector_sync_events`, `app_role` enum add, seeds.
+- `supabase/functions/_shared/model-router.ts` — premium-aware selection.
+- `supabase/functions/grade-prompt`, `refine-prompt`, `synthesize` — JWT role check + premium gate.
+- `supabase/functions/signal-collect/index.ts` — append sync event.
+- `src/hooks/useUserRole.ts` (new), `src/components/simulator/FinalReport.tsx` — premium toggle.
+- `src/pages/Hub.tsx` (new) + `components/hub/*` (ProjectsTab, DecisionsTab, ConnectorsTab), `src/App.tsx` route, subtle nav link.
