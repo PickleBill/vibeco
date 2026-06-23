@@ -1,78 +1,79 @@
-## Goal
+# VibeCo + Courtana — orchestration, knowledge, and the P2 build
 
-1. **Stop losing analysis on refresh** — persist every generated output and rehydrate from the DB.
-2. **Make the path obvious** — a 5-stage linear spine with a stepper, Auto-Analyze as the clear primary, and a clickable example idea.
-3. **Lock down privacy** — each visitor gets a private session; one visitor cannot read another's report; share links still work.
-
----
-
-## A. Persistence (lower-risk choice: additive columns, NOT a new table)
-
-Most outputs already have DB homes on `idea_reports` and are being written:
-- `lovable_prompt`, `alt_prompts` (research_prompt + design_brief + landing prompt — written by ActionHub), `expanded_ideas`, `thesis_statement` (distill), `highlights`, images.
-- Per-persona single-lens outputs persist to `idea_perspectives`.
-
-Genuinely missing homes — add **two additive nullable columns** to `idea_reports` (lowest risk: the load path already does `select("*")`, no joins, no new RLS surface):
-- `auto_analysis jsonb` — the full Auto-Analyze (`/orchestrate`) result: **synthesis + the 5 persona outputs + expansion + distillation + agent timing/meta**, as one bundle.
-- `landing_page_html text` — the generated landing page (today it only lives in the email-gated `simulator_captures`).
-
-**Write-on-generate:** `SynthesisPanel` writes `auto_analysis` to the report immediately after `/orchestrate` returns; the landing-page generator writes `landing_page_html`. ActionHub/expand/distill already persist.
-
-**Hydrate-on-load:** `SimulatorShell`'s resume path and `Report.tsx` read these columns and rehydrate the Verdict, expand, distill, alt-prompts, and landing page so a returning visitor sees everything.
-
-## B. Flow — 5-stage linear spine
-
-New `SimulatorStepper` component rendered at the top of `SimulatorShell`:
+## The big picture (how the pieces talk)
 
 ```text
-1 Describe → 2 Analyze → 3 Verdict → 4 Build prompt → 5 Next actions
+            ┌──────────────── CANONICAL TRUTH ────────────────┐
+            │  Courtana MCP server (courtana-mcp-server/)      │
+            │  • knowledge tools (reads each repo's *.md)      │
+            │  • org memory + project_registry (Supabase)      │
+            └───────▲───────────────────────────▲─────────────┘
+        reads/writes│                            │reads/writes
+     ┌──────────────┴───────┐          ┌─────────┴────────────┐
+     │ CLAUDE (orchestrator)│  specs   │  LOVABLE (builder)    │
+     │ forges spec + grades │ ───MCP──▶ │  React/TS + Supabase  │
+     │ reads diffs back     │ ◀──block─ │  returns Changed/...  │
+     └──────────────────────┘          └──────────────────────┘
+         each Lovable project's Knowledge field = thin POINTER
+         to canonical truth + the handshake contract (no copies)
 ```
 
-- Current stage highlighted in **emerald**; completed stages filled, upcoming muted.
-- Stage derived from existing `phase` (`input`→1, `analyzing`/`brief`→2) plus scroll position within `final` (Verdict→3, prompt→4, ActionHub→5).
-- **Mobile (<768px):** collapses to a compact progress-dots row, no labels, no overflow.
-
-**Reduce the "wall of equal options":** On the analyze step, **Auto-Analyze is the single prominent emerald primary CTA**. Everything else (explore one lens at a time — Perspectives / Expand / Distill) is grouped under a secondary, collapsed "Advanced" disclosure. (ThunderdomePanel is already demoted; this finishes the visual hierarchy.)
-
-## C. First-run / empty state
-
-In `IdeaInput`, when empty, show **one clickable example-idea chip** using a generic example (not Bill's projects), e.g. *"A monthly subscription box for houseplants with app-based care reminders."* Clicking it prefills the idea and runs the full flow end-to-end.
-
-## D. Privacy / RLS — anonymous sessions (approved)
-
-- **Enable anonymous auth.** On app bootstrap, if there is no session, call `signInAnonymously()` so every visitor has a private uid that survives refresh. All report/perspective writes set `user_id = auth.uid()`.
-- **Tighten `idea_reports` RLS:** replace the world-readable `SELECT (true)` with `SELECT USING (user_id = auth.uid())`; `INSERT`/`UPDATE` scoped to `user_id = auth.uid()`. Same owner-scoping for `idea_perspectives` and the new columns (they live on the owned report).
-- **Keep share links working:** add a `SECURITY DEFINER` function `get_shared_report(report_id uuid)` returning only non-PII display fields (idea, brief, prompt, images, `auto_analysis`, `landing_page_html`). The public `Report.tsx` calls this RPC instead of `select("*")`, so holders of a link still view a report, but the base table is no longer bulk-readable.
-- **Result:** a second anonymous session (different uid, no link) cannot read or enumerate another session's reports.
-
-## E. Report design cleanup (`Report.tsx`)
-
-Refresh the public read-only report to the design system (matte dark, emerald accents, fluid `clamp()` type, no nested cards): add a Verdict summary block (consensus / tensions / confidence / ranked recs from `auto_analysis`), surface the landing page and alt-prompts, and tighten spacing/hierarchy. Read-only, no PII.
+Your decisions, locked in:
+- **Knowledge home:** Courtana MCP server (already built) as machine truth; per-project Knowledge = thin pointer, not a duplicate.
+- **Integration depth:** Claude drives via MCP, *gated* — hard stops on deploy/publish/secrets/destructive. Lovable pushes back through the return block (two-way, Claude isn't assumed right).
+- **Marquee model:** route synthesis + grader + refine to Claude (pairs with a spend cap).
+- **Naming:** decide "grade-and-refine" rename after P2 ships.
 
 ---
 
-## Files
+## Phase A — Knowledge architecture (no-drift, before more building)
+Goal: one source of truth, 65+ projects point at it instead of copying.
+1. **Standardize the per-project Knowledge field** to a short, fixed template: (a) the Claude collaboration handshake (already pasted here — keep it), (b) a pointer line naming the canonical files in the MCP registry, (c) the project's Supabase ref + a one-line "what this project is." Same skeleton in every project; only the identity lines differ.
+2. **Register VibeCo v1 and v2 in `project_registry`** with a shared `family: "vibeco"` tag so the MCP server can answer "show me both VibeCo projects" — this is how you "connect two" without merging codebases.
+3. **Author the canonical docs once** (in the AI-Opportunity-Engine repo the MCP server reads): the handshake contract, the design system, the model-routing policy. Lovable Knowledge fields reference these by name; they never re-state them.
+4. **Pitfall guardrail:** the Lovable Knowledge field is per-project and not shared — never treat it as the source of truth. If it and the canonical doc disagree, the contract already says "surface the conflict, don't guess."
 
-- **Migration** (new): add `auto_analysis jsonb`, `landing_page_html text` to `idea_reports`; rewrite RLS for `idea_reports` + `idea_perspectives` to owner-scoping; create `get_shared_report` RPC with `GRANT EXECUTE` to `anon, authenticated`.
-- **Auth config:** enable anonymous sign-ins.
-- `src/App.tsx` (or a small `useEnsureSession` hook) — bootstrap anonymous session.
-- `src/components/simulator/SimulatorStepper.tsx` (new) — desktop stepper / mobile dots.
-- `src/components/simulator/SimulatorShell.tsx` — mount stepper, set `user_id` on insert, hydrate new columns on resume.
-- `src/components/simulator/SynthesisPanel.tsx` — persist `auto_analysis` after orchestrate; hydrate from it.
-- `src/components/simulator/IdeaInput.tsx` — example-idea chip.
-- `src/components/simulator/ActionHub.tsx` — persist `landing_page_html` when generated.
-- `src/pages/Report.tsx` — call `get_shared_report` RPC; design refresh + Verdict block.
+## Phase B — Tighten the Claude↔Lovable loop (this project, low risk)
+1. Confirm the handshake (Part A) is installed (done) and that every change here ends with the **Changed / Verification / Didn't apply / Open questions** block — this is the back-channel that lets Lovable disagree with Claude.
+2. Keep the **hard gates** explicit in the contract: nothing deploys/publishes, no secret rotation, no destructive migration without your explicit yes. MCP-driven ≠ ungated.
+3. Defer the **full graded auto-loop** until the grader (Phase C) is proven trustworthy on real runs.
 
-## Notes / trade-offs
+## Phase C — P2 build: grader + grade→refine loop (the ready-to-paste work)
+This is Prompts 3 & 4 in the packet, plus the model-routing addendum.
+1. **New edge function `grade-prompt`** (route to Claude). Input: generated `lovable_prompt`. Output JSON: 6 dimension scores (context_goals, specificity, design_tokens, mobile_first, state_error_handling, avoiding_defaults), `overall`, `anti_patterns_found[]`, `top_fixes[]`. Detect the 5 named anti-patterns.
+2. **Inline score badge** above the "YOUR LOVABLE PROMPT" / Copy block in `FinalReport.tsx` — "Prompt strength: X/10" (emerald ≥8 / amber 5–7 / red <5) with failing anti-patterns as one-line fixes. Grades automatically on report render.
+3. **"Improve this prompt" loop:** button next to the badge → call existing `refine-prompt` (`generateRefinedPrompt`), feeding the grader's anti-patterns + top_fixes + the user's Vibe Stack highlights into `refinement_context` → auto re-grade → show new score + "What changed". **Version, never overwrite** (`version_label`, prior viewable).
+4. **Tighten the generator** in `_shared/agents/simulate.ts`: ensure the final-round `lovable_prompt` schema carries the full structured template + 8 engineering rules; add `app_type` to the brief to drive structure. Optional "split into 3 sequenced prompts" toggle (offer, don't force).
+5. **Model routing** in `_shared/model-router.ts`: point `synthesis`, the new `grade-prompt` task type, and `prompt-engineering` (refine) to Claude Sonnet as primary; keep `analysis-initial`/`perspective` on Gemini for cost. Print the resulting map.
 
-- Existing anonymous reports (with `user_id IS NULL`) become unreadable under the new owner-scoped policy — acceptable, they were already ephemeral. Anonymous→Google account linking is out of scope (noted, not built).
-- Anonymous sessions count toward auth users but are the standard, robust way to enforce per-visitor RLS without forcing login.
+## Phase D — Pre-public guardrails + the funnel bridge (highest-leverage)
+1. **Daily LLM spend cap** + **anonymous rate-limit** (per session/IP) before the project is public — a runaway loop on Claude is the main new cost risk. Surface 429/402 cleanly in the UI.
+2. **Label every ungrounded number "illustrative"** until web-grounding (Phase F) ships.
+3. **Funnel bridge:** wire the grader's *weakest dimension* into the discovery-audit CTA ("scored low on operations — that's exactly what we pressure-test") writing to the existing `discovery_leads` table (confirm v1 and v2 share one table — don't fork a third).
+4. **Resolve `landing_page_html`:** today it's scaffold-only (column + RPC exist, nothing generates HTML). Either wire a generator or drop the column — don't leave it half-done.
 
-## Post-build verification
+## Phase E — Connectors
+1. **For the Lovable agent (build-time):** connectors like Notion/Linear feed *me* context while building — they do not become features end users call. Since you barely use Notion, skip it; the MCP server already covers knowledge. Add a connector only when a specific external source needs to inform builds.
+2. **For the app (runtime):** if VibeCo should *call* an external tool at runtime, that's a Supabase edge function (MCP proxy or API), a separate, scoped build — not the same as agent connectors. Flag which you mean before we build either.
 
-- [ ] Refresh the report restores synthesis, expand, distill, alt-prompts, landing page from DB.
-- [ ] Stepper shows 5 stages; Auto-Analyze is visually primary; others under "Advanced".
-- [ ] Example-idea chip runs the full flow end-to-end.
-- [ ] A second anonymous session cannot read the first session's report (via UI + direct table query).
-- [ ] Share link still opens a clean read-only report.
-- [ ] Mobile stepper renders as dots with no overflow.
+## Phase F — Parked (BACKLOG, sequence after P2 + funnel)
+- **P4 web-grounding** (competitor/market checks with citations) — the one net-new build; unlocks dropping "illustrative" labels.
+- **P3 DB-history priors** ("ideas like yours scored like this") — lowest friction, own DB.
+- **P3b corpus mining** — needs embeddings + a privacy filter (exclude financial/health/legal); server-side only.
+
+---
+
+## Pitfalls I'm explicitly calling out
+- **Knowledge drift across 65+ projects** is the #1 risk. Mitigate by making per-project Knowledge a *generated pointer*, never a hand-edited copy of the canon.
+- **"Connecting" two Lovable projects** has no native mechanism — the MCP `project_registry` + shared org memory is the only real connective tissue. Don't expect the Knowledge fields to sync.
+- **MCP-driven loop drift:** additive-only + hard gates + the mandatory return block. Claude proposes; Lovable can push back; you hold the deploy gate.
+- **Claude cost:** routing marquee reasoning to Claude without the Phase D spend cap is the fastest way to a surprise bill on a public anon tool. Cap first.
+- **Schema bloat on `grade-prompt`:** keep the output schema lean (short keys, no long enums) so it stays robust; Claude tolerates more than Gemini but don't push it.
+- **RLS already locked** to `user_id = auth.uid()`; pre-existing anon reports with `user_id IS NULL` are now unreadable — expected, just don't be surprised.
+
+## Suggested order
+A (knowledge skeleton) → B (loop hygiene) → C (P2 grader+loop+Claude routing) → D (guardrails + funnel) → E (only if a connector need is real) → F (parked).
+
+## What I can build from inside this project vs. what's outside it
+- **Inside (I build):** Phase C, D, the per-project Knowledge pointer template (Phase A.1), and runtime connector edge functions (Phase E.2).
+- **Outside this project (you/Claude via the MCP repo):** the canonical docs (Phase A.3), `project_registry` cross-project tagging (Phase A.2), and build-time agent connectors (Phase E.1). I can draft the content/SQL for those, but they land in the MCP server repo, not here.
