@@ -30,7 +30,7 @@ import { jsPDF } from "jspdf";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import ThunderdomePanel from "./ThunderdomePanel";
-import SynthesisPanel from "./SynthesisPanel";
+import SynthesisPanel, { type OrchestrateResult } from "./SynthesisPanel";
 import ActionHub from "./ActionHub";
 import PromptDiff from "./PromptDiff";
 import { copyToClipboard } from "@/lib/copyToClipboard";
