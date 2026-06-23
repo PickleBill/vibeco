@@ -151,6 +151,17 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
       setResult(r);
       setProgress({ completed: r.agents_completed, total: r.agents_total });
 
+      // Persist the full Auto-Analyze result so it survives a refresh.
+      if (reportId) {
+        try {
+          await (supabase.from("idea_reports") as any)
+            .update({ auto_analysis: r })
+            .eq("id", reportId);
+        } catch (err) {
+          console.error("Failed to persist auto_analysis:", err);
+        }
+      }
+
       if (!r.synthesis) {
         toast.warning("Auto-Analyze finished but synthesis didn't complete. Try again or run agents individually.");
       } else {
