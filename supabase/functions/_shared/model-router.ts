@@ -79,9 +79,21 @@ const ROUTING_TABLE: Record<TaskType, ModelCandidate[]> = {
     { model: "openai/gpt-5", rationale: "Higher-quality fallback when Gemini fails (slower, ~60-70s)", cost: "high", speed: "slow" },
     { model: "google/gemini-3-flash-preview", rationale: "Last-resort fast fallback", cost: "low", speed: "fast" },
   ],
+  // ── Marquee reasoning (verdict synthesis + grader + refine) ──
+  // NOTE: Claude is NOT on the Lovable Gateway allowlist (google/* + openai/* only)
+  // and no ANTHROPIC_API_KEY is set. So the requested "route marquee reasoning to
+  // Claude" is implemented with the strongest available gateway model (GPT-5.5).
+  // To switch to real Claude later: add ANTHROPIC_API_KEY and route via
+  // gateway: "anthropic-direct" in the relevant agent.
+  "grade-prompt": [
+    { model: "openai/gpt-5.5", rationale: "Strongest reasoning for grading prompt structure / anti-patterns", cost: "high", speed: "medium" },
+    { model: "openai/gpt-5", rationale: "High-quality fallback", cost: "high", speed: "medium" },
+    { model: "google/gemini-2.5-pro", rationale: "Reliable cheaper fallback", cost: "medium", speed: "medium" },
+  ],
   "prompt-engineering": [
-    { model: "google/gemini-2.5-pro", rationale: "Most precise structured output for build specs", cost: "medium", speed: "medium" },
-    { model: "openai/gpt-5", rationale: "Alternative high-quality prompt generation", cost: "high", speed: "medium" },
+    { model: "openai/gpt-5.5", rationale: "Marquee: strongest structured build-spec reasoning", cost: "high", speed: "medium" },
+    { model: "google/gemini-2.5-pro", rationale: "Precise structured output fallback", cost: "medium", speed: "medium" },
+    { model: "openai/gpt-5", rationale: "Alternative high-quality fallback", cost: "high", speed: "medium" },
     { model: "google/gemini-3-flash-preview", rationale: "Fast mode", cost: "low", speed: "fast" },
   ],
   "html-generation": [
