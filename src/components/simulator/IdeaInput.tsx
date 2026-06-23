@@ -23,6 +23,10 @@ const placeholders = [
   "A marketplace where laid-off engineers can sell 30-minute career strategy calls to mid-career PMs trying to break into FAANG…",
 ];
 
+// Generic, public example — clicking runs the full simulator flow end-to-end.
+const EXAMPLE_IDEA =
+  "A monthly subscription box for houseplants with an app that sends watering and care reminders.";
+
 const IdeaInput = ({ onSubmit, initialValue, iterationContext, onStartFresh }: Props) => {
   const isIterating = !!iterationContext && (iterationContext.roundCount > 0 || iterationContext.highlightCount > 0);
   const [text, setText] = useState(initialValue || "");
