@@ -211,6 +211,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
         setLogoImage(report.logo_image_url || null);
         setLovablePrompt(report.lovable_prompt || null);
         setHighlights(new Set(report.highlights || []));
+        if (report.auto_analysis) setAutoAnalysis(report.auto_analysis as OrchestrateResult);
         setReportId(report.id);
 
         // Determine phase from data
