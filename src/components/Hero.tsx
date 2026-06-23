@@ -18,6 +18,7 @@ const scrollTo = (id: string) =>
   document.querySelector(id)?.scrollIntoView({ behavior: "smooth" });
 
 const Hero = () => {
+  const { open: openDiscovery } = useDiscoveryAudit();
   const prefersReduced = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
