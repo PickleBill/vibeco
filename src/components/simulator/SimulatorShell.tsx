@@ -1088,6 +1088,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                 unlockEmail={unlockEmail}
                 lovablePrompt={lovablePrompt}
                 sessionId={sessionId}
+                autoAnalysis={autoAnalysis}
                 highlights={highlights}
                 onToggleHighlight={toggleHighlight}
                 antiHighlights={antiHighlights}
