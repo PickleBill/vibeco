@@ -9,6 +9,7 @@ import SocialProof from "../components/SocialProof";
 import ContactForm from "../components/ContactForm";
 import FinalCta from "../components/FinalCta";
 import Footer from "../components/Footer";
+import { DiscoveryAuditProvider } from "../components/discovery/DiscoveryAuditProvider";
 
 const jsonLd = {
   "@context": "https://schema.org",
