@@ -1,10 +1,12 @@
 import FadeIn from "./FadeIn";
 import { ArrowRight } from "lucide-react";
+import { useDiscoveryAudit } from "./discovery/DiscoveryAuditProvider";
 
 const scrollTo = (id: string) =>
   document.querySelector(id)?.scrollIntoView({ behavior: "smooth" });
 
 const FinalCta = () => {
+  const { open: openDiscovery } = useDiscoveryAudit();
   return (
     <section
       className="py-32 border-t border-border"
