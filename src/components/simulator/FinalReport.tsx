@@ -1041,6 +1041,16 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                 </motion.div>
               ) : null}
 
+            {/* Prompt strength grade (auto-graded; drives the one-click improve loop) */}
+            {!pendingPrompt && lovablePrompt && (
+              <PromptGradeBadge
+                grade={promptGrade}
+                loading={gradeLoading}
+                onImprove={handleImprovePrompt}
+                improving={isImproving}
+              />
+            )}
+
             {/* Diff view supersedes the regular prompt view while pending */}
             {pendingPrompt ? (
               <PromptDiff
