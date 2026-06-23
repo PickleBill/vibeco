@@ -154,6 +154,84 @@ const Report = () => {
           </div>
         )}
 
+        {report.auto_analysis?.synthesis && (() => {
+          const s = report.auto_analysis.synthesis!;
+          const conf = s.confidence_score >= 80
+            ? { label: "Strong consensus", cls: "text-emerald-300" }
+            : s.confidence_score >= 50
+            ? { label: "Mixed signals", cls: "text-amber-300" }
+            : { label: "High tension", cls: "text-rose-300" };
+          return (
+            <motion.section
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="mb-8 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.04] p-5 sm:p-7"
+            >
+              <div className="flex items-baseline justify-between gap-3 mb-4">
+                <p className="text-[10px] uppercase tracking-[0.3em] text-emerald-300/80">Verdict</p>
+                <div className="flex items-center gap-1.5 text-xs">
+                  <Gauge size={13} className={conf.cls} />
+                  <span className={`font-bold tabular-nums ${conf.cls}`}>{s.confidence_score}%</span>
+                  <span className="text-muted-foreground/70">· {conf.label}</span>
+                </div>
+              </div>
+
+              {s.executive_summary && (
+                <p className="text-base text-foreground/90 leading-relaxed mb-6">{s.executive_summary}</p>
+              )}
+
+              <div className="grid sm:grid-cols-2 gap-6">
+                {s.consensus?.length > 0 && (
+                  <div>
+                    <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-emerald-300/90 mb-2">
+                      <CheckCircle2 size={13} /> Consensus
+                    </h4>
+                    <ul className="space-y-1.5">
+                      {s.consensus.map((c, i) => (
+                        <li key={i} className="text-sm text-foreground/80 leading-relaxed">{c}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {s.tensions?.length > 0 && (
+                  <div>
+                    <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-amber-300/90 mb-2">
+                      <AlertTriangle size={13} /> Key tensions
+                    </h4>
+                    <ul className="space-y-1.5">
+                      {s.tensions.map((t, i) => (
+                        <li key={i} className="text-sm text-foreground/80 leading-relaxed">{t.topic}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {s.ranked_recommendations?.length > 0 && (
+                <div className="mt-6 pt-5 border-t border-emerald-500/15">
+                  <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-foreground/80 mb-3">
+                    <ListOrdered size={13} className="text-emerald-300" /> Ranked recommendations
+                  </h4>
+                  <ol className="space-y-2.5">
+                    {s.ranked_recommendations.map((r, i) => (
+                      <li key={i} className="flex gap-3 text-sm">
+                        <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-300 text-[11px] font-bold">{i + 1}</span>
+                        <span className="text-foreground/85 leading-relaxed">
+                          <span className="font-semibold">{r.action}</span>
+                          {r.rationale ? <span className="text-muted-foreground"> — {r.rationale}</span> : null}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+            </motion.section>
+          );
+        })()}
+
+
+
         <div className="p-px rounded-lg mb-8"
           style={{ background: "linear-gradient(135deg, hsl(var(--primary) / 0.4), hsl(var(--accent) / 0.2))" }}>
           <div className="p-6 sm:p-8 rounded-lg bg-background">
