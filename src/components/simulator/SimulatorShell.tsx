@@ -16,6 +16,7 @@ import IdeaBrief from "./IdeaBrief";
 import FollowUpQuestions from "./FollowUpQuestions";
 import FinalReport from "./FinalReport";
 import SimulatorStepper from "./SimulatorStepper";
+import type { OrchestrateResult } from "./SynthesisPanel";
 import VibeStack from "./VibeStack";
 import { useVibeStack } from "@/hooks/useVibeStack";
 import { supabase } from "@/integrations/supabase/client";
