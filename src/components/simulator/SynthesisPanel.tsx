@@ -454,7 +454,7 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
           <div className="flex items-center gap-2">
             <AlertTriangle size={14} className="text-warning" />
             <h4 className="font-display text-xs font-bold text-foreground uppercase tracking-wider">
-              Tensions ({synthesis.tensions.length})
+              Key tensions ({synthesis.tensions.length})
             </h4>
           </div>
           <div className="space-y-3">
@@ -491,7 +491,7 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
           >
             <ListOrdered size={14} className="text-primary" />
             <h4 className="font-display text-xs font-bold text-foreground uppercase tracking-wider flex-1">
-              Recommendations ({synthesis.ranked_recommendations.length})
+              Ranked recommendations ({synthesis.ranked_recommendations.length})
             </h4>
             {showRecs ? (
               <ChevronUp size={12} className="text-muted-foreground" />
