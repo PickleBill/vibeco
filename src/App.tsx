@@ -40,6 +40,7 @@ const App = () => {
           <Route path="/my-simulations" element={<MySimulations />} />
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/signal" element={<SignalBoard />} />
+          <Route path="/hub" element={<Hub />} />
           {/* <Route path="/inbox" element={<Inbox />} /> hidden until Sprint 3 */}
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
