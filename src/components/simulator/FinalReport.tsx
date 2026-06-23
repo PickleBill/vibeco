@@ -290,6 +290,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
 
   // Sub-nav: smooth scroll + intersection-observer to track active section
   const navSections = [
+    { id: "verdict", label: "Verdict" },
     { id: "prompt", label: "Prompt" },
     { id: "brief", label: "Brief" },
     { id: "stress-test", label: "Stress-test" },
