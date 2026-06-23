@@ -270,6 +270,31 @@ const IdeaInput = ({ onSubmit, initialValue, iterationContext, onStartFresh }: P
               <Sparkles size={16} />
               {isIterating ? "Continue with this idea" : "Simulate This Idea"}
             </motion.button>
+
+            {/* First-run helper: one click runs the full flow end-to-end */}
+            {!isIterating && text.trim().length === 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+                className="mt-5 flex flex-col items-center gap-2"
+              >
+                <span className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground/40">
+                  New here? Try an example
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setText(EXAMPLE_IDEA);
+                    onSubmit(EXAMPLE_IDEA);
+                  }}
+                  className="group inline-flex items-center gap-2 text-left text-xs px-4 py-2.5 rounded-full border border-emerald-500/30 bg-emerald-500/5 text-emerald-300/90 hover:border-emerald-400/60 hover:bg-emerald-500/10 transition-colors max-w-full"
+                >
+                  <Sparkles size={13} className="shrink-0 opacity-70 group-hover:opacity-100" />
+                  <span className="truncate">{EXAMPLE_IDEA}</span>
+                </button>
+              </motion.div>
+            )}
           </motion.form>
         )}
       </AnimatePresence>
