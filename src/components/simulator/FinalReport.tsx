@@ -540,6 +540,57 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
 
   const handleGeneratePrompt = () => runRefine(setIsGeneratingPrompt, undefined, "Prompt generated");
 
+  // ─── Prompt grader (grade → refine → re-grade loop) ───
+  // Auto-grade the generated prompt whenever it changes, so the user copies a
+  // stronger prompt. Skipped while a diff is pending (we grade the kept version).
+  const gradeCurrentPrompt = async (text: string) => {
+    setGradeLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("grade-prompt", {
+        body: { lovable_prompt: text },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setPromptGrade(data as PromptGrade);
+    } catch (e) {
+      console.error("Grade prompt error:", e);
+      // Silent: a failed grade should never block the report. Badge just stays hidden.
+    } finally {
+      setGradeLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (pendingPrompt) return; // grade the committed version, not the in-review diff
+    const text = (lovablePrompt || "").trim();
+    if (!text) {
+      setPromptGrade(null);
+      return;
+    }
+    gradeCurrentPrompt(text);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lovablePrompt, pendingPrompt]);
+
+  // Feed the grader's flagged anti-patterns + top fixes into the refiner so the
+  // regenerated prompt fixes exactly those gaps, then auto re-grades on commit.
+  const handleImprovePrompt = () => {
+    let ctx =
+      "Improve this prompt so it scores higher on a 6-dimension rubric (context & goals, specificity, design tokens, mobile-first, state/error handling, avoiding platform defaults).";
+    if (promptGrade) {
+      if (promptGrade.anti_patterns_found.length) {
+        ctx += "\n\nFix these flagged anti-patterns:\n";
+        for (const ap of promptGrade.anti_patterns_found) {
+          ctx += `- ${ap.name} (${ap.where}): ${ap.fix}\n`;
+        }
+      }
+      if (promptGrade.top_fixes.length) {
+        ctx += "\nApply these top fixes:\n";
+        for (const f of promptGrade.top_fixes) ctx += `- ${f}\n`;
+      }
+    }
+    runRefine(setIsImproving, ctx, "Prompt improved to fix the flagged gaps");
+  };
+
   // Centralized sharpen rule (Sprint 9.B): instead of running a parallel refine,
   // a deep-dive's "Use in prompt" pins the insight as a Vibe Stack chit and opens
   // the drawer with that chit briefly highlighted. The drawer's "Sharpen prompt"
