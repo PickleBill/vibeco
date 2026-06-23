@@ -128,7 +128,7 @@ const ContactForm = () => {
                 </div>
 
                 <textarea
-                  placeholder="What's the idea? What problem does it solve, and for whom?"
+                  placeholder="What does your team spend too much time on? Quotes, order intake, scheduling, chasing replies?"
                   required
                   rows={4}
                   value={form.idea}
@@ -140,7 +140,7 @@ const ContactForm = () => {
                 {/* Structure selector */}
                 <div>
                   <label className="text-sm text-muted-foreground mb-3 flex items-center gap-1.5">
-                    Preferred partnership structure
+                    If we move forward, what fits best?
                     <Info size={14} className="text-primary/50" />
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -172,9 +172,9 @@ const ContactForm = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`w-full text-sm bg-primary text-primary-foreground px-6 py-3 rounded-full hover:opacity-90 hover:shadow-warm-lg transition-all duration-300 disabled:opacity-50 ${isSubmitting ? "animate-pulse" : ""}`}
+                  className={`w-full font-display font-semibold text-sm bg-violet text-violet-foreground px-6 py-3.5 rounded-full hover:brightness-110 transition-all duration-300 disabled:opacity-50 ${isSubmitting ? "animate-pulse" : ""}`}
                 >
-                  {isSubmitting ? "Sending..." : "Send Idea →"}
+                  {isSubmitting ? "Sending..." : "Book my discovery audit →"}
                 </button>
               </form>
             </FadeIn>
