@@ -271,6 +271,10 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   const [isSharpening, setIsSharpening] = useState(false);
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null); // diff state
+  // Prompt grader (grade→refine loop)
+  const [promptGrade, setPromptGrade] = useState<PromptGrade | null>(null);
+  const [gradeLoading, setGradeLoading] = useState(false);
+  const [isImproving, setIsImproving] = useState(false);
   const [pulsedSection, setPulsedSection] = useState<string | null>(null);
   const [activeNavSection, setActiveNavSection] = useState<string>("verdict");
   // Editable copies of brief sections during iterate-in-place mode
