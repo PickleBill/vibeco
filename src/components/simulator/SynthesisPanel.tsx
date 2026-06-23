@@ -61,6 +61,7 @@ interface Props {
   antiHighlights?: Set<string>;
   lovablePrompt?: string | null;
   onPromptUpdate?: (prompt: string) => void;
+  initialAutoAnalysis?: OrchestrateResult | null;
 }
 
 const confidenceLabel = (n: number) => {
