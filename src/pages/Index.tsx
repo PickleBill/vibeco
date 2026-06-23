@@ -2,21 +2,22 @@ import { Helmet, HelmetProvider } from "react-helmet-async";
 import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
 import StatsBar from "../components/StatsBar";
+import EverydayFounders from "../components/EverydayFounders";
+import SpeedTimeline from "../components/SpeedTimeline";
+import ProjectShowcase from "../components/ProjectShowcase";
 import Model from "../components/Model";
-import OpportunityScan from "../components/OpportunityScan";
-import ProofShowcase from "../components/ProofShowcase";
-import SocialProof from "../components/SocialProof";
+import Testimonials from "../components/Testimonials";
 import ContactForm from "../components/ContactForm";
 import FinalCta from "../components/FinalCta";
 import Footer from "../components/Footer";
-import { DiscoveryAuditProvider } from "../components/discovery/DiscoveryAuditProvider";
+import VariantSwitcher from "../components/VariantSwitcher";
 
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
   name: "VibeCo",
   description:
-    "VibeCo builds the AI Opportunity Engine: AI that reads inbound email and phone, then handles quoting, order intake, scheduling, and status-chasing — enterprise-proven, built for small companies.",
+    "Good vibes, instantly. VibeCo turns your ideas into live products with AI — shipped in hours, not months.",
   url: "https://vibeco.dev",
 };
 
@@ -33,18 +34,18 @@ const faqJsonLd = {
   mainEntity: [
     {
       "@type": "Question",
-      name: "What does VibeCo's AI Opportunity Engine do?",
+      name: "How does VibeCo's partnership model work?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "It brings the AI-operations playbook a national logistics company proved at scale — an AI that reads inbound email and phone, then handles quoting, order intake, scheduling, and status-chasing — to companies too small to build it themselves.",
+        text: "VibeCo offers flexible partnership structures: Revenue Share (we build it, you sell it — we earn as you grow), Advisory Equity (we invest our time for a small stake), or Paid Build (flat fee, you own 100%).",
       },
     },
     {
       "@type": "Question",
-      name: "How does engagement start?",
+      name: "How fast can VibeCo build a product?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "With a discovery audit. We map where inbound email and phone eat your team's hours, then build a working proof against your real workflow before anything scales.",
+        text: "Using AI-powered workflows, VibeCo can take an idea from conversation to live, working product in hours — not months.",
       },
     },
     {
@@ -52,7 +53,7 @@ const faqJsonLd = {
       name: "Do I need to be technical to work with VibeCo?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "No. You bring the business and the bottleneck. VibeCo finds the opportunity, builds the proof, and turns it into revenue.",
+        text: "Not at all. VibeCo works with creators, experts, and business owners across every industry. You bring the idea — we handle all the technology.",
       },
     },
   ],
@@ -62,28 +63,28 @@ const Index = () => {
   return (
     <HelmetProvider>
       <Helmet>
-        <title>VibeCo — The AI Opportunity Engine</title>
+        <title>VibeCo — One Conversation. One Live Product.</title>
         <meta
           name="description"
-          content="AI that reads your inbound email and phone, then handles quoting, order intake, scheduling, and status-chasing. The enterprise-proven operations playbook, built for companies your size."
+          content="VibeCo turns ideas into live products with AI. Shipped in hours, not months. For creators, experts, and founders who move fast."
         />
         <link rel="canonical" href="https://vibeco.dev" />
 
         <meta property="og:type" content="website" />
-        <meta property="og:title" content="VibeCo — The AI Opportunity Engine" />
+        <meta property="og:title" content="VibeCo — One Conversation. One Live Product." />
         <meta
           property="og:description"
-          content="Enterprise-proven AI operations — quoting, intake, scheduling, status-chasing — built for small companies."
+          content="Ideas to live products in hours. AI-powered product studio."
         />
         <meta property="og:url" content="https://vibeco.dev" />
         <meta property="og:site_name" content="VibeCo" />
         <meta property="og:image" content="https://vibeco.dev/og-image.png" />
 
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="VibeCo — The AI Opportunity Engine" />
+        <meta name="twitter:title" content="VibeCo — One Conversation. One Live Product." />
         <meta
           name="twitter:description"
-          content="Enterprise-proven AI operations — quoting, intake, scheduling, status-chasing — built for small companies."
+          content="Ideas to live products in hours. AI-powered product studio."
         />
         <meta name="twitter:image" content="https://vibeco.dev/og-image.png" />
 
@@ -92,22 +93,22 @@ const Index = () => {
         <script type="application/ld+json">{JSON.stringify(faqJsonLd)}</script>
       </Helmet>
 
-      <DiscoveryAuditProvider>
-        <div className="min-h-screen bg-background text-foreground scroll-smooth">
-          <Navbar />
-          <main>
-            <Hero />
-            <StatsBar />
-            <Model />
-            <OpportunityScan />
-            <ProofShowcase />
-            <SocialProof />
-            <ContactForm />
-            <FinalCta />
-          </main>
-          <Footer />
-        </div>
-      </DiscoveryAuditProvider>
+      <div className="min-h-screen bg-background text-foreground scroll-smooth">
+        <Navbar />
+        <main>
+          <Hero />
+          <StatsBar />
+          <EverydayFounders />
+          <ProjectShowcase />
+          <SpeedTimeline />
+          <Model />
+          <Testimonials />
+          <ContactForm />
+          <FinalCta />
+        </main>
+        <Footer />
+        <VariantSwitcher />
+      </div>
     </HelmetProvider>
   );
 };
