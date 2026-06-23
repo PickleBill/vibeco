@@ -30,7 +30,7 @@ const FinalCta = () => {
         <FadeIn delay={0.15}>
           <div className="flex flex-wrap gap-4 justify-center">
             <button
-              onClick={() => scrollTo("#contact")}
+              onClick={openDiscovery}
               className="group relative font-display text-sm font-semibold bg-violet text-violet-foreground px-10 py-4 rounded-full hover:brightness-110 transition-all duration-300 inline-flex items-center gap-2 shadow-violet"
             >
               Book a discovery audit
