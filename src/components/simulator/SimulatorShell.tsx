@@ -301,10 +301,10 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
     });
   };
 
-  // Helper to get current user ID
+  // Helper to get current user ID — mints an anonymous session if needed so
+  // every insert sets user_id and passes owner-scoped RLS.
   const getUserId = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.user?.id || null;
+    return ensureSession();
   };
 
   // Helper to update report status
