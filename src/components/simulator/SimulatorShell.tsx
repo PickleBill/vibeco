@@ -167,6 +167,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
   const [highlights, setHighlights] = useState<Set<string>>(new Set(draft?.highlights || []));
   const [antiHighlights, setAntiHighlights] = useState<Set<string>>(new Set(draft?.antiHighlights || []));
   const [reportId, setReportId] = useState<string | null>(draft?.reportId || null);
+  const [autoAnalysis, setAutoAnalysis] = useState<OrchestrateResult | null>(null);
   const [depthRecommendation, setDepthRecommendation] = useState<string | undefined>();
   const [thinkingMode, setThinkingMode] = useState<"fast" | "deep">("fast");
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
