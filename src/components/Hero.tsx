@@ -95,7 +95,7 @@ const Hero = () => {
             <FadeIn delay={0.55}>
               <div className="flex flex-wrap gap-4">
                 <button
-                  onClick={() => scrollTo("#contact")}
+                  onClick={openDiscovery}
                   className="font-display text-sm font-semibold bg-violet text-violet-foreground px-7 py-3.5 rounded-full hover:brightness-110 transition-all inline-flex items-center gap-2 shadow-violet"
                 >
                   Book a discovery audit
