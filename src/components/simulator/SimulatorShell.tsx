@@ -15,9 +15,11 @@ import IdeaInput from "./IdeaInput";
 import IdeaBrief from "./IdeaBrief";
 import FollowUpQuestions from "./FollowUpQuestions";
 import FinalReport from "./FinalReport";
+import SimulatorStepper from "./SimulatorStepper";
 import VibeStack from "./VibeStack";
 import { useVibeStack } from "@/hooks/useVibeStack";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureSession } from "@/lib/ensureSession";
 import { toast } from "sonner";
 
 // Derive a short, human-friendly title from the brief's problem statement.
