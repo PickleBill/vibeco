@@ -72,11 +72,15 @@ const ContactForm = () => {
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
         <div className="max-w-2xl mx-auto">
           <FadeIn>
+            <p className="text-sm text-primary uppercase tracking-widest mb-4">
+              Book a discovery audit
+            </p>
             <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground mb-4">
-              Got something worth building?
+              Find your first AI win.
             </h2>
             <p className="text-sm text-muted-foreground leading-relaxed mb-10">
-              Most ideas get a reply within 24 hours.
+              Tell us where the time goes. We'll map your inbound email and phone and come back
+              with the first workflow worth automating. Most get a reply within 24 hours.
             </p>
           </FadeIn>
 
@@ -88,16 +92,17 @@ const ContactForm = () => {
                   We'll be in touch within 24 hours.
                 </h3>
                 <p className="text-sm text-muted-foreground mb-8">
-                  Try the simulator while you wait — see your idea take shape.
+                  In the meantime, run a quick opportunity scan to see where AI could help.
                 </p>
                 <button
-                  onClick={() => navigate("/simulate")}
-                  className="text-sm bg-primary text-primary-foreground px-6 py-3 rounded-full hover:opacity-90 transition-opacity"
+                  onClick={() => document.querySelector("#scan")?.scrollIntoView({ behavior: "smooth" })}
+                  className="text-sm bg-primary text-primary-foreground px-6 py-3 rounded-full hover:brightness-110 transition-all"
                 >
-                  ✦ Test Your Idea
+                  Run an opportunity scan
                 </button>
               </div>
             </FadeIn>
+
           ) : (
             <FadeIn delay={0.1}>
               <form onSubmit={handleSubmit} className="space-y-5">
