@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, ArrowRight, User, History, FolderKanban } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useDiscoveryAudit } from "./discovery/DiscoveryAuditProvider";
 
 const navLinks = [
   { label: "How it works", href: "#model" },
