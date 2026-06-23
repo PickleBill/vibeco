@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, Maximize2, Minimize2, ArrowRight, Scissors, Target, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureSession } from "@/lib/ensureSession";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import type { BriefData } from "./SimulatorShell";
