@@ -11,6 +11,7 @@ export type TaskType =
   | "expansion"             // Creative variation generation
   | "distillation"          // Ruthless scoping
   | "synthesis"             // Cross-agent aggregation (NEW)
+  | "grade-prompt"          // Grade a generated Lovable prompt (marquee reasoning)
   | "prompt-engineering"    // Lovable prompt generation/refinement
   | "html-generation"       // Landing page HTML
   | "image-generation"      // Visual asset creation
