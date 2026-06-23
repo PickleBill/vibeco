@@ -180,6 +180,14 @@ const Navbar = () => {
                   Portfolio
                 </a>
                 <a
+                  href="/hub"
+                  onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/hub"); }}
+                  className="flex items-center gap-2 py-3 text-sm text-muted-foreground hover:text-foreground"
+                >
+                  <Network size={13} />
+                  Hub
+                </a>
+                <a
                   href="/my-simulations"
                   onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/my-simulations"); }}
                   className="flex items-center gap-2 py-3 text-sm text-muted-foreground hover:text-foreground"
