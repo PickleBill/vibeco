@@ -2,22 +2,20 @@ import { Helmet, HelmetProvider } from "react-helmet-async";
 import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
 import StatsBar from "../components/StatsBar";
-import EverydayFounders from "../components/EverydayFounders";
-import SpeedTimeline from "../components/SpeedTimeline";
-import ProjectShowcase from "../components/ProjectShowcase";
 import Model from "../components/Model";
-import Testimonials from "../components/Testimonials";
+import OpportunityScan from "../components/OpportunityScan";
+import ProofShowcase from "../components/ProofShowcase";
+import SocialProof from "../components/SocialProof";
 import ContactForm from "../components/ContactForm";
 import FinalCta from "../components/FinalCta";
 import Footer from "../components/Footer";
-import VariantSwitcher from "../components/VariantSwitcher";
 
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
   name: "VibeCo",
   description:
-    "Good vibes, instantly. VibeCo turns your ideas into live products with AI — shipped in hours, not months.",
+    "VibeCo builds the AI Opportunity Engine: AI that reads inbound email and phone, then handles quoting, order intake, scheduling, and status-chasing — enterprise-proven, built for small companies.",
   url: "https://vibeco.dev",
 };
 
@@ -34,18 +32,18 @@ const faqJsonLd = {
   mainEntity: [
     {
       "@type": "Question",
-      name: "How does VibeCo's partnership model work?",
+      name: "What does VibeCo's AI Opportunity Engine do?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "VibeCo offers flexible partnership structures: Revenue Share (we build it, you sell it — we earn as you grow), Advisory Equity (we invest our time for a small stake), or Paid Build (flat fee, you own 100%).",
+        text: "It brings the AI-operations playbook a national logistics company proved at scale — an AI that reads inbound email and phone, then handles quoting, order intake, scheduling, and status-chasing — to companies too small to build it themselves.",
       },
     },
     {
       "@type": "Question",
-      name: "How fast can VibeCo build a product?",
+      name: "How does engagement start?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Using AI-powered workflows, VibeCo can take an idea from conversation to live, working product in hours — not months.",
+        text: "With a discovery audit. We map where inbound email and phone eat your team's hours, then build a working proof against your real workflow before anything scales.",
       },
     },
     {
@@ -53,7 +51,7 @@ const faqJsonLd = {
       name: "Do I need to be technical to work with VibeCo?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Not at all. VibeCo works with creators, experts, and business owners across every industry. You bring the idea — we handle all the technology.",
+        text: "No. You bring the business and the bottleneck. VibeCo finds the opportunity, builds the proof, and turns it into revenue.",
       },
     },
   ],
@@ -63,28 +61,28 @@ const Index = () => {
   return (
     <HelmetProvider>
       <Helmet>
-        <title>VibeCo — One Conversation. One Live Product.</title>
+        <title>VibeCo — The AI Opportunity Engine</title>
         <meta
           name="description"
-          content="VibeCo turns ideas into live products with AI. Shipped in hours, not months. For creators, experts, and founders who move fast."
+          content="AI that reads your inbound email and phone, then handles quoting, order intake, scheduling, and status-chasing. The enterprise-proven operations playbook, built for companies your size."
         />
         <link rel="canonical" href="https://vibeco.dev" />
 
         <meta property="og:type" content="website" />
-        <meta property="og:title" content="VibeCo — One Conversation. One Live Product." />
+        <meta property="og:title" content="VibeCo — The AI Opportunity Engine" />
         <meta
           property="og:description"
-          content="Ideas to live products in hours. AI-powered product studio."
+          content="Enterprise-proven AI operations — quoting, intake, scheduling, status-chasing — built for small companies."
         />
         <meta property="og:url" content="https://vibeco.dev" />
         <meta property="og:site_name" content="VibeCo" />
         <meta property="og:image" content="https://vibeco.dev/og-image.png" />
 
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="VibeCo — One Conversation. One Live Product." />
+        <meta name="twitter:title" content="VibeCo — The AI Opportunity Engine" />
         <meta
           name="twitter:description"
-          content="Ideas to live products in hours. AI-powered product studio."
+          content="Enterprise-proven AI operations — quoting, intake, scheduling, status-chasing — built for small companies."
         />
         <meta name="twitter:image" content="https://vibeco.dev/og-image.png" />
 
@@ -98,16 +96,14 @@ const Index = () => {
         <main>
           <Hero />
           <StatsBar />
-          <EverydayFounders />
-          <ProjectShowcase />
-          <SpeedTimeline />
           <Model />
-          <Testimonials />
+          <OpportunityScan />
+          <ProofShowcase />
+          <SocialProof />
           <ContactForm />
           <FinalCta />
         </main>
         <Footer />
-        <VariantSwitcher />
       </div>
     </HelmetProvider>
   );
