@@ -189,7 +189,7 @@ const Navbar = () => {
               </a>
             )}
             <button
-              onClick={() => handleNavClick("#contact")}
+              onClick={() => { setMobileOpen(false); openDiscovery(); }}
               className="flex items-center justify-center gap-2 mt-3 font-display font-semibold text-sm bg-violet text-violet-foreground px-4 py-2.5 rounded-full text-center w-full"
             >
               Book a discovery audit
