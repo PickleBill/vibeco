@@ -94,7 +94,6 @@ const ROUTING_TABLE: Record<TaskType, ModelCandidate[]> = {
     { model: "openai/gpt-5.5", rationale: "Marquee: strongest structured build-spec reasoning", cost: "high", speed: "medium" },
     { model: "google/gemini-2.5-pro", rationale: "Precise structured output fallback", cost: "medium", speed: "medium" },
     { model: "openai/gpt-5", rationale: "Alternative high-quality fallback", cost: "high", speed: "medium" },
-    { model: "google/gemini-3-flash-preview", rationale: "Fast mode", cost: "low", speed: "fast" },
   ],
   "html-generation": [
     { model: "google/gemini-2.5-flash", rationale: "Fast, cheap, good at HTML/code generation", cost: "low", speed: "fast" },
