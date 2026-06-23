@@ -117,7 +117,7 @@ const Navbar = () => {
 
           {/* Primary CTA */}
           <button
-            onClick={() => handleNavClick("#contact")}
+            onClick={openDiscovery}
             className="font-display text-sm font-semibold px-5 py-2.5 rounded-full bg-violet text-violet-foreground hover:brightness-110 transition-all duration-300 flex items-center gap-2"
           >
             Book a discovery audit
