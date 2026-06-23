@@ -4,56 +4,62 @@
 
 @layer base {
   :root {
-    --background: 43 47% 96.5%;
-    --foreground: 231 28% 14%;
+    /* Dark, matte charcoal base — no pure black/white */
+    --background: 222 18% 7%;
+    --foreground: 210 20% 92%;
 
-    --card: 40 43% 99%;
-    --card-foreground: 231 28% 14%;
+    --card: 222 16% 10%;
+    --card-foreground: 210 20% 92%;
 
-    --popover: 40 43% 99%;
-    --popover-foreground: 231 28% 14%;
+    --popover: 222 16% 10%;
+    --popover-foreground: 210 20% 92%;
 
-    --primary: 182 66% 30%;
-    --primary-foreground: 0 0% 100%;
+    /* Emerald accent */
+    --primary: 158 72% 45%;
+    --primary-foreground: 222 30% 8%;
 
-    --secondary: 40 88% 44%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 222 14% 13%;
+    --secondary-foreground: 210 20% 92%;
 
-    --muted: 42 29% 93%;
-    --muted-foreground: 228 14% 36%;
+    --muted: 222 14% 14%;
+    --muted-foreground: 215 14% 62%;
 
-    --accent: 180 37% 94%;
-    --accent-foreground: 182 66% 30%;
+    --accent: 222 14% 14%;
+    --accent-foreground: 158 72% 45%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 222 30% 8%;
 
-    --border: 40 24% 89%;
-    --input: 40 24% 89%;
-    --ring: 182 66% 30%;
+    --border: 220 12% 18%;
+    --input: 220 12% 18%;
+    --ring: 158 72% 45%;
+
+    /* Violet — the single new accent, reserved for primary CTA + key emphasis */
+    --violet: 258 91% 57%;
+    --violet-foreground: 0 0% 100%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 43 47% 96.5%;
-    --sidebar-foreground: 231 28% 14%;
-    --sidebar-primary: 182 66% 30%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 180 37% 94%;
-    --sidebar-accent-foreground: 182 66% 30%;
-    --sidebar-border: 40 24% 89%;
-    --sidebar-ring: 182 66% 30%;
+    --sidebar-background: 222 18% 7%;
+    --sidebar-foreground: 210 20% 92%;
+    --sidebar-primary: 158 72% 45%;
+    --sidebar-primary-foreground: 222 30% 8%;
+    --sidebar-accent: 222 14% 14%;
+    --sidebar-accent-foreground: 158 72% 45%;
+    --sidebar-border: 220 12% 18%;
+    --sidebar-ring: 158 72% 45%;
 
     /* Custom tokens */
-    --surface: 40 43% 99%;
-    --surface-elevated: 0 0% 100%;
-    --text-primary: 231 28% 14%;
-    --text-secondary: 228 14% 36%;
-    --text-muted: 228 10% 55%;
-    --accent-glow: 182 66% 30%;
-    --divider: 40 24% 89%;
+    --surface: 222 16% 10%;
+    --surface-elevated: 222 16% 13%;
+    --text-primary: 210 20% 92%;
+    --text-secondary: 215 14% 62%;
+    --text-muted: 215 12% 48%;
+    --accent-glow: 158 72% 45%;
+    --divider: 220 12% 18%;
   }
 }
 
@@ -87,23 +93,27 @@
   }
 
   .shadow-warm {
-    box-shadow: 0 4px 24px -4px rgba(26, 29, 46, 0.08);
+    box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.5);
   }
 
   .shadow-warm-lg {
-    box-shadow: 0 12px 40px -8px rgba(26, 29, 46, 0.12);
+    box-shadow: 0 16px 48px -8px rgba(0, 0, 0, 0.6);
+  }
+
+  .shadow-violet {
+    box-shadow: 0 0 40px hsl(var(--violet) / 0.35);
   }
 
   .border-divider {
-    border-color: hsl(40 24% 89%);
+    border-color: hsl(var(--divider));
   }
 
   .bg-surface {
-    background-color: hsl(40 43% 99%);
+    background-color: hsl(var(--surface));
   }
 
   .bg-surface-elevated {
-    background-color: hsl(0 0% 100%);
+    background-color: hsl(var(--surface-elevated));
   }
 }
 
@@ -115,7 +125,7 @@
   height: 20px;
   border-radius: 50%;
   background: hsl(var(--primary));
-  border: 2px solid white;
+  border: 2px solid hsl(var(--background));
   box-shadow: 0 2px 8px hsl(var(--primary) / 0.3);
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -129,7 +139,7 @@
   height: 20px;
   border-radius: 50%;
   background: hsl(var(--primary));
-  border: 2px solid white;
+  border: 2px solid hsl(var(--background));
   box-shadow: 0 2px 8px hsl(var(--primary) / 0.3);
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
