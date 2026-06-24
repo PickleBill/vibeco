@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProjectsTab from "@/components/hub/ProjectsTab";
 import DecisionsTab from "@/components/hub/DecisionsTab";
 import ConnectorsTab from "@/components/hub/ConnectorsTab";
+import { useUserRole } from "@/hooks/useUserRole";
 
 /**
  * Org Knowledge Hub — a subtle, signed-in surface over the shared org memory:
