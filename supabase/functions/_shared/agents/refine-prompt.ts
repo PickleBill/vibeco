@@ -37,7 +37,7 @@ export const promptToolSchema = {
 
 export async function generateRefinedPrompt(input: RefinePromptInput): Promise<RefinePromptResult> {
   const briefContext = formatBriefContext(input.brief as unknown as Record<string, unknown>);
-  const model = selectModel("prompt-engineering", { mode: input.mode });
+  const model = selectModel("prompt-engineering", { mode: input.mode, premium: input.premium });
 
   let context = `Original idea: "${input.idea}"\n\nBrief:\n${briefContext}\n\n`;
 

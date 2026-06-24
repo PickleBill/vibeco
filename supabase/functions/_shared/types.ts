@@ -159,6 +159,7 @@ export interface RefinePromptInput extends BriefContext {
   antiHighlights?: string[];
   refinement_context?: string;
   stack_items?: StackItemInput[];
+  premium?: boolean; // role-verified upstream; routes to GPT-5.5 when true
 }
 
 export interface AltPromptInput {

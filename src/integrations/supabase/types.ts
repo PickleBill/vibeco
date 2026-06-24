@@ -49,6 +49,72 @@ export type Database = {
           },
         ]
       }
+      connector_registry: {
+        Row: {
+          auth_kind: string
+          config: Json
+          created_at: string
+          display_name: string
+          id: string
+          key: string
+          project: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          auth_kind?: string
+          config?: Json
+          created_at?: string
+          display_name: string
+          id?: string
+          key: string
+          project?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          auth_kind?: string
+          config?: Json
+          created_at?: string
+          display_name?: string
+          id?: string
+          key?: string
+          project?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      connector_sync_events: {
+        Row: {
+          connector_key: string
+          created_at: string
+          id: string
+          items_collected: number
+          message: string | null
+          project: string
+          status: string
+        }
+        Insert: {
+          connector_key: string
+          created_at?: string
+          id?: string
+          items_collected?: number
+          message?: string | null
+          project?: string
+          status?: string
+        }
+        Update: {
+          connector_key?: string
+          created_at?: string
+          id?: string
+          items_collected?: number
+          message?: string | null
+          project?: string
+          status?: string
+        }
+        Relationships: []
+      }
       contact_submissions: {
         Row: {
           created_at: string
@@ -347,6 +413,42 @@ export type Database = {
           },
         ]
       }
+      org_decisions: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          embedding: string | null
+          id: string
+          project: string
+          session_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          content: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          project?: string
+          session_id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          project?: string
+          session_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       project_registry: {
         Row: {
           category: Database["public"]["Enums"]["project_category"]
@@ -616,6 +718,22 @@ export type Database = {
         }
         Returns: boolean
       }
+      match_decisions: {
+        Args: {
+          filter_category?: string
+          filter_project?: string
+          match_count?: number
+          query_embedding: string
+        }
+        Returns: {
+          category: string
+          content: string
+          id: string
+          project: string
+          similarity: number
+          title: string
+        }[]
+      }
       match_signal_raw: {
         Args: {
           filter_product?: string
@@ -632,7 +750,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "premium"
       project_category:
         | "partner"
         | "internal_dev"
@@ -768,7 +886,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "premium"],
       project_category: [
         "partner",
         "internal_dev",

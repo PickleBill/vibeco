@@ -41,7 +41,9 @@ import type { BriefData, QuestionData } from "./SimulatorShell";
 import { AddToStackButton } from "./VibeStack";
 import type { StackItem, StackKind, AddItemArgs } from "@/hooks/useVibeStack";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import PromptGradeBadge, { type PromptGrade } from "./PromptGradeBadge";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface RoundState {
   brief: BriefData;
@@ -275,6 +277,10 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   const [promptGrade, setPromptGrade] = useState<PromptGrade | null>(null);
   const [gradeLoading, setGradeLoading] = useState(false);
   const [isImproving, setIsImproving] = useState(false);
+  // Premium reasoning (GPT-5.5) — visible only to admin/premium roles; the
+  // server re-verifies the role before honoring it.
+  const { isPremium } = useUserRole();
+  const [premium, setPremium] = useState(false);
   const [pulsedSection, setPulsedSection] = useState<string | null>(null);
   const [activeNavSection, setActiveNavSection] = useState<string>("verdict");
   // Editable copies of brief sections during iterate-in-place mode
@@ -483,6 +489,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
         highlights: highlights ? Array.from(highlights) : [],
         antiHighlights: antiHighlights ? Array.from(antiHighlights) : [],
         refinement_context: context,
+        premium,
         stack_items: (stackItems || []).map((it) => ({
           kind: it.kind,
           source: it.source,
@@ -547,7 +554,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
     setGradeLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("grade-prompt", {
-        body: { lovable_prompt: text },
+        body: { lovable_prompt: text, premium },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -569,7 +576,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
     }
     gradeCurrentPrompt(text);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lovablePrompt, pendingPrompt]);
+  }, [lovablePrompt, pendingPrompt, premium]);
 
   // Feed the grader's flagged anti-patterns + top fixes into the refiner so the
   // regenerated prompt fixes exactly those gaps, then auto re-grades on commit.
@@ -1040,6 +1047,26 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                   </span>
                 </motion.div>
               ) : null}
+
+            {/* Premium reasoning toggle — admin/premium only. Server re-verifies. */}
+            {!pendingPrompt && lovablePrompt && isPremium && (
+              <div className="flex items-center justify-between gap-3 mb-3 px-4 py-2.5 rounded-lg bg-[#6A2CF5]/5 border border-[#6A2CF5]/25">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Sparkles size={13} className="text-[#6A2CF5] shrink-0" />
+                  <div className="min-w-0">
+                    <p className="font-mono text-xs text-foreground">Premium reasoning</p>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      GPT-5.5 for grading &amp; improving — higher cost, sharper output
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={premium}
+                  onCheckedChange={setPremium}
+                  aria-label="Use premium GPT-5.5 reasoning"
+                />
+              </div>
+            )}
 
             {/* Prompt strength grade (auto-graded; drives the one-click improve loop) */}
             {!pendingPrompt && lovablePrompt && (

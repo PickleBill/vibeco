@@ -7,6 +7,7 @@ import type { AnalysisMode } from "../types.ts";
 export interface GradePromptInput {
   lovable_prompt: string;
   mode?: AnalysisMode;
+  premium?: boolean; // role-verified upstream; routes to GPT-5.5 when true
 }
 
 export interface GradeDimensionScores {
@@ -91,14 +92,12 @@ export const gradePromptToolSchema = {
 
 // ─── Core Logic ───
 
-// Claude is NOT available on the Lovable Gateway (allowlist = google/* + openai/* only),
-// and no ANTHROPIC_API_KEY is configured. Route this marquee reasoning task to the
-// strongest available reasoning model. To make it truly "Claude-powered" later, add
-// ANTHROPIC_API_KEY and a Claude entry routed through gateway: "anthropic-direct".
+// Default chain is cheap Gemini first. The primary model from selectModel()
+// is Gemini for normal runs and GPT-5.5 when the caller is premium-verified.
 const GRADE_FALLBACK_MODELS = [
-  "openai/gpt-5.5",
-  "openai/gpt-5",
   "google/gemini-2.5-pro",
+  "openai/gpt-5",
+  "google/gemini-3-flash-preview",
 ];
 
 const SYSTEM_PROMPT = `You are a senior Lovable prompt reviewer. You grade the prompt a tool GENERATED, before a user pastes it — so a stronger prompt ships.
@@ -128,7 +127,7 @@ export async function gradePrompt(input: GradePromptInput): Promise<GradePromptR
     throw new Error("lovable_prompt is required and must be non-empty");
   }
 
-  const primaryModel = selectModel("grade-prompt", { mode: input.mode });
+  const primaryModel = selectModel("grade-prompt", { mode: input.mode, premium: input.premium });
   const modelChain = [primaryModel, ...GRADE_FALLBACK_MODELS.filter((m) => m !== primaryModel)];
 
   const userContent = `Grade this generated Lovable build prompt:\n\n---\n${prompt}\n---`;
