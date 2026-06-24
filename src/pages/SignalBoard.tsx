@@ -131,18 +131,21 @@ const SignalBoard = () => {
   }, []);
 
   const runScan = async () => {
+    const t = topic.trim();
+    const tag = t ? t.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40) : "general";
     setScanning(true);
     try {
       // Stage 1: collect + persist raw items to signal_raw (de-duped, hashed authors).
+      // Topic-driven: an industry or idea expands into pain-oriented queries server-side.
       const { data: collected, error: cErr } = await supabase.functions.invoke("signal-collect", {
-        body: { product: "niceace", persist: true },
+        body: { product: tag, topic: t || undefined, persist: true },
       });
       if (cErr) throw cErr;
       toast.message(`Collected ${(collected as any)?.collected ?? 0} items (${(collected as any)?.persisted ?? 0} new)`);
 
       // Stages 2-4 + theme persistence: process unprocessed rows from the DB.
       const { data: result, error: pErr } = await supabase.functions.invoke("signal-process", {
-        body: { product: "niceace", persist: true },
+        body: { product: tag, persist: true },
       });
       if (pErr) throw pErr;
 
