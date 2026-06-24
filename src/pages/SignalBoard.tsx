@@ -97,6 +97,7 @@ const SignalBoard = () => {
   const [scanning, setScanning] = useState(false);
   const [counts, setCounts] = useState<{ collected: number; pain: number; clusters: number; candidates: number } | null>(null);
   const [usingSample, setUsingSample] = useState(true);
+  const [topic, setTopic] = useState("");
 
   // Try to load persisted candidates + durable themes on mount (falls back to sample).
   useEffect(() => {
