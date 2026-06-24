@@ -1,63 +1,115 @@
-# Wire it all together — unblock AI, fix security, finish the MCP plumbing
+# VibeCo Engine Reset — v2 (the Lovable side, wired into the council)
 
-## First, the "explain like I'm five" you asked for
+## Confirming I get it
 
-You have three different things doing three different jobs. They are not redundant:
+The plot, restated the way your own briefs land it:
 
-- **MCP server = the live pipe.** It's how Claude *reads and writes the shared brain in real time* — query the project registry, save/search org decisions, invoke VibeCo agents. It moves data. It's already built (`courtana-mcp-server`) and now points at real tables (we created `org_decisions` etc. last round).
-- **Skills = Claude's playbooks.** Reusable instructions telling Claude *how to do a task well* (e.g. "grade a Lovable prompt"). They don't move data; they shape behavior. A skill is worth building only when Claude repeats a non-obvious procedure.
-- **Handshake = the contract.** A short doc both sides agree on (table shapes + rules) so nobody guesses. Mostly already covered by your `CLAUDE.md` project-knowledge.
+> **"Give me an industry or an idea. Mine what people are actually frustrated about, rank the opportunities ruthlessly with proof, and hand me back ONE conviction-grade bet I'd build this week — then let me riff it sharper."**
 
-**The honest take:** for "make the systems talk to each other," the **MCP pipe + one contract doc is enough**. You do *not* need custom skills or a separate handshake-agreement build for this — Claude already has `learn`/`go`/`skill-creator` and the Lovable connector. So per your instruction, this plan **does not build new skills or a handshake**. It hardens the pipe and writes one contract.
+Two laddered modes, one engine:
+- **Founder mode** — "here's my idea, pressure-test it" (v1's riff magic).
+- **Operator mode** (Eric Cole) — "here's an industry / a business; objectively rank its inefficiencies + customer pain into qualified opportunities." The scanner is *open-minded by design* — no hardcoded golf, no single vertical.
+
+Every uploaded agent (ChatGPT, Codex-warm brief, the council) converges on the same #1 move: **the engine collects signal but never closes the loop.** `opportunity_roadmaps` is empty. It shows clusters, not convictions. **Closing that loop is the work. Everything else is decoration.**
+
+## The one strategic call (my recommendation, your override)
+
+I will not pretend to settle "one codebase or two" — that's the council you're running, and it's genuinely your call. But the Lovable-executable answer is clean:
+
+**Build + prove the engine loop HERE in v1, because v1 owns the riff core (`simulate-idea` → `persona-perspective` → `synthesize`) that closing the loop literally depends on — and it's where I have full build access.** v2.1 stays the published showcase/front door for Eric. The shared Supabase + MCP contract makes the eventual merge one-directional and cheap *whichever* way the council lands. So: **no fresh repo, no rewrite — redirect v1 into the unified engine (call it v1.1), port to/from v2.1 over the contract.**
 
 ```text
-        ┌─────────── shared Supabase (ulgoah...) ───────────┐
-        │  org_decisions   connector_registry   sync_events  │
-        └───────▲───────────────▲───────────────▲───────────┘
-                │ MCP pipe       │ contract       │ contract
-        Claude / v2.1 ───────────┘                │
-        VibeCo v1 (this app) ─────────────────────┘
+  v1 (THIS repo)            shared Supabase (ulgoah…)         v2.1 (conviction-to-code)
+  engine core + riff   ───►  org_decisions / candidates  ◄───  published showcase + /briefing
+  close-the-loop here        opportunity_roadmaps              renders the same rows for Eric
+                         ▲ MCP pipe (courtana-mcp-server) ▲
+                              Claude orchestrates both
 ```
 
 ---
 
-## Phase 0 — Unblock AI (the urgent one). -> fantastic, my responses are below, so I'm going to respond to Claude code and say that this is getting changed as we speak 
+# PART 1 — The Lovable ecosystem (what I build & wire here)
 
-Root cause confirmed: a **workspace AI-gateway spend limit of $5.00/month with "block usage" on**, currently at **$5.53**. This blocks every AI edge function here (the preview 500) *and* Claude/v2's board fill (the 403 you screenshotted). It is **not** caused by GPT-5.5 specifically.
+**Phase A — Kill the identity collision + reframe (fast, unblocks publish).**
+- Homepage de-collision: one job — "what should I build next, and why." Remove agency/"discovery audit" framing; primary CTA **"Run an opportunity scan"**, secondary **"See this week's opportunity →"** deep-linking the top real candidate.
+- Replace invented stats (`StatsBar` 16+/48hrs/etc.) with live counts from `signal_raw`/`feature_candidates`, or cut them. **No agent invents a number** becomes a hard rule.
+- Nav: add **Signal** and **Sketchpad (/simulate)** as real, clearly-named doors.
 
-- Raise (or remove the block on) that monthly AI cap so AI calls flow again. This is a spend decision, so I'll confirm the number with you before changing it (see Decisions below).
-- No code change. Once raised, the v1 preview and v2's fill both unblock — same cap.
+**Phase B — Close the loop (THE move).**
+- New edge function `close-loop` (lives here because the riff agents do): for each `feature_candidate`, run candidate → `simulate-idea` → 3–4 `persona-perspective` → `synthesize` → write an **`opportunity_roadmap`** row: one-paragraph idea, who it's for, strongest objection + rebuttal, riskiest assumption, and a Build / Pre-sell / Partner call with a plain-English reason grounded in real signal counts. Idempotent + re-runnable.
+- Frontend: `/signal` and the homepage render the **finished opportunity** (the hero), not just clusters.
 
-## Phase 1 — Fix the security findings precisely (one migration)
+**Phase C — The Opportunity Qualifier (Eric Cole's ruthless rank).**
+- A scored rubric every opportunity passes through: pain intensity · frequency/recurrence · willingness-to-pay · build feasibility · wedge/moat · operator-or-founder fit. Surfaced as the ranking + a one-line "why this is #1." This is what makes it a *qualifier*, not a dashboard.
 
-- `connector_registry`: drop the "authenticated can read" policy; restrict SELECT to **admins** (`has_role(auth.uid(),'admin')`) + keep service_role. (This is the Critical finding — `config`/`auth_kind` shouldn't be world-readable.)
-- `connector_sync_events`: same — SELECT restricted to **admins** + service_role.
-- `signal_raw`: change SELECT from `public` to **authenticated** (raw scraped text/URLs shouldn't be anonymous-readable).
-- **Hub impact:** the Connectors tab currently reads these as any authenticated user. After locking down, gate that tab to admins (via the existing `useUserRole` hook) so it doesn't silently break for non-admins. Projects + Decisions tabs stay as-is.
-- Leave the two benign lints (SECURITY DEFINER `has_role`, `user_roles` anonymous-access) as accepted — they're correct by design. I'll mark them ignored with a reason so they stop nagging.
+**Phase D — Breadth (the proof).**
+- Make scan topic-driven: an idea/industry input expands (via gateway) into pain-oriented queries — golf defaults deleted.
+- Add two **keyless, in-code** adapters to `signal-collect`: **HN Algolia** (no auth) and **Reddit public `.json`** (custom User-Agent). Scan 3–4 unexpected verticals so it surprises you.
 
-## Phase 2 — Finish the MCP plumbing so it actually "talks"
+**Phase E — Polish behind a full plate (fast-follows, not blockers).**
+- Evidence drawer (real source links), plain-English motion labels + tooltips, live (real) scan stepper, sample/empty states that explain themselves.
 
-- **Missing table:** `get_mcp_insights` / `analyze_mcp_usage` query `mcp_improvement_log`, which doesn't exist — those tools fail silently today. Add it (additive, admin/service_role only) so the self-improvement loop works.
-- **Semantic search key:** `.mcp.json` has a placeholder `OPENAI_API_KEY`. `search_decisions` (semantic) needs a real key to embed. I'll flag this — it's a key you paste locally into your Claude MCP config, not something stored in the app.
-- **Smoke-test the pipe:** after Phase 0, verify `save_decision` → `get_decisions` → `search_decisions` round-trip against the real `org_decisions` table.
+### Connectors — my prioritized take (grounded in your actual workspace)
+**Link now (Tier 1):**
+- **Perplexity** — *you already have it connected in the workspace, just not to this project.* Instant signal breadth + opportunity research, zero new signup. Highest ROI, no friction.
+- **Fireflies** — Eric Cole's discovery-call transcripts become **first-party operator signal**. This is the killer input for operator mode (real businesses' real pain, not just public forums).
+- **Inngest** — durable background jobs = the **overnight multi-vertical scan + morning "one move" cue**. This is the cleanest in-stack infra for your overnight run.
+- Keep **Firecrawl** (already linked); broaden beyond Reddit.
 
-## Phase 3 — Lock the v1 ↔ v2.1 contract (the "sync")
+**Link soon (Tier 2):** **Semrush** (real search-demand to size opportunities — kills invented numbers), **Slack or Telegram** (overnight-run + cue notifications), **Google Drive/Docs** (write PRD/handoff artifacts where Cowork reads them).
 
-- Write one **connector contract doc** (root markdown, so it's in Claude's context): the exact shapes of `connector_registry` + `connector_sync_events`, and the rule "every app logs a sync event after each run (service role)." v1's `signal-collect` already does this; v2.1 follows the same shape.
-- This is the single source of truth both sides read — no copy-paste, no drift. This *replaces* the need for a bespoke handshake skill.
+**Defer (Tier 3):** TikTok (social signal later), Sentry (post-publish), Databricks/Snowflake/BigQuery (overkill now), Linear/Notion (workflow weight), n8n/Zapier (Inngest covers durable workflows in-stack — only add if you want no-code external automations).
+
+**Stop fighting Reddit:** the API self-serve door closed (Nov 2025 Responsible Builder Policy) — it's not you. Public `.json` + HN Algolia give breadth this week with zero credentials. No Reddit connector needed.
+
+### Skills to author (only repeated judgment, per your build-vs-wire law)
+- **opportunity-qualifier** — the ruthless ranking rubric (reusable v1 ↔ v2.1).
+- **signal-to-opportunity** — the close-the-loop dogfood sequence.
+- **council** — fan-out → synthesis (formalize once run 3+; you've already sketched it).
+
+### Models / premium
+- Dual-speed stays: **gemini-3-flash-preview** for cheap fan-out breadth; **claude / gemini-2.5-pro** for synthesis + skeptic passes. For the targeted cross-agent master run, step up to **gemini-3.1-pro-preview** where judgment matters. Per-run premium toggle stays admin/premium-gated.
 
 ---
 
-## Decisions I need from you
+# PART 2 — How Lovable plugs into the rest of the ecosystem
 
-1. **AI cap (Phase 0):** raise the monthly AI-gateway limit to what — e.g. $25, $50, or remove the hard block and keep notify-only? (Affects this app *and* v2.). **YESSS**  please do this first because I was trying to read the documentation and I keep seeing this notification, but I don't know how to change it. Raise it to $25 for now, and then, if we hit that, then fine, we can come back to it. This is most important because I need to remove it, the blocker, ASAP 
-2. **GPT-5.5 premium:** keep it admin/premium-gated as-is (recommended), or also add a small per-day premium spend ceiling so it can't surprise you?   sure. I don't even know how to check if GPT-5.5 premium is being paid for. Is that through lovable? If it's not a blocker, then I'll go with your recommended plan. What's a small per day? I'll go with your recommendation on this, but I think one seems much more important 
+Your `ARCHITECTURE.md` already names the model: **one orchestrator (Claude), many surfaces.** Lovable is the *build surface*, not a competing brain. I'll wire Lovable to fit that — not reinvent it.
 
-## Technical notes / files touched
+### The handoff substrate (so the overnight run actually talks)
+1. **`CONTRACT_COORDINATOR.md`** (upgrades the existing `CONNECTOR_CONTRACT.md`) — one source of truth with a **per-agent contract** (owns / reads / produces / must-not-touch), so agents stop colliding:
 
-- Phase 0: workspace credit limit update (no repo change).
-- Phase 1: one additive RLS migration (`connector_registry`, `connector_sync_events`, `signal_raw`); `src/components/hub/ConnectorsTab.tsx` + `src/pages/Hub.tsx` admin gate; ignore 2 benign findings with security-memory note.
-- Phase 2: additive migration for `mcp_improvement_log`; `.mcp.json` note (local key, not app secret).
-- Phase 3: new root `CONNECTOR_CONTRACT.md`.
-- No deploy/publish, no destructive migrations, no secret exposure.
+| Agent | Owns | Produces | Must NOT touch |
+|---|---|---|---|
+| **Claude (Cowork)** | strategy, orchestration, grading | briefs, decisions | direct commits |
+| **Claude Code** | backend, DB, adapters, the loop | roadmaps, `cluster_id`/member links, scanner | frontend copy/layout |
+| **Lovable (me)** | frontend, routes, the riff edge fns, deploy | UI that renders real rows, `close-loop` | DB schema ownership, backend logic |
+| **Codex** | bounded copy/labels | plain-English strings | data, layout, logic |
+
+2. **`OVERNIGHT_RUN_SPEC.md`** — the machine-readable run plan aligned to Claude's P0–P4 phase sequence, with Lovable's lanes explicit:
+
+| Phase | Owner | Lovable's part |
+|---|---|---|
+| P0 Kickoff | Claude | — (decision logged to `org_decisions`) |
+| P1 Data-contract audit | Claude Code | confirm/align schema; additive migration for `member_signal_ids` if missing |
+| P2 Keystone loop | Claude Code + **Lovable** | I ship `close-loop` edge fn (riff agents live here); Claude Code invokes it |
+| P3 Source breadth | Claude Code | I mirror HN + Reddit `.json` adapters in `signal-collect` |
+| P4 Render | **Lovable** | opportunity cards, homepage de-collision, nav |
+
+3. **Announce the redirect over the pipe:** write one `org_decisions` row ("VibeCo redirected to Signal→Opportunity→Sketch; v1 = engine home") so Claude's MCP picks it up automatically — this is me "communicating my side" through the shared substrate.
+
+### Pickle DaaS + future tenants
+The contract is org-generic on purpose — Pickle DaaS (and any tenant) reads/writes the same three shared tables. Once the qualifier + close-loop exist, pointing the engine at a new tenant is a config row, not a rebuild.
+
+### The "no number is invented" ledger
+All counts/metrics bind to DB rows (`signal_raw`, candidates, Semrush volumes). Anything illustrative is labeled. This is the single rule that keeps four agents honest.
+
+---
+
+## Decisions (defaults chosen — override any)
+1. **Identity:** VibeCo = the founder/operator **opportunity engine** (default). If it's actually the AI-ops agency, the whole sequence flips — say so.
+2. **Home base:** build/prove the loop in **v1 (this repo)**, v2.1 stays showcase, merge later via contract (default). Or tell me to target v2.1 as home.
+3. **Connectors to link this pass:** Perplexity + Fireflies + Inngest (default Tier 1). Add Semrush now or defer?
+
+## What I'll execute on approval (in order)
+Phase A (de-collision + kill invented stats + nav) → write `CONTRACT_COORDINATOR.md` + `OVERNIGHT_RUN_SPEC.md` + `org_decisions` announce → link Tier-1 connectors → Phase D breadth adapters + topic-driven scan → Phase B `close-loop` + opportunity render → Phase C qualifier → author the 3 skills → Phase E polish. I'll show diffs and publish nothing without your explicit yes.
