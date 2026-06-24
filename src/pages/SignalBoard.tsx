@@ -97,6 +97,7 @@ const SignalBoard = () => {
   const [scanning, setScanning] = useState(false);
   const [counts, setCounts] = useState<{ collected: number; pain: number; clusters: number; candidates: number } | null>(null);
   const [usingSample, setUsingSample] = useState(true);
+  const [topic, setTopic] = useState("");
 
   // Try to load persisted candidates + durable themes on mount (falls back to sample).
   useEffect(() => {
@@ -130,18 +131,21 @@ const SignalBoard = () => {
   }, []);
 
   const runScan = async () => {
+    const t = topic.trim();
+    const tag = t ? t.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40) : "general";
     setScanning(true);
     try {
       // Stage 1: collect + persist raw items to signal_raw (de-duped, hashed authors).
+      // Topic-driven: an industry or idea expands into pain-oriented queries server-side.
       const { data: collected, error: cErr } = await supabase.functions.invoke("signal-collect", {
-        body: { product: "niceace", persist: true },
+        body: { product: tag, topic: t || undefined, persist: true },
       });
       if (cErr) throw cErr;
       toast.message(`Collected ${(collected as any)?.collected ?? 0} items (${(collected as any)?.persisted ?? 0} new)`);
 
       // Stages 2-4 + theme persistence: process unprocessed rows from the DB.
       const { data: result, error: pErr } = await supabase.functions.invoke("signal-process", {
-        body: { product: "niceace", persist: true },
+        body: { product: tag, persist: true },
       });
       if (pErr) throw pErr;
 
@@ -182,18 +186,30 @@ const SignalBoard = () => {
             <div>
               <div className="flex items-center gap-2 text-primary">
                 <Radar className="h-5 w-5" />
-                <span className="text-xs font-semibold uppercase tracking-[0.2em]">Signal Mine</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.2em]">Opportunity Engine</span>
               </div>
-              <h1 className="mt-2 font-display text-3xl font-extrabold tracking-tight">Signal Board</h1>
+              <h1 className="mt-2 font-display text-3xl font-extrabold tracking-tight">Signal Scanner</h1>
               <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-                Customer pain points mined from public sources (Reddit + app-store reviews),
-                clustered and turned into ranked, evidence-backed feature candidates. Promote
-                the strongest into the build loop.
+                Name an industry, niche, or idea. The engine mines what people are actually
+                frustrated about across public sources (Hacker News + the web), clusters it, and
+                ranks evidence-backed opportunities. For founders deciding what to build — and
+                operators hunting inefficiencies inside a business.
               </p>
             </div>
+          </div>
+
+          {/* Topic-driven scan input */}
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <input
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !scanning) runScan(); }}
+              placeholder="e.g. third-party logistics, dental practices, indie SaaS tooling…"
+              className="flex-1 min-w-[240px] rounded-md border border-border bg-muted/30 px-3 py-2.5 text-sm outline-none focus:border-primary"
+            />
             <Button onClick={runScan} disabled={scanning} className="gap-2">
               {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              {scanning ? "Scanning…" : "Run scan"}
+              {scanning ? "Scanning…" : topic.trim() ? "Scan this" : "Run scan"}
             </Button>
           </div>
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Sparkles, User, History, FolderKanban, Network } from "lucide-react";
+import { Menu, X, Sparkles, User, History, FolderKanban, Network, Radar } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -74,6 +74,16 @@ const Navbar = () => {
               {link.label}
             </button>
           ))}
+
+          {/* Signal scanner */}
+          <a
+            href="/signal"
+            onClick={(e) => { e.preventDefault(); navigate("/signal"); }}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1.5"
+          >
+            <Radar size={13} />
+            Signal
+          </a>
 
           {/* Simulator CTA */}
           <a
@@ -161,6 +171,14 @@ const Navbar = () => {
                 {link.label}
               </button>
             ))}
+            <a
+              href="/signal"
+              onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/signal"); }}
+              className="flex items-center gap-2 py-3 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <Radar size={13} />
+              Signal
+            </a>
             <a
               href="/simulate"
               onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/simulate"); }}
