@@ -17,6 +17,7 @@ import { useUserRole } from "@/hooks/useUserRole";
  */
 const Hub = () => {
   const navigate = useNavigate();
+  const { isAdmin } = useUserRole();
   const [status, setStatus] = useState<"loading" | "anon" | "ready">("loading");
 
   useEffect(() => {
