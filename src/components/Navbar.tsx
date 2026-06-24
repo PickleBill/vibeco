@@ -172,6 +172,14 @@ const Navbar = () => {
               </button>
             ))}
             <a
+              href="/signal"
+              onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/signal"); }}
+              className="flex items-center gap-2 py-3 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <Radar size={13} />
+              Signal
+            </a>
+            <a
               href="/simulate"
               onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/simulate"); }}
               className="flex items-center gap-2 py-3 text-sm text-primary"
