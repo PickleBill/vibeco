@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProjectsTab from "@/components/hub/ProjectsTab";
 import DecisionsTab from "@/components/hub/DecisionsTab";
 import ConnectorsTab from "@/components/hub/ConnectorsTab";
+import { useUserRole } from "@/hooks/useUserRole";
 
 /**
  * Org Knowledge Hub — a subtle, signed-in surface over the shared org memory:
@@ -16,6 +17,7 @@ import ConnectorsTab from "@/components/hub/ConnectorsTab";
  */
 const Hub = () => {
   const navigate = useNavigate();
+  const { isAdmin } = useUserRole();
   const [status, setStatus] = useState<"loading" | "anon" | "ready">("loading");
 
   useEffect(() => {
@@ -72,7 +74,9 @@ const Hub = () => {
               <TabsList className="bg-card/40 border border-border">
                 <TabsTrigger value="projects" className="font-mono text-xs">Projects</TabsTrigger>
                 <TabsTrigger value="decisions" className="font-mono text-xs">Decisions</TabsTrigger>
-                <TabsTrigger value="connectors" className="font-mono text-xs">Connectors</TabsTrigger>
+                {isAdmin && (
+                  <TabsTrigger value="connectors" className="font-mono text-xs">Connectors</TabsTrigger>
+                )}
               </TabsList>
               <TabsContent value="projects" className="mt-6">
                 <ProjectsTab />
@@ -80,9 +84,11 @@ const Hub = () => {
               <TabsContent value="decisions" className="mt-6">
                 <DecisionsTab />
               </TabsContent>
-              <TabsContent value="connectors" className="mt-6">
-                <ConnectorsTab />
-              </TabsContent>
+              {isAdmin && (
+                <TabsContent value="connectors" className="mt-6">
+                  <ConnectorsTab />
+                </TabsContent>
+              )}
             </Tabs>
           )}
         </div>
