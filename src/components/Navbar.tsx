@@ -75,6 +75,16 @@ const Navbar = () => {
             </button>
           ))}
 
+          {/* Signal scanner */}
+          <a
+            href="/signal"
+            onClick={(e) => { e.preventDefault(); navigate("/signal"); }}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1.5"
+          >
+            <Radar size={13} />
+            Signal
+          </a>
+
           {/* Simulator CTA */}
           <a
             href="/simulate"
