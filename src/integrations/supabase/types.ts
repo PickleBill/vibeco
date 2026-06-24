@@ -413,6 +413,36 @@ export type Database = {
           },
         ]
       }
+      mcp_improvement_log: {
+        Row: {
+          category: string | null
+          content: string | null
+          created_at: string
+          id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       org_decisions: {
         Row: {
           category: string
