@@ -6,7 +6,7 @@ interface Props {
   phase: SimPhase;
 }
 
-// Same five steps as the homepage (components/workbench/StepsStrip.tsx).
+// Same five steps as the homepage (components/home/StepsStrip.tsx).
 const STAGES = [
   { n: 1, label: "Frame" },
   { n: 2, label: "Explore" },

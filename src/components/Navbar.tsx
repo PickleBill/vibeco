@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Asterisk, ArrowUpRight, ChevronDown } from "lucide-react";
+import { Menu, X, Asterisk, ArrowRight, ChevronDown } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,9 +13,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const navLinks = [
-  { label: "Workbench", href: "/simulate" },
-  { label: "Examples", href: "#examples" },
-  { label: "About Bill", href: "#about" },
+  { label: "How it works", href: "#how-it-works" },
+  { label: "Use cases", href: "#use-cases" },
 ];
 
 // Owner tools stay reachable for signed-in accounts but out of the public nav.
@@ -104,7 +103,7 @@ const Navbar = () => {
           ))}
         </div>
 
-        <div className="hidden md:flex items-center">
+        <div className="hidden md:flex items-center gap-3">
           {signedIn ? (
             <DropdownMenu>
               <DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded-md border border-border px-4 py-2 text-sm text-foreground hover:border-primary/40">
@@ -124,11 +123,18 @@ const Navbar = () => {
             <a
               href="/auth"
               onClick={(e) => { e.preventDefault(); go("/auth"); }}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border px-4 py-2 text-sm text-foreground hover:border-primary/40 transition-colors"
+              className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Sign in <ArrowUpRight size={14} aria-hidden />
+              Sign in
             </a>
           )}
+          <a
+            href="/simulate"
+            onClick={(e) => { e.preventDefault(); go("/simulate"); }}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:brightness-110"
+          >
+            Start a question <ArrowRight size={14} aria-hidden />
+          </a>
         </div>
 
         {/* Mobile toggle */}
@@ -184,7 +190,7 @@ const Navbar = () => {
               onClick={() => go("/simulate")}
               className="mt-3 w-full rounded-md bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground"
             >
-              Open the workbench
+              Start a question
             </button>
           </motion.div>
         )}

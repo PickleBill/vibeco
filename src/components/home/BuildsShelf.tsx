@@ -1,8 +1,8 @@
 import { ArrowUpRight } from "lucide-react";
 import FadeIn from "../FadeIn";
 
-// Live builds shipped with the same Lovable + Claude Code workflow.
-// Kept from the original homepage; the résumé site links here.
+// Live builds shipped with the same question → brief → build-prompt loop.
+// Kept from the original homepage; other sites link here (#builds, #projects).
 const projects = [
   {
     name: "Courtana",
@@ -116,7 +116,7 @@ const BuildsShelf = () => (
         Questions that turned into live builds.
       </h2>
       <p className="mt-4 max-w-2xl text-muted-foreground">
-        Prototypes and apps I&rsquo;ve shipped with the same Lovable and Claude Code loop. Every card opens a live site.
+        Prototypes and apps that went from a rough question to a brief, a build prompt, and a working site. Every card opens a live build.
       </p>
 
       <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

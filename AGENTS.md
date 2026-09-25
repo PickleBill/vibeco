@@ -11,16 +11,16 @@ This file is for every coding agent that touches VibeCo: Codex, Claude Code, Lov
 
 ## What VibeCo is (Sept 2026)
 
-VibeCo is Bill Bricker's working AI lab: **"Turn a messy question into a clear next move."** It takes four kinds of question (idea or app, company or topic, business initiative, decision or disagreement) and runs each one through five steps: **Frame → Explore → Challenge → Decide → Put it to work**. It is linked as the sister site to Bill's résumé: https://picklebill.github.io/Brick/
+VibeCo is an AI application, not a personal site: **"Turn a messy question into a clear next move."** It takes four kinds of question (idea or app, company or topic, business initiative, decision or disagreement) and runs each one through five steps: **Frame → Explore → Challenge → Decide → Put it to work**. Keep personal names, bios and résumé content off the site.
 
-- The homepage lives in `src/pages/Index.tsx` and `src/components/workbench/`. The question types are in `src/lib/lenses.ts`.
-- The workbench is `/simulate` (`src/components/simulator/SimulatorShell.tsx`).
+- The homepage lives in `src/pages/Index.tsx` and `src/components/home/` (hero, how it works, use cases, builds). The question types and use cases are in `src/lib/lenses.ts`.
+- "Start a question" is `/simulate` (`src/components/simulator/SimulatorShell.tsx`).
 - The agents are in `supabase/functions/` (core logic lives in `_shared/agents/`). Keep them. Change framing and UI, not the engine.
 
 ## Rules
 
 - Follow `CLAUDE.md` for the code conventions: LLM calls go through `_shared/llm-client.ts`, and models are chosen through `_shared/model-router.ts`.
-- **No invented proof.** No made-up stats, testimonials, customers, or results. Label illustrative content as illustrative. Any claim about Bill must match the résumé site's ledger (`PickleBill/Brick` → `_source/facts.md`).
+- **No invented proof.** No made-up stats, testimonials, customers, or results. Label illustrative content as illustrative.
 - Keep these routes working, because other sites link to them: `/`, `/simulate`, `/report/:id`, `/#model`.
-- `supabase/functions/ask-bill` powers the terminal on Bill's résumé site. Don't break it.
+- `supabase/functions/ask-bill` is a backend for another site (a résumé terminal). It isn't part of the VibeCo UI, but don't break it.
 - Before opening a PR, run `bun run lint`, `bun run test`, and `bun run build`.

@@ -95,7 +95,7 @@ const IdeaInput = ({ onSubmit, initialValue, iterationContext, onStartFresh, len
         className="text-center mb-10"
       >
         <p className="text-[10px] text-primary uppercase tracking-[0.4em] mb-5 opacity-60">
-          {isIterating ? "Continue Refining" : "The workbench"}
+          {isIterating ? "Continue Refining" : "Start a question"}
         </p>
         <h1
           className="font-display font-black text-foreground leading-[1.1] mb-3 break-words"

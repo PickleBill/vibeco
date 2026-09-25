@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
-import { LENSES, getLens, workbenchHref, type Lens } from "@/lib/lenses";
+import { LENSES, getLens, questionHref, type Lens } from "@/lib/lenses";
 import WorkedExample from "./WorkedExample";
 
-const WorkbenchHero = () => {
+const Hero = () => {
   const navigate = useNavigate();
   const [lens, setLens] = useState<Lens>("idea");
   const [question, setQuestion] = useState("");
@@ -12,7 +12,7 @@ const WorkbenchHero = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate(workbenchHref(lens, question));
+    navigate(questionHref(lens, question));
   };
 
   return (
@@ -21,7 +21,7 @@ const WorkbenchHero = () => {
         <div className="lg:pt-10">
           <p className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
             <span className="h-px w-6 bg-primary" aria-hidden />
-            Bill Bricker&rsquo;s working AI lab
+            An AI thinking partner
           </p>
 
           <h1 className="mt-6 font-display text-[2.6rem] leading-[1.02] sm:text-6xl font-bold tracking-[-0.045em] text-foreground">
@@ -56,11 +56,11 @@ const WorkbenchHero = () => {
             </div>
 
             <div className="mt-4 rounded-md border border-border bg-surface-elevated shadow-warm focus-within:border-primary/50">
-              <label htmlFor="workbench-question" className="sr-only">
+              <label htmlFor="hero-question" className="sr-only">
                 Your question
               </label>
               <textarea
-                id="workbench-question"
+                id="hero-question"
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 placeholder={config.placeholder}
@@ -87,8 +87,8 @@ const WorkbenchHero = () => {
 
             <p className="mt-4 text-xs text-muted-foreground">
               You can review your question before anything runs. Or{" "}
-              <a href="#examples" className="underline underline-offset-4 hover:text-foreground">
-                explore the examples
+              <a href="#use-cases" className="underline underline-offset-4 hover:text-foreground">
+                browse the use cases
               </a>
               .
             </p>
@@ -101,4 +101,4 @@ const WorkbenchHero = () => {
   );
 };
 
-export default WorkbenchHero;
+export default Hero;

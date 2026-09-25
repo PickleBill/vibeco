@@ -1,5 +1,5 @@
 /**
- * The four kinds of question the workbench takes. The same agents run for all
+ * The four kinds of question VibeCo takes. The same agents run for all
  * of them; the lens only changes how simulate-idea frames the brief.
  * Keep ids in sync with `Lens` in supabase/functions/_shared/types.ts.
  */
@@ -28,8 +28,10 @@ export interface LensConfig {
     perspectives: Perspective[];
     nextMove: { title: string; body: string };
   };
-  /** One line on what the run hands back, for the examples grid. */
+  /** One line on what the run hands back, for the use-case cards. */
   youGet: string;
+  /** When someone reaches for this lens, for the use-case cards. */
+  useCase: { title: string; body: string };
 }
 
 export const LENSES: LensConfig[] = [
@@ -63,6 +65,10 @@ export const LENSES: LensConfig[] = [
       },
     },
     youGet: "A brief, three alternative versions, a pressure test, and a build prompt you can paste into Lovable.",
+    useCase: {
+      title: "Pressure-test an idea before you build it",
+      body: "For founders, product teams and weekend builders. See it from the customer, the skeptic and the builder, then run the smallest test worth running.",
+    },
   },
   {
     id: "company",
@@ -94,6 +100,10 @@ export const LENSES: LensConfig[] = [
       },
     },
     youGet: "A clear read on how the company or market works, the hard questions to ask, and where the openings are.",
+    useCase: {
+      title: "Get smart on a company before a big conversation",
+      body: "Interviews, sales calls, partnership pitches. Learn how they make money, what keeps them up at night, and the one idea worth bringing in.",
+    },
   },
   {
     id: "initiative",
@@ -125,6 +135,10 @@ export const LENSES: LensConfig[] = [
       },
     },
     youGet: "The business case, who has to say yes, what could sink it, and the smallest pilot worth running.",
+    useCase: {
+      title: "Stress-test an initiative before your team commits",
+      body: "Rollouts, launches, new processes. Find out who has to say yes, what could sink it, and how to prove it small before going big.",
+    },
   },
   {
     id: "decision",
@@ -156,6 +170,10 @@ export const LENSES: LensConfig[] = [
       },
     },
     youGet: "The options side by side, the strongest case for each, the tradeoffs, and a way to decide.",
+    useCase: {
+      title: "Work through a decision when people disagree",
+      body: "Co-founders, teams, or just you at 11pm. Put each side's strongest case on the table and agree on what would settle it.",
+    },
   },
 ];
 
@@ -163,8 +181,8 @@ export function getLens(id: Lens): LensConfig {
   return LENSES.find((l) => l.id === id) ?? LENSES[0];
 }
 
-/** Link into the workbench with the question pre-filled for review (not auto-run). */
-export function workbenchHref(lens: Lens, question?: string): string {
+/** Link into /simulate with the question pre-filled for review (not auto-run). */
+export function questionHref(lens: Lens, question?: string): string {
   const params = new URLSearchParams({ lens });
   if (question?.trim()) params.set("q", question.trim());
   return `/simulate?${params.toString()}`;

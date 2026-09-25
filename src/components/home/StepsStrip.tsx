@@ -10,15 +10,16 @@ const STEPS = [
 ];
 
 const StepsStrip = () => (
-  // id="model" keeps older links (e.g. the résumé site's /#model) landing here.
-  <section id="model" className="scroll-mt-20 border-y border-border bg-muted/60">
-    <div id="how-it-works" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-14">
+  <section id="how-it-works" className="scroll-mt-20 border-y border-border bg-muted/60">
+    {/* Old anchor kept for inbound links (e.g. /#model) */}
+    <span id="model" className="block scroll-mt-20" aria-hidden />
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-14">
       <div className="flex items-center justify-between gap-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          A little structure. A lot more possibility.
+          How it works: a little structure, a lot more possibility
         </p>
-        <a href="#examples" className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline underline-offset-4">
-          See the work <ArrowDown size={13} aria-hidden />
+        <a href="#use-cases" className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline underline-offset-4">
+          See use cases <ArrowDown size={13} aria-hidden />
         </a>
       </div>
 

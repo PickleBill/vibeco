@@ -1,16 +1,15 @@
 import { Helmet, HelmetProvider } from "react-helmet-async";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import WorkbenchHero from "../components/workbench/WorkbenchHero";
-import StepsStrip from "../components/workbench/StepsStrip";
-import ExamplesSection from "../components/workbench/ExamplesSection";
-import BuildsShelf from "../components/workbench/BuildsShelf";
-import AboutBill from "../components/workbench/AboutBill";
+import Hero from "../components/home/Hero";
+import StepsStrip from "../components/home/StepsStrip";
+import UseCases from "../components/home/UseCases";
+import BuildsShelf from "../components/home/BuildsShelf";
 
 const SITE_URL = "https://vibeco.lovable.app";
 const TITLE = "VibeCo — Turn a messy question into a clear next move";
 const DESCRIPTION =
-  "Bill Bricker's working AI lab. Explore an idea, research a company, pressure-test an initiative, or work through a decision, and leave with a clear next move.";
+  "Explore an idea, research a company, pressure-test an initiative, or work through a decision. VibeCo frames it, challenges it with AI critics, and hands back a clear next move.";
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -19,12 +18,6 @@ const jsonLd = {
   url: SITE_URL,
   description: DESCRIPTION,
   applicationCategory: "BusinessApplication",
-  creator: {
-    "@type": "Person",
-    name: "Bill Bricker",
-    url: "https://picklebill.github.io/Brick/",
-    sameAs: ["https://linkedin.com/in/williambricker"],
-  },
 };
 
 const Index = () => {
@@ -51,10 +44,9 @@ const Index = () => {
       <div className="min-h-screen bg-background text-foreground scroll-smooth">
         <Navbar />
         <main>
-          <WorkbenchHero />
+          <Hero />
           <StepsStrip />
-          <ExamplesSection />
-          <AboutBill />
+          <UseCases />
           <BuildsShelf />
         </main>
         <Footer />

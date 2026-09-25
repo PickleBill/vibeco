@@ -2,7 +2,7 @@
 
 ## What This Is
 
-> **Sept 2026 positioning:** VibeCo is Bill Bricker's working AI lab, "Turn a messy question into a clear next move." It is the sister site to his résumé (picklebill.github.io/Brick). Every agent (Codex, Claude Code, Lovable) works in this one repo. See `AGENTS.md`.
+> **Sept 2026 positioning:** VibeCo is an AI application, "Turn a messy question into a clear next move." It is not a personal site: no names or bios on it. Every agent (Codex, Claude Code, Lovable) works in this one repo. See `AGENTS.md`.
 
 VibeCo helps non-technical founders go from a plain-English idea to a structured, testable product. Users submit an idea, AI agents analyze it through multiple strategic lenses, and the system produces business briefs, Lovable-ready build prompts, concept images, and multi-perspective critiques.
 
@@ -20,7 +20,7 @@ VibeCo helps non-technical founders go from a plain-English idea to a structured
 
 ### Frontend (`src/`)
 - `pages/` — Route components: Index (the "working AI lab" front door), Simulate (the workbench), Report, MySimulations, Portfolio, Auth
-- `components/workbench/` — Homepage sections (hero + worked example, 5-step strip, examples, About Bill, builds shelf). Question types ("lenses") live in `src/lib/lenses.ts` and are passed to `simulate-idea` as `lens`
+- `components/home/` — Homepage sections (hero + worked example, how it works, use cases, builds shelf). Question types ("lenses") live in `src/lib/lenses.ts` and are passed to `simulate-idea` as `lens`
 - `components/simulator/` — Core simulator workflow: IdeaInput → IdeaBrief → FollowUpQuestions → FinalReport → ActionHub
 - `components/simulator/SimulatorShell.tsx` — **The main orchestrator.** Manages 3-round analysis state, calls edge functions, threads context between agents.
 - `components/portfolio/` — Project registry dashboard

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Check, CornerDownRight } from "lucide-react";
-import { LENSES, workbenchHref, type LensConfig } from "@/lib/lenses";
+import { LENSES, questionHref, type LensConfig } from "@/lib/lenses";
 
 interface Props {
   lens: LensConfig;
@@ -87,7 +87,7 @@ const WorkedExample = ({ lens }: Props) => {
 
         <div className="px-6 pb-5 sm:px-7">
           <Link
-            to={workbenchHref(lens.id, lens.startingQuestion)}
+            to={questionHref(lens.id, lens.startingQuestion)}
             className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline underline-offset-4"
           >
             Run this question for real

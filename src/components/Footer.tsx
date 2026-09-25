@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Asterisk, Linkedin } from "lucide-react";
+import { Asterisk } from "lucide-react";
 
 const Footer = () => {
   const navigate = useNavigate();
@@ -28,13 +28,13 @@ const Footer = () => {
               VibeCo
               <Asterisk size={18} className="text-primary" aria-hidden />
             </a>
-            <p className="text-sm text-muted-foreground mt-1">Bill Bricker&rsquo;s working AI lab.</p>
+            <p className="text-sm text-muted-foreground mt-1">Turn a messy question into a clear next move.</p>
           </div>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             {[
-              { label: "Workbench", href: "/simulate" },
-              { label: "Examples", href: "#examples" },
-              { label: "About Bill", href: "#about" },
+              { label: "Start a question", href: "/simulate" },
+              { label: "How it works", href: "#how-it-works" },
+              { label: "Use cases", href: "#use-cases" },
             ].map((link) => (
               <button
                 key={link.href}
@@ -44,28 +44,11 @@ const Footer = () => {
                 {link.label}
               </button>
             ))}
-            <a
-              href="https://picklebill.github.io/Brick/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-primary hover:underline underline-offset-4"
-            >
-              Résumé &amp; proof ↗
-            </a>
-            <a
-              href="https://linkedin.com/in/williambricker"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Bill Bricker on LinkedIn"
-            >
-              <Linkedin size={16} />
-            </a>
           </div>
         </div>
         <div className="mt-8 pt-6 border-t border-border">
           <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Bill Bricker. AI output is a starting point for judgment, not advice.
+            © {new Date().getFullYear()} VibeCo. AI output is a starting point for judgment, not advice.
           </p>
         </div>
       </div>

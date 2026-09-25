@@ -22,7 +22,7 @@ const Simulate = () => {
   return (
     <HelmetProvider>
       <Helmet>
-        <title>Workbench | VibeCo</title>
+        <title>Start a question | VibeCo</title>
         <meta
           name="description"
           content="Work through an idea, a company, an initiative, or a decision. Frame it, explore it, challenge it, and leave with a clear next move."
