@@ -1,21 +1,40 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Sparkles, User, History, FolderKanban, Network, Radar } from "lucide-react";
+import { Menu, X, Asterisk, ArrowRight, ChevronDown } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const navLinks = [
-  { label: "How It Works", href: "#model" },
-  { label: "Builds", href: "#projects" },
-  { label: "Contact", href: "#contact" },
+  { label: "How it works", href: "#how-it-works" },
+  { label: "Use cases", href: "#use-cases" },
+];
+
+// Owner tools stay reachable for signed-in accounts but out of the public nav.
+const accountLinks = [
+  { label: "My runs", href: "/my-simulations" },
+  { label: "Portfolio", href: "/portfolio" },
+  { label: "Hub", href: "/hub" },
+  { label: "Signal", href: "/signal" },
 ];
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Every visitor gets an anonymous session (see ensureSession), so only a
+  // real account counts as signed in.
+  const signedIn = !!user && !user.is_anonymous;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -33,114 +52,89 @@ const Navbar = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleNavClick = (href: string) => {
+  const go = (href: string) => {
     setMobileOpen(false);
+    if (!href.startsWith("#")) {
+      navigate(href);
+      return;
+    }
     if (location.pathname !== "/") {
       navigate("/" + href);
     } else {
-      const el = document.querySelector(href);
-      el?.scrollIntoView({ behavior: "smooth" });
+      document.querySelector(href)?.scrollIntoView({ behavior: "smooth" });
     }
   };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    setMobileOpen(false);
   };
+
+  const linkClass = "text-sm text-muted-foreground hover:text-foreground transition-colors duration-200";
 
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? "bg-background/90 backdrop-blur-sm border-b border-border" : ""
+        scrolled || mobileOpen ? "bg-background/90 backdrop-blur-sm border-b border-border" : ""
       }`}
     >
-      <div className="max-w-7xl mx-auto px-6 lg:px-12 flex items-center justify-between h-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 flex items-center justify-between h-16">
         <a
           href="/"
-          onClick={(e) => { e.preventDefault(); navigate("/"); }}
-          className="font-display text-lg font-black text-foreground tracking-tight"
+          onClick={(e) => { e.preventDefault(); go("/"); }}
+          className="flex items-center gap-1 font-display text-xl font-bold text-foreground tracking-tight"
         >
           VibeCo
+          <Asterisk size={20} className="text-primary" aria-hidden />
         </a>
 
         {/* Desktop */}
-        <div className="hidden md:flex items-center gap-6">
+        <div className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (
-            <button
+            <a
               key={link.href}
-              onClick={() => handleNavClick(link.href)}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
+              href={link.href.startsWith("#") ? "/" + link.href : link.href}
+              onClick={(e) => { e.preventDefault(); go(link.href); }}
+              className={linkClass}
             >
               {link.label}
-            </button>
+            </a>
           ))}
+        </div>
 
-          {/* Signal scanner */}
-          <a
-            href="/signal"
-            onClick={(e) => { e.preventDefault(); navigate("/signal"); }}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1.5"
-          >
-            <Radar size={13} />
-            Signal
-          </a>
-
-          {/* Simulator CTA */}
-          <a
-            href="/simulate"
-            onClick={(e) => { e.preventDefault(); navigate("/simulate"); }}
-            className="font-display text-sm font-semibold px-5 py-2.5 rounded-full bg-primary text-primary-foreground hover:brightness-110 transition-all duration-300 flex items-center gap-2"
-          >
-            <Sparkles size={14} />
-            Simulate Your Idea
-          </a>
-
-          {/* Auth */}
-          {user ? (
-            <>
-              <a
-                href="/portfolio"
-                onClick={(e) => { e.preventDefault(); navigate("/portfolio"); }}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
-              >
-                <FolderKanban size={12} />
-                Portfolio
-              </a>
-              <a
-                href="/hub"
-                onClick={(e) => { e.preventDefault(); navigate("/hub"); }}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
-              >
-                <Network size={12} />
-                Hub
-              </a>
-              <a
-                href="/my-simulations"
-                onClick={(e) => { e.preventDefault(); navigate("/my-simulations"); }}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
-              >
-                <History size={12} />
-                Dashboard
-              </a>
-              <button
-                onClick={handleSignOut}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
-              >
-                <User size={12} />
-                Sign Out
-              </button>
-            </>
+        <div className="hidden md:flex items-center gap-3">
+          {signedIn ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded-md border border-border px-4 py-2 text-sm text-foreground hover:border-primary/40">
+                Account <ChevronDown size={14} aria-hidden />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {accountLinks.map((l) => (
+                  <DropdownMenuItem key={l.href} onSelect={() => go(l.href)}>
+                    {l.label}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={handleSignOut}>Sign out</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <a
               href="/auth"
-              onClick={(e) => { e.preventDefault(); navigate("/auth"); }}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+              onClick={(e) => { e.preventDefault(); go("/auth"); }}
+              className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              <User size={12} />
-              Sign In
+              Sign in
             </a>
           )}
-
+          <a
+            href="/simulate"
+            onClick={(e) => { e.preventDefault(); go("/simulate"); }}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:brightness-110"
+          >
+            Simulate <ArrowRight size={14} aria-hidden />
+          </a>
         </div>
 
         {/* Mobile toggle */}
@@ -148,6 +142,7 @@ const Navbar = () => {
           className="md:hidden text-foreground"
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-label="Toggle menu"
+          aria-expanded={mobileOpen}
         >
           {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
@@ -160,82 +155,42 @@ const Navbar = () => {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="md:hidden bg-background border-b border-border px-6 pb-6"
+            className="md:hidden bg-background border-b border-border px-4 pb-6"
           >
             {navLinks.map((link) => (
               <button
                 key={link.href}
-                onClick={() => handleNavClick(link.href)}
-                className="block py-3 text-sm text-muted-foreground hover:text-foreground transition-colors w-full text-left"
+                onClick={() => go(link.href)}
+                className="block py-3 text-sm text-foreground w-full text-left"
               >
                 {link.label}
               </button>
             ))}
-            <a
-              href="/signal"
-              onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/signal"); }}
-              className="flex items-center gap-2 py-3 text-sm text-muted-foreground hover:text-foreground"
-            >
-              <Radar size={13} />
-              Signal
-            </a>
-            <a
-              href="/simulate"
-              onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/simulate"); }}
-              className="flex items-center gap-2 py-3 text-sm text-primary"
-            >
-              <Sparkles size={13} />
-              AI Idea Simulator
-            </a>
-            {user ? (
-              <>
-                <a
-                  href="/portfolio"
-                  onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/portfolio"); }}
-                  className="flex items-center gap-2 py-3 text-sm text-muted-foreground hover:text-foreground"
-                >
-                  <FolderKanban size={13} />
-                  Portfolio
-                </a>
-                <a
-                  href="/hub"
-                  onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/hub"); }}
-                  className="flex items-center gap-2 py-3 text-sm text-muted-foreground hover:text-foreground"
-                >
-                  <Network size={13} />
-                  Hub
-                </a>
-                <a
-                  href="/my-simulations"
-                  onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/my-simulations"); }}
-                  className="flex items-center gap-2 py-3 text-sm text-muted-foreground hover:text-foreground"
-                >
-                  <History size={13} />
-                  Dashboard
-                </a>
-                <button
-                  onClick={() => { handleSignOut(); setMobileOpen(false); }}
-                  className="block py-3 text-sm text-muted-foreground hover:text-foreground w-full text-left"
-                >
-                  Sign Out
+            {signedIn ? (
+              <div className="mt-2 border-t border-border pt-2">
+                {accountLinks.map((l) => (
+                  <button
+                    key={l.href}
+                    onClick={() => go(l.href)}
+                    className="block py-3 text-sm text-muted-foreground w-full text-left"
+                  >
+                    {l.label}
+                  </button>
+                ))}
+                <button onClick={handleSignOut} className="block py-3 text-sm text-muted-foreground w-full text-left">
+                  Sign out
                 </button>
-              </>
+              </div>
             ) : (
-              <a
-                href="/auth"
-                onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/auth"); }}
-                className="flex items-center gap-2 py-3 text-sm text-muted-foreground hover:text-foreground"
-              >
-                <User size={13} />
-                Sign In
-              </a>
+              <button onClick={() => go("/auth")} className="block py-3 text-sm text-muted-foreground w-full text-left">
+                Sign in
+              </button>
             )}
             <button
-              onClick={() => { setMobileOpen(false); navigate("/simulate"); }}
-              className="flex items-center justify-center gap-2 mt-2 text-sm bg-primary text-primary-foreground px-4 py-2.5 rounded-full text-center w-full"
+              onClick={() => go("/simulate")}
+              className="mt-3 w-full rounded-md bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground"
             >
-              <Sparkles size={14} />
-              Simulate Your Idea
+              Simulate
             </button>
           </motion.div>
         )}

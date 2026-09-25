@@ -1,5 +1,5 @@
 import { callLLM } from "../llm-client.ts";
-import { selectModel } from "../model-router.ts";
+import { modelChain } from "../model-router.ts";
 import type { AskBillInput, AskBillResult } from "../types.ts";
 
 // ─── Corpus ───
@@ -69,7 +69,6 @@ export async function askBill(input: AskBillInput): Promise<AskBillResult> {
   if (!question) throw new Error("Missing question");
 
   const corpus = await getCorpus();
-  const model = selectModel("bill-qa", { mode: "deep" });
 
   const history = (input.history || [])
     .slice(-MAX_HISTORY_TURNS)
@@ -79,21 +78,29 @@ export async function askBill(input: AskBillInput): Promise<AskBillResult> {
       content: String(m.content).slice(0, MAX_QUESTION_CHARS),
     }));
 
-  const response = await callLLM({
-    model,
-    messages: [
-      { role: "system", content: buildSystemPrompt(corpus) },
-      ...history,
-      { role: "user", content: question },
-    ],
-    maxTokens: 400,
-  });
+  const messages = [
+    { role: "system" as const, content: buildSystemPrompt(corpus) },
+    ...history,
+    { role: "user" as const, content: question },
+  ];
 
-  if (!response.content) throw new Error("Empty LLM response");
-
-  return {
-    answer: response.content.trim(),
-    model,
-    latencyMs: response.latencyMs,
-  };
+  // Public endpoint behind the résumé terminal: walk the model chain so one
+  // provider hiccup doesn't take the terminal down.
+  let lastError: unknown = new Error("No model configured for bill-qa");
+  for (const model of modelChain("bill-qa")) {
+    try {
+      // Headroom for reasoning tokens; the prompt keeps answers under 120 words.
+      const response = await callLLM({ model, messages, maxTokens: 1024 });
+      if (!response.content?.trim()) throw new Error(`Empty LLM response from ${model}`);
+      return {
+        answer: response.content.trim(),
+        model,
+        latencyMs: response.latencyMs,
+      };
+    } catch (e) {
+      console.error(`ask-bill: ${model} failed`, e);
+      lastError = e;
+    }
+  }
+  throw lastError;
 }

@@ -1,6 +1,6 @@
 import { callLLMWithTool } from "../llm-client.ts";
 import { selectModel } from "../model-router.ts";
-import type { SimulateInput, SimulationResult, DeepDiveResult, AnalysisMode } from "../types.ts";
+import type { SimulateInput, SimulationResult, DeepDiveResult, AnalysisMode, Lens } from "../types.ts";
 
 // ─── Tool Schemas ───
 
@@ -113,8 +113,26 @@ export const deepDiveToolSchema = {
 
 // ─── Prompt Builders ───
 
-function buildInitialPrompts(idea: string) {
-  const systemPrompt = `You are VibeCo's AI Idea Simulator — a sharp, experienced startup advisor. Be direct and insightful.
+/**
+ * How to read the brief's fields for each kind of question. The schema stays
+ * the same so every downstream agent and UI keeps working; only the framing moves.
+ */
+const LENS_FRAMING: Record<Lens, string> = {
+  idea: "",
+  company: `QUESTION TYPE: COMPANY OR TOPIC. The user wants to get smart on a company, market, or topic (often before a conversation, interview, or partnership). Treat the "idea" as how that company or market creates value and where the opening is. Map fields this way: Problem = the core problem it solves or faces right now. Target Customer = its most important customer. Core Features = its key offerings, or the levers that matter most. Revenue Model = how it makes money (label figures as estimates). Industry Trends = real competitors and shifts. Investor Perspective = the hard questions a sharp outsider would ask. Customer Perspective = what its customers would say. Never invent specific facts about a named company; say what you'd verify.`,
+  initiative: `QUESTION TYPE: BUSINESS INITIATIVE. The user is weighing something a team or company is about to try, launch, or change. Map fields this way: Problem = the business problem the initiative addresses. Target Customer = the internal or external person who must adopt it. Core Features = the workstreams or components. Revenue Model = the business case: cost, savings, or revenue impact (label figures as estimates). Industry Trends = how others have run similar initiatives. Investor Perspective = what an executive sponsor or CFO would challenge. Customer Perspective = quotes from the people who must adopt it.`,
+  decision: `QUESTION TYPE: DECISION OR DISAGREEMENT. The user needs to make a call, or two sides disagree. Map fields this way: Problem = the decision and why it is hard. Target Customer = the person most affected by the outcome. Core Features = the realistic options, one per feature, each with its strongest case. Revenue Model = costs and benefits of the leading option (label figures as estimates). Industry Trends = relevant precedents. Investor Perspective = the questions a skeptical decision-maker would ask. Customer Perspective = quotes from the people on each side. Follow-up questions should surface the criteria that would settle it.`,
+};
+
+function lensPreamble(lens?: Lens): string {
+  // lens comes straight from the request body, so only accept known keys.
+  const framing = lens && Object.prototype.hasOwnProperty.call(LENS_FRAMING, lens) ? LENS_FRAMING[lens] : "";
+  if (!framing) return "";
+  return `\n\n${framing}\nIf this is not about building software, the lovable_prompt (final round only) should describe the smallest useful tool or page that helps act on the recommendation.`;
+}
+
+function buildInitialPrompts(idea: string, lens?: Lens) {
+  const systemPrompt = `You are VibeCo's AI Idea Simulator — a sharp, experienced startup advisor. Be direct and insightful.${lensPreamble(lens)}
 
 LANGUAGE RULE: RESPOND ONLY IN ENGLISH. Every single field must be in English. No Chinese, no other languages. English only.
 
@@ -144,10 +162,10 @@ For follow-up questions:
   return { systemPrompt, userContent };
 }
 
-function buildRefinePrompts(idea: string, history: string, round: number) {
+function buildRefinePrompts(idea: string, history: string, round: number, lens?: Lens) {
   const isLastRound = round >= 3;
 
-  const systemPrompt = `You are VibeCo's AI Idea Simulator continuing a refinement session.
+  const systemPrompt = `You are VibeCo's AI Idea Simulator continuing a refinement session.${lensPreamble(lens)}
 
 LANGUAGE RULE: RESPOND ONLY IN ENGLISH. Every single field must be in English.
 
@@ -176,8 +194,8 @@ export async function runSimulation(input: SimulateInput): Promise<SimulationRes
   const model = selectModel(taskType, { mode: input.mode });
 
   const { systemPrompt, userContent } = input.type === "initial"
-    ? buildInitialPrompts(input.idea)
-    : buildRefinePrompts(input.idea, input.history || "", input.round || 2);
+    ? buildInitialPrompts(input.idea, input.lens)
+    : buildRefinePrompts(input.idea, input.history || "", input.round || 2, input.lens);
 
   const result = await callLLMWithTool<SimulationResult>({
     model,

@@ -128,6 +128,7 @@ const PerspectivesPanel = ({ brief, idea, reportId }: Props) => {
 
       <p className="text-xs text-muted-foreground">
         Each persona sees something different. Answer their challenges to sharpen your thinking.
+        {" "}Synthetic perspectives, not customer interviews.
       </p>
 
       <div className="grid grid-cols-5 gap-2">

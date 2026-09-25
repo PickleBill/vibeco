@@ -6,20 +6,21 @@ interface Props {
   phase: SimPhase;
 }
 
+// Same five steps as the homepage (components/home/StepsStrip.tsx).
 const STAGES = [
-  { n: 1, label: "Describe" },
-  { n: 2, label: "Analyze" },
-  { n: 3, label: "Verdict" },
-  { n: 4, label: "Build prompt" },
-  { n: 5, label: "Next actions" },
+  { n: 1, label: "Frame" },
+  { n: 2, label: "Explore" },
+  { n: 3, label: "Challenge" },
+  { n: 4, label: "Decide" },
+  { n: 5, label: "Put it to work" },
 ] as const;
 
-// Within the final report, anchors map to spine stages.
+// Within the final report, anchors map to spine stages (in page order).
 const ANCHOR_STAGE: Array<{ id: string; stage: number }> = [
   { id: "fr-verdict", stage: 3 },
-  { id: "fr-brief", stage: 3 },
-  { id: "fr-prompt", stage: 4 },
+  { id: "fr-brief", stage: 4 },
   { id: "fr-stress-test", stage: 4 },
+  { id: "fr-prompt", stage: 5 },
   { id: "fr-actions", stage: 5 },
 ];
 
@@ -71,9 +72,9 @@ const SimulatorStepper = ({ phase }: Props) => {
                 <span
                   className={`flex h-7 w-7 items-center justify-center rounded-full border text-[11px] font-bold transition-all duration-300 ${
                     isActive
-                      ? "border-emerald-400 bg-emerald-500/15 text-emerald-300 ring-2 ring-emerald-400/30"
+                      ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/20"
                       : isDone
-                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400/80"
+                      ? "border-primary/40 bg-primary/5 text-primary/80"
                       : "border-border/50 bg-card/40 text-muted-foreground/60"
                   }`}
                 >
@@ -82,7 +83,7 @@ const SimulatorStepper = ({ phase }: Props) => {
                 <span
                   className={`text-xs transition-colors duration-300 ${
                     isActive
-                      ? "text-emerald-300 font-semibold"
+                      ? "text-primary font-semibold"
                       : isDone
                       ? "text-muted-foreground"
                       : "text-muted-foreground/50"
@@ -94,7 +95,7 @@ const SimulatorStepper = ({ phase }: Props) => {
               {i < STAGES.length - 1 && (
                 <span
                   className={`mx-3 h-px w-8 transition-colors duration-300 ${
-                    s.n < active ? "bg-emerald-500/40" : "bg-border/40"
+                    s.n < active ? "bg-primary/40" : "bg-border/40"
                   }`}
                 />
               )}
@@ -105,7 +106,7 @@ const SimulatorStepper = ({ phase }: Props) => {
 
       {/* Mobile: compact progress dots */}
       <div className="flex md:hidden items-center justify-center gap-3">
-        <span className="text-[11px] font-medium text-emerald-300 tabular-nums">
+        <span className="text-[11px] font-medium text-primary tabular-nums">
           {STAGES[active - 1]?.label}
         </span>
         <div className="flex items-center gap-1.5" role="presentation">
@@ -117,9 +118,9 @@ const SimulatorStepper = ({ phase }: Props) => {
                 key={s.n}
                 className={`h-1.5 rounded-full transition-all duration-300 ${
                   isActive
-                    ? "w-5 bg-emerald-400"
+                    ? "w-5 bg-primary"
                     : isDone
-                    ? "w-1.5 bg-emerald-500/50"
+                    ? "w-1.5 bg-primary/50"
                     : "w-1.5 bg-border/60"
                 }`}
               />

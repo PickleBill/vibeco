@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Import, Pencil, Sparkle, Flag, Layers } from "lucide-react";
 import ProjectImporter from "./ProjectImporter";
+import { LENSES, getLens, type Lens } from "@/lib/lenses";
 
 interface IterationContext {
   highlightCount: number;
@@ -15,6 +16,9 @@ interface Props {
   initialValue?: string;
   iterationContext?: IterationContext;
   onStartFresh?: () => void;
+  /** Kind of question; chips are shown when onLensChange is provided. */
+  lens?: Lens;
+  onLensChange?: (lens: Lens) => void;
 }
 
 const placeholders = [
@@ -23,11 +27,7 @@ const placeholders = [
   "A marketplace where laid-off engineers can sell 30-minute career strategy calls to mid-career PMs trying to break into FAANG…",
 ];
 
-// Generic, public example — clicking runs the full simulator flow end-to-end.
-const EXAMPLE_IDEA =
-  "A monthly subscription box for houseplants with an app that sends watering and care reminders.";
-
-const IdeaInput = ({ onSubmit, initialValue, iterationContext, onStartFresh }: Props) => {
+const IdeaInput = ({ onSubmit, initialValue, iterationContext, onStartFresh, lens = "idea", onLensChange }: Props) => {
   const isIterating = !!iterationContext && (iterationContext.roundCount > 0 || iterationContext.highlightCount > 0);
   const [text, setText] = useState(initialValue || "");
   const [shaking, setShaking] = useState(false);
@@ -41,6 +41,9 @@ const IdeaInput = ({ onSubmit, initialValue, iterationContext, onStartFresh }: P
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const isTooShort = text.length > 0 && text.trim().length < 10;
+  const lensConfig = getLens(lens);
+  // Clicking the starter runs the full flow end-to-end for the chosen lens.
+  const exampleQuestion = lensConfig.startingQuestion;
 
   // Rotate placeholder while idle
   useEffect(() => {
@@ -92,19 +95,40 @@ const IdeaInput = ({ onSubmit, initialValue, iterationContext, onStartFresh }: P
         className="text-center mb-10"
       >
         <p className="text-[10px] text-primary uppercase tracking-[0.4em] mb-5 opacity-60">
-          {isIterating ? "Continue Refining" : "AI Idea Simulator"}
+          {isIterating ? "Continue Refining" : "Simulate"}
         </p>
         <h1
           className="font-display font-black text-foreground leading-[1.1] mb-3 break-words"
           style={{ fontSize: "clamp(2.25rem, 5vw + 1rem, 4rem)" }}
         >
-          {isIterating ? "What would you push further?" : "What are you building?"}
+          {isIterating ? "What would you push further?" : "What are you working through?"}
         </h1>
         <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
           {isIterating
             ? "Your prior rounds and highlights are preserved. Edit the idea or add what you'd change."
-            : "Describe it, or pull in one of your existing projects. We'll stress-test every assumption."}
+            : "Say it in plain English. We'll frame it, explore it, challenge it, and hand back a next move."}
         </p>
+
+        {!isIterating && onLensChange && (
+          <div role="radiogroup" aria-label="Kind of question" className="mt-6 flex flex-wrap justify-center gap-2">
+            {LENSES.map((l) => (
+              <button
+                key={l.id}
+                type="button"
+                role="radio"
+                aria-checked={lens === l.id}
+                onClick={() => onLensChange(l.id)}
+                className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                  lens === l.id
+                    ? "border-primary/40 bg-accent text-primary"
+                    : "border-border bg-surface-elevated text-foreground hover:border-primary/30"
+                }`}
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {isIterating && iterationContext && (
           <motion.div
@@ -226,7 +250,7 @@ const IdeaInput = ({ onSubmit, initialValue, iterationContext, onStartFresh }: P
                 onKeyDown={handleKeyDown}
                 onFocus={() => setFocused(true)}
                 onBlur={() => setFocused(false)}
-                placeholder={placeholders[placeholderIdx]}
+                placeholder={lens === "idea" ? placeholders[placeholderIdx] : lensConfig.placeholder}
                 className={`w-full min-h-[200px] p-6 rounded-lg bg-transparent border text-foreground text-sm leading-relaxed placeholder:text-muted-foreground/30 focus:outline-none resize-none transition-all duration-300 ${
                   attempted && isTooShort
                     ? "border-destructive/40 focus:border-destructive/60"
@@ -237,7 +261,7 @@ const IdeaInput = ({ onSubmit, initialValue, iterationContext, onStartFresh }: P
               />
               <div className="absolute bottom-3 right-4 flex items-center gap-3">
                 <span className="text-[10px] text-muted-foreground/40 hidden sm:inline">
-                  ↵ to simulate · Shift+↵ for newline
+                  ↵ to run · Shift+↵ for newline
                 </span>
                 <span
                   className={`text-[10px] tabular-nums transition-colors ${
@@ -272,7 +296,7 @@ const IdeaInput = ({ onSubmit, initialValue, iterationContext, onStartFresh }: P
               transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             >
               <Sparkles size={16} />
-              {isIterating ? "Continue with this idea" : "Simulate This Idea"}
+              {isIterating ? "Continue with this idea" : "Work it through"}
             </motion.button>
 
             {/* First-run helper: one click runs the full flow end-to-end */}
@@ -284,18 +308,18 @@ const IdeaInput = ({ onSubmit, initialValue, iterationContext, onStartFresh }: P
                 className="mt-5 flex flex-col items-center gap-2"
               >
                 <span className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground/40">
-                  New here? Try an example
+                  New here? Run a starting question
                 </span>
                 <button
                   type="button"
                   onClick={() => {
-                    setText(EXAMPLE_IDEA);
-                    onSubmit(EXAMPLE_IDEA);
+                    setText(exampleQuestion);
+                    onSubmit(exampleQuestion);
                   }}
-                  className="group inline-flex items-center gap-2 text-left text-xs px-4 py-2.5 rounded-full border border-emerald-500/30 bg-emerald-500/5 text-emerald-300/90 hover:border-emerald-400/60 hover:bg-emerald-500/10 transition-colors max-w-full"
+                  className="group inline-flex items-center gap-2 text-left text-xs px-4 py-2.5 rounded-full border border-primary/30 bg-accent text-primary hover:border-primary/60 transition-colors max-w-full"
                 >
                   <Sparkles size={13} className="shrink-0 opacity-70 group-hover:opacity-100" />
-                  <span className="truncate">{EXAMPLE_IDEA}</span>
+                  <span className="truncate">{exampleQuestion}</span>
                 </button>
               </motion.div>
             )}

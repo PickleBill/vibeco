@@ -118,10 +118,12 @@ const ROUTING_TABLE: Record<TaskType, ModelCandidate[]> = {
     { model: "openai/gpt-5", rationale: "Higher-quality fallback", cost: "high", speed: "slow" },
     { model: "google/gemini-3-flash-preview", rationale: "Fast-mode fallback", cost: "low", speed: "fast" },
   ],
+  // Gateway-served models only: the Lovable gateway does not serve anthropic/* ids,
+  // which is why the résumé terminal returned "AI service error" on every call.
   "bill-qa": [
-    { model: "anthropic/claude-3.5-sonnet", rationale: "Best voice fidelity for first-person answers grounded in a corpus", cost: "medium", speed: "medium" },
-    { model: "anthropic/claude-3-haiku", rationale: "Cheap/fast fallback, still strong at grounded Q&A", cost: "low", speed: "fast" },
-    { model: "google/gemini-2.5-flash", rationale: "Last-resort fallback", cost: "low", speed: "fast" },
+    { model: "google/gemini-2.5-flash", rationale: "Fast, grounded first-person answers from a supplied corpus", cost: "low", speed: "fast" },
+    { model: "google/gemini-3-flash-preview", rationale: "Fallback", cost: "low", speed: "fast" },
+    { model: "openai/gpt-5", rationale: "Higher-quality last resort", cost: "high", speed: "slow" },
   ],
 };
 
@@ -201,6 +203,11 @@ export function selectModel(
 
   // Everything unavailable — return first candidate anyway and let it fail at call time
   return candidates[0].model;
+}
+
+/** Ordered candidates for a task, for callers that retry down the chain. */
+export function modelChain(taskType: TaskType): string[] {
+  return (ROUTING_TABLE[taskType] ?? []).map((c) => c.model);
 }
 
 function isAvailable(model: string, availability?: Record<string, boolean>): boolean {
