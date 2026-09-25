@@ -32,7 +32,7 @@ const Footer = () => {
           </div>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             {[
-              { label: "Start a question", href: "/simulate" },
+              { label: "Simulate", href: "/simulate" },
               { label: "How it works", href: "#how-it-works" },
               { label: "Use cases", href: "#use-cases" },
             ].map((link) => (

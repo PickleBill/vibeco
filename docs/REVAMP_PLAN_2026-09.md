@@ -1,6 +1,6 @@
 # VibeCo revamp plan (approved 2026-09-25)
 
-> **Update (Bill, 2026-09-25): VibeCo is an application, not a personal site.** No name, bio or résumé content on it. "About Bill" is replaced by Use cases, and "Workbench" is now "Start a question". Where the plan below says otherwise, this note wins.
+> **Update (Bill, 2026-09-25): VibeCo is an application, not a personal site.** No name, bio or résumé content on it. "About Bill" is replaced by Use cases, and "Workbench" is back to "Simulate". Where the plan below says otherwise, this note wins.
 >
 > Status: Phases 1-3 and 5 are in the first PR (branch `claude/eloquent-bohr-o72zxv`). Phase 0 (Codex pushes `codex/workbench`), Phase 4 real example runs, and Phase 6 (publish + Brick link PR) come after review.
 

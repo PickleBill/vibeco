@@ -14,7 +14,7 @@ This file is for every coding agent that touches VibeCo: Codex, Claude Code, Lov
 VibeCo is an AI application, not a personal site: **"Turn a messy question into a clear next move."** It takes four kinds of question (idea or app, company or topic, business initiative, decision or disagreement) and runs each one through five steps: **Frame → Explore → Challenge → Decide → Put it to work**. Keep personal names, bios and résumé content off the site.
 
 - The homepage lives in `src/pages/Index.tsx` and `src/components/home/` (hero, how it works, use cases, builds). The question types and use cases are in `src/lib/lenses.ts`.
-- "Start a question" is `/simulate` (`src/components/simulator/SimulatorShell.tsx`).
+- "Simulate" is `/simulate` (`src/components/simulator/SimulatorShell.tsx`).
 - The agents are in `supabase/functions/` (core logic lives in `_shared/agents/`). Keep them. Change framing and UI, not the engine.
 
 ## Rules

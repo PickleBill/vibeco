@@ -133,7 +133,7 @@ const Navbar = () => {
             onClick={(e) => { e.preventDefault(); go("/simulate"); }}
             className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:brightness-110"
           >
-            Start a question <ArrowRight size={14} aria-hidden />
+            Simulate <ArrowRight size={14} aria-hidden />
           </a>
         </div>
 
@@ -190,7 +190,7 @@ const Navbar = () => {
               onClick={() => go("/simulate")}
               className="mt-3 w-full rounded-md bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground"
             >
-              Start a question
+              Simulate
             </button>
           </motion.div>
         )}
