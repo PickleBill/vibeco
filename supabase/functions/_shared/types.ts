@@ -117,10 +117,14 @@ export interface BriefContext {
   mode?: AnalysisMode;
 }
 
+/** Kind of question the workbench was asked. Mirrors src/lib/lenses.ts. */
+export type Lens = "idea" | "company" | "initiative" | "decision";
+
 export interface SimulateInput {
   type: "initial" | "refine" | "deep_dive";
   idea: string;
   mode?: AnalysisMode;
+  lens?: Lens;
   // Refine-specific
   history?: string;
   round?: number;

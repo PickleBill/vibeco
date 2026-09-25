@@ -21,6 +21,7 @@ import VibeStack from "./VibeStack";
 import { useVibeStack } from "@/hooks/useVibeStack";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureSession } from "@/lib/ensureSession";
+import type { Lens } from "@/lib/lenses";
 import { toast } from "sonner";
 
 // Derive a short, human-friendly title from the brief's problem statement.
@@ -102,6 +103,7 @@ const DRAFT_TTL = 24 * 60 * 60 * 1000; // 24 hours
 interface DraftState {
   phase: "input" | "analyzing" | "brief" | "final";
   idea: string;
+  lens?: Lens;
   rounds: RoundState[];
   currentRound: number;
   highlights: string[];
@@ -147,17 +149,22 @@ interface SimulatorShellProps {
   resumeId?: string;
   prefillIdea?: string;
   forkedFrom?: string;
+  /** Question from the homepage: pre-filled for review, not auto-run. */
+  draftIdea?: string;
+  initialLens?: Lens;
 }
 
-const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellProps) => {
+const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom, draftIdea, initialLens }: SimulatorShellProps) => {
   const [initialized, setInitialized] = useState(false);
   const [resumeLoading, setResumeLoading] = useState(!!resumeId);
-  const draft = !initialized && !resumeId ? loadDraft() : null;
+  // A new question from the homepage starts a fresh session instead of resuming the local draft.
+  const draft = !initialized && !resumeId && !draftIdea ? loadDraft() : null;
 
   const [phase, setPhase] = useState<"input" | "analyzing" | "brief" | "final">(draft?.phase === "analyzing" ? "brief" : draft?.phase || "input");
   const [rounds, setRounds] = useState<RoundState[]>(draft?.rounds || []);
   const [currentRound, setCurrentRound] = useState(draft?.currentRound || 0);
   const [idea, setIdea] = useState(draft?.idea || "");
+  const [lens, setLens] = useState<Lens>(initialLens || draft?.lens || "idea");
   const [isLoading, setIsLoading] = useState(false);
   const [conceptImage, setConceptImage] = useState<string | null>(draft?.conceptImage || null);
   const [logoImage, setLogoImage] = useState<string | null>(draft?.logoImage || null);
@@ -258,6 +265,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
     saveDraft({
       phase,
       idea,
+      lens,
       rounds,
       currentRound,
       highlights: Array.from(highlights),
@@ -271,7 +279,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
       sessionId,
       savedAt: Date.now(),
     });
-  }, [phase, idea, rounds, currentRound, highlights, antiHighlights, conceptImage, logoImage, lovablePrompt, unlocked, unlockEmail, reportId, sessionId]);
+  }, [phase, idea, lens, rounds, currentRound, highlights, antiHighlights, conceptImage, logoImage, lovablePrompt, unlocked, unlockEmail, reportId, sessionId]);
 
   const toggleHighlight = (key: string) => {
     setHighlights((prev) => {
@@ -456,8 +464,8 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
     try {
       const body: Record<string, unknown> =
         type === "initial"
-          ? { type: "initial", idea: ideaText || idea, mode: thinkingMode }
-          : { type: "refine", history: buildHistory(currentRound - 1), round, mode: thinkingMode };
+          ? { type: "initial", idea: ideaText || idea, mode: thinkingMode, lens }
+          : { type: "refine", history: buildHistory(currentRound - 1), round, mode: thinkingMode, lens };
 
       const { data, error } = await supabase.functions.invoke("simulate-idea", {
         body,
@@ -944,7 +952,9 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
               )}
               <IdeaInput
                 onSubmit={handleIdeaSubmit}
-                initialValue={idea || prefillIdea}
+                initialValue={idea || draftIdea || prefillIdea}
+                lens={lens}
+                onLensChange={setLens}
                 iterationContext={
                   rounds.length > 0 || highlights.size > 0
                     ? {

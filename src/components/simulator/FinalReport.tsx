@@ -304,9 +304,9 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   // Sub-nav: smooth scroll + intersection-observer to track active section
   const navSections = [
     { id: "verdict", label: "Verdict" },
-    { id: "prompt", label: "Prompt" },
     { id: "brief", label: "Brief" },
     { id: "stress-test", label: "Stress-test" },
+    { id: "prompt", label: "Prompt" },
     { id: "actions", label: "Actions" },
   ];
 
@@ -1014,132 +1014,6 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
 
 
 
-          {/* ★ HERO: Single prompt block with three states (empty / shown / sharpening-diff) */}
-          <motion.div
-            id="fr-prompt"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="mb-8 scroll-mt-24"
-          >
-            {/* Persistent highlight summary banner — visible whenever there's input */}
-              {(highlights && highlights.size > 0) || (antiHighlights && antiHighlights.size > 0) ? (
-                <motion.div
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="flex items-center gap-3 mb-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20"
-                >
-                  <Sparkles size={12} className="text-primary fill-primary shrink-0" />
-                  <span className="text-xs text-primary truncate">
-                    {highlights && highlights.size > 0 && (
-                      <>
-                        {highlights.size} highlight{highlights.size > 1 ? "s" : ""}
-                      </>
-                    )}
-                    {antiHighlights && antiHighlights.size > 0 && (
-                      <>
-                        {highlights && highlights.size > 0 ? " · " : ""}
-                        {antiHighlights.size} flag{antiHighlights.size > 1 ? "s" : ""}
-                      </>
-                    )}
-                    {lovablePrompt ? " — sharpen from the Vibe Stack to apply" : " — generate the prompt to apply"}
-                  </span>
-                </motion.div>
-              ) : null}
-
-            {/* Premium reasoning toggle — admin/premium only. Server re-verifies. */}
-            {!pendingPrompt && lovablePrompt && isPremium && (
-              <div className="flex items-center justify-between gap-3 mb-3 px-4 py-2.5 rounded-lg bg-[#6A2CF5]/5 border border-[#6A2CF5]/25">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Sparkles size={13} className="text-[#6A2CF5] shrink-0" />
-                  <div className="min-w-0">
-                    <p className="font-mono text-xs text-foreground">Premium reasoning</p>
-                    <p className="text-[11px] text-muted-foreground truncate">
-                      GPT-5.5 for grading &amp; improving — higher cost, sharper output
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  checked={premium}
-                  onCheckedChange={setPremium}
-                  aria-label="Use premium GPT-5.5 reasoning"
-                />
-              </div>
-            )}
-
-            {/* Prompt strength grade (auto-graded; drives the one-click improve loop) */}
-            {!pendingPrompt && lovablePrompt && (
-              <PromptGradeBadge
-                grade={promptGrade}
-                loading={gradeLoading}
-                onImprove={handleImprovePrompt}
-                improving={isImproving}
-              />
-            )}
-
-            {/* Diff view supersedes the regular prompt view while pending */}
-            {pendingPrompt ? (
-              <PromptDiff
-                oldPrompt={lovablePrompt || ""}
-                newPrompt={pendingPrompt}
-                onKeep={handleAcceptPending}
-                onRevert={handleRevertPending}
-              />
-            ) : lovablePrompt ? (
-              <div className="border-2 border-primary/30 rounded-xl overflow-hidden bg-card/40"
-                style={{ boxShadow: "0 0 32px -10px hsl(var(--primary) / 0.18)" }}
-              >
-                <div className="flex items-center justify-between px-4 py-2.5 bg-primary/8 border-b border-primary/20">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Sparkles size={12} className="text-primary shrink-0" />
-                    <span className="text-xs font-semibold text-primary uppercase tracking-wider truncate">
-                      Your Lovable Prompt
-                    </span>
-                  </div>
-                </div>
-                <div className="p-4 max-h-72 overflow-y-auto">
-                  <pre className="text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap font-sans">
-                    {lovablePrompt}
-                  </pre>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 bg-muted/15 border-t border-border/30">
-                  <button
-                    onClick={handleCopyPromptWithHighlights}
-                    className="flex items-center justify-center gap-1.5 text-xs font-semibold text-primary-foreground bg-primary px-3 py-2.5 rounded-sm hover:opacity-90 transition-opacity"
-                  >
-                    {copied ? <Check size={13} /> : <Copy size={13} />}
-                    {copied ? "Copied" : highlights && highlights.size > 0 ? "Copy + highlights" : "Copy prompt"}
-                  </button>
-                  <a
-                    href="https://lovable.dev"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-center gap-1.5 text-xs font-semibold text-primary-foreground bg-primary px-3 py-2.5 rounded-sm hover:opacity-90 transition-opacity"
-                  >
-                    Open in Lovable
-                    <ExternalLink size={12} />
-                  </a>
-                </div>
-              </div>
-            ) : (
-              <div className="border-2 border-dashed border-primary/30 rounded-xl p-6 text-center bg-primary/5">
-                <Sparkles size={20} className="text-primary mx-auto mb-2" />
-                <p className="text-sm text-foreground mb-1 font-display font-semibold">Generate your build prompt</p>
-                <p className="text-xs text-muted-foreground mb-4">
-                  Turn this brief into a Lovable-ready prompt you can paste and ship.
-                </p>
-                <button
-                  onClick={handleGeneratePrompt}
-                  disabled={isGeneratingPrompt}
-                  className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
-                >
-                  {isGeneratingPrompt ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                  {isGeneratingPrompt ? "Generating…" : "Generate Lovable prompt"}
-                </button>
-              </div>
-            )}
-          </motion.div>
 
           {/* Scale assessment — kept, but moved below prompt and tightened */}
           {brief.scale_assessment && (
@@ -1363,8 +1237,6 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
           </div>
         </div>
 
-        {/* (Lovable Prompt now lives near the top — promoted to position 2) */}
-
         {/* Stress-test the whole idea — always visible */}
         <div id="fr-stress-test" className="scroll-mt-24">
           <ThunderdomePanel
@@ -1377,6 +1249,133 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
             onPromptUpdate={onPromptUpdate}
           />
         </div>
+
+        {/* Put it to work: the build prompt sits with the other next moves */}
+        <motion.div
+          id="fr-prompt"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="mb-8 scroll-mt-24"
+        >
+          {/* Persistent highlight summary banner — visible whenever there's input */}
+            {(highlights && highlights.size > 0) || (antiHighlights && antiHighlights.size > 0) ? (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex items-center gap-3 mb-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/20"
+              >
+                <Sparkles size={12} className="text-primary fill-primary shrink-0" />
+                <span className="text-xs text-primary truncate">
+                  {highlights && highlights.size > 0 && (
+                    <>
+                      {highlights.size} highlight{highlights.size > 1 ? "s" : ""}
+                    </>
+                  )}
+                  {antiHighlights && antiHighlights.size > 0 && (
+                    <>
+                      {highlights && highlights.size > 0 ? " · " : ""}
+                      {antiHighlights.size} flag{antiHighlights.size > 1 ? "s" : ""}
+                    </>
+                  )}
+                  {lovablePrompt ? " — sharpen from the Vibe Stack to apply" : " — generate the prompt to apply"}
+                </span>
+              </motion.div>
+            ) : null}
+
+          {/* Premium reasoning toggle — admin/premium only. Server re-verifies. */}
+          {!pendingPrompt && lovablePrompt && isPremium && (
+            <div className="flex items-center justify-between gap-3 mb-3 px-4 py-2.5 rounded-lg bg-[#6A2CF5]/5 border border-[#6A2CF5]/25">
+              <div className="flex items-center gap-2 min-w-0">
+                <Sparkles size={13} className="text-[#6A2CF5] shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-mono text-xs text-foreground">Premium reasoning</p>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    GPT-5.5 for grading &amp; improving — higher cost, sharper output
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={premium}
+                onCheckedChange={setPremium}
+                aria-label="Use premium GPT-5.5 reasoning"
+              />
+            </div>
+          )}
+
+          {/* Prompt strength grade (auto-graded; drives the one-click improve loop) */}
+          {!pendingPrompt && lovablePrompt && (
+            <PromptGradeBadge
+              grade={promptGrade}
+              loading={gradeLoading}
+              onImprove={handleImprovePrompt}
+              improving={isImproving}
+            />
+          )}
+
+          {/* Diff view supersedes the regular prompt view while pending */}
+          {pendingPrompt ? (
+            <PromptDiff
+              oldPrompt={lovablePrompt || ""}
+              newPrompt={pendingPrompt}
+              onKeep={handleAcceptPending}
+              onRevert={handleRevertPending}
+            />
+          ) : lovablePrompt ? (
+            <div className="border-2 border-primary/30 rounded-xl overflow-hidden bg-card/40"
+              style={{ boxShadow: "0 0 32px -10px hsl(var(--primary) / 0.18)" }}
+            >
+              <div className="flex items-center justify-between px-4 py-2.5 bg-primary/8 border-b border-primary/20">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Sparkles size={12} className="text-primary shrink-0" />
+                  <span className="text-xs font-semibold text-primary uppercase tracking-wider truncate">
+                    Your Lovable Prompt
+                  </span>
+                </div>
+              </div>
+              <div className="p-4 max-h-72 overflow-y-auto">
+                <pre className="text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap font-sans">
+                  {lovablePrompt}
+                </pre>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 bg-muted/15 border-t border-border/30">
+                <button
+                  onClick={handleCopyPromptWithHighlights}
+                  className="flex items-center justify-center gap-1.5 text-xs font-semibold text-primary-foreground bg-primary px-3 py-2.5 rounded-sm hover:opacity-90 transition-opacity"
+                >
+                  {copied ? <Check size={13} /> : <Copy size={13} />}
+                  {copied ? "Copied" : highlights && highlights.size > 0 ? "Copy + highlights" : "Copy prompt"}
+                </button>
+                <a
+                  href="https://lovable.dev"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-center gap-1.5 text-xs font-semibold text-primary-foreground bg-primary px-3 py-2.5 rounded-sm hover:opacity-90 transition-opacity"
+                >
+                  Open in Lovable
+                  <ExternalLink size={12} />
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div className="border-2 border-dashed border-primary/30 rounded-xl p-6 text-center bg-primary/5">
+              <Sparkles size={20} className="text-primary mx-auto mb-2" />
+              <p className="text-sm text-foreground mb-1 font-display font-semibold">Generate your build prompt</p>
+              <p className="text-xs text-muted-foreground mb-4">
+                Turn this brief into a Lovable-ready prompt you can paste and ship.
+              </p>
+              <button
+                onClick={handleGeneratePrompt}
+                disabled={isGeneratingPrompt}
+                className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {isGeneratingPrompt ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                {isGeneratingPrompt ? "Generating…" : "Generate Lovable prompt"}
+              </button>
+            </div>
+          )}
+        </motion.div>
 
         {/* Action Hub — always visible */}
         <div id="fr-actions" className="scroll-mt-24 mt-8">
