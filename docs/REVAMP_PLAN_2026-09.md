@@ -108,7 +108,7 @@ QUALITY BAR: A hiring manager lands on the page, understands what it does in 10 
 - About Bill: 3 lines, a photo, and a prominent "Résumé & proof → picklebill.github.io/Brick" link. Plus a small "How it's built" panel (Lovable + Claude Code + Codex, a multi-model router, 18 agents), because that's the interview talking point.
 
 **Phase 5 · Fix Brick's terminal backend** (`_shared/model-router.ts` "bill-qa")
-- Swap the retired Claude IDs for current ones. Put a gateway-served model first so it works even without `ANTHROPIC_API_KEY`. Redeploy through the existing `.github/workflows/deploy-ask-bill.yml`.
+- Swap the retired Claude IDs for current ones. Put a gateway-served model first so it works even without `ANTHROPIC_API_KEY`. Redeploy through Lovable (done 2026-09-25; the old `deploy-ask-bill.yml` workflow was removed because Lovable Cloud has no Supabase access token).
 
 **Phase 6 · Ship**
 - PR → you approve → merge to main → confirm Lovable's `latest_commit_sha` matches → publish with Lovable `deploy_project` → check vibeco.lovable.app live.
