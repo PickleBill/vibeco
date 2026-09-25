@@ -1,3 +1,4 @@
+import { invokeAI } from "@/lib/invokeAI";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -42,7 +43,7 @@ const ProjectImporter = ({ onImport }: Props) => {
     // metadata we have. (Full file fetching lives in the next phase.)
     setLoadingManifest(true);
     try {
-      const { data, error } = await supabase.functions.invoke("import-project", {
+      const { data, error } = await invokeAI("import-project", {
         body: {
           project_name: project.name,
           parent_brand: project.parent_brand,

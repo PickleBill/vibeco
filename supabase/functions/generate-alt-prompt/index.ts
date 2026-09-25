@@ -1,8 +1,9 @@
+import { guardedEndpoint } from "../_shared/request-guard.ts";
 import { handleCors, jsonResponse } from "../_shared/cors.ts";
 import { handleFunctionError } from "../_shared/error-handler.ts";
 import { generateAltPrompt } from "../_shared/agents/alt-prompt.ts";
 
-Deno.serve(async (req) => {
+Deno.serve(guardedEndpoint("generate-alt-prompt", async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
@@ -18,4 +19,4 @@ Deno.serve(async (req) => {
   } catch (e) {
     return handleFunctionError("generate-alt-prompt", e);
   }
-});
+}));

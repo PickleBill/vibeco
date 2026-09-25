@@ -1,189 +1,165 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
-import { Mail, ArrowLeft } from "lucide-react";
+import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import type { User } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable/index';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import { ArrowLeft, Download, Mail } from 'lucide-react';
+import { safeReturnPath, authDestination } from '@/lib/authFlow';
+import { clearBrowserDrafts } from '@/lib/browserDrafts';
 
-const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+const UPGRADE_KEY = 'vibeco-pending-guest-upgrade';
+
+export default function Auth() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const returnTo = safeReturnPath(params.get('returnTo'));
+  const [user, setUser] = useState<User | null>(null);
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
+  const [emailSent, setEmailSent] = useState(false);
+  const [needsPassword, setNeedsPassword] = useState(false);
+  const [backupReady, setBackupReady] = useState(false);
+  const switchingAccount = useRef(false);
+  const isGuest = user?.is_anonymous === true;
 
-  // Redirect if already logged in
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) navigate("/");
-    });
+    let active = true;
+    const update = (nextUser: User | null) => {
+      if (!active) return;
+      setUser(nextUser);
+      setInitializing(false);
+      const pendingUid = localStorage.getItem(UPGRADE_KEY);
+      const destination = authDestination(nextUser, pendingUid, params.get('finish') === '1');
+      if (destination === 'set-password') setNeedsPassword(true);
+      if (destination === 'workspace' && !switchingAccount.current) navigate(returnTo, { replace: true });
+    };
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => update(session?.user ?? null));
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) navigate("/");
-    });
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+      if (session?.user.is_anonymous) setIsLogin(false);
+      update(session?.user ?? null);
+    }).catch(() => { setInitializing(false); toast.error('Your session could not be read. Please reload.'); });
+    return () => { active = false; subscription.unsubscribe(); };
+  // URL values are fixed for this auth visit; avoid resubscribing on form changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate, returnTo]);
 
-  const handleGoogle = async () => {
-    const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (error) toast.error(error.message);
-  };
+  const callback = `${window.location.origin}/auth?finish=1&returnTo=${encodeURIComponent(returnTo)}`;
 
-  const handleApple = async () => {
-    const { error } = await lovable.auth.signInWithOAuth("apple", {
-      redirect_uri: window.location.origin,
-    });
-    if (error) toast.error(error.message);
-  };
-
-  const handleEmailAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const downloadGuestWork = async () => {
+    if (!user) return;
     setLoading(true);
-
-    if (isLogin) {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) toast.error(error.message);
-    } else {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo: window.location.origin },
-      });
-      if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success("Check your email to confirm your account.");
-      }
-    }
-    setLoading(false);
+    try {
+      const { data: reports, error } = await supabase.from('idea_reports').select('*').eq('user_id', user.id);
+      if (error) throw error;
+      const ids = (reports ?? []).map(report => report.id);
+      const [perspectives, stack] = ids.length ? await Promise.all([
+        supabase.from('idea_perspectives').select('*').in('report_id', ids),
+        supabase.from('idea_stack_items').select('*').in('report_id', ids),
+      ]) : [{ data: [], error: null }, { data: [], error: null }];
+      if (perspectives.error) throw perspectives.error;
+      if (stack.error) throw stack.error;
+      const drafts = Object.fromEntries(Object.keys(localStorage)
+        .filter(key => key.startsWith('vibeco') && /draft|simulat|workbench|session/i.test(key) && !/auth|token/i.test(key))
+        .map(key => [key, localStorage.getItem(key)]));
+      const sessionDrafts = Object.fromEntries(Object.keys(sessionStorage)
+        .filter(key => key.startsWith('vibeco') && /draft|simulat|workbench|session/i.test(key) && !/auth|token/i.test(key))
+        .map(key => [key, sessionStorage.getItem(key)]));
+      const archive = { format: 'vibeco-guest-backup', version: 1, exportedAt: new Date().toISOString(), reports: reports ?? [], perspectives: perspectives.data ?? [], stack: stack.data ?? [], drafts, sessionDrafts };
+      const url = URL.createObjectURL(new Blob([JSON.stringify(archive, null, 2)], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'vibeco-guest-work.json';
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setBackupReady(true);
+      toast.success('Guest recovery archive downloaded. You can now sign in.');
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Backup failed. Your guest session is still active.'); }
+    finally { setLoading(false); }
   };
 
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-6">
-      <div className="w-full max-w-sm">
-        <button
-          onClick={() => navigate("/")}
-          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mb-8 transition-colors"
-        >
-          <ArrowLeft size={12} /> Back to home
-        </button>
+  const handleOAuth = async (provider: 'google' | 'apple') => {
+    setLoading(true);
+    try {
+      if (isGuest) {
+        // linkIdentity preserves the guest UID and all its RLS-owned work.
+        // It must be enabled in Supabase; failures leave the guest signed in.
+        const { error } = await supabase.auth.linkIdentity({ provider, options: { redirectTo: `${window.location.origin}${returnTo}` } });
+        if (error) throw error;
+      } else {
+        const { error } = await lovable.auth.signInWithOAuth(provider, { redirect_uri: `${window.location.origin}${returnTo}` });
+        if (error) throw error;
+      }
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Sign-in failed. Try email instead.'); }
+    finally { setLoading(false); }
+  };
 
-        <h1 className="font-display text-2xl font-black text-foreground mb-1">
-          {isLogin ? "Welcome back." : "Create your account."}
-        </h1>
-        <p className="text-sm text-muted-foreground mb-8">
-          {isLogin
-            ? "Sign in to save your simulator sessions."
-            : "Sign up to save and revisit your ideas."}
-        </p>
+  const handleEmailAuth = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    try {
+      if (needsPassword) {
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
+        localStorage.removeItem(UPGRADE_KEY);
+        toast.success('Account ready. Your guest work is still yours.');
+        navigate(returnTo, { replace: true });
+      } else if (isGuest && !isLogin) {
+        // Passwords can only be added after email confirmation. Do not create a
+        // second user with signUp(), which would strand existing guest reports.
+        localStorage.setItem(UPGRADE_KEY, user.id);
+        const { error } = await supabase.auth.updateUser({ email }, { emailRedirectTo: callback });
+        if (error) { localStorage.removeItem(UPGRADE_KEY); throw error; }
+        setEmailSent(true);
+        toast.success('Check your email, then return here to choose a password.');
+      } else if (isLogin) {
+        if (isGuest && !backupReady) throw new Error('Download your guest work before switching to an existing account.');
+        switchingAccount.current = true;
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        localStorage.removeItem(UPGRADE_KEY);
+        clearBrowserDrafts();
+        navigate(returnTo, { replace: true });
+      } else {
+        const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}${returnTo}` } });
+        if (error) throw error;
+        setEmailSent(true);
+        toast.success('Check your email to confirm your account.');
+      }
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'The account change did not complete. Please try again.'); }
+    finally { switchingAccount.current = false; setLoading(false); }
+  };
 
-        {/* OAuth buttons */}
-        <div className="space-y-3 mb-6">
-          <Button
-            variant="outline"
-            className="w-full text-sm h-11 gap-2"
-            onClick={handleGoogle}
-          >
-            <svg viewBox="0 0 24 24" className="w-4 h-4">
-              <path
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
-                fill="#4285F4"
-              />
-              <path
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                fill="#34A853"
-              />
-              <path
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                fill="#FBBC05"
-              />
-              <path
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                fill="#EA4335"
-              />
-            </svg>
-            Continue with Google
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full text-sm h-11 gap-2"
-            onClick={handleApple}
-          >
-            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-foreground">
-              <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-            </svg>
-            Continue with Apple
-          </Button>
-        </div>
-
-        {/* Divider */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex-1 h-px bg-border" />
-          <span className="text-xs text-muted-foreground">or</span>
-          <div className="flex-1 h-px bg-border" />
-        </div>
-
-        {/* Email form */}
-        <form onSubmit={handleEmailAuth} className="space-y-4">
-          <div>
-            <Label htmlFor="email" className="text-xs">
-              Email
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="text-sm mt-1"
-              placeholder="you@example.com"
-            />
-          </div>
-          <div>
-            <Label htmlFor="password" className="text-xs">
-              Password
-            </Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              className="text-sm mt-1"
-              placeholder="••••••••"
-            />
-          </div>
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full text-sm h-11 gap-2"
-          >
-            <Mail size={14} />
-            {loading
-              ? "Loading..."
-              : isLogin
-              ? "Sign In"
-              : "Create Account"}
-          </Button>
-        </form>
-
-        <p className="text-xs text-muted-foreground text-center mt-6">
-          {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-          <button
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-primary hover:underline"
-          >
-            {isLogin ? "Sign up" : "Sign in"}
-          </button>
-        </p>
-      </div>
+  return <main className="min-h-screen bg-background flex items-center justify-center px-6 py-16">
+    <div className="w-full max-w-md">
+      <Button variant="ghost" onClick={() => navigate(returnTo)} className="mb-8 -ml-4 gap-2"><ArrowLeft size={15} /> Back to your work</Button>
+      <p className="text-xs uppercase tracking-[.18em] text-primary mb-3">Your private workspace</p>
+      <h1 className="font-display text-3xl font-black mb-3">{needsPassword ? 'Finish your account.' : isGuest && !isLogin ? 'Keep what you started.' : isLogin ? 'Welcome back.' : 'Create your account.'}</h1>
+      <p className="text-sm text-muted-foreground mb-7">{needsPassword ? 'Your email is confirmed. Choose a password to keep using the same workspace.' : isGuest && !isLogin ? 'Add an email to your guest session. Your existing reports stay with you.' : 'Save research, revisit decisions, and continue your thinking.'}</p>
+      {emailSent && <p role="status" className="rounded-lg border border-primary/25 bg-primary/5 p-4 text-sm mb-5">Check your inbox for the confirmation link. Open it in this browser to finish. Your current work is still available.</p>}
+      {isGuest && isLogin && <div className="rounded-lg border p-4 mb-6 text-sm space-y-3">
+        <p>Your existing account has a separate workspace. Download your guest work first; it will not automatically transfer.</p>
+        <Button variant="outline" disabled={loading} onClick={downloadGuestWork} className="gap-2"><Download size={16} /> {backupReady ? 'Download again' : 'Download guest work'}</Button>
+        {backupReady && <p role="status" className="text-muted-foreground text-xs">Keep the JSON recovery archive. It includes your saved reports and local drafts.</p>}
+      </div>}
+      {!needsPassword && !(isGuest && isLogin) && <div className="space-y-3 mb-6">
+        <Button variant="outline" className="w-full h-11" disabled={loading || initializing} onClick={() => handleOAuth('google')}>{isGuest ? 'Connect Google and keep this work' : 'Continue with Google'}</Button>
+        <Button variant="outline" className="w-full h-11" disabled={loading || initializing} onClick={() => handleOAuth('apple')}>{isGuest ? 'Connect Apple and keep this work' : 'Continue with Apple'}</Button>
+        <p className="text-center text-xs text-muted-foreground pt-2">or use email</p>
+      </div>}
+      <form onSubmit={handleEmailAuth} className="space-y-4">
+        {!needsPassword && <div><Label htmlFor="email">Email</Label><Input id="email" type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} required className="mt-1" placeholder="you@example.com" /></div>}
+        {(needsPassword || isLogin || !isGuest) && <div><Label htmlFor="password">Password</Label><Input id="password" type="password" autoComplete={isLogin && !needsPassword ? 'current-password' : 'new-password'} value={password} onChange={event => setPassword(event.target.value)} required minLength={isLogin && !needsPassword ? 1 : 8} className="mt-1" /></div>}
+        <Button type="submit" disabled={loading || initializing || (isGuest && isLogin && !backupReady)} className="w-full h-11 gap-2"><Mail size={16} />{loading ? 'Working…' : needsPassword ? 'Save password and continue' : isGuest && !isLogin ? 'Verify email and keep my work' : isLogin ? 'Sign in' : 'Create account'}</Button>
+      </form>
+      {!needsPassword && <p className="text-sm text-muted-foreground text-center mt-6">{isLogin ? 'Need an account?' : 'Already have an account?'}{' '}<button onClick={() => { setIsLogin(!isLogin); setEmailSent(false); }} className="text-primary underline underline-offset-4">{isLogin ? 'Create one' : 'Sign in'}</button></p>}
     </div>
-  );
-};
-
-export default Auth;
+  </main>;
+}

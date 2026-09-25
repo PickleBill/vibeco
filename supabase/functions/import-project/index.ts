@@ -1,3 +1,4 @@
+import { guardedEndpoint } from "../_shared/request-guard.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { handleCors, jsonResponse } from "../_shared/cors.ts";
 import { handleFunctionError } from "../_shared/error-handler.ts";
@@ -25,7 +26,7 @@ interface RequestBody {
   pages?: string[];
 }
 
-serve(async (req) => {
+serve(guardedEndpoint("import-project", async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
@@ -50,4 +51,4 @@ serve(async (req) => {
   } catch (e) {
     return handleFunctionError("import-project", e);
   }
-});
+}));

@@ -1,6 +1,7 @@
 import { callLLMWithTool } from "../llm-client.ts";
 import { selectModel } from "../model-router.ts";
 import type { AnalysisMode } from "../types.ts";
+import { publicSourceUrl } from "../workbench-types.ts";
 
 /**
  * Signal Mine agent — turns raw social items into ranked feature candidates.
@@ -43,7 +44,7 @@ export interface FeatureCandidate {
   pain_score: number;       // 0..100
   confidence: number;       // 0..100
   effort: "S" | "M" | "L";
-  evidence: { member_count: number; sources: string[] };
+  evidence: { member_count: number; sources: string[]; source_refs?: { url: string; title: string; source: string }[]; quotes_are_paraphrases?: true };
 }
 
 export interface SignalMineInput {
@@ -278,6 +279,16 @@ export async function synthesizeCandidate(cluster: Cluster, painItems: Classifie
   const members = cluster.member_indices.map((i) => painItems[i]).filter(Boolean);
   const evidence = members.map((m, i) => `[${i}] (${m.source}) ${m.title ? m.title + " — " : ""}${m.body}`).join("\n");
   const sources = [...new Set(members.map((m) => m.source))];
+  // Keep the original platform labels for legacy consumers, and preserve actual
+  // evidence links from collected items. A model never supplies these URLs.
+  const sourceRefs = new Map<string, { url: string; title: string; source: string }>();
+  for (const member of members) {
+    if (!member.source_url) continue;
+    try {
+      const url = publicSourceUrl(member.source_url);
+      if (!sourceRefs.has(url) || member.title) sourceRefs.set(url, { url, title: member.title || new URL(url).hostname, source: member.source });
+    } catch { /* Missing or unsafe URLs remain uncited, never fabricated. */ }
+  }
 
   const system = `You are a product strategist for "${product}". ${productContext}
 Read a cluster of real user complaints and produce ONE crisp, buildable feature candidate. Favor the smallest change that kills the pain. Paraphrase quotes — never reproduce them verbatim.`;
@@ -296,8 +307,8 @@ Read a cluster of real user complaints and produce ONE crisp, buildable feature 
   return {
     cluster_theme: cluster.theme,
     pain_score: cluster.pain_score,
-    evidence: { member_count: members.length, sources },
     ...result,
+    evidence: { member_count: members.length, sources, source_refs: [...sourceRefs.values()], quotes_are_paraphrases: true },
   };
 }
 

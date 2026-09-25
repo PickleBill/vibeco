@@ -1,3 +1,7 @@
+import { isLocalPreview } from "@/lib/localPreview";
+import { buildExample } from "@/data/workbenchExamples";
+import { Link } from "react-router-dom";
+import { invokeAI } from "@/lib/invokeAI";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Zap, Brain, X } from "lucide-react";
@@ -33,12 +37,12 @@ function deriveTitle(brief: BriefData | undefined, fallbackIdea: string): string
 }
 
 const analysisMessages = [
-  "Analyzing market size and competitive landscape...",
-  "Identifying your most likely early customers...",
-  "Generating investor perspective...",
+  "Exploring the problem and assumptions...",
+  "Considering possible early customers...",
+  "Generating a synthetic investor perspective...",
   "Mapping out core features...",
   "Pressure-testing the revenue model...",
-  "Evaluating industry trends and timing...",
+  "Identifying market questions to verify...",
   "Finalizing analysis...",
 ];
 
@@ -119,8 +123,10 @@ interface DraftState {
 function saveDraft(state: DraftState) {
   try {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(state));
+    return true;
   } catch {
-    // localStorage full or unavailable — silently ignore
+    toast.error("Browser storage is unavailable. Copy or export your report before leaving.", { id: "build-draft-storage" });
+    return false;
   }
 }
 
@@ -140,34 +146,41 @@ function loadDraft(): DraftState | null {
 }
 
 function clearDraft() {
-  try { localStorage.removeItem(DRAFT_KEY); } catch {}
+  try { localStorage.removeItem(DRAFT_KEY); } catch { /* Storage may be unavailable in private browsing. */ }
 }
 
 interface SimulatorShellProps {
   resumeId?: string;
   prefillIdea?: string;
   forkedFrom?: string;
+  example?: boolean;
+  onQuestionChange?: (question: string) => void;
 }
 
-const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellProps) => {
+const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom, example = false, onQuestionChange }: SimulatorShellProps) => {
   const [initialized, setInitialized] = useState(false);
   const [resumeLoading, setResumeLoading] = useState(!!resumeId);
-  const draft = !initialized && !resumeId ? loadDraft() : null;
+  const draft = !initialized && !resumeId && !prefillIdea && !example ? loadDraft() : null;
 
-  const [phase, setPhase] = useState<"input" | "analyzing" | "brief" | "final">(draft?.phase === "analyzing" ? "brief" : draft?.phase || "input");
-  const [rounds, setRounds] = useState<RoundState[]>(draft?.rounds || []);
+  const [phase, setPhase] = useState<"input" | "analyzing" | "brief" | "final">(example ? "final" : draft?.phase === "analyzing" ? "brief" : draft?.phase || "input");
+  const [rounds, setRounds] = useState<RoundState[]>(example ? [{brief:buildExample.brief,questions:[]}] : draft?.rounds || []);
+  const roundsRef = useRef(rounds);
+  roundsRef.current = rounds;
   const [currentRound, setCurrentRound] = useState(draft?.currentRound || 0);
-  const [idea, setIdea] = useState(draft?.idea || "");
+  const [idea, setIdea] = useState(example ? buildExample.idea : prefillIdea || draft?.idea || "");
+  useEffect(() => { if (!example) onQuestionChange?.(idea); }, [idea, example, onQuestionChange]);
   const [isLoading, setIsLoading] = useState(false);
+  const [imagesLoading, setImagesLoading] = useState(false);
+  const [localDraftSaved, setLocalDraftSaved] = useState(true);
   const [conceptImage, setConceptImage] = useState<string | null>(draft?.conceptImage || null);
   const [logoImage, setLogoImage] = useState<string | null>(draft?.logoImage || null);
   const [unlocked, setUnlocked] = useState(draft?.unlocked || false);
   const [unlockEmail, setUnlockEmail] = useState(draft?.unlockEmail || "");
-  const [lovablePrompt, setLovablePrompt] = useState<string | null>(draft?.lovablePrompt || null);
-  const [sessionId] = useState(() => draft?.sessionId || crypto.randomUUID());
+  const [lovablePrompt, setLovablePrompt] = useState<string | null>(example ? buildExample.prompt : draft?.lovablePrompt || null);
+  const [sessionId, setSessionId] = useState(() => draft?.sessionId || crypto.randomUUID());
   const [highlights, setHighlights] = useState<Set<string>>(new Set(draft?.highlights || []));
   const [antiHighlights, setAntiHighlights] = useState<Set<string>>(new Set(draft?.antiHighlights || []));
-  const [reportId, setReportId] = useState<string | null>(draft?.reportId || null);
+  const [reportId, setReportId] = useState<string | null>(draft?.reportId || resumeId || null);
   const [autoAnalysis, setAutoAnalysis] = useState<OrchestrateResult | null>(null);
   const [depthRecommendation, setDepthRecommendation] = useState<string | undefined>();
   const [thinkingMode, setThinkingMode] = useState<"fast" | "deep">("fast");
@@ -181,18 +194,18 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
   const [isStackSnapshotting, setIsStackSnapshotting] = useState(false);
 
   // Vibe Stack — curated insight chits, falls back to localStorage when no reportId yet
-  const stack = useVibeStack(reportId);
+  const stack = useVibeStack(reportId, { ephemeral: example, localScope: sessionId });
 
   // Resume from DB when resumeId is provided
   useEffect(() => {
-    if (!resumeId) return;
+    if (!resumeId || example || isLocalPreview) { setResumeLoading(false); return; }
 
     (async () => {
       try {
         const { data: report, error } = await (supabase.from("idea_reports") as any)
           .select("*")
           .eq("id", resumeId)
-          .single();
+          .single().throwOnError();
 
         if (error || !report) {
           console.error("Resume error:", error);
@@ -202,11 +215,11 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
         }
 
         // Reconstruct state from the report
-        const reportRounds = Array.isArray(report.rounds) ? report.rounds as RoundState[] : [];
+        const reportRounds = Array.isArray(report.rounds) && report.rounds.length ? report.rounds as RoundState[] : report.brief ? [{ brief: report.brief, questions: [] }] : [];
 
         setIdea(report.idea || "");
         setRounds(reportRounds);
-        setCurrentRound(Math.max(0, reportRounds.length - 1));
+        setCurrentRound(reportRounds.length);
         setConceptImage(report.concept_image_url || null);
         setLogoImage(report.logo_image_url || null);
         setLovablePrompt(report.lovable_prompt || null);
@@ -215,16 +228,9 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
         setReportId(report.id);
 
         // Determine phase from data
-        if (report.lovable_prompt) {
+        if (report.lovable_prompt || ["brief-complete", "prompt-ready", "built"].includes(report.status)) {
           setPhase("final");
           setUnlocked(true);
-          // Try to get the email from simulator_captures
-          const { data: capture } = await (supabase.from("simulator_captures") as any)
-            .select("email")
-            .eq("report_id", report.id)
-            .limit(1)
-            .maybeSingle();
-          if (capture?.email) setUnlockEmail(capture.email);
         } else if (reportRounds.length > 0) {
           setPhase("brief");
         } else {
@@ -239,23 +245,23 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
         setResumeLoading(false);
       }
     })();
-  }, [resumeId]);
+  }, [resumeId, example]);
 
   useEffect(() => {
     setInitialized(true);
     if (draft && !resumeId) {
       toast.info("Resumed your previous session.");
     }
-    // Auto-submit prefilled idea from a fork/rebuild
+    // Prefill from a fork/rebuild; only the user starts the next run.
     if (prefillIdea && !resumeId && !draft) {
-      handleIdeaSubmit(prefillIdea);
+      setIdea(prefillIdea);
     }
-  }, []);
+  }, [draft, prefillIdea, resumeId]);
 
   // Persist state to localStorage on meaningful changes
   useEffect(() => {
-    if (phase === "input" && rounds.length === 0) return;
-    saveDraft({
+    if (example || (phase === "input" && rounds.length === 0)) return;
+    setLocalDraftSaved(saveDraft({
       phase,
       idea,
       rounds,
@@ -270,8 +276,8 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
       reportId,
       sessionId,
       savedAt: Date.now(),
-    });
-  }, [phase, idea, rounds, currentRound, highlights, antiHighlights, conceptImage, logoImage, lovablePrompt, unlocked, unlockEmail, reportId, sessionId]);
+    }));
+  }, [phase, idea, rounds, currentRound, highlights, antiHighlights, conceptImage, logoImage, lovablePrompt, unlocked, unlockEmail, reportId, sessionId, example]);
 
   const toggleHighlight = (key: string) => {
     setHighlights((prev) => {
@@ -303,27 +309,25 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
 
   // Helper to get current user ID — mints an anonymous session if needed so
   // every insert sets user_id and passes owner-scoped RLS.
-  const getUserId = async () => {
-    return ensureSession();
-  };
 
   // Helper to update report status
   const updateReportStatus = async (id: string, status: string) => {
     try {
       await (supabase.from("idea_reports") as any)
         .update({ status })
-        .eq("id", id);
+        .eq("id", id).select("id").single().throwOnError();
     } catch (err) {
       console.error("Status update error:", err);
+      toast.error("Status was not saved. Your report is still available.");
     }
   };
 
   // Auto-save to simulator_captures (DB backup)
   useEffect(() => {
-    if (rounds.length === 0) return;
+    if (example || isLocalPreview || rounds.length === 0) return;
     const saveSession = async () => {
       try {
-        const userId = await getUserId();
+        const userId = await ensureSession();
         await (supabase.from("simulator_captures") as any).upsert({
           id: sessionId,
           email: unlockEmail || `anonymous-${sessionId.slice(0, 8)}`,
@@ -338,17 +342,18 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
           lovable_prompt: lovablePrompt || null,
           ...(userId ? { user_id: userId } : {}),
           ...(reportId ? { report_id: reportId } : {}),
-        }, { onConflict: "id" });
+        }, { onConflict: "id" }).select("id").single().throwOnError();
       } catch (err) {
         console.error("Auto-save error:", err);
+        toast.error("Cloud backup failed. Keep this page open and copy or export your work.");
       }
     };
     saveSession();
-  }, [rounds, unlockEmail, lovablePrompt]);
+  }, [rounds, unlockEmail, lovablePrompt, conceptImage, example, idea, logoImage, reportId, sessionId]);
 
   // Also update idea_reports when highlights or lovablePrompt change (if reportId exists)
   const updateReport = useCallback(async () => {
-    if (!reportId) return;
+    if (example || isLocalPreview || !reportId) return;
     try {
       await (supabase.from("idea_reports") as any)
         .update({
@@ -357,25 +362,29 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
           concept_image_url: conceptImage || null,
           logo_image_url: logoImage || null,
         })
-        .eq("id", reportId);
+        .eq("id", reportId).select("id").single().throwOnError();
     } catch (err) {
       console.error("Report update error:", err);
+      toast.error("Changes were not saved to your account. Retry before leaving this browser.");
     }
-  }, [reportId, lovablePrompt, highlights, conceptImage, logoImage]);
+  }, [reportId, lovablePrompt, highlights, conceptImage, logoImage, example]);
 
   useEffect(() => {
     if (reportId && phase === "final") {
       updateReport();
     }
-  }, [highlights, lovablePrompt, reportId, phase]);
+  }, [highlights, lovablePrompt, reportId, phase, updateReport]);
 
   const generateImages = async (ideaText: string) => {
+    if (example || isLocalPreview) { toast("Use your own question to generate visuals."); return; }
+    if (imagesLoading) return;
+    setImagesLoading(true);
     try {
       const [conceptRes, logoRes] = await Promise.allSettled([
-        supabase.functions.invoke("generate-idea-image", {
+        invokeAI("generate-idea-image", {
           body: { idea: ideaText, type: "concept" },
         }),
-        supabase.functions.invoke("generate-idea-image", {
+        invokeAI("generate-idea-image", {
           body: { idea: ideaText, type: "logo" },
         }),
       ]);
@@ -386,15 +395,19 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
       if (logoRes.status === "fulfilled" && logoRes.value.data?.image_url) {
         setLogoImage(logoRes.value.data.image_url);
       }
+      const completed = [conceptRes, logoRes].filter(r => r.status === "fulfilled" && r.value.data?.image_url).length;
+      if (completed < 2) toast.error(completed ? "One visual is ready; the other did not complete. Your report is unchanged." : "Visual generation did not complete. Please try again.");
+      else toast.success("Concept visuals are ready below the report title.");
     } catch (e) {
       console.error("Image generation failed:", e);
-    }
+      toast.error("Visual generation failed. Your report is unchanged.");
+    } finally { setImagesLoading(false); }
   };
 
-  const buildHistory = (upToRound: number): string => {
+  const buildHistory = (upToRound: number, historyRounds = rounds): string => {
     let history = `Original idea: "${idea}"\n\n`;
-    for (let i = 0; i <= upToRound && i < rounds.length; i++) {
-      const r = rounds[i];
+    for (let i = 0; i <= upToRound && i < historyRounds.length; i++) {
+      const r = historyRounds[i];
       history += `--- Round ${i + 1} Brief ---\n`;
       history += `Problem: ${r.brief.problem}\n`;
       history += `Target Customer: ${r.brief.target_customer}\n`;
@@ -446,7 +459,10 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
     toast("Analysis cancelled.");
   };
 
-  const callSimulator = async (type: "initial" | "refine", ideaText?: string, round?: number) => {
+  const callSimulator = async (type: "initial" | "refine", ideaText?: string, round?: number, historyRounds: RoundState[] = roundsRef.current) => {
+    if (example || isLocalPreview) { toast("Live analysis is disconnected in this preview. Open a worked example to explore the report."); return; }
+    if (abortControllerRef.current) return;
+    const baseRounds = type === "initial" ? [] : historyRounds;
     setIsLoading(true);
     setPhase("analyzing");
 
@@ -457,15 +473,17 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
       const body: Record<string, unknown> =
         type === "initial"
           ? { type: "initial", idea: ideaText || idea, mode: thinkingMode }
-          : { type: "refine", history: buildHistory(currentRound - 1), round, mode: thinkingMode };
+          : { type: "refine", history: buildHistory(baseRounds.length - 1, baseRounds), round, mode: thinkingMode };
 
-      const { data, error } = await supabase.functions.invoke("simulate-idea", {
+      const { data, error } = await invokeAI("simulate-idea", {
         body,
         signal: controller.signal as AbortSignal,
       });
 
       if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (controller.signal.aborted) return;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.brief || typeof data.brief.problem !== "string" || !Array.isArray(data.brief.core_features)) throw new Error("The analysis returned an incomplete brief. Please try again.");
 
       const newRound: RoundState = {
         brief: data.brief,
@@ -481,13 +499,14 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
       }
 
       if (data.is_final) {
-        const allRounds = [...rounds, newRound];
+        const allRounds = [...baseRounds, newRound];
         setRounds(allRounds);
+        setCurrentRound(allRounds.length);
         setPhase("final");
 
         // Save to idea_reports
         try {
-          const userId = await getUserId();
+          const userId = await ensureSession();
           const latestBrief = newRound.brief;
           const roundsData = allRounds.map((r) => ({
             brief: r.brief,
@@ -507,11 +526,11 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                 highlights: Array.from(highlights),
                 status: data.lovable_prompt ? "prompt-ready" : "brief-complete",
               })
-              .eq("id", reportId);
+              .eq("id", reportId).select("id").single().throwOnError();
           } else {
             const { data: reportData } = await (supabase.from("idea_reports") as any)
               .insert({
-                idea: idea.trim(),
+                idea: (ideaText || idea).trim(),
                 title: deriveTitle(latestBrief, idea),
                 brief: latestBrief,
                 rounds: roundsData,
@@ -523,21 +542,22 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                 ...(userId ? { user_id: userId } : {}),
               })
               .select("id")
-              .single();
+              .single().throwOnError();
             if (reportData?.id) setReportId(reportData.id);
           }
         } catch (err) {
           console.error("Report save error:", err);
+          toast.error("The report was not saved to your account. Keep this page open and copy or export your work.");
         }
       } else {
-        setRounds((prev) => [...prev, newRound]);
-        setCurrentRound((prev) => prev + 1);
+        setRounds([...baseRounds, newRound]);
+        setCurrentRound(baseRounds.length + 1);
         setPhase("brief");
 
         // Create/update report with in-progress status
         try {
-          const userId = await getUserId();
-          const allRounds = [...rounds, newRound];
+          const userId = await ensureSession();
+          const allRounds = [...baseRounds, newRound];
           const roundsData = allRounds.map((r) => ({
             brief: r.brief,
             questions: r.questions,
@@ -551,22 +571,23 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                 rounds: roundsData,
                 status: "in-progress",
               })
-              .eq("id", reportId);
+              .eq("id", reportId).select("id").single().throwOnError();
           } else {
             const { data: reportData } = await (supabase.from("idea_reports") as any)
               .insert({
-                idea: idea.trim(),
+                idea: (ideaText || idea).trim(),
                 brief: newRound.brief,
                 rounds: roundsData,
                 status: "in-progress",
                 ...(userId ? { user_id: userId } : {}),
               })
               .select("id")
-              .single();
+              .single().throwOnError();
             if (reportData?.id) setReportId(reportData.id);
           }
         } catch (err) {
           console.error("Early report save error:", err);
+          toast.error("Your analysis is ready, but cloud saving failed. Keep this page open and copy or export your work.");
         }
       }
     } catch (e: unknown) {
@@ -575,8 +596,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
       toast.error(e instanceof Error ? e.message : "Something went wrong. Try again.");
       setPhase(rounds.length > 0 ? "brief" : "input");
     } finally {
-      abortControllerRef.current = null;
-      setIsLoading(false);
+      if (abortControllerRef.current === controller) { abortControllerRef.current = null; setIsLoading(false); }
     }
   };
 
@@ -585,27 +605,19 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
   const handleIdeaSubmit = (text: string, meta?: { project_id?: string; lovable_project_id?: string | null }) => {
     setIdea(text);
     if (meta?.project_id) setImportedFromProjectId(meta.project_id);
-    generateImages(text);
+    // Optional visuals are generated only when explicitly requested below.
     callSimulator("initial", text);
   };
 
-  const handleAnswersSubmit = (answers: Record<number, { selected: string[]; freeText?: string }>) => {
-    setRounds((prev) => {
-      const updated = [...prev];
-      updated[updated.length - 1] = { ...updated[updated.length - 1], answers };
-      return updated;
-    });
-    callSimulator("refine", undefined, currentRound + 1);
+  const submitAnswers = (answers: Record<number, { selected: string[]; freeText?: string }>, final = false) => {
+    const activeRounds = roundsRef.current;
+    if (!activeRounds.length || abortControllerRef.current) return;
+    const updated = activeRounds.map((r, i) => i === activeRounds.length - 1 ? { ...r, answers } : r);
+    setRounds(updated);
+    void callSimulator("refine", undefined, final ? 3 : Math.min(3, updated.length + 1), updated);
   };
-
-  const handleSkipToFinal = (answers: Record<number, { selected: string[]; freeText?: string }>) => {
-    setRounds((prev) => {
-      const updated = [...prev];
-      updated[updated.length - 1] = { ...updated[updated.length - 1], answers };
-      return updated;
-    });
-    callSimulator("refine", undefined, 3);
-  };
+  const handleAnswersSubmit = (answers: Record<number, { selected: string[]; freeText?: string }>) => submitAnswers(answers);
+  const handleSkipToFinal = (answers: Record<number, { selected: string[]; freeText?: string }>) => submitAnswers(answers, true);
 
   const handleReorderFeatures = (newFeatures: BriefData["core_features"]) => {
     setRounds((prev) => {
@@ -619,78 +631,9 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
     });
   };
 
-  const handleUnlock = async (email: string) => {
-    setUnlockEmail(email);
-    setUnlocked(true);
-    try {
-      const userId = await getUserId();
-      await (supabase.from("simulator_captures") as any).upsert({
-        id: sessionId,
-        email: email.trim(),
-        idea: idea.trim(),
-        rounds: rounds.map((r) => ({
-          brief: r.brief,
-          questions: r.questions,
-          answers: r.answers || null,
-        })),
-        concept_image_url: conceptImage || null,
-        logo_image_url: logoImage || null,
-        lovable_prompt: lovablePrompt || null,
-        ...(userId ? { user_id: userId } : {}),
-        ...(reportId ? { report_id: reportId } : {}),
-      }, { onConflict: "id" });
-    } catch (err) {
-      console.error("Capture error:", err);
-    }
-
-    if (reportId) {
-      try {
-        await (supabase.from("idea_reports") as any)
-          .update({
-            lovable_prompt: lovablePrompt || null,
-            highlights: Array.from(highlights),
-            concept_image_url: conceptImage || null,
-            logo_image_url: logoImage || null,
-          })
-          .eq("id", reportId);
-      } catch (err) {
-        console.error("Report update error:", err);
-      }
-    } else {
-      try {
-        const userId = await getUserId();
-        const latestBrief = rounds[rounds.length - 1]?.brief;
-        if (latestBrief) {
-          const { data: reportData } = await (supabase.from("idea_reports") as any)
-            .insert({
-              idea: idea.trim(),
-              brief: latestBrief,
-              rounds: rounds.map((r) => ({
-                brief: r.brief,
-                questions: r.questions,
-                answers: r.answers || null,
-              })),
-              lovable_prompt: lovablePrompt || null,
-              concept_image_url: conceptImage || null,
-              logo_image_url: logoImage || null,
-              highlights: Array.from(highlights),
-              status: lovablePrompt ? "prompt-ready" : "brief-complete",
-              ...(userId ? { user_id: userId } : {}),
-            })
-            .select("id")
-            .single();
-          if (reportData?.id) setReportId(reportData.id);
-        }
-      } catch (err) {
-        console.error("Report save error:", err);
-      }
-    }
-
-    toast.success("Saved! Your full report is unlocked.");
-  };
-
   const handleRestart = () => {
     clearDraft();
+    setSessionId(crypto.randomUUID());
     setPhase("input");
     setRounds([]);
     setCurrentRound(0);
@@ -722,7 +665,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
   // Apply user edits to the latest brief, then run a new refinement round on top.
   const handleReSimulateWithEdits = async (editedBrief: BriefData) => {
     // Replace the current latest round's brief with the user's edits, then refine.
-    const updatedRounds = [...rounds];
+    const updatedRounds = [...roundsRef.current];
     if (updatedRounds.length === 0) return;
     updatedRounds[updatedRounds.length - 1] = {
       ...updatedRounds[updatedRounds.length - 1],
@@ -730,17 +673,14 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
     };
     setRounds(updatedRounds);
     setEditMode(false);
-    // Bump round and run refine. simulate-idea uses buildHistory(currentRound - 1)
-    // so we increment currentRound first (matches the in-flow path).
-    setCurrentRound((r) => r + 1);
-    // Defer to next tick so state is committed before history is built.
-    setTimeout(() => callSimulator("refine", undefined, currentRound + 2), 0);
+    void callSimulator("refine", undefined, 3, updatedRounds);
   };
 
   const handleCancelEdit = () => setEditMode(false);
 
   // Wipe everything from the iterate-input screen and start a brand-new run.
   const handleStartFresh = () => {
+    setSessionId(crypto.randomUUID());
     setIdea("");
     setRounds([]);
     setCurrentRound(0);
@@ -775,13 +715,14 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
   }, []);
 
   const runStackSharpen = useCallback(async () => {
+    if (example || isLocalPreview) { toast("Use your own question to refine an analysis."); return; }
     if (stack.items.length === 0) {
       toast.error("Add at least one chit to the stack first.");
       return;
     }
     setIsStackSharpening(true);
     try {
-      const { data, error } = await supabase.functions.invoke("refine-prompt", {
+      const { data, error } = await invokeAI("refine-prompt", {
         body: {
           brief: rounds[rounds.length - 1]?.brief,
           idea,
@@ -811,11 +752,12 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
     } finally {
       setIsStackSharpening(false);
     }
-  }, [stack.items, rounds, idea, lovablePrompt, highlights, antiHighlights]);
+  }, [stack.items, rounds, idea, lovablePrompt, highlights, antiHighlights, example]);
 
   const runStackSnapshot = useCallback(async () => {
+    if (example || isLocalPreview) return;
     if (!reportId) {
-      toast.error("Save the report first (add an email).");
+      toast.error("Save the report to your account before taking a snapshot.");
       return;
     }
     setIsStackSnapshotting(true);
@@ -824,7 +766,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
       const { data: existing } = await (supabase.from("idea_reports") as any)
         .select("prompt_versions")
         .eq("id", reportId)
-        .single();
+        .single().throwOnError();
       const versions = Array.isArray(existing?.prompt_versions) ? existing.prompt_versions : [];
       versions.push({
         label,
@@ -836,7 +778,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
       });
       await (supabase.from("idea_reports") as any)
         .update({ prompt_versions: versions })
-        .eq("id", reportId);
+        .eq("id", reportId).select("id").single().throwOnError();
       toast.success(`Saved: ${label}`);
     } catch (e) {
       console.error("Snapshot error:", e);
@@ -844,7 +786,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
     } finally {
       setIsStackSnapshotting(false);
     }
-  }, [reportId, lovablePrompt, stack.items]);
+  }, [reportId, lovablePrompt, stack.items, example]);
 
   // PDF download moved to FinalReport's action row.
 
@@ -871,10 +813,13 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
     <div className="min-h-screen bg-background pt-20 pb-16">
       <div className="max-w-4xl mx-auto px-6">
         {/* Linear spine: Describe → Analyze → Verdict → Build prompt → Next actions */}
-        <SimulatorStepper phase={phase} />
+        {example && <p className="work-note"><Link className="underline" to={`/simulate?purpose=build&question=${encodeURIComponent(buildExample.idea)}`}>Use this example question →</Link></p>}
+        {!example && <SimulatorStepper phase={phase} />}
+        {rounds.length > 0 && !example && <p className="work-note mb-4">{localDraftSaved ? "Working draft kept in this browser. " : "Browser storage is unavailable. Copy or export before leaving. "}<Link className="text-primary underline" to="/auth?returnTo=%2Fmy-simulations">Create an account to keep your work</Link>.</p>}
+        {phase === "final" && !example && <button disabled={imagesLoading} className="work-text-button" onClick={() => generateImages(idea)}>{imagesLoading ? "Generating visuals…" : "Generate optional concept visuals"}</button>}
 
         {/* Thinking Mode Toggle */}
-        {phase !== "input" && (
+        {!example && phase !== "input" && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -896,7 +841,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
 
         {/* Floating PDF button removed — Download is now in the FinalReport action row. */}
 
-        {rounds.length > 0 && phase !== "input" && (
+        {!example && rounds.length > 0 && phase !== "input" && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -943,6 +888,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                 </div>
               )}
               <IdeaInput
+                onChange={setIdea}
                 onSubmit={handleIdeaSubmit}
                 initialValue={idea || prefillIdea}
                 iterationContext={
@@ -1004,8 +950,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                 <IdeaBrief
                   brief={latestRound.brief}
                   round={currentRound}
-                  unlocked={unlocked}
-                  onUnlock={handleUnlock}
+                  unlocked={true}
                   highlights={highlights}
                   onToggleHighlight={toggleHighlight}
                   antiHighlights={antiHighlights}
@@ -1077,10 +1022,11 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
           {phase === "final" && latestRound && (
             <motion.div key="final" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <FinalReport
+                example={example}
                 brief={latestRound.brief}
                 idea={idea}
                 onRestart={() => setShowRestartConfirm(true)}
-                onIterate={handleIterate}
+                onIterate={example ? undefined : handleIterate}
                 conceptImage={conceptImage}
                 logoImage={logoImage}
                 rounds={rounds}
@@ -1098,7 +1044,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
                 onPromptUpdate={(p) => setLovablePrompt(p)}
                 editMode={editMode}
                 onCancelEdit={handleCancelEdit}
-                onReSimulate={handleReSimulateWithEdits}
+                onReSimulate={example ? undefined : handleReSimulateWithEdits}
                 stackItems={stack.items}
                 onAddToStack={addToStackWithRound}
                 stackHasItem={stack.hasItem}
@@ -1110,7 +1056,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom }: SimulatorShellPro
       </div>
 
       {/* Vibe Stack — always-visible floating drawer once there's any work to curate */}
-      {(phase === "brief" || phase === "final") && (
+      {!example && (phase === "brief" || phase === "final") && (
         <VibeStack
           items={stack.items}
           onTogglePin={stack.togglePin}

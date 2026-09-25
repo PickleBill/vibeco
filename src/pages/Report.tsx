@@ -1,3 +1,10 @@
+import Navbar from "@/components/Navbar";
+import GeneralReportView from "@/components/workbench/GeneralReportView";
+import {
+  parseGeneralReport,
+  type GeneralReport,
+} from "../../supabase/functions/_shared/workbench-types";
+import "@/styles/workbench.css";
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -28,8 +35,16 @@ const sectionMeta = [
   { key: "core_features", label: "Core Features", icon: Layers },
   { key: "revenue_model", label: "Revenue Model", icon: DollarSign },
   { key: "industry_trends", label: "Industry & Competitors", icon: TrendingUp },
-  { key: "investor_perspective", label: "Investor Perspective & Next Steps", icon: Eye },
-  { key: "customer_perspective", label: "Customer Perspective", icon: MessageSquare },
+  {
+    key: "investor_perspective",
+    label: "Investor Perspective & Next Steps",
+    icon: Eye,
+  },
+  {
+    key: "customer_perspective",
+    label: "Customer Perspective",
+    icon: MessageSquare,
+  },
 ] as const;
 
 interface BriefData {
@@ -46,7 +61,11 @@ interface SynthesisData {
   consensus: string[];
   tensions: { topic: string; resolution_suggestion?: string }[];
   confidence_score: number;
-  ranked_recommendations: { action: string; rationale?: string; confidence?: string }[];
+  ranked_recommendations: {
+    action: string;
+    rationale?: string;
+    confidence?: string;
+  }[];
   executive_summary: string;
 }
 
@@ -57,6 +76,8 @@ interface AutoAnalysis {
 }
 
 interface ReportData {
+  general_report?: GeneralReport;
+  schema_version?: number;
   id: string;
   idea: string;
   brief: BriefData;
@@ -76,17 +97,50 @@ const Report = () => {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!id) { setNotFound(true); setLoading(false); return; }
-    (async () => {
-      // Capability-based read: the base table is owner-scoped (RLS), so shared
-      // links resolve through a security-definer RPC that returns non-PII fields.
-      const { data, error } = await (supabase.rpc as any)("get_shared_report", { _report_id: id });
-      if (error || !data) { setNotFound(true); }
-      else { setReport(data as ReportData); }
+    let active = true;
+    setLoading(true);
+    setNotFound(false);
+    setReport(null);
+    if (!id) {
+      setNotFound(true);
       setLoading(false);
+      return;
+    }
+    (async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const own = session
+          ? await supabase
+              .from("idea_reports")
+              .select("*")
+              .eq("id", id)
+              .eq("user_id", session.user.id)
+              .maybeSingle()
+          : { data: null };
+        const shared = own.data
+          ? { data: own.data, error: null }
+          : await supabase.rpc("get_shared_report", { _report_id: id });
+        if (!active) return;
+        if (shared.error || !shared.data) {
+          setNotFound(true);
+          return;
+        }
+        const value = shared.data as unknown as ReportData;
+        if (value.schema_version === 2)
+          value.general_report = parseGeneralReport(value.general_report);
+        setReport(value);
+      } catch {
+        if (active) setNotFound(true);
+      } finally {
+        if (active) setLoading(false);
+      }
     })();
+    return () => {
+      active = false;
+    };
   }, [id]);
-
 
   const handleCopyPrompt = async () => {
     if (!report?.lovable_prompt) return;
@@ -102,35 +156,71 @@ const Report = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-sm text-muted-foreground">Loading report...</div>
-      </div>
+      <main
+        id="main-content"
+        className="min-h-screen bg-background flex items-center justify-center"
+      >
+        <div className="animate-pulse text-sm text-muted-foreground">
+          Loading report...
+        </div>
+      </main>
     );
   }
 
   if (notFound || !report) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
-        <p className="text-sm text-muted-foreground">Report not found.</p>
+      <main
+        id="main-content"
+        className="min-h-screen bg-background flex flex-col items-center justify-center gap-4"
+      >
+        <h1>Report unavailable</h1>
+        <p className="text-sm text-muted-foreground">
+          This report is private, its sharing link was revoked, or it could not
+          be found.
+        </p>
         <Link to="/simulate" className="text-sm text-primary hover:underline">
-          Try the simulator →
+          Open the workbench →
         </Link>
-      </div>
+      </main>
     );
   }
 
+  if (report.general_report)
+    return (
+      <>
+        <Navbar />
+        <main id="main-content" className="workbench-page">
+          <div className="workbench-shell">
+            <GeneralReportView report={report.general_report} readOnly />
+          </div>
+        </main>
+      </>
+    );
   const highlightSet = new Set(report.highlights || []);
 
   return (
-    <div className="min-h-screen bg-background pt-20 pb-16">
+    <main id="main-content" className="min-h-screen bg-background pt-20 pb-16">
+      <Navbar />
       <div className="max-w-3xl mx-auto px-6">
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-10">
-          <p className="text-xs text-primary uppercase tracking-widest mb-1">VibeCo AI Report</p>
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-10"
+        >
+          <p className="text-xs text-primary uppercase tracking-widest mb-1">
+            VibeCo build report · generated analysis
+          </p>
           {report.logo_image_url && (
             <div className="mb-4 flex justify-center">
-              <div className="w-16 h-16 rounded-xl overflow-hidden border border-primary/20 bg-card/60"
-                style={{ boxShadow: "0 0 20px hsl(var(--primary) / 0.15)" }}>
-                <img src={report.logo_image_url} alt="Product mark" className="w-full h-full object-cover" />
+              <div
+                className="w-16 h-16 rounded-xl overflow-hidden border border-primary/20 bg-card/60"
+                style={{ boxShadow: "0 0 20px hsl(var(--primary) / 0.15)" }}
+              >
+                <img
+                  src={report.logo_image_url}
+                  alt="Product mark"
+                  className="w-full h-full object-cover"
+                />
               </div>
             </div>
           )}
@@ -145,105 +235,153 @@ const Report = () => {
         {report.concept_image_url && (
           <div className="mb-8 rounded-lg overflow-hidden border border-border/30">
             <div className="relative">
-              <img src={report.concept_image_url} alt="Product concept" className="w-full h-48 sm:h-64 object-cover" />
+              <img
+                src={report.concept_image_url}
+                alt="Product concept"
+                className="w-full h-48 sm:h-64 object-cover"
+              />
               <div className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-1 rounded bg-background/80 backdrop-blur-sm">
                 <ImageIcon size={10} className="text-primary" />
-                <span className="text-[10px] text-muted-foreground">Product Vision</span>
+                <span className="text-[10px] text-muted-foreground">
+                  Product Vision
+                </span>
               </div>
             </div>
           </div>
         )}
 
-        {report.auto_analysis?.synthesis && (() => {
-          const s = report.auto_analysis.synthesis!;
-          const conf = s.confidence_score >= 80
-            ? { label: "Strong consensus", cls: "text-emerald-300" }
-            : s.confidence_score >= 50
-            ? { label: "Mixed signals", cls: "text-amber-300" }
-            : { label: "High tension", cls: "text-rose-300" };
-          return (
-            <motion.section
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-              className="mb-8 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.04] p-5 sm:p-7"
-            >
-              <div className="flex items-baseline justify-between gap-3 mb-4">
-                <p className="text-[10px] uppercase tracking-[0.3em] text-emerald-300/80">Verdict</p>
-                <div className="flex items-center gap-1.5 text-xs">
-                  <Gauge size={13} className={conf.cls} />
-                  <span className={`font-bold tabular-nums ${conf.cls}`}>{s.confidence_score}%</span>
-                  <span className="text-muted-foreground/70">· {conf.label}</span>
+        {report.auto_analysis?.synthesis &&
+          (() => {
+            const s = report.auto_analysis.synthesis!;
+            const conf =
+              s.confidence_score >= 80
+                ? { label: "Strong consensus", cls: "text-emerald-300" }
+                : s.confidence_score >= 50
+                  ? { label: "Mixed signals", cls: "text-amber-300" }
+                  : { label: "High tension", cls: "text-rose-300" };
+            return (
+              <motion.section
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="mb-8 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.04] p-5 sm:p-7"
+              >
+                <div className="flex items-baseline justify-between gap-3 mb-4">
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-emerald-300/80">
+                    Verdict
+                  </p>
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <Gauge size={13} className={conf.cls} />
+                    <span className={`font-bold tabular-nums ${conf.cls}`}>
+                      {s.confidence_score}%
+                    </span>
+                    <span className="text-muted-foreground/70">
+                      · {conf.label}
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              {s.executive_summary && (
-                <p className="text-base text-foreground/90 leading-relaxed mb-6">{s.executive_summary}</p>
-              )}
+                <p className="text-xs text-muted-foreground mb-4">
+                  Generated perspectives and agreement are not independent
+                  research or factual confidence.
+                </p>
+                {s.executive_summary && (
+                  <p className="text-base text-foreground/90 leading-relaxed mb-6">
+                    {s.executive_summary}
+                  </p>
+                )}
 
-              <div className="grid sm:grid-cols-2 gap-6">
-                {s.consensus?.length > 0 && (
-                  <div>
-                    <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-emerald-300/90 mb-2">
-                      <CheckCircle2 size={13} /> Consensus
+                <div className="grid sm:grid-cols-2 gap-6">
+                  {s.consensus?.length > 0 && (
+                    <div>
+                      <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-emerald-300/90 mb-2">
+                        <CheckCircle2 size={13} /> Consensus
+                      </h4>
+                      <ul className="space-y-1.5">
+                        {s.consensus.map((c, i) => (
+                          <li
+                            key={i}
+                            className="text-sm text-foreground/80 leading-relaxed"
+                          >
+                            {c}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {s.tensions?.length > 0 && (
+                    <div>
+                      <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-amber-300/90 mb-2">
+                        <AlertTriangle size={13} /> Key tensions
+                      </h4>
+                      <ul className="space-y-1.5">
+                        {s.tensions.map((t, i) => (
+                          <li
+                            key={i}
+                            className="text-sm text-foreground/80 leading-relaxed"
+                          >
+                            {t.topic}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+
+                {s.ranked_recommendations?.length > 0 && (
+                  <div className="mt-6 pt-5 border-t border-emerald-500/15">
+                    <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-foreground/80 mb-3">
+                      <ListOrdered size={13} className="text-emerald-300" />{" "}
+                      Ranked recommendations
                     </h4>
-                    <ul className="space-y-1.5">
-                      {s.consensus.map((c, i) => (
-                        <li key={i} className="text-sm text-foreground/80 leading-relaxed">{c}</li>
+                    <ol className="space-y-2.5">
+                      {s.ranked_recommendations.map((r, i) => (
+                        <li key={i} className="flex gap-3 text-sm">
+                          <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-300 text-[11px] font-bold">
+                            {i + 1}
+                          </span>
+                          <span className="text-foreground/85 leading-relaxed">
+                            <span className="font-semibold">{r.action}</span>
+                            {r.rationale ? (
+                              <span className="text-muted-foreground">
+                                {" "}
+                                — {r.rationale}
+                              </span>
+                            ) : null}
+                          </span>
+                        </li>
                       ))}
-                    </ul>
+                    </ol>
                   </div>
                 )}
-                {s.tensions?.length > 0 && (
-                  <div>
-                    <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-amber-300/90 mb-2">
-                      <AlertTriangle size={13} /> Key tensions
-                    </h4>
-                    <ul className="space-y-1.5">
-                      {s.tensions.map((t, i) => (
-                        <li key={i} className="text-sm text-foreground/80 leading-relaxed">{t.topic}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
+              </motion.section>
+            );
+          })()}
 
-              {s.ranked_recommendations?.length > 0 && (
-                <div className="mt-6 pt-5 border-t border-emerald-500/15">
-                  <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-foreground/80 mb-3">
-                    <ListOrdered size={13} className="text-emerald-300" /> Ranked recommendations
-                  </h4>
-                  <ol className="space-y-2.5">
-                    {s.ranked_recommendations.map((r, i) => (
-                      <li key={i} className="flex gap-3 text-sm">
-                        <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-300 text-[11px] font-bold">{i + 1}</span>
-                        <span className="text-foreground/85 leading-relaxed">
-                          <span className="font-semibold">{r.action}</span>
-                          {r.rationale ? <span className="text-muted-foreground"> — {r.rationale}</span> : null}
-                        </span>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              )}
-            </motion.section>
-          );
-        })()}
-
-
-
-        <div className="p-px rounded-lg mb-8"
-          style={{ background: "linear-gradient(135deg, hsl(var(--primary) / 0.4), hsl(var(--accent) / 0.2))" }}>
+        <div
+          className="p-px rounded-lg mb-8"
+          style={{
+            background:
+              "linear-gradient(135deg, hsl(var(--primary) / 0.4), hsl(var(--accent) / 0.2))",
+          }}
+        >
           <div className="p-6 sm:p-8 rounded-lg bg-background">
             <div className="grid gap-6">
               {sectionMeta.map((section, i) => {
                 const Icon = section.icon;
                 const value = report.brief[section.key as keyof BriefData];
                 return (
-                  <motion.div key={section.key} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}>
+                  <motion.div
+                    key={section.key}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 + i * 0.05 }}
+                  >
                     <div className="flex items-center gap-2 mb-2">
                       <Icon size={14} className="text-primary" />
-                      <h4 className="font-display text-sm font-bold text-foreground uppercase tracking-wide">{section.label}</h4>
+                      <h4 className="font-display text-sm font-bold text-foreground uppercase tracking-wide">
+                        {section.label}
+                      </h4>
                       {highlightSet.has(section.key) && (
                         <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/15 border border-primary/30 text-[10px] text-primary">
                           <Sparkles size={10} className="fill-primary" />
@@ -253,15 +391,25 @@ const Report = () => {
                     </div>
                     {section.key === "core_features" && Array.isArray(value) ? (
                       <div className="grid gap-2 ml-5">
-                        {(value as BriefData["core_features"]).map((feat, fi) => (
-                          <p key={fi} className="text-base text-foreground/90 leading-relaxed">
-                            <span className="text-primary font-bold">{fi + 1}.</span>{" "}
-                            <span className="font-semibold">{feat.name}</span> — {feat.description}
-                          </p>
-                        ))}
+                        {(value as BriefData["core_features"]).map(
+                          (feat, fi) => (
+                            <p
+                              key={fi}
+                              className="text-base text-foreground/90 leading-relaxed"
+                            >
+                              <span className="text-primary font-bold">
+                                {fi + 1}.
+                              </span>{" "}
+                              <span className="font-semibold">{feat.name}</span>{" "}
+                              — {feat.description}
+                            </p>
+                          ),
+                        )}
                       </div>
                     ) : (
-                      <p className="text-base text-foreground/90 leading-relaxed ml-5">{value as string}</p>
+                      <p className="text-base text-foreground/90 leading-relaxed ml-5">
+                        {value as string}
+                      </p>
                     )}
                   </motion.div>
                 );
@@ -271,15 +419,27 @@ const Report = () => {
         </div>
 
         {report.lovable_prompt && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="mb-8">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+            className="mb-8"
+          >
             <div className="border border-border/30 rounded-lg overflow-hidden">
               <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/20">
                 <span className="text-xs text-muted-foreground uppercase tracking-wider">
-                  One-shot prompt — paste into Lovable to build your landing page
+                  One-shot prompt — paste into Lovable to build your landing
+                  page
                 </span>
-                <button onClick={handleCopyPrompt}
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-muted/50">
-                  {copied ? <Check size={12} className="text-primary" /> : <Copy size={12} />}
+                <button
+                  onClick={handleCopyPrompt}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-muted/50"
+                >
+                  {copied ? (
+                    <Check size={12} className="text-primary" />
+                  ) : (
+                    <Copy size={12} />
+                  )}
                   {copied ? "Copied" : "Copy"}
                 </button>
               </div>
@@ -293,14 +453,18 @@ const Report = () => {
         )}
 
         <div className="text-center pt-4 border-t border-border/20">
-          <p className="text-sm text-muted-foreground mb-3">Want to simulate your own idea?</p>
-          <Link to="/simulate"
-            className="inline-flex items-center gap-2 text-sm text-primary hover:underline">
+          <p className="text-sm text-muted-foreground mb-3">
+            Want to simulate your own idea?
+          </p>
+          <Link
+            to="/simulate"
+            className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+          >
             Try the simulator <ArrowRight size={14} />
           </Link>
         </div>
       </div>
-    </div>
+    </main>
   );
 };
 

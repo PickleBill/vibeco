@@ -275,6 +275,10 @@ export type Database = {
       }
       idea_reports: {
         Row: {
+          purpose: "build" | "research" | "initiative" | "decision"
+          schema_version: number
+          general_report: Json | null
+          sharing_enabled: boolean
           alt_prompts: Json | null
           annotations: Json | null
           auto_analysis: Json | null
@@ -300,6 +304,10 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          purpose?: "build" | "research" | "initiative" | "decision"
+          schema_version?: number
+          general_report?: Json | null
+          sharing_enabled?: boolean
           alt_prompts?: Json | null
           annotations?: Json | null
           auto_analysis?: Json | null
@@ -325,6 +333,10 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          purpose?: "build" | "research" | "initiative" | "decision"
+          schema_version?: number
+          general_report?: Json | null
+          sharing_enabled?: boolean
           alt_prompts?: Json | null
           annotations?: Json | null
           auto_analysis?: Json | null
@@ -740,6 +752,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      set_report_sharing: { Args: { _report_id: string; _enabled: boolean }; Returns: boolean }
       get_shared_report: { Args: { _report_id: string }; Returns: Json }
       has_role: {
         Args: {

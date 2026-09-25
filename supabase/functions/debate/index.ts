@@ -1,3 +1,4 @@
+import { guardedEndpoint } from "../_shared/request-guard.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { handleCors, jsonResponse } from "../_shared/cors.ts";
 import { handleFunctionError } from "../_shared/error-handler.ts";
@@ -21,7 +22,7 @@ import { runDebate, DEBATE_PERSONAS } from "../_shared/agents/debate.ts";
  * Custom personas: pass `custom_personas: { "name": "system prompt" }`
  */
 
-serve(async (req) => {
+serve(guardedEndpoint("debate", async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
@@ -54,4 +55,4 @@ serve(async (req) => {
   } catch (e) {
     return handleFunctionError("debate", e);
   }
-});
+}));

@@ -1,39 +1,56 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
+import { MotionConfig } from "framer-motion";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { ensureSession } from "@/lib/ensureSession";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+const Examples = lazy(() => import("./pages/Examples"));
+const AboutBill = lazy(() => import("./pages/AboutBill"));
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
-import Simulate from "./pages/Simulate.tsx";
-import Auth from "./pages/Auth.tsx";
-import Report from "./pages/Report.tsx";
-import MySimulations from "./pages/MySimulations.tsx";
-import Portfolio from "./pages/Portfolio.tsx";
-import SignalBoard from "./pages/SignalBoard.tsx";
-import Hub from "./pages/Hub.tsx";
+const Simulate = lazy(() => import("./pages/Simulate.tsx"));
+const Auth = lazy(() => import("./pages/Auth.tsx"));
+const Report = lazy(() => import("./pages/Report.tsx"));
+const MySimulations = lazy(() => import("./pages/MySimulations.tsx"));
+const Portfolio = lazy(() => import("./pages/Portfolio.tsx"));
+const SignalBoard = lazy(() => import("./pages/SignalBoard.tsx"));
+const Hub = lazy(() => import("./pages/Hub.tsx"));
 // Inbox route hidden until Sprint 3 (auto-evaluate flywheel wiring)
 // import Inbox from "./pages/Inbox.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
-const App = () => {
-  // Ensure every visitor has a private (anonymous) session so their reports
-  // are owned by a stable auth.uid() and isolated from other visitors.
+function RoutePosition() {
+  const {pathname, hash} = useLocation();
   useEffect(() => {
-    ensureSession();
-  }, []);
-
+    if (!hash) { window.scrollTo(0,0); return; }
+    let stopped = false;
+    const scroll = () => {
+      if(stopped)return;
+      let id: string;
+      try { id=decodeURIComponent(hash.slice(1)); } catch { return; }
+      const target = document.getElementById(id);
+      if (target) { target.scrollIntoView({behavior:'auto',block:'start'}); observer.disconnect(); }
+    };
+    const observer=new MutationObserver(scroll);
+    observer.observe(document.body,{childList:true,subtree:true});
+    const frame=requestAnimationFrame(scroll);
+    return () => { stopped=true; observer.disconnect(); cancelAnimationFrame(frame); };
+  },[pathname,hash]);
+  return null;
+}
+const App = () => {
   return (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+    <MotionConfig reducedMotion="user"><TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
+      <BrowserRouter><RoutePosition />
+        <Suspense fallback={<main id="main-content" className="min-h-screen flex items-center justify-center" role="status">Opening VibeCo…</main>}><Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/examples" element={<Examples />} />
+          <Route path="/about" element={<AboutBill />} />
           <Route path="/simulate" element={<Simulate />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/report/:id" element={<Report />} />
@@ -44,9 +61,9 @@ const App = () => {
           {/* <Route path="/inbox" element={<Inbox />} /> hidden until Sprint 3 */}
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
-        </Routes>
+        </Routes></Suspense>
       </BrowserRouter>
-    </TooltipProvider>
+    </TooltipProvider></MotionConfig>
   </QueryClientProvider>
   );
 };

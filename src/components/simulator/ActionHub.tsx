@@ -1,3 +1,4 @@
+import { invokeAI } from "@/lib/invokeAI";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -72,7 +73,7 @@ const ActionHub = ({ brief, idea, lovablePrompt, reportId, onIterate }: Props) =
         const { data } = await (supabase.from("idea_reports") as any)
           .select("alt_prompts")
           .eq("id", reportId)
-          .maybeSingle();
+          .maybeSingle().throwOnError();
         const arr = Array.isArray(data?.alt_prompts) ? data.alt_prompts : [];
         if (arr.length === 0) return;
         const fromDb: Record<string, GeneratedPrompt> = {};
@@ -117,7 +118,7 @@ const ActionHub = ({ brief, idea, lovablePrompt, reportId, onIterate }: Props) =
     });
 
     try {
-      const { data, error } = await supabase.functions.invoke("generate-alt-prompt", {
+      const { data, error } = await invokeAI("generate-alt-prompt", {
         body: {
           brief,
           idea,
@@ -147,15 +148,16 @@ const ActionHub = ({ brief, idea, lovablePrompt, reportId, onIterate }: Props) =
           const { data: report } = await (supabase.from("idea_reports") as any)
             .select("alt_prompts")
             .eq("id", reportId)
-            .single();
+            .single().throwOnError();
           const existing = Array.isArray(report?.alt_prompts) ? report.alt_prompts : [];
           await (supabase.from("idea_reports") as any)
             .update({
               alt_prompts: [...existing, { type: promptType, ...data, generated_at: new Date().toISOString() }],
             })
-            .eq("id", reportId);
+            .eq("id", reportId).select("id").single().throwOnError();
         } catch (err) {
           console.error("Failed to save alt prompt:", err);
+          toast.error("Prompt is ready, but account saving failed. Copy it before leaving this page.");
         }
       }
     } catch (e) {

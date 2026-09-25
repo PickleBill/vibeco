@@ -1,3 +1,4 @@
+import { invokeAI } from "@/lib/invokeAI";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
@@ -51,7 +52,7 @@ const PerspectivesPanel = ({ brief, idea, reportId }: Props) => {
 
     setLoading(personaId);
     try {
-      const { data, error } = await supabase.functions.invoke("persona-perspective", {
+      const { data, error } = await invokeAI("persona-perspective", {
         body: {
           persona: personaId,
           brief,

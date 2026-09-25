@@ -1,3 +1,4 @@
+import { invokeAI } from "@/lib/invokeAI";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, Maximize2, Minimize2, ArrowRight, Scissors, Target, Sparkles } from "lucide-react";
@@ -55,7 +56,7 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
   const handleExpand = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("expand-idea", {
+      const { data, error } = await invokeAI("expand-idea", {
         body: { brief, idea },
       });
       if (error) throw error;
@@ -72,7 +73,7 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
   const handleDistill = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("distill-idea", {
+      const { data, error } = await invokeAI("distill-idea", {
         body: {
           brief,
           idea,

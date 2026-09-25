@@ -1,3 +1,4 @@
+import { guardedEndpoint } from "../_shared/request-guard.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCors, jsonResponse } from "../_shared/cors.ts";
@@ -38,7 +39,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   ]);
 }
 
-serve(async (req) => {
+serve(guardedEndpoint("auto-evaluate", async (req, requestContext) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
@@ -148,14 +149,16 @@ serve(async (req) => {
     // ── Persist to idea_reports if Supabase is available ──
 
     let reportId = null;
+    let persistenceError: string | null = null;
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (supabaseUrl && supabaseKey) {
       try {
         const supabase = createClient(supabaseUrl, supabaseKey);
-        const { data } = await supabase
+        const { data, error: saveError } = await supabase
           .from("idea_reports")
           .insert({
+            user_id: requestContext.userId,
             idea,
             brief,
             rounds: [{ brief, questions: simulation.follow_up_questions, answers: {} }],
@@ -170,15 +173,18 @@ serve(async (req) => {
           })
           .select("id")
           .single();
-        reportId = data?.id;
+        if (saveError || !data?.id) throw new Error("Report could not be saved");
+        reportId = data.id;
       } catch (e) {
         console.error("Failed to persist report:", (e as Error).message);
-        // Don't fail the response if persistence fails
+        persistenceError = "Analysis completed, but the report was not saved. Export it before leaving.";
       }
     }
 
     return jsonResponse({
       report_id: reportId,
+      saved: Boolean(reportId),
+      persistence_error: persistenceError,
       idea,
       brief,
       perspectives,
@@ -194,4 +200,4 @@ serve(async (req) => {
   } catch (e) {
     return handleFunctionError("auto-evaluate", e);
   }
-});
+}));

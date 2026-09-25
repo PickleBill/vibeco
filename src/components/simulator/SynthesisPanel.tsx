@@ -1,3 +1,4 @@
+import { invokeAI } from "@/lib/invokeAI";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
@@ -133,7 +134,7 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
 
     try {
       const effectiveIdea = (idea && idea.trim()) || brief?.problem || "Untitled idea";
-      const { data, error } = await supabase.functions.invoke("orchestrate", {
+      const { data, error } = await invokeAI("orchestrate", {
         body: {
           idea: effectiveIdea,
           brief,
@@ -156,9 +157,10 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
         try {
           await (supabase.from("idea_reports") as any)
             .update({ auto_analysis: r })
-            .eq("id", reportId);
+            .eq("id", reportId).select("id").single().throwOnError();
         } catch (err) {
           console.error("Failed to persist auto_analysis:", err);
+          toast.error("Analysis is ready, but saving it failed. Keep this page open and retry.");
         }
       }
 
@@ -179,7 +181,7 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
     if (!result?.synthesis) return;
     setApplying(true);
     try {
-      const { data, error } = await supabase.functions.invoke("refine-prompt", {
+      const { data, error } = await invokeAI("refine-prompt", {
         body: {
           brief,
           idea,
@@ -398,9 +400,9 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
           <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground/70 mb-1">Synthesis</p>
           <div className="flex items-baseline gap-2">
             <span className={`font-display font-black tabular-nums leading-none ${conf.color}`} style={{ fontSize: "clamp(2rem, 4vw, 2.75rem)" }}>
-              {synthesis.confidence_score}%
+              {synthesis.tensions.length ? "Tradeoffs to resolve" : "Perspectives compared"}
             </span>
-            <span className={`text-sm font-semibold ${conf.color}`}>{conf.label.toLowerCase()}</span>
+
           </div>
           <p className="text-[11px] text-muted-foreground mt-1.5 leading-snug">
             {synthesis.consensus.length} agreement{synthesis.consensus.length !== 1 ? "s" : ""} · {synthesis.tensions.length} tension{synthesis.tensions.length !== 1 ? "s" : ""} across {result.agents_completed} agents
@@ -409,6 +411,7 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
         <Gauge size={28} className={`${conf.color} opacity-50 shrink-0 mb-2`} />
       </div>
 
+      <p className="text-xs text-muted-foreground">These are synthetic perspectives. Agreement among AI agents does not verify a fact.</p>
       {/* Executive summary — the headline */}
       <div className="p-4 rounded-lg border border-primary/20 bg-primary/5">
         <p className="text-[10px] uppercase tracking-wider text-primary/80 font-semibold mb-2">Executive summary</p>
@@ -576,7 +579,7 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
       {/* Re-run footer with cost/timing */}
       <div className="pt-4 border-t border-border/30 flex items-center justify-between gap-3 flex-wrap">
         <span className="text-[10px] text-muted-foreground/80 tabular-nums">
-          {result.agents_completed}/{result.agents_total} agents · {(result.timing.total / 1000).toFixed(1)}s · ~${(result.agents_completed * 0.006).toFixed(3)} spent
+          {result.agents_completed}/{result.agents_total} agents · {(result.timing.total / 1000).toFixed(1)}s
         </span>
         <button
           onClick={runOrchestrate}

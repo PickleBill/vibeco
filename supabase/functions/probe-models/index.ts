@@ -1,3 +1,4 @@
+import { guardedEndpoint } from "../_shared/request-guard.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -139,7 +140,7 @@ async function testAnthropicDirect(apiKey: string) {
   }
 }
 
-serve(async (req) => {
+serve(guardedEndpoint("probe-models", async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -199,4 +200,4 @@ serve(async (req) => {
     JSON.stringify({ summary, results }, null, 2),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } }
   );
-});
+}));

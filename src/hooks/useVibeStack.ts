@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
+import { toast } from "sonner";
+import { isLocalPreview } from "@/lib/localPreview";
 import { supabase } from "@/integrations/supabase/client";
 
 export type StackKind = "highlight" | "deep_dive" | "expansion" | "persona" | "distill" | "note";
@@ -45,198 +47,103 @@ interface UseVibeStackResult {
  * Hook for managing the Vibe Stack — curated insight chits attached to a report.
  * Falls back to localStorage when there is no reportId yet (e.g. mid-simulation).
  */
-export function useVibeStack(reportId: string | null | undefined): UseVibeStackResult {
+export function useVibeStack(reportId: string | null | undefined, options: { ephemeral?: boolean; localScope?: string } = {}): UseVibeStackResult {
   const [items, setItems] = useState<StackItem[]>([]);
   const [loading, setLoading] = useState(false);
-
-  const localKey = reportId ? `${LOCAL_KEY}_${reportId}` : LOCAL_KEY;
-
-  // Encode/decode `round` inside the `source` column without a schema change:
-  //   stored:    "r2|deep_dive_problem"   or just "r2|" for round-only.
-  //   round-less items keep their source untouched.
-  const encodeSource = (source: string | null | undefined, round?: number): string | null => {
-    if (round == null) return source ?? null;
-    return `r${round}|${source ?? ""}`;
+  const revision = useRef(0);
+  const ephemeral = options.ephemeral === true;
+  const cloudId = ephemeral || isLocalPreview ? null : reportId;
+  const localKey = options.localScope ? `${LOCAL_KEY}_${options.localScope}` : reportId ? `${LOCAL_KEY}_${reportId}` : LOCAL_KEY;
+  const encodeSource = (source: string | null | undefined, round?: number) => round == null ? source ?? null : `r${round}|${source ?? ""}`;
+  const decodeItem = (raw: StackItem): StackItem => {
+    const m = raw.source?.match(/^r(\d+)\|(.*)$/);
+    return { ...raw, source: m ? m[2] || null : raw.source, round: m ? Number(m[1]) : raw.round };
   };
-  const decodeItem = (raw: any): StackItem => {
-    const src: string = raw?.source ?? "";
-    const m = typeof src === "string" ? src.match(/^r(\d+)\|(.*)$/) : null;
-    return {
-      ...raw,
-      source: m ? (m[2] || null) : (raw?.source ?? null),
-      round: m ? Number(m[1]) : undefined,
-    } as StackItem;
-  };
+  const readLocal = useCallback((): StackItem[] => {
+    if (ephemeral) return [];
+    try {
+      let raw = localStorage.getItem(localKey);
+      // Adopt the one legacy browser draft once; subsequent new sessions are isolated.
+      if (!raw && !cloudId && options.localScope) {
+        raw = localStorage.getItem(LOCAL_KEY);
+        if (raw) { localStorage.setItem(localKey, raw); localStorage.removeItem(LOCAL_KEY); }
+      }
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  }, [localKey, cloudId, ephemeral, options.localScope]);
+  const persistLocal = useCallback((next: StackItem[]) => {
+    if (ephemeral) return true;
+    try { localStorage.setItem(localKey, JSON.stringify(next)); return true; }
+    catch { toast.error("Browser storage is full. This insight is not saved; copy it before leaving."); return false; }
+  }, [ephemeral, localKey]);
 
   const refresh = useCallback(async () => {
-    if (!reportId) {
-      // Local-only fallback
-      try {
-        const raw = localStorage.getItem(localKey);
-        setItems(raw ? (JSON.parse(raw) as StackItem[]) : []);
-      } catch {
-        setItems([]);
-      }
-      return;
-    }
+    const generation = ++revision.current;
+    const pending = readLocal();
+    if (!cloudId) { setItems(pending); return; }
     setLoading(true);
     try {
-      const { data, error } = await (supabase.from("idea_stack_items") as any)
-        .select("*")
-        .eq("report_id", reportId)
-        .is("deleted_at", null)
-        .order("position", { ascending: true });
+      const { data, error } = await supabase.from("idea_stack_items").select("*").eq("report_id", cloudId).is("deleted_at", null).order("position", { ascending: true });
       if (error) throw error;
-      setItems(((data as any[]) || []).map(decodeItem));
-    } catch (e) {
-      console.error("Stack fetch error:", e);
-    } finally {
-      setLoading(false);
+      const saved = (data || []).map(item => decodeItem(item as StackItem));
+      const missing = pending.filter(item => !saved.some(row => row.id === item.id));
+      if (missing.length) {
+        const rows = missing.map(item => ({ id: item.id, report_id: cloudId, kind: item.kind, source: encodeSource(item.source, item.round), label: item.label, content: item.content, position: saved.length + item.position, pinned: item.pinned }));
+        const { data: migrated, error: migrateError } = await supabase.from("idea_stack_items").upsert(rows, { onConflict: "id" }).select();
+        if (migrateError || migrated?.length !== rows.length) throw migrateError || new Error("Insight migration did not complete.");
+        saved.push(...migrated.map(item => decodeItem(item as StackItem)));
+      }
+      if (generation === revision.current) { setItems(saved); localStorage.removeItem(localKey); }
+    } catch (error) {
+      console.error("Stack load error:", error);
+      if (generation === revision.current) { if (pending.length) setItems(pending); toast.error("Saved insights could not be loaded or synced. Browser drafts remain available."); }
+    } finally { if (generation === revision.current) setLoading(false); }
+  }, [cloudId, localKey, readLocal]);
+  const invalidateRefresh = useCallback(() => { revision.current++; }, []);
+  useEffect(() => { void refresh(); return invalidateRefresh; }, [refresh, invalidateRefresh]);
+
+  const add = useCallback(async ({ kind, source = null, label, content, pinned = false, round }: AddItemArgs) => {
+    const local: StackItem = { id: crypto.randomUUID(), report_id: cloudId || "", kind, source, label, content, position: items.length, pinned, deleted_at: null, created_at: new Date().toISOString(), round };
+    if (!cloudId) {
+      const next = [...items, local];
+      if (!persistLocal(next)) return null;
+      setItems(next); return local;
     }
-  }, [reportId, localKey]);
+    try {
+      const { data, error } = await supabase.from("idea_stack_items").insert({ id: local.id, report_id: cloudId, kind, source: encodeSource(source, round), label, content, position: local.position, pinned }).select().single();
+      if (error || !data) throw error || new Error("No saved insight returned.");
+      const created = decodeItem(data as StackItem); setItems(prev => [...prev, created]); return created;
+    } catch (error) { console.error("Stack add error:", error); toast.error("Insight was not saved. Please try again."); return null; }
+  }, [items, cloudId, persistLocal]);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  const persistLocal = useCallback(
-    (next: StackItem[]) => {
-      try {
-        localStorage.setItem(localKey, JSON.stringify(next));
-      } catch {
-        /* ignore */
-      }
-    },
-    [localKey],
-  );
-
-  const add = useCallback(
-    async ({ kind, source = null, label, content, pinned = false, round }: AddItemArgs) => {
-      const nextPosition = items.length;
-      if (!reportId) {
-        const local: StackItem = {
-          id: crypto.randomUUID(),
-          report_id: "",
-          kind,
-          source,
-          label,
-          content,
-          position: nextPosition,
-          pinned,
-          deleted_at: null,
-          created_at: new Date().toISOString(),
-          round,
-        };
-        const next = [...items, local];
-        setItems(next);
-        persistLocal(next);
-        return local;
-      }
-      try {
-        const { data, error } = await (supabase.from("idea_stack_items") as any)
-          .insert({
-            report_id: reportId,
-            kind,
-            source: encodeSource(source, round),
-            label,
-            content,
-            position: nextPosition,
-            pinned,
-          })
-          .select()
-          .single();
-        if (error) throw error;
-        const created = decodeItem(data);
-        setItems((prev) => [...prev, created]);
-        return created;
-      } catch (e) {
-        console.error("Stack add error:", e);
-        return null;
-      }
-    },
-    [items, reportId, persistLocal],
-  );
-
-  const togglePin = useCallback(
-    async (id: string) => {
-      const target = items.find((i) => i.id === id);
-      if (!target) return;
-      const next = items.map((i) => (i.id === id ? { ...i, pinned: !i.pinned } : i));
+  const togglePin = useCallback(async (id: string) => {
+    const item = items.find(row => row.id === id); if (!item) return;
+    const next = items.map(row => row.id === id ? { ...row, pinned: !row.pinned } : row);
+    if (!cloudId) { if (persistLocal(next)) setItems(next); return; }
+    try {
+      const { error } = await supabase.from("idea_stack_items").update({ pinned: !item.pinned }).eq("id", id).select("id").single();
+      if (error) throw error; setItems(next);
+    } catch { toast.error("Pin was not saved. Please try again."); }
+  }, [items, cloudId, persistLocal]);
+  const remove = useCallback(async (id: string) => {
+    const next = items.filter(row => row.id !== id);
+    if (!cloudId) { if (persistLocal(next)) setItems(next); return; }
+    try {
+      const { error } = await supabase.from("idea_stack_items").update({ deleted_at: new Date().toISOString() }).eq("id", id).select("id").single();
+      if (error) throw error; setItems(next);
+    } catch { toast.error("Insight was not removed. Please try again."); }
+  }, [items, cloudId, persistLocal]);
+  const reorder = useCallback(async (orderedIds: string[]) => {
+    if (orderedIds.length !== items.length || new Set(orderedIds).size !== items.length) return;
+    const next = orderedIds.map((id, position) => ({ ...items.find(item => item.id === id)!, position }));
+    if (next.some(item => !item.id)) return;
+    if (!cloudId) { if (persistLocal(next)) setItems(next); return; }
+    try {
+      const results = await Promise.all(next.map(item => supabase.from("idea_stack_items").update({ position: item.position }).eq("id", item.id).select("id").single()));
+      if (results.some(result => result.error)) throw new Error("Reorder incomplete");
       setItems(next);
-      if (!reportId) {
-        persistLocal(next);
-        return;
-      }
-      try {
-        await (supabase.from("idea_stack_items") as any)
-          .update({ pinned: !target.pinned })
-          .eq("id", id);
-      } catch (e) {
-        console.error("Stack pin error:", e);
-      }
-    },
-    [items, reportId, persistLocal],
-  );
-
-  const remove = useCallback(
-    async (id: string) => {
-      const next = items.filter((i) => i.id !== id);
-      setItems(next);
-      if (!reportId) {
-        persistLocal(next);
-        return;
-      }
-      try {
-        await (supabase.from("idea_stack_items") as any)
-          .update({ deleted_at: new Date().toISOString() })
-          .eq("id", id);
-      } catch (e) {
-        console.error("Stack remove error:", e);
-      }
-    },
-    [items, reportId, persistLocal],
-  );
-
-  const reorder = useCallback(
-    async (orderedIds: string[]) => {
-      const map = new Map(items.map((i) => [i.id, i]));
-      const next: StackItem[] = orderedIds
-        .map((id, idx) => {
-          const it = map.get(id);
-          return it ? { ...it, position: idx } : null;
-        })
-        .filter(Boolean) as StackItem[];
-      setItems(next);
-      if (!reportId) {
-        persistLocal(next);
-        return;
-      }
-      try {
-        await Promise.all(
-          next.map((it) =>
-            (supabase.from("idea_stack_items") as any)
-              .update({ position: it.position })
-              .eq("id", it.id),
-          ),
-        );
-      } catch (e) {
-        console.error("Stack reorder error:", e);
-      }
-    },
-    [items, reportId, persistLocal],
-  );
-
-  const hasItem = useCallback(
-    (kind: StackKind, source: string | null | undefined, label: string) => {
-      return items.some(
-        (i) =>
-          i.kind === kind &&
-          (i.source || null) === (source || null) &&
-          i.label === label,
-      );
-    },
-    [items],
-  );
-
+    } catch { toast.error("Order was not fully saved. Reloading the saved order."); await refresh(); }
+  }, [items, cloudId, persistLocal, refresh]);
+  const hasItem = useCallback((kind: StackKind, source: string | null | undefined, label: string) => items.some(item => item.kind === kind && (item.source || null) === (source || null) && item.label === label), [items]);
   return { items, loading, add, togglePin, remove, reorder, refresh, hasItem };
 }

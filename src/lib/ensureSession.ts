@@ -1,3 +1,4 @@
+import { isLocalPreview } from "./localPreview";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -12,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 let pending: Promise<string | null> | null = null;
 
 export async function ensureSession(): Promise<string | null> {
+  if (isLocalPreview) return null;
   const { data: { session } } = await supabase.auth.getSession();
   if (session?.user) return session.user.id;
 

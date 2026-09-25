@@ -13,6 +13,7 @@ interface IterationContext {
 interface Props {
   onSubmit: (idea: string, meta?: { project_id?: string; lovable_project_id?: string | null }) => void;
   initialValue?: string;
+  onChange?: (value: string) => void;
   iterationContext?: IterationContext;
   onStartFresh?: () => void;
 }
@@ -23,13 +24,14 @@ const placeholders = [
   "A marketplace where laid-off engineers can sell 30-minute career strategy calls to mid-career PMs trying to break into FAANG…",
 ];
 
-// Generic, public example — clicking runs the full simulator flow end-to-end.
+// Public example fills the input; starting a model run always requires submission.
 const EXAMPLE_IDEA =
   "A monthly subscription box for houseplants with an app that sends watering and care reminders.";
 
-const IdeaInput = ({ onSubmit, initialValue, iterationContext, onStartFresh }: Props) => {
+const IdeaInput = ({ onSubmit, initialValue, iterationContext, onStartFresh, onChange }: Props) => {
   const isIterating = !!iterationContext && (iterationContext.roundCount > 0 || iterationContext.highlightCount > 0);
   const [text, setText] = useState(initialValue || "");
+  useEffect(() => { onChange?.(text); }, [text, onChange]);
   const [shaking, setShaking] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -92,18 +94,18 @@ const IdeaInput = ({ onSubmit, initialValue, iterationContext, onStartFresh }: P
         className="text-center mb-10"
       >
         <p className="text-[10px] text-primary uppercase tracking-[0.4em] mb-5 opacity-60">
-          {isIterating ? "Continue Refining" : "AI Idea Simulator"}
+          {isIterating ? "Continue Refining" : "Idea & app workbench"}
         </p>
         <h1
           className="font-display font-black text-foreground leading-[1.1] mb-3 break-words"
           style={{ fontSize: "clamp(2.25rem, 5vw + 1rem, 4rem)" }}
         >
-          {isIterating ? "What would you push further?" : "What are you building?"}
+          {isIterating ? "What would you push further?" : "What idea would you like to explore?"}
         </h1>
         <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
           {isIterating
             ? "Your prior rounds and highlights are preserved. Edit the idea or add what you'd change."
-            : "Describe it, or pull in one of your existing projects. We'll stress-test every assumption."}
+            : "Describe the problem, who it affects, and what a useful result would look like. Start rough; refine as you go."}
         </p>
 
         {isIterating && iterationContext && (
@@ -219,7 +221,9 @@ const IdeaInput = ({ onSubmit, initialValue, iterationContext, onStartFresh }: P
               animate={shaking ? { x: [0, -8, 8, -6, 6, -3, 3, 0] } : {}}
               transition={{ duration: 0.5 }}
             >
+              <label htmlFor="build-question" className="block text-sm font-semibold mb-3">Your idea or app</label>
               <textarea
+                id="build-question"
                 ref={textareaRef}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
@@ -227,7 +231,7 @@ const IdeaInput = ({ onSubmit, initialValue, iterationContext, onStartFresh }: P
                 onFocus={() => setFocused(true)}
                 onBlur={() => setFocused(false)}
                 placeholder={placeholders[placeholderIdx]}
-                className={`w-full min-h-[200px] p-6 rounded-lg bg-transparent border text-foreground text-sm leading-relaxed placeholder:text-muted-foreground/30 focus:outline-none resize-none transition-all duration-300 ${
+                className={`w-full min-h-[200px] p-6 rounded-lg bg-transparent border text-foreground text-sm leading-relaxed placeholder:text-muted-foreground/80 focus:outline-none resize-none transition-all duration-300 ${
                   attempted && isTooShort
                     ? "border-destructive/40 focus:border-destructive/60"
                     : focused
@@ -237,7 +241,7 @@ const IdeaInput = ({ onSubmit, initialValue, iterationContext, onStartFresh }: P
               />
               <div className="absolute bottom-3 right-4 flex items-center gap-3">
                 <span className="text-[10px] text-muted-foreground/40 hidden sm:inline">
-                  ↵ to simulate · Shift+↵ for newline
+                  ↵ to explore · Shift+↵ for newline
                 </span>
                 <span
                   className={`text-[10px] tabular-nums transition-colors ${
@@ -272,7 +276,7 @@ const IdeaInput = ({ onSubmit, initialValue, iterationContext, onStartFresh }: P
               transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             >
               <Sparkles size={16} />
-              {isIterating ? "Continue with this idea" : "Simulate This Idea"}
+              {isIterating ? "Continue with this idea" : "Explore this idea"}
             </motion.button>
 
             {/* First-run helper: one click runs the full flow end-to-end */}
@@ -290,7 +294,7 @@ const IdeaInput = ({ onSubmit, initialValue, iterationContext, onStartFresh }: P
                   type="button"
                   onClick={() => {
                     setText(EXAMPLE_IDEA);
-                    onSubmit(EXAMPLE_IDEA);
+                    textareaRef.current?.focus();
                   }}
                   className="group inline-flex items-center gap-2 text-left text-xs px-4 py-2.5 rounded-full border border-emerald-500/30 bg-emerald-500/5 text-emerald-300/90 hover:border-emerald-400/60 hover:bg-emerald-500/10 transition-colors max-w-full"
                 >

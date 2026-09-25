@@ -1,3 +1,5 @@
+import { useUserRole } from "@/hooks/useUserRole";
+import type { User } from "@supabase/supabase-js";
 import { useState, useEffect, useMemo } from "react";
 import { HelmetProvider, Helmet } from "react-helmet-async";
 import { AnimatePresence } from "framer-motion";
@@ -13,9 +15,10 @@ import AddProjectDialog from "@/components/portfolio/AddProjectDialog";
 
 const Portfolio = () => {
   const navigate = useNavigate();
+  const {isAdmin, loading: roleLoading} = useUserRole();
   const [projects, setProjects] = useState<ProjectEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -42,7 +45,7 @@ const Portfolio = () => {
   }, [navigate]);
 
   const fetchProjects = async () => {
-    if (!user) return;
+    if (!user || !isAdmin) return;
     setLoading(true);
     const { data, error } = await supabase
       .from("project_registry")
@@ -58,8 +61,8 @@ const Portfolio = () => {
   };
 
   useEffect(() => {
-    if (user) fetchProjects();
-  }, [user]);
+    if (user && isAdmin) fetchProjects();
+  }, [user, isAdmin]);
 
   const brands = useMemo(() => {
     const set = new Set<string>();
@@ -78,7 +81,7 @@ const Portfolio = () => {
   }, [projects, search, category, status, brandFilter]);
 
   const handleSave = async (data: any) => {
-    if (!user) return;
+    if (!user || !isAdmin) return;
     if (editing) {
       const { error } = await supabase
         .from("project_registry")
@@ -118,6 +121,9 @@ const Portfolio = () => {
     setEditing(p);
     setDialogOpen(true);
   };
+
+  if (roleLoading) return <><Navbar/><main id="main-content" className="workbench-page"><p role="status">Checking access…</p></main></>;
+  if (!isAdmin) return <><Navbar/><main id="main-content" className="workbench-page"><h1>Portfolio management</h1><p>This area is for the workspace owner.</p></main></>;
 
   return (
     <HelmetProvider>

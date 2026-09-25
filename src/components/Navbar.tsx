@@ -1,246 +1,110 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Sparkles, User, History, FolderKanban, Network, Radar } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import type { User } from "@supabase/supabase-js";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { ArrowUpRight, ChevronDown, FolderKanban, History, LogOut, Menu, Network, UserRound, X } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserRole } from "@/hooks/useUserRole";
+import { clearBrowserDrafts } from "@/lib/browserDrafts";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import "@/styles/studio.css";
 
 const navLinks = [
-  { label: "How It Works", href: "#model" },
-  { label: "Builds", href: "#projects" },
-  { label: "Contact", href: "#contact" },
+  { label: "Workbench", to: "/simulate" },
+  { label: "Examples", to: "/examples" },
+  { label: "About Bill", to: "/about" },
 ];
 
 const Navbar = () => {
-  const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const { isAdmin } = useUserRole();
+  const hasAccount = !!user && !user.is_anonymous;
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  useEffect(() => {
+    let active = true;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      if (active) setUser(session?.user ?? null);
     });
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      if (active) setUser(session?.user ?? null);
     });
-    return () => subscription.unsubscribe();
+    return () => { active = false; subscription.unsubscribe(); };
   }, []);
 
-  const handleNavClick = (href: string) => {
-    setMobileOpen(false);
-    if (location.pathname !== "/") {
-      navigate("/" + href);
-    } else {
-      const el = document.querySelector(href);
-      el?.scrollIntoView({ behavior: "smooth" });
-    }
-  };
+  useEffect(() => { setMobileOpen(false); }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { setMobileOpen(false); menuButton.current?.focus(); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [mobileOpen]);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
+    setSigningOut(true);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      clearBrowserDrafts();
+      setUser(null);
+      setMobileOpen(false);
+      navigate("/");
+    } catch {
+      toast.error("Could not sign out. Please try again.");
+    } finally { setSigningOut(false); }
   };
 
   return (
-    <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? "bg-background/90 backdrop-blur-sm border-b border-border" : ""
-      }`}
-    >
-      <div className="max-w-7xl mx-auto px-6 lg:px-12 flex items-center justify-between h-16">
-        <a
-          href="/"
-          onClick={(e) => { e.preventDefault(); navigate("/"); }}
-          className="font-display text-lg font-black text-foreground tracking-tight"
-        >
-          VibeCo
-        </a>
-
-        {/* Desktop */}
-        <div className="hidden md:flex items-center gap-6">
-          {navLinks.map((link) => (
-            <button
-              key={link.href}
-              onClick={() => handleNavClick(link.href)}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
-            >
-              {link.label}
-            </button>
-          ))}
-
-          {/* Signal scanner */}
-          <a
-            href="/signal"
-            onClick={(e) => { e.preventDefault(); navigate("/signal"); }}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1.5"
-          >
-            <Radar size={13} />
-            Signal
-          </a>
-
-          {/* Simulator CTA */}
-          <a
-            href="/simulate"
-            onClick={(e) => { e.preventDefault(); navigate("/simulate"); }}
-            className="font-display text-sm font-semibold px-5 py-2.5 rounded-full bg-primary text-primary-foreground hover:brightness-110 transition-all duration-300 flex items-center gap-2"
-          >
-            <Sparkles size={14} />
-            Simulate Your Idea
-          </a>
-
-          {/* Auth */}
-          {user ? (
-            <>
-              <a
-                href="/portfolio"
-                onClick={(e) => { e.preventDefault(); navigate("/portfolio"); }}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
-              >
-                <FolderKanban size={12} />
-                Portfolio
-              </a>
-              <a
-                href="/hub"
-                onClick={(e) => { e.preventDefault(); navigate("/hub"); }}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
-              >
-                <Network size={12} />
-                Hub
-              </a>
-              <a
-                href="/my-simulations"
-                onClick={(e) => { e.preventDefault(); navigate("/my-simulations"); }}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
-              >
-                <History size={12} />
-                Dashboard
-              </a>
-              <button
-                onClick={handleSignOut}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
-              >
-                <User size={12} />
-                Sign Out
-              </button>
-            </>
-          ) : (
-            <a
-              href="/auth"
-              onClick={(e) => { e.preventDefault(); navigate("/auth"); }}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
-            >
-              <User size={12} />
-              Sign In
-            </a>
-          )}
-
-        </div>
-
-        {/* Mobile toggle */}
-        <button
-          className="md:hidden text-foreground"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label="Toggle menu"
-        >
-          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
-      </div>
-
-      {/* Mobile menu */}
-      <AnimatePresence>
+    <>
+      <a className="studio-skip" href="#main-content">Skip to content</a>
+      <header className="studio-nav">
+        <nav className="studio-container studio-nav-inner" aria-label="Main navigation">
+          <Link to="/" className="studio-logo" aria-label="VibeCo home">VibeCo<span aria-hidden="true">✳</span></Link>
+          <div className="studio-nav-links">
+            {navLinks.map(link => <NavLink key={link.to} to={link.to} className={({ isActive }) => `studio-nav-link${isActive ? " is-active" : ""}`}>{link.label}</NavLink>)}
+          </div>
+          <div className="studio-nav-account">
+            {hasAccount ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger className="studio-account-trigger"><UserRound size={16} /> My workspace <ChevronDown size={14} /></DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-56">
+                  <DropdownMenuLabel>Your workspace</DropdownMenuLabel>
+                  <DropdownMenuItem asChild className="min-h-11"><Link to="/my-simulations"><History size={16} className="mr-2" /> Saved work</Link></DropdownMenuItem>
+                  {isAdmin && <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Owner tools</DropdownMenuLabel>
+                    <DropdownMenuItem asChild className="min-h-11"><Link to="/portfolio"><FolderKanban size={16} className="mr-2" /> Portfolio manager</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild className="min-h-11"><Link to="/hub"><Network size={16} className="mr-2" /> Internal hub</Link></DropdownMenuItem>
+                  </>}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem disabled={signingOut} onSelect={() => void handleSignOut()} className="min-h-11"><LogOut size={16} className="mr-2" /> {signingOut ? "Signing out…" : "Sign out"}</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : <Link className="studio-signin" to="/auth">Sign in <ArrowUpRight size={14} /></Link>}
+          </div>
+          <button ref={menuButton} type="button" className="studio-menu-toggle" aria-label={mobileOpen ? "Close navigation" : "Open navigation"} aria-expanded={mobileOpen} aria-controls="studio-mobile-navigation" onClick={() => setMobileOpen(!mobileOpen)}>{mobileOpen ? <X size={22} /> : <Menu size={22} />}</button>
+        </nav>
         {mobileOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="md:hidden bg-background border-b border-border px-6 pb-6"
-          >
-            {navLinks.map((link) => (
-              <button
-                key={link.href}
-                onClick={() => handleNavClick(link.href)}
-                className="block py-3 text-sm text-muted-foreground hover:text-foreground transition-colors w-full text-left"
-              >
-                {link.label}
-              </button>
-            ))}
-            <a
-              href="/signal"
-              onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/signal"); }}
-              className="flex items-center gap-2 py-3 text-sm text-muted-foreground hover:text-foreground"
-            >
-              <Radar size={13} />
-              Signal
-            </a>
-            <a
-              href="/simulate"
-              onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/simulate"); }}
-              className="flex items-center gap-2 py-3 text-sm text-primary"
-            >
-              <Sparkles size={13} />
-              AI Idea Simulator
-            </a>
-            {user ? (
-              <>
-                <a
-                  href="/portfolio"
-                  onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/portfolio"); }}
-                  className="flex items-center gap-2 py-3 text-sm text-muted-foreground hover:text-foreground"
-                >
-                  <FolderKanban size={13} />
-                  Portfolio
-                </a>
-                <a
-                  href="/hub"
-                  onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/hub"); }}
-                  className="flex items-center gap-2 py-3 text-sm text-muted-foreground hover:text-foreground"
-                >
-                  <Network size={13} />
-                  Hub
-                </a>
-                <a
-                  href="/my-simulations"
-                  onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/my-simulations"); }}
-                  className="flex items-center gap-2 py-3 text-sm text-muted-foreground hover:text-foreground"
-                >
-                  <History size={13} />
-                  Dashboard
-                </a>
-                <button
-                  onClick={() => { handleSignOut(); setMobileOpen(false); }}
-                  className="block py-3 text-sm text-muted-foreground hover:text-foreground w-full text-left"
-                >
-                  Sign Out
-                </button>
-              </>
-            ) : (
-              <a
-                href="/auth"
-                onClick={(e) => { e.preventDefault(); setMobileOpen(false); navigate("/auth"); }}
-                className="flex items-center gap-2 py-3 text-sm text-muted-foreground hover:text-foreground"
-              >
-                <User size={13} />
-                Sign In
-              </a>
-            )}
-            <button
-              onClick={() => { setMobileOpen(false); navigate("/simulate"); }}
-              className="flex items-center justify-center gap-2 mt-2 text-sm bg-primary text-primary-foreground px-4 py-2.5 rounded-full text-center w-full"
-            >
-              <Sparkles size={14} />
-              Simulate Your Idea
-            </button>
-          </motion.div>
+          <nav id="studio-mobile-navigation" className="studio-mobile-nav" aria-label="Mobile navigation">
+            {navLinks.map(link => <NavLink key={link.to} to={link.to}>{link.label}</NavLink>)}
+            <div className="studio-mobile-account">
+              {hasAccount ? <>
+                <Link to="/my-simulations">Saved work</Link>
+                {isAdmin && <><Link to="/portfolio">Portfolio manager</Link><Link to="/hub">Internal hub</Link></>}
+                <button type="button" disabled={signingOut} onClick={() => void handleSignOut()}>{signingOut ? "Signing out…" : "Sign out"}</button>
+              </> : <Link to="/auth">Sign in / create an account <ArrowUpRight size={16} /></Link>}
+            </div>
+          </nav>
         )}
-      </AnimatePresence>
-    </nav>
+      </header>
+    </>
   );
 };
 

@@ -15,11 +15,12 @@ interface UserRoleState {
  * affordances (e.g. the GPT-5.5 reasoning toggle). The server independently
  * re-verifies the role, so this is purely for UI visibility.
  */
-export function useUserRole(): UserRoleState {
+export function useUserRole(enabled = true): UserRoleState {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!enabled) { setRoles([]); setLoading(false); return; }
     let active = true;
 
     async function load(userId: string | null) {
@@ -56,7 +57,7 @@ export function useUserRole(): UserRoleState {
       active = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [enabled]);
 
   const isAdmin = roles.includes("admin");
   const isPremium = isAdmin || roles.includes("premium");

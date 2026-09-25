@@ -1,73 +1,49 @@
-# Welcome to your Lovable project
+# VibeCo
 
-## Project info
+Turn a messy question into a clear next move. Explore an idea, research a company, pressure-test an initiative, or work through a decision.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+React / TypeScript / Vite frontend with Supabase Auth, PostgreSQL and Edge Functions. The original build simulator remains intact; purpose-aware reports are additive.
 
-## How can I edit this code?
+## Project identity
 
-There are several ways of editing your application.
+- Repository: `PickleBill/vibeco`
+- Registry slug: `vibeco-labs`
+- Registry Lovable project: `b653b128-3875-4437-8937-09034702860d`
+- Existing Supabase reference: `ulgoahsxkrkzoquvntei`
+- Public site: https://vibeco.lovable.app/
 
-**Use Lovable**
+Confirm the active Lovable editing branch before publishing. The earlier unfinished local redesign is preserved separately and was not copied wholesale over this baseline.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Local review
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+npm ci
+npm run dev -- --host 127.0.0.1 --port 8087
 ```
 
-**Edit a file directly in GitHub**
+Localhost automatically uses isolated preview mode. All Supabase transport is blocked; examples, navigation, copy and downloads work without creating accounts or spending provider credits. Open `/examples` for all four report purposes.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+To exercise a separately authorized staging backend, explicitly configure its public Supabase URL/key and `VITE_ENABLE_LIVE_BACKEND=true`. Never put service-role/provider keys in frontend `VITE_` variables. `VITE_LOCAL_PREVIEW=true` forces isolation even when another flag is present.
 
-**Use GitHub Codespaces**
+```sh
+npm test
+npx tsc --noEmit -p tsconfig.app.json
+npm run build
+node scripts/verify-preview.mjs
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+The browser suite requires Playwright Chromium (or `PLAYWRIGHT_CHROMIUM_EXECUTABLE`) and a running local preview. It fails if the preview attempts a backend request. `npm run lint` still reports legacy repository issues; see the validation report for the measured baseline/delta.
 
-## What technologies are used for this project?
+## Review and release
 
-This project is built with:
+- [Capability map](docs/CAPABILITY-MAP.md)
+- [Security and staging requirements](docs/SECURITY-VALIDATION.md)
+- [Legacy build validation](docs/LEGACY-VALIDATION.md)
+- [UI validation](docs/UI-VALIDATION.md)
+- [Dependency review](docs/DEPENDENCY-REVIEW.md)
+- [Brick handoff](docs/BRICK-HANDOFF.md)
+- [Implementation brief](docs/IMPLEMENTATION-BRIEF.md)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+The workbench migration must precede guarded function deployment. Without quota storage the functions fail closed. Existing reports become private by default; sharing must be explicitly enabled by a registered owner. Live email conversion, identity linking, provider behavior, database policies and Brick integration must be checked on staging before an approved release.
 
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Do not push main as an innocent backup: existing workflows can deploy the frontend or redeploy `ask-bill`. This local implementation has not been pushed, published, or migrated to production.

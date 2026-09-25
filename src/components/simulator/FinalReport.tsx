@@ -1,3 +1,6 @@
+import { isLocalPreview } from "@/lib/localPreview";
+import { setSharing } from "@/lib/workbench";
+import { invokeAI } from "@/lib/invokeAI";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
@@ -52,6 +55,7 @@ interface RoundState {
 }
 
 interface Props {
+  example?: boolean;
   brief: BriefData;
   idea: string;
   onRestart: () => void;
@@ -122,7 +126,8 @@ export const generateStructuredPDF = (
   idea: string,
   rounds: RoundState[],
   scores: { label: string; value: number }[],
-  lovablePrompt?: string | null
+  lovablePrompt?: string | null,
+  example = false
 ) => {
   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pw = pdf.internal.pageSize.getWidth();
@@ -176,7 +181,7 @@ export const generateStructuredPDF = (
   y += 10;
   pdf.setFontSize(10);
   pdf.setTextColor(120, 120, 140);
-  pdf.text(`Generated ${new Date().toLocaleDateString()} · ${rounds.length} rounds of analysis`, margin, y);
+  pdf.text(`${example ? "Illustrative example" : "Exported " + new Date().toLocaleDateString()} · ${rounds.length} rounds of analysis`, margin, y);
   y += 20;
 
   // (Fake hash-based scores removed from PDF cover — they leaked deterministic
@@ -185,6 +190,7 @@ export const generateStructuredPDF = (
   pdf.setTextColor(180, 180, 200);
   pdf.text(`${rounds.length} round${rounds.length === 1 ? "" : "s"} of analysis`, margin, y);
   y += 12;
+  writeWrapped("AI-generated analysis. Market claims and synthetic perspectives are hypotheses unless independently sourced. This is not customer testimony or verified research.", margin, contentW, 10, [180, 180, 195]);
 
   pdf.addPage();
   addHeader();
@@ -260,11 +266,31 @@ export const generateStructuredPDF = (
   pdf.save(fileName);
 };
 
-const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights, onToggleHighlight, antiHighlights, onToggleAntiHighlight, reportId, autoAnalysis, onReorderFeatures, onPromptUpdate, editMode, onCancelEdit, onReSimulate, stackItems, onAddToStack, stackHasItem, onOpenStack }: Props) => {
-  const [email, setEmail] = useState(unlockEmail || "");
-  const [showPrompt, setShowPrompt] = useState(!!unlocked);
+const exampleSynthesis: OrchestrateResult = {
+  perspectives: [], expansion: null, distillation: null, agents_completed: 3, agents_total: 3, timing: { total: 0 },
+  synthesis: {
+    executive_summary: "Test whether a coach uses a reviewed follow-up draft twice before investing in more features. Keep the coach's voice and approval at the center.",
+    consensus: ["Start with one useful follow-up and a coach approval step."],
+    tensions: [{ topic: "Automation versus personal voice", positions: ["Speed helps with admin.", "A generic message may reduce trust."], resolution_suggestion: "Ask the coach to edit every draft and observe the changes.", requires_human_decision: true }],
+    confidence_score: 0,
+    ranked_recommendations: [{ action: "Run a concierge pilot with a few coaches.", rationale: "Repeat use and observed edits are better evidence than enthusiasm about a demo.", confidence: "low", source_agents: ["Synthetic coach lens", "Synthetic operator lens", "Synthetic skeptic lens"] }],
+    refined_brief_suggestions: ["Define success as useful follow-through and repeat use."], prompt_modifications: ["Require coach review before copying any message."],
+  },
+};
+
+const navSections = [
+    { id: "verdict", label: "Verdict" },
+    { id: "prompt", label: "Prompt" },
+    { id: "brief", label: "Brief" },
+    { id: "stress-test", label: "Stress-test" },
+    { id: "actions", label: "Actions" },
+  ];
+
+const FinalReport = ({ example = false, brief, idea, onRestart, onIterate, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights, onToggleHighlight, antiHighlights, onToggleAntiHighlight, reportId, autoAnalysis, onReorderFeatures, onPromptUpdate, editMode, onCancelEdit, onReSimulate, stackItems, onAddToStack, stackHasItem, onOpenStack }: Props) => {
+  const showPrompt = true;
+  const [sharingBusy, setSharingBusy] = useState(false);
+  const [sharingEnabled, setSharingEnabled] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -279,7 +305,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   const [isImproving, setIsImproving] = useState(false);
   // Premium reasoning (GPT-5.5) — visible only to admin/premium roles; the
   // server re-verifies the role before honoring it.
-  const { isPremium } = useUserRole();
+  const { isPremium } = useUserRole(!example && !isLocalPreview);
   const [premium, setPremium] = useState(false);
   const [pulsedSection, setPulsedSection] = useState<string | null>(null);
   const [activeNavSection, setActiveNavSection] = useState<string>("verdict");
@@ -302,14 +328,6 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   );
 
   // Sub-nav: smooth scroll + intersection-observer to track active section
-  const navSections = [
-    { id: "verdict", label: "Verdict" },
-    { id: "prompt", label: "Prompt" },
-    { id: "brief", label: "Brief" },
-    { id: "stress-test", label: "Stress-test" },
-    { id: "actions", label: "Actions" },
-  ];
-
   const scrollToSection = (id: string) => {
     const el = document.getElementById(`fr-${id}`);
     if (!el) return;
@@ -339,6 +357,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   }, []);
 
   const handleDeepDive = async (sectionKey: string) => {
+    if (example) { toast("This is a prepared example. Use the question to start your own analysis."); return; }
     if (expandedSection === sectionKey) {
       setExpandedSection(null);
       return;
@@ -349,7 +368,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
     setDeepDiveLoading(sectionKey);
     try {
       const sectionLabel = sectionMeta.find((s) => s.key === sectionKey)?.label || sectionKey;
-      const { data, error } = await supabase.functions.invoke("simulate-idea", {
+      const { data, error } = await invokeAI("simulate-idea", {
         body: {
           type: "deep_dive",
           section: sectionKey,
@@ -373,48 +392,10 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
     }
   };
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.includes("@")) return;
-    setIsSubmitting(true);
-    try {
-      const upsertData: Record<string, unknown> = {
-        email: email.trim(),
-        idea: idea.trim(),
-        rounds: rounds.map((r: any) => ({
-          brief: r.brief,
-          questions: r.questions,
-          answers: r.answers || null,
-        })),
-        concept_image_url: conceptImage || null,
-        logo_image_url: logoImage || null,
-      };
-      if (sessionId) upsertData.id = sessionId;
-
-      const { error } = await (supabase.from as any)("simulator_captures").upsert(upsertData, { onConflict: "id" });
-      if (error) throw error;
-      setShowPrompt(true);
-      toast.success("Saved! Your prompt and sharing tools are unlocked.");
-    } catch (err) {
-      console.error("Simulator capture error:", err);
-      setShowPrompt(true);
-      toast.success("Unlocked!");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handleDownloadPDF = () => {
-    if (!showPrompt) {
-      // Email-gate inline — focus the email field at the top of the action row
-      toast("Add an email to download the PDF.");
-      const emailInput = document.querySelector<HTMLInputElement>('input[type="email"]');
-      emailInput?.focus();
-      return;
-    }
     setIsExporting(true);
     try {
-      generateStructuredPDF(brief, idea, rounds, [], lovablePrompt);
+      generateStructuredPDF(brief, idea, rounds, [], lovablePrompt, example);
       toast.success("PDF downloaded!");
     } catch (err) {
       console.error("PDF export error:", err);
@@ -459,29 +440,30 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   };
 
   const handleShareReport = async () => {
-    if (!showPrompt) {
-      toast("Add an email to get a shareable link.");
-      const emailInput = document.querySelector<HTMLInputElement>('input[type="email"]');
-      emailInput?.focus();
-      return;
-    }
-    if (!reportId) {
-      toast.error("Report is still saving. Try again in a moment.");
-      return;
-    }
-    const shareUrl = `${window.location.origin}/report/${reportId}`;
-    const ok = await copyToClipboard(shareUrl);
-    if (ok) {
+    if (example || isLocalPreview) { toast("This example can be copied or exported. Save your own analysis to share it."); return; }
+    if (!reportId) { toast.error("Save the report to your account before sharing it."); return; }
+    setSharingBusy(true);
+    try {
+      await setSharing(reportId, true);
+      setSharingEnabled(true);
+      const ok = await copyToClipboard(`${window.location.origin}/report/${reportId}`);
+      if (!ok) { toast.error("Sharing is enabled, but copying failed. Try Copy public link again."); return; }
       setShareCopied(true);
-      toast.success("Share link copied!");
+      toast.success("Public link enabled and copied. Anyone with this link can read the report.");
       setTimeout(() => setShareCopied(false), 2000);
-    } else {
-      toast.error("Failed to copy link.");
-    }
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Sharing was not changed."); }
+    finally { setSharingBusy(false); }
+  };
+  const handleRevokeSharing = async () => {
+    if (!reportId || example || isLocalPreview) return;
+    setSharingBusy(true);
+    try { await setSharing(reportId, false); setSharingEnabled(false); toast.success("Public sharing is off."); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Sharing was not changed."); }
+    finally { setSharingBusy(false); }
   };
 
   const callRefinePrompt = async (context?: string) => {
-    const { data, error } = await supabase.functions.invoke("refine-prompt", {
+    const { data, error } = await invokeAI("refine-prompt", {
       body: {
         brief,
         idea,
@@ -511,6 +493,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
     context: string | undefined,
     successLabel: string,
   ) => {
+    if (example) { toast("Use your own question to refine a prompt."); return; }
     setLoading(true);
     try {
       const newPrompt = await callRefinePrompt(context);
@@ -527,8 +510,8 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
         onPromptUpdate(newPrompt);
         toast.success(successLabel);
       } else {
-        await copyToClipboard(newPrompt);
-        toast.success(`${successLabel} (copied to clipboard)`);
+        if (await copyToClipboard(newPrompt)) toast.success(`${successLabel} (copied to clipboard)`);
+        else toast.error("Prompt generated, but copying failed. Please try again.");
       }
     } catch (e) {
       console.error("Refine error:", e);
@@ -548,12 +531,12 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   const handleGeneratePrompt = () => runRefine(setIsGeneratingPrompt, undefined, "Prompt generated");
 
   // ─── Prompt grader (grade → refine → re-grade loop) ───
-  // Auto-grade the generated prompt whenever it changes, so the user copies a
-  // stronger prompt. Skipped while a diff is pending (we grade the kept version).
+  // Grading is an explicit paid action; viewing, copying, or resuming never runs it.
   const gradeCurrentPrompt = async (text: string) => {
+    if (example || !text.trim() || gradeLoading) return;
     setGradeLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("grade-prompt", {
+      const { data, error } = await invokeAI("grade-prompt", {
         body: { lovable_prompt: text, premium },
       });
       if (error) throw error;
@@ -561,22 +544,13 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
       setPromptGrade(data as PromptGrade);
     } catch (e) {
       console.error("Grade prompt error:", e);
-      // Silent: a failed grade should never block the report. Badge just stays hidden.
+      toast.error(e instanceof Error ? e.message : "Prompt grading failed. Your prompt is unchanged.");
     } finally {
       setGradeLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (pendingPrompt) return; // grade the committed version, not the in-review diff
-    const text = (lovablePrompt || "").trim();
-    if (!text) {
-      setPromptGrade(null);
-      return;
-    }
-    gradeCurrentPrompt(text);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lovablePrompt, pendingPrompt, premium]);
+  useEffect(() => { setPromptGrade(null); }, [lovablePrompt, premium]);
 
   // Feed the grader's flagged anti-patterns + top fixes into the refiner so the
   // regenerated prompt fixes exactly those gaps, then auto re-grades on commit.
@@ -620,7 +594,8 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
         content,
         pinned: true,
       });
-      chitId = created?.id || null;
+      if (!created) { toast.error("Insight was not saved. Try again before refining the prompt."); return; }
+      chitId = created.id;
       toast.success(`Pinned "${sectionLabel}" — open Sharpen to fold it in.`);
     } else {
       toast.info(`"${sectionLabel}" is already in your stack.`);
@@ -682,7 +657,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
       }
     : undefined;
 
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = (event: import("@dnd-kit/core").DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id && onReorderFeatures) {
       const features = brief.core_features;
@@ -846,7 +821,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
       >
         <div className="h-px flex-1 bg-border/30" />
         <p className="text-[10px] text-primary uppercase tracking-[0.3em]">
-          {editMode ? `Refining · Round ${rounds.length + 1}` : `Simulation Complete · ${rounds.length} round${rounds.length !== 1 ? "s" : ""}`}
+          {example ? "Worked example · idea or app" : editMode ? `Refining · Round ${rounds.length + 1}` : `Simulation Complete · ${rounds.length} round${rounds.length !== 1 ? "s" : ""}`}
         </p>
         <div className="h-px flex-1 bg-border/30" />
       </motion.div>
@@ -891,55 +866,36 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
       >
-        {/* Unified action row — PDF + Share are always visible.
-            If not unlocked, clicking either opens an inline email field that
-            sits in the same row (no full-width banner). */}
+        <p className="mb-4 rounded-lg bg-muted/40 p-3 text-sm text-muted-foreground">{example ? "Prepared illustrative example. " : "AI-generated working analysis. "}Market claims need independent evidence. Perspectives are synthetic, not customer interviews or testimony. Copying and PDF export are available immediately.</p>
         <div className="flex flex-wrap gap-2 justify-end mb-4 items-center">
-          {!showPrompt && (
-            <form onSubmit={handleEmailSubmit} className="flex gap-2 mr-auto w-full sm:w-auto">
-              <input
-                type="email"
-                placeholder="email to unlock PDF + share"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 sm:w-56 px-3 py-2 rounded-sm bg-background border border-border text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
-              />
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex items-center gap-1.5 bg-primary text-primary-foreground text-xs px-3 py-2 rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50 whitespace-nowrap"
-              >
-                <Mail size={12} />
-                {isSubmitting ? "..." : "Unlock"}
-              </button>
-            </form>
-          )}
           <button
             onClick={handleDownloadPDF}
             disabled={isExporting}
             className="flex items-center gap-2 text-xs px-3 py-2 rounded-sm border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors disabled:opacity-50"
-            title={showPrompt ? "Download structured PDF" : "Add an email to download"}
+            title="Download structured PDF"
           >
             <Download size={13} />
             {isExporting ? "Generating..." : "PDF"}
           </button>
-          <button
+          {!example && <button
             onClick={handleShareReport}
+            disabled={sharingBusy || example}
             className="flex items-center gap-2 text-xs px-3 py-2 rounded-sm border border-primary/40 text-primary hover:bg-primary/10 transition-colors"
-            title={showPrompt ? "Copy a shareable link" : "Add an email to share"}
+            title="Explicitly enable public access and copy a link"
           >
             {shareCopied ? <Check size={13} /> : <Share2 size={13} />}
-            {shareCopied ? "Copied" : "Share"}
-          </button>
+            {shareCopied ? "Copied" : sharingEnabled ? "Copy public link" : "Enable public link"}
+          </button>}
+          {!example && reportId && <button onClick={handleRevokeSharing} disabled={sharingBusy} className="work-text-button">Turn off sharing</button>}
         </div>
 
         <div ref={reportRef}>
           {/* Compact title — no decorative image, no logo card */}
           <div className="mb-6">
             <p className="text-[10px] text-primary uppercase tracking-[0.3em] mb-2">VibeCo AI Report</p>
-            <h3 className="font-display text-2xl sm:text-3xl font-black text-foreground leading-tight break-words">
+            <h1 className="font-display text-2xl sm:text-3xl font-black text-foreground leading-tight break-words">
               {idea.slice(0, 80)}{idea.length > 80 ? "…" : ""}
-            </h3>
+            </h1>
             {/* Builder intent — quiet pill, no emoji */}
             {brief.builder_intent && (
               <p className="mt-2 text-[11px] text-muted-foreground">
@@ -956,6 +912,8 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
               </p>
             )}
           </div>
+
+          {(conceptImage || logoImage) && <details className="mb-6 rounded-lg border border-border p-4"><summary className="cursor-pointer text-sm font-semibold">Optional generated concept visuals</summary><p className="text-xs text-muted-foreground my-3">Illustrative AI-generated concepts, not a screenshot of a shipped product.</p><div className="grid gap-4 sm:grid-cols-2">{conceptImage && <img src={conceptImage} alt="Generated concept illustration" className="rounded-lg w-full"/>}{logoImage && <img src={logoImage} alt="Generated logo concept" className="rounded-lg w-full"/>}</div></details>}
 
           {/* Sticky sub-nav — quick jump between report regions */}
           <nav className="sticky top-16 z-30 -mx-2 mb-6 px-2 py-2 bg-background/85 backdrop-blur-md border-y border-border/40">
@@ -999,7 +957,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                 </div>
                 <span className="shrink-0 text-[10px] text-muted-foreground hidden sm:inline">7 lenses · 1 click</span>
               </div>
-              <SynthesisPanel
+              <fieldset disabled={example}><SynthesisPanel
                 brief={brief}
                 idea={idea}
                 reportId={reportId}
@@ -1007,8 +965,8 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                 antiHighlights={antiHighlights}
                 lovablePrompt={lovablePrompt}
                 onPromptUpdate={onPromptUpdate}
-                initialAutoAnalysis={autoAnalysis}
-              />
+                initialAutoAnalysis={example ? exampleSynthesis : autoAnalysis}
+              /></fieldset>
             </div>
           </motion.div>
 
@@ -1068,7 +1026,8 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
               </div>
             )}
 
-            {/* Prompt strength grade (auto-graded; drives the one-click improve loop) */}
+            {!example && lovablePrompt && !pendingPrompt && <button className="work-text-button mb-3" disabled={gradeLoading} onClick={() => gradeCurrentPrompt(lovablePrompt)}>{gradeLoading ? "Checking prompt…" : "Check prompt quality"}</button>}
+            {/* Explicit grading and refinement */}
             {!pendingPrompt && lovablePrompt && (
               <PromptGradeBadge
                 grade={promptGrade}
@@ -1366,7 +1325,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
         {/* (Lovable Prompt now lives near the top — promoted to position 2) */}
 
         {/* Stress-test the whole idea — always visible */}
-        <div id="fr-stress-test" className="scroll-mt-24">
+        <fieldset disabled={example}><div id="fr-stress-test" className="scroll-mt-24">
           <ThunderdomePanel
             brief={brief}
             idea={idea}
@@ -1388,6 +1347,8 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
             onIterate={onIterate ?? onRestart}
           />
         </div>
+
+        </fieldset>
 
         <div className="flex flex-wrap gap-3 justify-center mt-10 pt-6 border-t border-border/30">
           {onIterate && !editMode && (

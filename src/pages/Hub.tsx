@@ -17,7 +17,7 @@ import { useUserRole } from "@/hooks/useUserRole";
  */
 const Hub = () => {
   const navigate = useNavigate();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, loading: rolesLoading } = useUserRole();
   const [status, setStatus] = useState<"loading" | "anon" | "ready">("loading");
 
   useEffect(() => {
@@ -38,7 +38,7 @@ const Hub = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="max-w-6xl mx-auto px-6 lg:px-12 pt-28 pb-24">
+      <main id="main-content" className="max-w-6xl mx-auto px-6 lg:px-12 pt-28 pb-24">
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex items-center gap-2.5 mb-2">
             <Network size={20} className="text-primary" />
@@ -51,7 +51,7 @@ const Hub = () => {
         </motion.div>
 
         <div className="mt-8">
-          {status === "loading" ? (
+          {status === "loading" || rolesLoading ? (
             <div className="flex items-center justify-center py-28 text-muted-foreground">
               <Loader2 className="animate-spin mr-2" size={18} /> Loading…
             </div>
@@ -69,6 +69,8 @@ const Hub = () => {
                 Sign in
               </button>
             </div>
+          ) : !isAdmin ? (
+            <p role="status" className="rounded-lg border p-6">The internal hub is available only to the workspace owner. Your analyses are in Saved work.</p>
           ) : (
             <Tabs defaultValue="projects">
               <TabsList className="bg-card/40 border border-border">

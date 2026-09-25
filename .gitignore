@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local review evidence and temporary checks
+.local-verification/
+work/

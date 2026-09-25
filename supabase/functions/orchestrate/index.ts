@@ -1,3 +1,4 @@
+import { guardedEndpoint } from "../_shared/request-guard.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCors, jsonResponse } from "../_shared/cors.ts";
@@ -61,7 +62,7 @@ async function emitEvent(
   }
 }
 
-serve(async (req) => {
+serve(guardedEndpoint("orchestrate", async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
@@ -208,4 +209,4 @@ serve(async (req) => {
   } catch (e) {
     return handleFunctionError("orchestrate", e);
   }
-});
+}));

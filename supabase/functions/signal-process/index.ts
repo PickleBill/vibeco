@@ -1,3 +1,4 @@
+import { guardedEndpoint } from "../_shared/request-guard.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCors, jsonResponse } from "../_shared/cors.ts";
@@ -30,7 +31,7 @@ function trendOf(history: { s: number }[]): number {
 const DEFAULT_CONTEXT =
   "NiceAce is a single-hole, QR-activated, winner-takes-all hole-in-one jackpot for golfers: scan a QR on a Par 3, pay ~$10, and win the whole pot if you ace it. Relevant pains: on-course betting/side-games, scoring disputes, settle-up friction, proving a hole-in-one, golf app UX complaints, payout trust.";
 
-serve(async (req) => {
+serve(guardedEndpoint("signal-process", async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
@@ -38,7 +39,7 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const product = body.product || "niceace";
     const productContext = body.product_context || DEFAULT_CONTEXT;
-    const limit = Math.min(body.limit || 80, 200);
+    const limit = Math.max(1, Math.min(Number(body.limit) || 80, 80));
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -70,8 +71,9 @@ serve(async (req) => {
     const themes: { title: string; pain_score: number; trend: number; occurrence_count: number; score_history: { t: string; s: number }[] }[] = [];
     if (body.persist && supabase) {
       // Pulse P1: match new candidates against existing durable themes so trends persist.
-      const { data: existingRows } = await supabase
+      const { data: existingRows, error: existingError } = await supabase
         .from("signal_themes").select("id, title").eq("product_tag", product).eq("status", "open");
+      if (existingError) throw new Error("Could not read existing scan themes; nothing was saved.");
       const existing: ExistingTheme[] = (existingRows ?? []).map((r: Record<string, any>) => ({ id: r.id, title: r.title }));
       const matches = await matchThemes(result.candidates, existing, product, body.mode);
       const now = new Date().toISOString();
@@ -83,46 +85,50 @@ serve(async (req) => {
         // 1) upsert the durable theme
         let themeId = matchedId;
         if (matchedId) {
-          const { data: t } = await supabase.from("signal_themes").select("score_history, occurrence_count").eq("id", matchedId).single();
+          const { data: t, error: themeReadError } = await supabase.from("signal_themes").select("score_history, occurrence_count").eq("id", matchedId).single();
+          if (themeReadError) throw new Error("Could not read the existing theme.");
           const history = [...((t?.score_history as any[]) ?? []), { t: now, s: c.pain_score, c: c.evidence.member_count }].slice(-30);
-          await supabase.from("signal_themes").update({
+          const { error: themeUpdateError } = await supabase.from("signal_themes").update({
             pain_score: c.pain_score, score_history: history,
             occurrence_count: ((t?.occurrence_count as number) ?? 1) + 1,
             candidate_count: c.evidence.member_count, sample_quotes: c.representative_quotes, last_seen: now,
           }).eq("id", matchedId);
+          if (themeUpdateError) throw new Error("Scan was only partially saved. Retry after checking the stored themes.");
           themes.push({ title: c.cluster_theme, pain_score: c.pain_score, trend: trendOf(history), occurrence_count: ((t?.occurrence_count as number) ?? 1) + 1, score_history: history });
         } else {
           const history = [{ t: now, s: c.pain_score, c: c.evidence.member_count }];
-          const { data: nt } = await supabase.from("signal_themes").insert({
+          const { data: nt, error: themeInsertError } = await supabase.from("signal_themes").insert({
             product_tag: product, title: c.cluster_theme, pain_score: c.pain_score, score_history: history,
             occurrence_count: 1, candidate_count: c.evidence.member_count, sample_quotes: c.representative_quotes,
           }).select("id").single();
-          themeId = nt?.id ?? null;
+          if (themeInsertError || !nt?.id) throw new Error("Scan was only partially saved; a theme could not be created.");
+          themeId = nt.id;
           themes.push({ title: c.cluster_theme, pain_score: c.pain_score, trend: 0, occurrence_count: 1, score_history: history });
         }
 
         // 2) cluster + candidate, linked to the theme
-        const { data: cluster } = await supabase.from("signal_clusters")
+        const { data: cluster, error: clusterError } = await supabase.from("signal_clusters")
           .insert({ product_tag: product, theme: c.cluster_theme, pain_score: c.pain_score, member_count: c.evidence.member_count })
           .select("id").single();
+        if (clusterError || !cluster?.id) throw new Error("Scan was only partially saved; a cluster could not be created.");
         const { error: fErr } = await supabase.from("feature_candidates").insert({
           cluster_id: cluster?.id, theme_id: themeId, product_tag: product,
           problem: c.problem, proposed_solution: c.proposed_solution,
           representative_quotes: c.representative_quotes, evidence: c.evidence,
           pain_score: c.pain_score, confidence: c.confidence, effort: c.effort, status: "open",
         });
-        if (fErr) console.error("candidate insert:", fErr.message);
+        if (fErr) throw new Error("Scan was only partially saved; a candidate could not be saved.");
       }
 
       if (loadedRows.length) {
         const ids = loadedRows.map((r) => r.id);
         const { error } = await supabase.from("signal_raw").update({ processed: true }).in("id", ids);
-        if (error) console.error("mark processed:", error.message);
+        if (error) throw new Error("Candidates saved, but source processing status could not be updated.");
       }
     }
 
-    return jsonResponse({ ...result, themes });
+    return jsonResponse({ ...result, themes, persisted: body.persist === true });
   } catch (e) {
     return handleFunctionError("signal-process", e);
   }
-});
+}));

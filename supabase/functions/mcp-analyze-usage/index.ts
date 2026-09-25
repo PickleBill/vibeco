@@ -1,3 +1,4 @@
+import { guardedEndpoint } from "../_shared/request-guard.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCors, jsonResponse } from "../_shared/cors.ts";
@@ -57,7 +58,7 @@ const analysisSchema = {
   },
 };
 
-serve(async (req) => {
+serve(guardedEndpoint("mcp-analyze-usage", async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
@@ -143,7 +144,7 @@ Generate 3-7 improvement suggestions ranked by impact.`;
   } catch (e) {
     return handleFunctionError("mcp-analyze-usage", e);
   }
-});
+}));
 
 // ─── Stat Aggregation ───
 

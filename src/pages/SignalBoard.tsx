@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { isLocalPreview } from "@/lib/localPreview";
+import { downloadText } from "@/lib/workbench";
+import { invokeAI } from "@/lib/invokeAI";
+import { useMemo, useState } from "react";
 import { HelmetProvider, Helmet } from "react-helmet-async";
 import { Radar, Sparkles, ArrowUpRight, X, Quote, Loader2, TrendingUp } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -24,7 +27,7 @@ interface Candidate {
   pain_score: number;   // 0..100
   confidence: number;   // 0..100
   effort: "S" | "M" | "L";
-  evidence: { member_count: number; sources: string[] };
+  evidence: { member_count: number; sources: string[]; source_refs?: {url:string;title:string;source:string}[]; quotes_are_paraphrases?: boolean };
   status?: "open" | "promoted" | "dismissed";
 }
 
@@ -91,6 +94,17 @@ function Sparkline({ points }: { points: number[] }) {
   );
 }
 
+interface CollectionResponse {
+ items?: Record<string, unknown>[];
+ collected?: number;
+ warnings?: string[];
+ partial?: boolean;
+}
+interface ScanResponse {
+ candidates?: Candidate[];
+ themes?: Theme[];
+ counts?: {collected:number;pain:number;clusters:number;candidates:number};
+}
 const SignalBoard = () => {
   const [candidates, setCandidates] = useState<Candidate[]>(SAMPLE);
   const [themes, setThemes] = useState<Theme[]>(SAMPLE_THEMES);
@@ -98,95 +112,79 @@ const SignalBoard = () => {
   const [counts, setCounts] = useState<{ collected: number; pain: number; clusters: number; candidates: number } | null>(null);
   const [usingSample, setUsingSample] = useState(true);
   const [topic, setTopic] = useState("");
-
-  // Try to load persisted candidates + durable themes on mount (falls back to sample).
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data, error } = await (supabase as any)
-          .from("feature_candidates")
-          .select("*")
-          .eq("status", "open")
-          .order("pain_score", { ascending: false })
-          .limit(30);
-        if (!error && data && data.length) {
-          setCandidates(data as Candidate[]);
-          setUsingSample(false);
-        }
-        const { data: th } = await (supabase as any)
-          .from("signal_themes")
-          .select("*")
-          .eq("status", "open")
-          .order("pain_score", { ascending: false })
-          .limit(12);
-        if (th && th.length) {
-          setThemes(th.map((t: any) => ({
-            id: t.id, title: t.title, pain_score: t.pain_score, occurrence_count: t.occurrence_count,
-            score_history: t.score_history ?? [],
-            trend: (t.score_history?.length ?? 0) >= 2 ? Math.round(t.score_history.at(-1).s - t.score_history.at(-2).s) : 0,
-          })));
-        }
-      } catch { /* tables not migrated yet — keep sample */ }
-    })();
-  }, []);
+  const [scanTopic,setScanTopic]=useState("");
+  const [scanError,setScanError]=useState("");
+  const [scanWarnings,setScanWarnings]=useState<string[]>([]);
+  const navigate=useNavigate();
 
   const runScan = async () => {
     const t = topic.trim();
     const tag = t ? t.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40) : "general";
+    if(isLocalPreview){toast("Live scans are disconnected in this preview. The sample below is illustrative.");return;}
+    if(!t)return;
+    setScanError("");
     setScanning(true);
     try {
-      // Stage 1: collect + persist raw items to signal_raw (de-duped, hashed authors).
+      // Public scans are transient; collection and processing do not write shared tables.
       // Topic-driven: an industry or idea expands into pain-oriented queries server-side.
-      const { data: collected, error: cErr } = await supabase.functions.invoke("signal-collect", {
-        body: { product: tag, topic: t || undefined, persist: true },
+      const { data: collected, error: cErr } = await invokeAI("signal-collect", {
+        body: { product: tag, topic: t, persist: false, limit:4 },
       });
       if (cErr) throw cErr;
-      toast.message(`Collected ${(collected as any)?.collected ?? 0} items (${(collected as any)?.persisted ?? 0} new)`);
+      const collection = collected as CollectionResponse;
+      const allItems = collection.items || [];
+      const items = allItems.slice(0,60).map((item)=>({source:item.source,source_url:item.source_url,title:String(item.title||"").slice(0,200),body:String(item.body||"").slice(0,1000)}));
+      const warnings = [...(collection.warnings || []), ...(allItems.length>60 ? [`Analyzed the first 60 of ${allItems.length} collected items to keep this scan bounded.`] : [])];
+      toast.message(`Collected ${collection.collected ?? allItems.length} items for this scan.`);
 
-      // Stages 2-4 + theme persistence: process unprocessed rows from the DB.
-      const { data: result, error: pErr } = await supabase.functions.invoke("signal-process", {
-        body: { product: tag, persist: true },
+      // Classify, cluster, and synthesize only these explicitly supplied items.
+      const { data: result, error: pErr } = await invokeAI("signal-process", {
+        body: { product: tag, topic:t, product_context:`Explore customer problems and useful opportunities related to: ${t}`, items, persist: false },
       });
       if (pErr) throw pErr;
 
-      const r = result as any;
-      if ((r.candidates ?? []).length) setCandidates(r.candidates);
-      if (r.themes?.length) setThemes(r.themes);
+      const r = result as ScanResponse;
+      if (!r || !Array.isArray(r.candidates)) throw new Error("The scanner returned an incomplete result");
+      setCandidates(r.candidates ?? []);
+      setThemes(r.themes ?? []);
+      setScanTopic(t);
       setCounts(r.counts ?? null);
       setUsingSample(false);
+      setScanWarnings(warnings);
       toast.success(`Scan complete — ${r.counts?.candidates ?? 0} candidates from ${r.counts?.collected ?? 0} items`);
-    } catch (e: any) {
-      toast.error(`Scan failed: ${e?.message ?? "unknown"} — showing sample board`);
+    } catch (e: unknown) {
+      setScanError(`Scan did not finish: ${e instanceof Error ? e.message : "unknown error"}. The previous board is unchanged.`);
     } finally {
       setScanning(false);
     }
   };
 
-  const setStatus = async (idx: number, status: "promoted" | "dismissed") => {
-    const c = candidates[idx];
-    setCandidates((prev) => prev.map((x, i) => (i === idx ? { ...x, status } : x)));
-    toast[status === "promoted" ? "success" : "message"](
-      status === "promoted" ? `Promoted "${c.cluster_theme}" → change request` : `Dismissed "${c.cluster_theme}"`,
-    );
-    if (c.id) {
-      try { await (supabase as any).from("feature_candidates").update({ status }).eq("id", c.id); } catch { /* noop */ }
+  const setStatus = (idx:number,status:"promoted"|"dismissed") => {
+    const candidate=candidates[idx];
+    if(status === "promoted") {
+      const question=`Explore this opportunity: ${candidate.problem}\nProposed approach: ${candidate.proposed_solution}`;
+      const urls=(candidate.evidence.source_refs||[]).map(ref=>ref.url);
+      navigate(`/simulate?purpose=initiative&question=${encodeURIComponent(question)}`,{state:{sourceUrls:urls}});
+      return;
     }
+    setCandidates(prev=>prev.map((c,i)=>i===idx?{...c,status}:c));
+    toast('Hidden from this view only.',{action:{label:'Undo',onClick:()=>setCandidates(prev=>prev.map((c,i)=>i===idx?{...c,status:'open'}:c))}});
   };
 
   const visible = useMemo(() => candidates.filter((c) => !c.status || c.status === "open"), [candidates]);
 
   return (
     <HelmetProvider>
-      <Helmet><title>Signal Board · Signal Mine</title></Helmet>
+      <Helmet><title>Signal Scanner · VibeCo</title></Helmet>
       <div className="min-h-screen bg-background text-foreground">
         <Navbar />
-        <main className="container max-w-4xl py-10">
+        <main id="main-content" className="container max-w-4xl pt-28 pb-16">
           {/* Header */}
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 text-primary">
                 <Radar className="h-5 w-5" />
-                <span className="text-xs font-semibold uppercase tracking-[0.2em]">Opportunity Engine</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.2em]">Research tools</span>
               </div>
               <h1 className="mt-2 font-display text-3xl font-extrabold tracking-tight">Signal Scanner</h1>
               <p className="mt-1 max-w-xl text-sm text-muted-foreground">
@@ -199,22 +197,25 @@ const SignalBoard = () => {
           </div>
 
           {/* Topic-driven scan input */}
-          <div className="mt-5 flex flex-wrap items-center gap-2">
+          <label htmlFor="signal-topic" className="block text-sm font-semibold mt-6">Industry, niche, or topic</label>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
             <input
+              id="signal-topic"
+              maxLength={300}
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !scanning) runScan(); }}
               placeholder="e.g. third-party logistics, dental practices, indie SaaS tooling…"
               className="flex-1 min-w-[240px] rounded-md border border-border bg-muted/30 px-3 py-2.5 text-sm outline-none focus:border-primary"
             />
-            <Button onClick={runScan} disabled={scanning} className="gap-2">
+            <Button onClick={runScan} disabled={scanning||!topic.trim()} className="gap-2">
               {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               {scanning ? "Scanning…" : topic.trim() ? "Scan this" : "Run scan"}
             </Button>
           </div>
 
           {/* Stat strip */}
-          <div className="mt-6 grid grid-cols-4 gap-3">
+          <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               ["Collected", counts?.collected ?? "—"],
               ["Pain points", counts?.pain ?? "—"],
@@ -222,25 +223,23 @@ const SignalBoard = () => {
               ["Candidates", counts?.candidates ?? visible.length],
             ].map(([label, value]) => (
               <Card key={label as string} className="p-3">
-                <div className="font-display text-2xl font-extrabold leading-none">{value as any}</div>
+                <div className="font-display text-2xl font-extrabold leading-none">{value}</div>
                 <div className="mt-1 text-[11px] uppercase tracking-widest text-muted-foreground">{label}</div>
               </Card>
             ))}
           </div>
 
-          {usingSample && (
-            <p className="mt-3 text-xs text-muted-foreground">
-              Showing a sample board. Click <span className="text-primary">Run scan</span> to mine live sources
-              (requires the <code>signal-collect</code>/<code>signal-process</code> functions deployed).
-            </p>
-          )}
+          <p className="mt-4 text-sm text-muted-foreground">{usingSample ? "Illustrative sample · prepared golf-related examples, not a scan of your topic." : `Results for “${scanTopic}” · held in this view, not a public shared database.`} Generated paraphrases summarize discussion; they are not verbatim quotations. Scores are model estimates, not verified certainty.</p>
+          {scanError&&<p role="alert" className="mt-4 text-destructive">{scanError}</p>}
+          {scanWarnings.length>0&&<aside aria-label="Scan limitations" className="mt-4 text-sm"><strong>Partial coverage</strong><ul className="list-disc pl-5">{scanWarnings.map(w=><li key={w}>{w}</li>)}</ul></aside>}
+          {!usingSample&&<Button variant="outline" className="mt-4" onClick={()=>downloadText(`# Signal scan: ${scanTopic}\n\n`+candidates.map(c=>`## ${c.cluster_theme}\n${c.problem}\n\n${c.proposed_solution}\n\nSources: ${(c.evidence.source_refs||[]).map(x=>x.url).join(', ')}`).join('\n\n'),'vibeco-signal-scan.md')}>Download this scan</Button>}
 
           {/* Trending themes (Pulse P1) */}
           {themes.length > 0 && (
             <div className="mt-8">
               <div className="flex items-center gap-2">
                 <h2 className="font-display text-lg font-bold">Trending themes</h2>
-                <span className="text-xs text-muted-foreground">durable across scans · trend vs. last appearance</span>
+                <span className="text-xs text-muted-foreground">{usingSample ? "Illustrative theme history · sample values" : "Themes from this scan"}</span>
               </div>
               <div className="mt-3 grid gap-3 sm:grid-cols-3">
                 {themes.slice(0, 6).map((t, i) => {
@@ -277,7 +276,7 @@ const SignalBoard = () => {
                     <span className="text-[11px] uppercase tracking-widest text-muted-foreground">pain</span>
                     <h3 className="ml-1 font-display text-lg font-bold">{c.cluster_theme}</h3>
                     <div className="ml-auto flex items-center gap-2">
-                      <Badge variant="secondary">{c.confidence}% conf</Badge>
+                      <Badge variant="secondary">{c.confidence}% model estimate</Badge>
                       <Badge variant="outline">effort {c.effort}</Badge>
                       <Badge variant="outline">{c.evidence.member_count} signals</Badge>
                     </div>
@@ -296,6 +295,7 @@ const SignalBoard = () => {
 
                   {c.representative_quotes?.length > 0 && (
                     <div className="mt-3 space-y-1.5 rounded-lg border border-border bg-muted/30 p-3">
+                      <p className="text-xs font-semibold">Generated paraphrases</p>
                       {c.representative_quotes.slice(0, 3).map((q, i) => (
                         <div key={i} className="flex gap-2 text-xs text-muted-foreground">
                           <Quote className="h-3.5 w-3.5 shrink-0 opacity-60" /><span>{q}</span>
@@ -303,13 +303,15 @@ const SignalBoard = () => {
                       ))}
                       <div className="pt-1 text-[10px] uppercase tracking-widest text-muted-foreground/70">
                         sources: {c.evidence.sources.join(" · ")}
+                        {c.evidence.source_refs?.map(ref=><a key={ref.url} className="block normal-case text-primary underline mt-2 text-xs" href={ref.url} target="_blank" rel="noreferrer">{ref.title||ref.url} ↗</a>)}
+                        {!c.evidence.source_refs?.length&&<span className="block normal-case">{usingSample?"No live evidence attached to this illustrative sample.":"Original source links unavailable; treat this finding as unverified."}</span>}
                       </div>
                     </div>
                   )}
 
                   <div className="mt-4 flex gap-2">
                     <Button size="sm" className="gap-1.5" onClick={() => setStatus(realIdx, "promoted")}>
-                      Promote to change request <ArrowUpRight className="h-3.5 w-3.5" />
+                      Explore this opportunity <ArrowUpRight className="h-3.5 w-3.5" />
                     </Button>
                     <Button size="sm" variant="ghost" className="gap-1.5 text-muted-foreground" onClick={() => setStatus(realIdx, "dismissed")}>
                       <X className="h-3.5 w-3.5" /> Dismiss
