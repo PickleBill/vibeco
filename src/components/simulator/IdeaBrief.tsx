@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Mail, Sparkles } from "lucide-react";
 import type { BriefData } from "./SimulatorShell";
+import { DELIVERABLE_LABEL, lensOfBrief, sectionLabel } from "@/lib/lenses";
 
 interface Props {
   brief: BriefData;
@@ -172,6 +173,9 @@ const IdeaBrief = ({
   antiHighlights,
   onToggleAntiHighlight,
 }: Props) => {
+  const lens = lensOfBrief(brief);
+  const isIdea = lens === "idea";
+  const label = (k: string) => sectionLabel(lens, k, labels[k]);
   const isHighlighted = (k: string) => !!highlights?.has(k);
   const isAnti = (k: string) => !!antiHighlights?.has(k);
 
@@ -191,7 +195,7 @@ const IdeaBrief = ({
           </span>
         </div>
 
-        {brief.builder_intent && (
+        {isIdea && brief.builder_intent && (
           <div className="flex justify-center mb-3">
             <span className="inline-flex items-center px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-[11px] text-accent">
               Building for {intentLabels[brief.builder_intent] || brief.builder_intent}
@@ -200,7 +204,7 @@ const IdeaBrief = ({
         )}
 
         <h2 className="font-display text-2xl sm:text-3xl font-black text-foreground break-words">
-          {round <= 1 ? "Your Idea, Analyzed" : `Deeper Insights — Round ${round}`}
+          {round <= 1 ? (isIdea ? "Your Idea, Analyzed" : "Your Question, Framed") : `Deeper Insights — Round ${round}`}
         </h2>
         <p className="text-xs text-muted-foreground mt-2">
           {round <= 1
@@ -209,7 +213,7 @@ const IdeaBrief = ({
         </p>
         {highlights && highlights.size > 0 && (
           <p className="text-[10px] text-primary/70 mt-1">
-            ✦ {highlights.size} kept — these will shape your final prompt
+            ✦ {highlights.size} kept — these will shape your {isIdea ? "final prompt" : DELIVERABLE_LABEL[lens].toLowerCase()}
           </p>
         )}
       </motion.div>
@@ -218,7 +222,7 @@ const IdeaBrief = ({
       <BriefSubNav />
 
       {/* Scale assessment callout */}
-      {brief.scale_assessment && (
+      {isIdea && brief.scale_assessment && (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -271,7 +275,7 @@ const IdeaBrief = ({
                 <div className="flex items-center gap-2">
                   <Icon size={18} className="text-primary" />
                   <h3 className="font-display text-base font-black text-foreground uppercase tracking-wide">
-                    {labels[key]}
+                    {label(key)}
                   </h3>
                 </div>
                 <HighlightChips
@@ -381,7 +385,7 @@ const IdeaBrief = ({
               <div className="flex items-center gap-2 mb-1.5">
                 <Icon size={12} className="text-muted-foreground" />
                 <h3 className="text-[11px] font-semibold text-foreground/80 uppercase tracking-wider">
-                  {labels[key]}
+                  {label(key)}
                 </h3>
                 {/* Tier-3 chips removed — header chip on hero + Vibe Stack handle this */}
               </div>

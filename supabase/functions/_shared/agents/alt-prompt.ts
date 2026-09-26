@@ -1,5 +1,6 @@
 import { callLLM } from "../llm-client.ts";
 import { selectModel } from "../model-router.ts";
+import { lensAgentNote, lensOf } from "../lens.ts";
 import type { AltPromptInput, AltPromptResult } from "../types.ts";
 
 // ─── System Prompts by Type ───
@@ -86,9 +87,11 @@ export async function generateAltPrompt(input: AltPromptInput): Promise<AltPromp
   const systemPrompt = SYSTEM_PROMPTS[input.prompt_type];
   if (!systemPrompt) throw new Error(`Unknown prompt_type: ${input.prompt_type}`);
 
-  const fullSystemPrompt = input.prompt_type === "landing_page" && input.lovable_prompt
+  const basePrompt = input.prompt_type === "landing_page" && input.lovable_prompt
     ? `${systemPrompt}\n\nReference the existing build prompt for consistency: ${input.lovable_prompt.substring(0, 500)}`
     : systemPrompt;
+  // For company / initiative / decision questions, research the question itself, not a product.
+  const fullSystemPrompt = basePrompt + lensAgentNote(lensOf(input.brief));
 
   const userContent = `
 ## Idea

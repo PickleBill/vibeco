@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/copyToClipboard";
 import type { BriefData } from "./SimulatorShell";
+import { lensOfBrief } from "@/lib/lenses";
 
 interface Props {
   brief: BriefData;
@@ -94,6 +95,8 @@ const ActionHub = ({ brief, idea, lovablePrompt, reportId, onIterate }: Props) =
   }, [reportId]);
 
   const builderIntent = brief.builder_intent || "venture";
+  // Design briefs and landing-page tests only make sense when building an app.
+  const isIdea = lensOfBrief(brief) === "idea";
   const scaleAssessment = brief.scale_assessment;
 
   const handleCopy = async (text: string, key: string) => {
@@ -210,7 +213,7 @@ const ActionHub = ({ brief, idea, lovablePrompt, reportId, onIterate }: Props) =
       icon: Palette,
       priority: 3,
       action: () => handleAction("design_brief"),
-      available: true,
+      available: isIdea,
       generative: true,
       accentClass: "border-violet-500/20 hover:border-violet-500/40",
       iconClass: "text-violet-400",
@@ -222,7 +225,7 @@ const ActionHub = ({ brief, idea, lovablePrompt, reportId, onIterate }: Props) =
       icon: TestTube,
       priority: builderIntent === "experiment" ? 1 : 4,
       action: () => handleAction("landing_page"),
-      available: true,
+      available: isIdea,
       generative: true,
       accentClass: "border-amber-500/20 hover:border-amber-500/40",
       iconClass: "text-amber-400",

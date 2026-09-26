@@ -1,6 +1,7 @@
 import { callLLMWithTool } from "../llm-client.ts";
 import { selectModel } from "../model-router.ts";
 import type { SimulateInput, SimulationResult, DeepDiveResult, AnalysisMode, Lens } from "../types.ts";
+import { asLens, lensAgentNote, lensOf, lensSpec } from "../lens.ts";
 
 // ─── Tool Schemas ───
 
@@ -113,26 +114,52 @@ export const deepDiveToolSchema = {
 
 // ─── Prompt Builders ───
 
-/**
- * How to read the brief's fields for each kind of question. The schema stays
- * the same so every downstream agent and UI keeps working; only the framing moves.
- */
-const LENS_FRAMING: Record<Lens, string> = {
-  idea: "",
-  company: `QUESTION TYPE: COMPANY OR TOPIC. The user wants to get smart on a company, market, or topic (often before a conversation, interview, or partnership). Treat the "idea" as how that company or market creates value and where the opening is. Map fields this way: Problem = the core problem it solves or faces right now. Target Customer = its most important customer. Core Features = its key offerings, or the levers that matter most. Revenue Model = how it makes money (label figures as estimates). Industry Trends = real competitors and shifts. Investor Perspective = the hard questions a sharp outsider would ask. Customer Perspective = what its customers would say. Never invent specific facts about a named company; say what you'd verify.`,
-  initiative: `QUESTION TYPE: BUSINESS INITIATIVE. The user is weighing something a team or company is about to try, launch, or change. Map fields this way: Problem = the business problem the initiative addresses. Target Customer = the internal or external person who must adopt it. Core Features = the workstreams or components. Revenue Model = the business case: cost, savings, or revenue impact (label figures as estimates). Industry Trends = how others have run similar initiatives. Investor Perspective = what an executive sponsor or CFO would challenge. Customer Perspective = quotes from the people who must adopt it.`,
-  decision: `QUESTION TYPE: DECISION OR DISAGREEMENT. The user needs to make a call, or two sides disagree. Map fields this way: Problem = the decision and why it is hard. Target Customer = the person most affected by the outcome. Core Features = the realistic options, one per feature, each with its strongest case. Revenue Model = costs and benefits of the leading option (label figures as estimates). Industry Trends = relevant precedents. Investor Perspective = the questions a skeptical decision-maker would ask. Customer Perspective = quotes from the people on each side. Follow-up questions should surface the criteria that would settle it.`,
-};
+/** The analysis tool schema for a lens: same slots, lens-specific meaning. */
+export function analysisSchemaFor(lens?: Lens) {
+  const spec = lensSpec(lens);
+  if (!spec) return analysisToolSchema;
+  const schema = structuredClone(analysisToolSchema);
+  const params = schema.function.parameters as {
+    properties: Record<string, { description?: string; properties?: Record<string, { description?: string }>; required?: string[] }>;
+  };
+  const brief = params.properties.brief;
+  for (const [slot, description] of Object.entries(spec.slots)) {
+    if (brief.properties?.[slot]) brief.properties[slot].description = description;
+  }
+  // Product-only fields don't apply to research, initiatives or decisions.
+  for (const key of ["app_type", "builder_intent", "scale_assessment"]) delete brief.properties?.[key];
+  brief.required = (brief.required ?? []).filter((k) => !["app_type", "builder_intent"].includes(k));
+  params.properties.follow_up_questions.description = `2-3 follow-up questions about the user's exact question. ${spec.followUps}`;
+  params.properties.lovable_prompt.description = `ONLY for the final round (is_final=true). The ${spec.deliverable.name}. ${spec.deliverable.format}`;
+  schema.function.description = `Frame the user's ${spec.kind} with brief sections and follow-up questions.`;
+  return schema;
+}
 
-function lensPreamble(lens?: Lens): string {
-  // lens comes straight from the request body, so only accept known keys.
-  const framing = lens && Object.prototype.hasOwnProperty.call(LENS_FRAMING, lens) ? LENS_FRAMING[lens] : "";
-  if (!framing) return "";
-  return `\n\n${framing}\nIf this is not about building software, the lovable_prompt (final round only) should describe the smallest useful tool or page that helps act on the recommendation.`;
+function nonIdeaSystemPrompt(lens: Lens): string {
+  const spec = lensSpec(lens)!;
+  return `You are VibeCo, a sharp, fair-minded advisor who helps people think a question through. The user brought a ${spec.kind}.
+
+LANGUAGE RULE: RESPOND ONLY IN ENGLISH.
+
+Rules:
+1. Stay with the question as asked. Do NOT turn it into a product, app or startup idea.
+2. Fill every brief field for THIS question, reading each field exactly as its schema description says.
+3. Use the user's own words and specifics. No generic filler.
+4. Label estimates as estimates. Never invent specific facts about a named real company or person; say what to verify instead.`;
 }
 
 function buildInitialPrompts(idea: string, lens?: Lens) {
-  const systemPrompt = `You are VibeCo's AI Idea Simulator — a sharp, experienced startup advisor. Be direct and insightful.${lensPreamble(lens)}
+  const spec = lensSpec(lens);
+  if (spec) {
+    return {
+      systemPrompt: `${nonIdeaSystemPrompt(lens!)}
+
+IMPORTANT: Set is_final to false. This is the first round. Generate exactly 2 follow-up questions that reference the user's specific situation. ${spec.followUps} Options must be genuinely different directions. Do NOT include lovable_prompt.`,
+      userContent: `Here is the user's question. Read it carefully and frame it, 100% specific to what they wrote:\n\n"${idea}"`,
+    };
+  }
+
+  const systemPrompt = `You are VibeCo's AI Idea Simulator — a sharp, experienced startup advisor. Be direct and insightful.
 
 LANGUAGE RULE: RESPOND ONLY IN ENGLISH. Every single field must be in English. No Chinese, no other languages. English only.
 
@@ -164,8 +191,19 @@ For follow-up questions:
 
 function buildRefinePrompts(idea: string, history: string, round: number, lens?: Lens) {
   const isLastRound = round >= 3;
+  const spec = lensSpec(lens);
+  if (spec) {
+    return {
+      systemPrompt: `${nonIdeaSystemPrompt(lens!)}
 
-  const systemPrompt = `You are VibeCo's AI Idea Simulator continuing a refinement session.${lensPreamble(lens)}
+You are continuing a session. Re-read the original question and every previous round. Fold in the user's answers and choices, and sharpen every field.
+
+${isLastRound ? `This is the FINAL round. Set is_final to true. The follow_up_questions array must be empty. Write the lovable_prompt field as the ${spec.deliverable.name}: ${spec.deliverable.format}` : `This is round ${round} of 3. Set is_final to false. Do NOT include lovable_prompt. Ask exactly 3 NEW follow-up questions. ${spec.followUps}`}`,
+      userContent: `Full conversation history:\n\n${history}\n\nGenerate a${isLastRound ? " final" : "n updated"} brief.`,
+    };
+  }
+
+  const systemPrompt = `You are VibeCo's AI Idea Simulator continuing a refinement session.
 
 LANGUAGE RULE: RESPOND ONLY IN ENGLISH. Every single field must be in English.
 
@@ -192,10 +230,11 @@ export async function runSimulation(input: SimulateInput): Promise<SimulationRes
     : "analysis-refine";
 
   const model = selectModel(taskType, { mode: input.mode });
+  const lens = asLens(input.lens);
 
   const { systemPrompt, userContent } = input.type === "initial"
-    ? buildInitialPrompts(input.idea, input.lens)
-    : buildRefinePrompts(input.idea, input.history || "", input.round || 2, input.lens);
+    ? buildInitialPrompts(input.idea, lens)
+    : buildRefinePrompts(input.idea, input.history || "", input.round || 2, lens);
 
   const result = await callLLMWithTool<SimulationResult>({
     model,
@@ -203,7 +242,7 @@ export async function runSimulation(input: SimulateInput): Promise<SimulationRes
       { role: "system", content: systemPrompt },
       { role: "user", content: userContent },
     ],
-    tools: [analysisToolSchema],
+    tools: [analysisSchemaFor(lens)],
     toolChoice: { type: "function", function: { name: "generate_idea_analysis" } },
   });
 
@@ -212,24 +251,41 @@ export async function runSimulation(input: SimulateInput): Promise<SimulationRes
     result.is_final = false;
     delete result.lovable_prompt;
     if (!result.follow_up_questions || result.follow_up_questions.length === 0) {
-      result.follow_up_questions = [
-        {
-          question: "What's the most important aspect of this idea to explore next?",
-          options: [
-            { label: "Go-to-market strategy", description: "How to acquire your first 100 users" },
-            { label: "Technical feasibility", description: "What it takes to build the MVP" },
-            { label: "Competitive moat", description: "How to stay ahead of copycats" },
-          ],
-          allow_multiple: false,
-        },
-      ];
+      result.follow_up_questions = [fallbackQuestion(lens)];
     }
   } else if (input.round && input.round >= 3) {
     result.is_final = true;
     result.follow_up_questions = [];
   }
 
+  // Record the lens on the brief so saved reports, shared views and downstream
+  // agents know how to read it.
+  if (lens && result.brief) result.brief.lens = lens;
+
   return result;
+}
+
+function fallbackQuestion(lens?: Lens): SimulationResult["follow_up_questions"][number] {
+  if (lensSpec(lens)) {
+    return {
+      question: "What matters most to get right next?",
+      options: [
+        { label: "The options", description: "Make sure the real choices are on the table" },
+        { label: "The criteria", description: "Agree on what a good outcome looks like" },
+        { label: "The risks", description: "Find what could go wrong before it does" },
+      ],
+      allow_multiple: false,
+    };
+  }
+  return {
+    question: "What's the most important aspect of this idea to explore next?",
+    options: [
+      { label: "Go-to-market strategy", description: "How to acquire your first 100 users" },
+      { label: "Technical feasibility", description: "What it takes to build the MVP" },
+      { label: "Competitive moat", description: "How to stay ahead of copycats" },
+    ],
+    allow_multiple: false,
+  };
 }
 
 export async function runDeepDive(input: {
@@ -255,7 +311,7 @@ You are analyzing the "${input.section_label}" section. Provide:
 - Include specific competitor names, market size estimates, risk factors, or implementation recommendations as relevant
 - Reference the user's specific idea and product throughout
 - Use markdown formatting (bold for emphasis, bullet points)
-- Be more detailed and specific than the original brief — this is a DEEP DIVE`;
+- Be more detailed and specific than the original brief — this is a DEEP DIVE${lensAgentNote(lensOf(input.brief))}`;
 
   const userContent = `Original idea: "${input.idea}"
 

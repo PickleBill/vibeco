@@ -1,5 +1,6 @@
 import { callLLMWithTool } from "../llm-client.ts";
 import { selectModel } from "../model-router.ts";
+import { lensAgentNote, lensOf } from "../lens.ts";
 import type {
   BriefData,
   PerspectiveResult,
@@ -223,7 +224,7 @@ Synthesize all of the above into a unified analysis. Find what they agree on, wh
       const result = await callLLMWithTool<SynthesisResult>({
         model,
         messages: [
-          { role: "system", content: systemPrompt },
+          { role: "system", content: systemPrompt + lensAgentNote(lensOf(input.brief)) },
           { role: "user", content: userContent },
         ],
         tools: [synthesizeToolSchema],
