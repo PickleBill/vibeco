@@ -18,6 +18,8 @@ export interface BriefData {
     fits_intent: boolean;
     recommendation: string;
   };
+  /** Question type the brief was produced under; absent on older briefs (= "idea"). */
+  lens?: Lens;
 }
 
 export interface FollowUpQuestion {

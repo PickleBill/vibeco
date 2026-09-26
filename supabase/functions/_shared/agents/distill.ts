@@ -1,5 +1,6 @@
 import { callLLMWithTool } from "../llm-client.ts";
 import { selectModel } from "../model-router.ts";
+import { lensAgentNote, lensOf } from "../lens.ts";
 import type { DistillInput, DistillResult } from "../types.ts";
 
 // ─── Tool Schema ───
@@ -85,7 +86,7 @@ Distill this to its absolute core. What's the ONE thing that matters?`;
   return callLLMWithTool<DistillResult>({
     model,
     messages: [
-      { role: "system", content: systemPrompt },
+      { role: "system", content: systemPrompt + lensAgentNote(lensOf(input.brief)) },
       { role: "user", content: userContent },
     ],
     tools: [distillToolSchema],

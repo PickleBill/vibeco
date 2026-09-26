@@ -187,3 +187,65 @@ export function questionHref(lens: Lens, question?: string): string {
   if (question?.trim()) params.set("q", question.trim());
   return `/simulate?${params.toString()}`;
 }
+
+// ─── Report rendering ───
+
+/** The lens a saved brief was produced under (older briefs have none = "idea"). */
+export function lensOfBrief(brief: { lens?: unknown } | null | undefined): Lens {
+  const value = brief?.lens;
+  return typeof value === "string" && isLens(value) ? value : "idea";
+}
+
+export type SectionKey =
+  | "problem"
+  | "target_customer"
+  | "core_features"
+  | "revenue_model"
+  | "industry_trends"
+  | "investor_perspective"
+  | "customer_perspective";
+
+// What each brief slot is called per lens. The idea lens keeps each
+// component's own labels. Keep in sync with supabase/functions/_shared/lens.ts.
+const SECTION_LABELS: Record<Exclude<Lens, "idea">, Record<SectionKey, string>> = {
+  company: {
+    problem: "What they do & the pressure they're under",
+    target_customer: "Who they serve",
+    core_features: "Key offerings & levers",
+    revenue_model: "How they make money",
+    industry_trends: "Competitors & market shifts",
+    investor_perspective: "Questions to ask",
+    customer_perspective: "What customers would say",
+  },
+  initiative: {
+    problem: "The business problem",
+    target_customer: "Who has to say yes",
+    core_features: "Workstreams",
+    revenue_model: "The business case",
+    industry_trends: "How it's gone elsewhere",
+    investor_perspective: "What leadership will challenge",
+    customer_perspective: "What adopters would say",
+  },
+  decision: {
+    problem: "The decision",
+    target_customer: "Who it affects",
+    core_features: "The options",
+    revenue_model: "Costs & benefits",
+    industry_trends: "Precedents",
+    investor_perspective: "Questions for each side",
+    customer_perspective: "Each side, in their own words",
+  },
+};
+
+export function sectionLabel(lens: Lens, key: string, fallback: string): string {
+  if (lens === "idea") return fallback;
+  return SECTION_LABELS[lens][key as SectionKey] ?? fallback;
+}
+
+/** The final "Put it to work" document for each lens. */
+export const DELIVERABLE_LABEL: Record<Lens, string> = {
+  idea: "Lovable Prompt",
+  company: "Briefing",
+  initiative: "Proposal Memo",
+  decision: "Decision Memo",
+};

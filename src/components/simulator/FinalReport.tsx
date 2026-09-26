@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { jsPDF } from "jspdf";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { DELIVERABLE_LABEL, lensOfBrief, sectionLabel, type Lens } from "@/lib/lenses";
 import ThunderdomePanel from "./ThunderdomePanel";
 import SynthesisPanel, { type OrchestrateResult } from "./SynthesisPanel";
 import ActionHub from "./ActionHub";
@@ -92,6 +93,10 @@ const sectionMeta = [
   { key: "investor_perspective", label: "Investor Perspective & Next Steps", icon: Eye },
   { key: "customer_perspective", label: "Customer Perspective", icon: MessageSquare },
 ] as const;
+
+/** Section labels for a lens (decision → "The options", etc.). */
+const labeledSections = (lens: Lens) =>
+  sectionMeta.map((s) => ({ ...s, label: sectionLabel(lens, s.key, s.label) }));
 
 /* (computeScores removed — was deterministic hash filler, no real signal) */
 
@@ -190,7 +195,7 @@ export const generateStructuredPDF = (
   addHeader();
   y = 25;
 
-  sectionMeta.forEach((section) => {
+  labeledSections(lensOfBrief(brief)).forEach((section) => {
     ensureSpace(20);
     pdf.setFontSize(12);
     pdf.setTextColor(120, 120, 200);
@@ -251,7 +256,7 @@ export const generateStructuredPDF = (
     y = 25;
     pdf.setFontSize(14);
     pdf.setTextColor(120, 120, 200);
-    pdf.text("YOUR LOVABLE PROMPT", margin, y);
+    pdf.text(`YOUR ${DELIVERABLE_LABEL[lensOfBrief(brief)].toUpperCase()}`, margin, y);
     y += 10;
     writeWrapped(lovablePrompt, margin, contentW, 9, [190, 190, 205]);
   }
@@ -261,6 +266,10 @@ export const generateStructuredPDF = (
 };
 
 const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImage, rounds, unlocked, unlockEmail, lovablePrompt, sessionId, highlights, onToggleHighlight, antiHighlights, onToggleAntiHighlight, reportId, autoAnalysis, onReorderFeatures, onPromptUpdate, editMode, onCancelEdit, onReSimulate, stackItems, onAddToStack, stackHasItem, onOpenStack }: Props) => {
+  const lens = lensOfBrief(brief);
+  const isIdea = lens === "idea";
+  const deliverable = DELIVERABLE_LABEL[lens];
+  const sections = labeledSections(lens);
   const [email, setEmail] = useState(unlockEmail || "");
   const [showPrompt, setShowPrompt] = useState(!!unlocked);
   const [isExporting, setIsExporting] = useState(false);
@@ -306,7 +315,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
     { id: "verdict", label: "Verdict" },
     { id: "brief", label: "Brief" },
     { id: "stress-test", label: "Stress-test" },
-    { id: "prompt", label: "Prompt" },
+    { id: "prompt", label: isIdea ? "Prompt" : deliverable },
     { id: "actions", label: "Actions" },
   ];
 
@@ -348,7 +357,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
 
     setDeepDiveLoading(sectionKey);
     try {
-      const sectionLabel = sectionMeta.find((s) => s.key === sectionKey)?.label || sectionKey;
+      const sectionLabel = sections.find((s) => s.key === sectionKey)?.label || sectionKey;
       const { data, error } = await supabase.functions.invoke("simulate-idea", {
         body: {
           type: "deep_dive",
@@ -431,7 +440,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
     if (highlights && highlights.size > 0) {
       textToCopy += "\n\n---\n\n## Areas that resonate most with me:\n";
       highlights.forEach((key) => {
-        const section = sectionMeta.find((s) => s.key === key);
+        const section = sections.find((s) => s.key === key);
         if (!section) return;
         const value = brief[section.key as keyof BriefData];
         const text = typeof value === "string" ? value : Array.isArray(value) ? (value as BriefData["core_features"]).map((f) => `${f.name}: ${f.description}`).join("\n") : "";
@@ -442,7 +451,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
     if (antiHighlights && antiHighlights.size > 0) {
       textToCopy += "\n\n## Areas to deprioritize or reframe:\n";
       antiHighlights.forEach((key) => {
-        const section = sectionMeta.find((s) => s.key === key);
+        const section = sections.find((s) => s.key === key);
         if (!section) return;
         textToCopy += `- ${section.label}\n`;
       });
@@ -570,7 +579,8 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   useEffect(() => {
     if (pendingPrompt) return; // grade the committed version, not the in-review diff
     const text = (lovablePrompt || "").trim();
-    if (!text) {
+    // The grader scores Lovable build prompts; memos and briefings aren't graded.
+    if (!text || !isIdea) {
       setPromptGrade(null);
       return;
     }
@@ -605,7 +615,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   const handleUseDeepDiveInPrompt = async (sectionKey: string) => {
     const content = deepDiveContent[sectionKey];
     if (!content) return;
-    const sectionLabel = sectionMeta.find((s) => s.key === sectionKey)?.label || sectionKey;
+    const sectionLabel = sections.find((s) => s.key === sectionKey)?.label || sectionKey;
     if (!onAddToStack) {
       toast.error("Stack unavailable.");
       return;
@@ -659,7 +669,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
         if (!wasOn) {
           setPulsedSection(k);
           setTimeout(() => setPulsedSection(null), 900);
-          const label = sectionMeta.find((s) => s.key === k)?.label || k;
+          const label = sections.find((s) => s.key === k)?.label || k;
           toast.success(`✦ Kept "${label}"`, {
             action: { label: "Undo", onClick: () => onToggleHighlight(k) },
             duration: 4000,
@@ -673,7 +683,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
         const wasOn = !!antiHighlights?.has(k);
         onToggleAntiHighlight(k);
         if (!wasOn) {
-          const label = sectionMeta.find((s) => s.key === k)?.label || k;
+          const label = sections.find((s) => s.key === k)?.label || k;
           toast(`✕ Cut "${label}"`, {
             action: { label: "Undo", onClick: () => onToggleAntiHighlight(k) },
             duration: 4000,
@@ -813,7 +823,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                     Add to highlights
                   </button>
                   {onAddToStack && stackHasItem && (() => {
-                    const label = sectionMeta.find((s) => s.key === key)?.label || key;
+                    const label = sections.find((s) => s.key === key)?.label || key;
                     const alreadyIn = stackHasItem("deep_dive", key, label);
                     return (
                       <button
@@ -941,7 +951,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
               {idea.slice(0, 80)}{idea.length > 80 ? "…" : ""}
             </h3>
             {/* Builder intent — quiet pill, no emoji */}
-            {brief.builder_intent && (
+            {isIdea && brief.builder_intent && (
               <p className="mt-2 text-[11px] text-muted-foreground">
                 Building for{" "}
                 <span className="text-foreground/80">
@@ -994,7 +1004,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                 <div className="min-w-0">
                   <p className="text-[10px] text-primary uppercase tracking-[0.3em] mb-1">Verdict</p>
                   <h2 className="font-display text-lg sm:text-xl font-black text-foreground leading-tight">
-                    The whole idea, stress-tested at once
+                    The whole {isIdea ? "idea" : "question"}, stress-tested at once
                   </h2>
                 </div>
                 <span className="shrink-0 text-[10px] text-muted-foreground hidden sm:inline">7 lenses · 1 click</span>
@@ -1016,7 +1026,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
 
 
           {/* Scale assessment — kept, but moved below prompt and tightened */}
-          {brief.scale_assessment && (
+          {isIdea && brief.scale_assessment && (
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1040,7 +1050,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
 
           {/* Hero sections — Problem & Core Features get dramatic treatment */}
           <div id="fr-brief" className="space-y-1 mb-8 scroll-mt-24">
-            {sectionMeta.filter(s => s.key === "problem" || s.key === "core_features").map((section, i) => {
+            {sections.filter(s => s.key === "problem" || s.key === "core_features").map((section, i) => {
               const Icon = section.icon;
               const value = brief[section.key as keyof BriefData];
               const isExpanded = expandedSection === section.key;
@@ -1117,7 +1127,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                       )}
                       {onReorderFeatures && (
                         <p className="text-[10px] text-muted-foreground/50 mt-3">
-                          Drag to reorder by priority · #1 gets hero placement in your Lovable prompt
+                          {isIdea ? "Drag to reorder by priority · #1 gets hero placement in your Lovable prompt" : "Drag to reorder by priority"}
                         </p>
                       )}
                     </div>
@@ -1169,7 +1179,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
           >
             <div className="p-5 sm:p-6 rounded-lg bg-background">
               <div className="grid gap-5">
-                {sectionMeta.filter(s => s.key !== "problem" && s.key !== "core_features").map((section, i) => {
+                {sections.filter(s => s.key !== "problem" && s.key !== "core_features").map((section, i) => {
                   const Icon = section.icon;
                   const value = brief[section.key as keyof BriefData];
                   const isExpanded = expandedSection === section.key;
@@ -1279,13 +1289,13 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                       {antiHighlights.size} flag{antiHighlights.size > 1 ? "s" : ""}
                     </>
                   )}
-                  {lovablePrompt ? " — sharpen from the Vibe Stack to apply" : " — generate the prompt to apply"}
+                  {lovablePrompt ? " — sharpen from the Vibe Stack to apply" : ` — generate the ${isIdea ? "prompt" : deliverable.toLowerCase()} to apply`}
                 </span>
               </motion.div>
             ) : null}
 
           {/* Premium reasoning toggle — admin/premium only. Server re-verifies. */}
-          {!pendingPrompt && lovablePrompt && isPremium && (
+          {isIdea && !pendingPrompt && lovablePrompt && isPremium && (
             <div className="flex items-center justify-between gap-3 mb-3 px-4 py-2.5 rounded-lg bg-[#6A2CF5]/5 border border-[#6A2CF5]/25">
               <div className="flex items-center gap-2 min-w-0">
                 <Sparkles size={13} className="text-[#6A2CF5] shrink-0" />
@@ -1305,7 +1315,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
           )}
 
           {/* Prompt strength grade (auto-graded; drives the one-click improve loop) */}
-          {!pendingPrompt && lovablePrompt && (
+          {isIdea && !pendingPrompt && lovablePrompt && (
             <PromptGradeBadge
               grade={promptGrade}
               loading={gradeLoading}
@@ -1330,7 +1340,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                 <div className="flex items-center gap-2 min-w-0">
                   <Sparkles size={12} className="text-primary shrink-0" />
                   <span className="text-xs font-semibold text-primary uppercase tracking-wider truncate">
-                    Your Lovable Prompt
+                    Your {deliverable}
                   </span>
                 </div>
               </div>
@@ -1339,15 +1349,15 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                   {lovablePrompt}
                 </pre>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 bg-muted/15 border-t border-border/30">
+              <div className={`grid grid-cols-1 ${isIdea ? "sm:grid-cols-2" : ""} gap-2 p-3 bg-muted/15 border-t border-border/30`}>
                 <button
                   onClick={handleCopyPromptWithHighlights}
                   className="flex items-center justify-center gap-1.5 text-xs font-semibold text-primary-foreground bg-primary px-3 py-2.5 rounded-sm hover:opacity-90 transition-opacity"
                 >
                   {copied ? <Check size={13} /> : <Copy size={13} />}
-                  {copied ? "Copied" : highlights && highlights.size > 0 ? "Copy + highlights" : "Copy prompt"}
+                  {copied ? "Copied" : highlights && highlights.size > 0 ? "Copy + highlights" : isIdea ? "Copy prompt" : `Copy ${deliverable.toLowerCase()}`}
                 </button>
-                <a
+                {isIdea && <a
                   href="https://lovable.dev"
                   target="_blank"
                   rel="noreferrer"
@@ -1355,15 +1365,19 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                 >
                   Open in Lovable
                   <ExternalLink size={12} />
-                </a>
+                </a>}
               </div>
             </div>
           ) : (
             <div className="border-2 border-dashed border-primary/30 rounded-xl p-6 text-center bg-primary/5">
               <Sparkles size={20} className="text-primary mx-auto mb-2" />
-              <p className="text-sm text-foreground mb-1 font-display font-semibold">Generate your build prompt</p>
+              <p className="text-sm text-foreground mb-1 font-display font-semibold">
+                {isIdea ? "Generate your build prompt" : `Generate your ${deliverable.toLowerCase()}`}
+              </p>
               <p className="text-xs text-muted-foreground mb-4">
-                Turn this brief into a Lovable-ready prompt you can paste and ship.
+                {isIdea
+                  ? "Turn this brief into a Lovable-ready prompt you can paste and ship."
+                  : `Turn this framing into a one-page ${deliverable.toLowerCase()} you can act on or share.`}
               </p>
               <button
                 onClick={handleGeneratePrompt}
@@ -1371,7 +1385,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                 className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {isGeneratingPrompt ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                {isGeneratingPrompt ? "Generating…" : "Generate Lovable prompt"}
+                {isGeneratingPrompt ? "Generating…" : isIdea ? "Generate Lovable prompt" : `Generate ${deliverable.toLowerCase()}`}
               </button>
             </div>
           )}
@@ -1395,7 +1409,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
               className="flex items-center gap-2 text-xs font-semibold text-primary px-4 py-2 rounded-sm border border-primary/40 hover:bg-primary/10 transition-colors"
             >
               <Wand2 size={12} />
-              Refine this idea in place
+              {isIdea ? "Refine this idea in place" : "Refine this in place"}
             </button>
           )}
           <button

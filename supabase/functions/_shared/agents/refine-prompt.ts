@@ -1,5 +1,6 @@
 import { callLLMWithTool } from "../llm-client.ts";
 import { selectModel } from "../model-router.ts";
+import { deliverableNote, lensAgentNote, lensOf } from "../lens.ts";
 import { formatBriefContext } from "./persona.ts";
 import type { RefinePromptInput, RefinePromptResult } from "../types.ts";
 
@@ -117,7 +118,7 @@ RULES:
   return callLLMWithTool<RefinePromptResult>({
     model,
     messages: [
-      { role: "system", content: systemPrompt },
+      { role: "system", content: systemPrompt + lensAgentNote(lensOf(input.brief)) + deliverableNote(lensOf(input.brief)) },
       { role: "user", content: context },
     ],
     tools: [promptToolSchema],

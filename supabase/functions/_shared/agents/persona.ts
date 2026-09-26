@@ -1,5 +1,6 @@
 import { callLLMWithTool } from "../llm-client.ts";
 import { selectModel } from "../model-router.ts";
+import { lensAgentNote, lensOf } from "../lens.ts";
 import type { PersonaInput, PersonaType, PerspectiveResult } from "../types.ts";
 
 // ─── Persona System Prompts ───
@@ -89,7 +90,7 @@ LANGUAGE RULE: RESPOND ONLY IN ENGLISH.
 You are analyzing this specific idea. Reference the product name, target customer, and market throughout. Do not be generic.
 
 Builder intent: ${input.builder_intent || "venture"}
-Adjust your perspective depth accordingly — a "fun" project gets lighter treatment than a "venture" idea.`;
+Adjust your perspective depth accordingly — a "fun" project gets lighter treatment than a "venture" idea.${lensAgentNote(lensOf(input.brief))}`;
 
   const userContent = `Original idea: "${input.idea}"
 

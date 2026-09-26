@@ -21,26 +21,30 @@ import VibeStack from "./VibeStack";
 import { useVibeStack } from "@/hooks/useVibeStack";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureSession } from "@/lib/ensureSession";
-import type { Lens } from "@/lib/lenses";
+import { lensOfBrief, type Lens } from "@/lib/lenses";
 import { toast } from "sonner";
 
 // Derive a short, human-friendly title from the brief's problem statement.
 function deriveTitle(brief: BriefData | undefined, fallbackIdea: string): string {
-  const source = brief?.problem || fallbackIdea || "";
+  // The user's own question makes the clearest title.
+  const question = fallbackIdea.trim().replace(/\s+/g, " ");
+  if (question) return question.length > 70 ? question.slice(0, 70).replace(/\s+\S*$/, "") + "…" : question;
+  const source = brief?.problem || "";
   const firstClause = source.split(/[.!?:;–—]/)[0].trim();
   const words = firstClause.split(/\s+/).slice(0, 6).join(" ");
   if (!words) return "Untitled idea";
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
+// Neutral wording: the same loader runs for ideas, companies, initiatives and decisions.
 const analysisMessages = [
-  "Analyzing market size and competitive landscape...",
-  "Identifying your most likely early customers...",
-  "Generating investor perspective...",
-  "Mapping out core features...",
-  "Pressure-testing the revenue model...",
-  "Evaluating industry trends and timing...",
-  "Finalizing analysis...",
+  "Reading your question...",
+  "Framing the core problem...",
+  "Mapping the people and options involved...",
+  "Looking for precedents and competitors...",
+  "Pressure-testing the assumptions...",
+  "Drafting follow-up questions...",
+  "Finalizing the framing...",
 ];
 
 const AnalyzingMessages = ({ isInitial }: { isInitial: boolean }) => {
@@ -59,6 +63,8 @@ const AnalyzingMessages = ({ isInitial }: { isInitial: boolean }) => {
 };
 
 export interface BriefData {
+  /** Question type; set server-side by simulate-idea (absent on older briefs). */
+  lens?: Lens;
   problem: string;
   target_customer: string;
   core_features: { name: string; description: string }[];
@@ -212,6 +218,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom, draftIdea, initialL
         const reportRounds = Array.isArray(report.rounds) ? report.rounds as RoundState[] : [];
 
         setIdea(report.idea || "");
+        if (report.brief?.lens) setLens(lensOfBrief(report.brief));
         setRounds(reportRounds);
         setCurrentRound(Math.max(0, reportRounds.length - 1));
         setConceptImage(report.concept_image_url || null);
@@ -461,6 +468,9 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom, draftIdea, initialL
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
+    // State from setIdea() isn't visible in this closure yet on the first round.
+    const ideaValue = type === "initial" ? ideaText || idea : idea;
+
     try {
       const body: Record<string, unknown> =
         type === "initial"
@@ -507,7 +517,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom, draftIdea, initialL
             await (supabase.from("idea_reports") as any)
               .update({
                 brief: latestBrief,
-                title: deriveTitle(latestBrief, idea),
+                title: deriveTitle(latestBrief, ideaValue),
                 rounds: roundsData,
                 lovable_prompt: data.lovable_prompt || null,
                 concept_image_url: conceptImage || null,
@@ -519,8 +529,8 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom, draftIdea, initialL
           } else {
             const { data: reportData } = await (supabase.from("idea_reports") as any)
               .insert({
-                idea: idea.trim(),
-                title: deriveTitle(latestBrief, idea),
+                idea: ideaValue.trim(),
+                title: deriveTitle(latestBrief, ideaValue),
                 brief: latestBrief,
                 rounds: roundsData,
                 lovable_prompt: data.lovable_prompt || null,
@@ -563,7 +573,7 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom, draftIdea, initialL
           } else {
             const { data: reportData } = await (supabase.from("idea_reports") as any)
               .insert({
-                idea: idea.trim(),
+                idea: ideaValue.trim(),
                 brief: newRound.brief,
                 rounds: roundsData,
                 status: "in-progress",
@@ -593,7 +603,8 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom, draftIdea, initialL
   const handleIdeaSubmit = (text: string, meta?: { project_id?: string; lovable_project_id?: string | null }) => {
     setIdea(text);
     if (meta?.project_id) setImportedFromProjectId(meta.project_id);
-    generateImages(text);
+    // Concept art and logos only make sense for app ideas.
+    if (lens === "idea") generateImages(text);
     callSimulator("initial", text);
   };
 

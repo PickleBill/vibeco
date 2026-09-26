@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { DELIVERABLE_LABEL, lensOfBrief, sectionLabel } from "@/lib/lenses";
 import { copyToClipboard } from "@/lib/copyToClipboard";
 
 const sectionMeta = [
@@ -33,6 +34,7 @@ const sectionMeta = [
 ] as const;
 
 interface BriefData {
+  lens?: string;
   problem: string;
   target_customer: string;
   core_features: { name: string; description: string }[];
@@ -243,7 +245,7 @@ const Report = () => {
                   <motion.div key={section.key} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}>
                     <div className="flex items-center gap-2 mb-2">
                       <Icon size={14} className="text-primary" />
-                      <h4 className="font-display text-sm font-bold text-foreground uppercase tracking-wide">{section.label}</h4>
+                      <h4 className="font-display text-sm font-bold text-foreground uppercase tracking-wide">{sectionLabel(lensOfBrief(report.brief), section.key, section.label)}</h4>
                       {highlightSet.has(section.key) && (
                         <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/15 border border-primary/30 text-[10px] text-primary">
                           <Sparkles size={10} className="fill-primary" />
@@ -275,7 +277,9 @@ const Report = () => {
             <div className="border border-border/30 rounded-lg overflow-hidden">
               <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border/20">
                 <span className="text-xs text-muted-foreground uppercase tracking-wider">
-                  One-shot prompt — paste into Lovable to build your landing page
+                  {lensOfBrief(report.brief) === "idea"
+                    ? "One-shot prompt — paste into Lovable to build your landing page"
+                    : DELIVERABLE_LABEL[lensOfBrief(report.brief)]}
                 </span>
                 <button onClick={handleCopyPrompt}
                   className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-muted/50">
@@ -283,8 +287,8 @@ const Report = () => {
                   {copied ? "Copied" : "Copy"}
                 </button>
               </div>
-              <div className="p-4 max-h-48 overflow-y-auto">
-                <pre className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+              <div className={`p-4 overflow-y-auto ${lensOfBrief(report.brief) === "idea" ? "max-h-48" : "max-h-[32rem]"}`}>
+                <pre className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap font-sans">
                   {report.lovable_prompt}
                 </pre>
               </div>
@@ -293,7 +297,7 @@ const Report = () => {
         )}
 
         <div className="text-center pt-4 border-t border-border/20">
-          <p className="text-sm text-muted-foreground mb-3">Want to simulate your own idea?</p>
+          <p className="text-sm text-muted-foreground mb-3">Have a messy question of your own?</p>
           <Link to="/simulate"
             className="inline-flex items-center gap-2 text-sm text-primary hover:underline">
             Try the simulator <ArrowRight size={14} />

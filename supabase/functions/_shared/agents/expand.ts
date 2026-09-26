@@ -1,5 +1,6 @@
 import { callLLMWithTool } from "../llm-client.ts";
 import { selectModel } from "../model-router.ts";
+import { lensAgentNote, lensOf } from "../lens.ts";
 import { formatBriefContext } from "./persona.ts";
 import type { ExpandInput, ExpandResult } from "../types.ts";
 
@@ -69,7 +70,7 @@ Generate 3 orthogonal variations. Each should make the founder say "huh, I hadn'
   return callLLMWithTool<ExpandResult>({
     model,
     messages: [
-      { role: "system", content: systemPrompt },
+      { role: "system", content: systemPrompt + lensAgentNote(lensOf(input.brief)) },
       { role: "user", content: userContent },
     ],
     tools: [expandToolSchema],
