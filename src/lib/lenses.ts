@@ -249,3 +249,50 @@ export const DELIVERABLE_LABEL: Record<Lens, string> = {
   initiative: "Proposal Memo",
   decision: "Decision Memo",
 };
+
+// ─── Critics & distill (Phase B) ───
+// Five fixed persona seats (DB constraint); each lens seats different critics.
+// Keep in sync with CRITIC_PROMPTS / DISTILL_SLOTS in supabase/functions/_shared/lens.ts.
+
+export type Seat = "skeptic" | "champion" | "competitor" | "customer" | "builder";
+
+const CRITICS: Record<Exclude<Lens, "idea">, Record<Seat, { name: string; tagline: string }>> = {
+  company: {
+    champion: { name: "Bull analyst", tagline: "Why they win" },
+    skeptic: { name: "Bear analyst", tagline: "What could go wrong" },
+    competitor: { name: "Competitor", tagline: "Where I'd attack" },
+    customer: { name: "Customer", tagline: "What I value" },
+    builder: { name: "Insider", tagline: "How it really works" },
+  },
+  initiative: {
+    champion: { name: "Sponsor", tagline: "Why it pays off" },
+    skeptic: { name: "CFO", tagline: "Show me the case" },
+    competitor: { name: "Blocker", tagline: "Why I'd resist" },
+    customer: { name: "Frontline user", tagline: "Living with it" },
+    builder: { name: "Operator", tagline: "How to run the pilot" },
+  },
+  decision: {
+    champion: { name: "Leading option", tagline: "The strongest case" },
+    skeptic: { name: "The alternative", tagline: "The other path" },
+    competitor: { name: "Precedent", tagline: "How this usually ends" },
+    customer: { name: "Most affected", tagline: "What it means for me" },
+    builder: { name: "Fair advisor", tagline: "How to settle it" },
+  },
+};
+
+/** Display name + tagline for a critic seat, or undefined to keep the idea-lens defaults. */
+export function criticFor(lens: Lens, seat: string): { name: string; tagline: string } | undefined {
+  return lens === "idea" ? undefined : CRITICS[lens][seat as Seat];
+}
+
+type DistillKey = "one_feature" | "one_customer" | "one_revenue";
+
+const DISTILL_LABELS: Record<Exclude<Lens, "idea">, Record<DistillKey, string>> = {
+  company: { one_feature: "The one insight", one_customer: "The one question to ask", one_revenue: "The one idea to bring" },
+  initiative: { one_feature: "The one workflow to pilot", one_customer: "The one sponsor to win", one_revenue: "The one metric" },
+  decision: { one_feature: "The milestone that settles it", one_customer: "Who has to agree", one_revenue: "The message to send" },
+};
+
+export function distillLabel(lens: Lens, key: DistillKey, fallback: string): string {
+  return lens === "idea" ? fallback : DISTILL_LABELS[lens][key];
+}

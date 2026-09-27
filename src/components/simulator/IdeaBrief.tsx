@@ -15,6 +15,7 @@ import {
 import { Mail, Sparkles } from "lucide-react";
 import type { BriefData } from "./SimulatorShell";
 import { DELIVERABLE_LABEL, lensOfBrief, sectionLabel } from "@/lib/lenses";
+import SourcesList from "./SourcesList";
 
 interface Props {
   brief: BriefData;
@@ -396,6 +397,8 @@ const IdeaBrief = ({
           );
         })}
       </div>
+
+      <SourcesList research={brief.research} className="mt-8" />
     </div>
   );
 };

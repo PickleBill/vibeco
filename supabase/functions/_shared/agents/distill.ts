@@ -1,6 +1,6 @@
 import { callLLMWithTool } from "../llm-client.ts";
 import { selectModel } from "../model-router.ts";
-import { lensAgentNote, lensOf } from "../lens.ts";
+import { distillSlots, lensAgentNote, lensOf } from "../lens.ts";
 import type { DistillInput, DistillResult } from "../types.ts";
 
 // ─── Tool Schema ───
@@ -44,6 +44,17 @@ export const distillToolSchema = {
     },
   },
 };
+
+/** Same slots for every lens; non-idea lenses redefine what each one holds. */
+function distillSchemaFor(brief: unknown) {
+  const slots = distillSlots(lensOf(brief));
+  if (!slots) return distillToolSchema;
+  const schema = structuredClone(distillToolSchema);
+  const props = schema.function.parameters.properties as Record<string, { description: string }>;
+  for (const [key, description] of Object.entries(slots)) props[key].description = description;
+  schema.function.description = "Boil the user's question down to what matters most.";
+  return schema;
+}
 
 // ─── Core Logic ───
 
@@ -89,7 +100,7 @@ Distill this to its absolute core. What's the ONE thing that matters?`;
       { role: "system", content: systemPrompt + lensAgentNote(lensOf(input.brief)) },
       { role: "user", content: userContent },
     ],
-    tools: [distillToolSchema],
+    tools: [distillSchemaFor(input.brief)],
     toolChoice: { type: "function", function: { name: "generate_distillation" } },
   });
 }

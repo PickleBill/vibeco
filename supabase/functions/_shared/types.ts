@@ -1,3 +1,4 @@
+import type { Research } from "./research.ts";
 // ─── Shared types for all VibeCo agents ───
 // These match the tool schemas used by the LLM function-calling interface.
 
@@ -20,6 +21,8 @@ export interface BriefData {
   };
   /** Question type the brief was produced under; absent on older briefs (= "idea"). */
   lens?: Lens;
+  /** Live web sources behind a "company" brief (set server-side, cited as [n]). */
+  research?: Research;
 }
 
 export interface FollowUpQuestion {
@@ -127,6 +130,8 @@ export interface SimulateInput {
   idea: string;
   mode?: AnalysisMode;
   lens?: Lens;
+  /** brief.research from the previous round, so later rounds keep the same sources. */
+  research?: unknown;
   // Refine-specific
   history?: string;
   round?: number;

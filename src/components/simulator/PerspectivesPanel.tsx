@@ -5,6 +5,7 @@ import { Loader2, Shield, Flame, Swords, Heart, Wrench, Send } from "lucide-reac
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { BriefData } from "./SimulatorShell";
+import { criticFor, lensOfBrief } from "@/lib/lenses";
 
 interface ChallengeQuestion {
   question: string;
@@ -33,6 +34,9 @@ const PERSONAS = [
 ];
 
 const PerspectivesPanel = ({ brief, idea, reportId }: Props) => {
+  // Same five seats; company / initiative / decision questions seat different critics.
+  const lens = lensOfBrief(brief);
+  const personas = PERSONAS.map((p) => ({ ...p, ...criticFor(lens, p.id) }));
   const [perspectives, setPerspectives] = useState<Record<string, Perspective>>({});
   const [activePersona, setActivePersona] = useState<string | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
@@ -115,7 +119,7 @@ const PerspectivesPanel = ({ brief, idea, reportId }: Props) => {
   };
 
   const activeData = activePersona ? perspectives[activePersona] : null;
-  const activeMeta = PERSONAS.find((p) => p.id === activePersona);
+  const activeMeta = personas.find((p) => p.id === activePersona);
   const activeResponses = activePersona ? responses[activePersona] || {} : {};
   const hasResponses = Object.values(activeResponses).some((v) => v?.trim());
 
@@ -132,7 +136,7 @@ const PerspectivesPanel = ({ brief, idea, reportId }: Props) => {
       </p>
 
       <div className="grid grid-cols-5 gap-2">
-        {PERSONAS.map((persona) => {
+        {personas.map((persona) => {
           const Icon = persona.icon;
           const isActive = activePersona === persona.id;
           const isLoading = loading === persona.id;
@@ -181,7 +185,7 @@ const PerspectivesPanel = ({ brief, idea, reportId }: Props) => {
               <div className="flex flex-col items-center gap-3 py-8">
                 <Loader2 size={24} className="animate-spin text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">
-                  {activeMeta?.name} is analyzing your idea...
+                  {activeMeta?.name} is weighing in...
                 </span>
               </div>
             ) : activeData ? (
