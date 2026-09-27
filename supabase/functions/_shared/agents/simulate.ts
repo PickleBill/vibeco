@@ -2,6 +2,7 @@ import { callLLMWithTool } from "../llm-client.ts";
 import { selectModel } from "../model-router.ts";
 import type { SimulateInput, SimulationResult, DeepDiveResult, AnalysisMode, Lens } from "../types.ts";
 import { asLens, lensAgentNote, lensOf, lensSpec } from "../lens.ts";
+import { carriedResearch, researchQuestion } from "../research.ts";
 
 // ─── Tool Schemas ───
 
@@ -236,11 +237,17 @@ export async function runSimulation(input: SimulateInput): Promise<SimulationRes
     ? buildInitialPrompts(input.idea, lens)
     : buildRefinePrompts(input.idea, input.history || "", input.round || 2, lens);
 
+  // Company questions are grounded in live web sources: fetched on the first
+  // round, then carried on the brief so later rounds cite the same ones.
+  const grounding = lens === "company"
+    ? (input.type === "initial" ? await researchQuestion(input.idea) : carriedResearch(input.research))
+    : undefined;
+
   const result = await callLLMWithTool<SimulationResult>({
     model,
     messages: [
       { role: "system", content: systemPrompt },
-      { role: "user", content: userContent },
+      { role: "user", content: userContent + (grounding?.promptBlock ?? "") },
     ],
     tools: [analysisSchemaFor(lens)],
     toolChoice: { type: "function", function: { name: "generate_idea_analysis" } },
@@ -261,6 +268,7 @@ export async function runSimulation(input: SimulateInput): Promise<SimulationRes
   // Record the lens on the brief so saved reports, shared views and downstream
   // agents know how to read it.
   if (lens && result.brief) result.brief.lens = lens;
+  if (grounding && result.brief) result.brief.research = grounding.research;
 
   return result;
 }

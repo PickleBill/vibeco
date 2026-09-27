@@ -30,6 +30,7 @@ import { jsPDF } from "jspdf";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { DELIVERABLE_LABEL, lensOfBrief, sectionLabel, type Lens } from "@/lib/lenses";
+import SourcesList from "./SourcesList";
 import ThunderdomePanel from "./ThunderdomePanel";
 import SynthesisPanel, { type OrchestrateResult } from "./SynthesisPanel";
 import ActionHub from "./ActionHub";
@@ -314,6 +315,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
   const navSections = [
     { id: "verdict", label: "Verdict" },
     { id: "brief", label: "Brief" },
+    ...(brief.research?.sources?.length ? [{ id: "sources", label: "Sources" }] : []),
     { id: "stress-test", label: "Stress-test" },
     { id: "prompt", label: isIdea ? "Prompt" : deliverable },
     { id: "actions", label: "Actions" },
@@ -1246,6 +1248,8 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
             </div>
           </div>
         </div>
+
+        <SourcesList research={brief.research} className="mb-8" />
 
         {/* Stress-test the whole idea — always visible */}
         <div id="fr-stress-test" className="scroll-mt-24">

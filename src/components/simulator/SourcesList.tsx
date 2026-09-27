@@ -1,0 +1,88 @@
+import { ExternalLink, Globe, AlertTriangle } from "lucide-react";
+
+export interface ResearchSource {
+  id: number;
+  title: string;
+  url: string;
+  snippet: string;
+}
+
+export interface BriefResearch {
+  provider: "firecrawl" | "perplexity" | "none" | string;
+  query?: string;
+  fetched_at?: string;
+  sources: ResearchSource[];
+}
+
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+function dateOf(iso?: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+/**
+ * The live web sources behind a company brief, numbered to match the [n]
+ * citations in the text. Renders an honest notice when none were found.
+ */
+const SourcesList = ({ research, className = "" }: { research?: BriefResearch | null; className?: string }) => {
+  if (!research) return null;
+  const sources = Array.isArray(research.sources) ? research.sources : [];
+
+  if (!sources.length) {
+    return (
+      <div className={`flex items-start gap-2.5 rounded-lg border border-warning/30 bg-warning/5 px-4 py-3 ${className}`}>
+        <AlertTriangle size={14} className="mt-0.5 shrink-0 text-warning" aria-hidden />
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          <span className="font-semibold text-foreground">No live sources for this run.</span> This read is based on the
+          AI&rsquo;s general knowledge, which can be out of date. Check the facts before you rely on them.
+        </p>
+      </div>
+    );
+  }
+
+  const fetched = dateOf(research.fetched_at);
+  return (
+    <section id="fr-sources" className={`scroll-mt-24 rounded-lg border border-border bg-card/40 p-4 sm:p-5 ${className}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
+          <Globe size={13} aria-hidden />
+          {sources.length} live source{sources.length === 1 ? "" : "s"}
+        </p>
+        {fetched && <p className="text-[11px] text-muted-foreground">Searched the web on {fetched}</p>}
+      </div>
+      <ol className="space-y-2.5">
+        {sources.map((s) => (
+          <li key={s.id} className="flex gap-3 text-sm">
+            <span className="w-6 shrink-0 text-right font-mono text-xs text-muted-foreground">[{s.id}]</span>
+            <div className="min-w-0">
+              <a
+                href={s.url}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="inline-flex items-center gap-1 font-medium text-foreground hover:text-primary hover:underline underline-offset-4"
+              >
+                <span className="break-words">{s.title || hostOf(s.url)}</span>
+                <ExternalLink size={11} className="shrink-0" aria-hidden />
+              </a>
+              <p className="text-[11px] text-muted-foreground">{hostOf(s.url)}</p>
+              {s.snippet && <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed line-clamp-2">{s.snippet}</p>}
+            </div>
+          </li>
+        ))}
+      </ol>
+      <p className="mt-3 text-[11px] text-muted-foreground">
+        Numbers match the [n] citations above. Sources are live web results, so open them before you quote them.
+      </p>
+    </section>
+  );
+};
+
+export default SourcesList;

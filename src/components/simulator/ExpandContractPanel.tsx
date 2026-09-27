@@ -6,6 +6,7 @@ import { ensureSession } from "@/lib/ensureSession";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import type { BriefData } from "./SimulatorShell";
+import { distillLabel, lensOfBrief } from "@/lib/lenses";
 
 interface Expansion {
   title: string;
@@ -47,6 +48,10 @@ const potentialLabels: Record<string, { label: string; color: string }> = {
 };
 
 const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, onThesisGenerated, reportId }: Props) => {
+  const lens = lensOfBrief(brief);
+  const isIdea = lens === "idea";
+  // Forks keep the question type (and its flow) instead of falling back to "idea".
+  const simulateHref = isIdea ? "/simulate" : `/simulate?lens=${lens}`;
   const navigate = useNavigate();
   const [expandResult, setExpandResult] = useState<ExpandResult | null>(null);
   const [distillResult, setDistillResult] = useState<Distillation | null>(null);
@@ -109,7 +114,7 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
       const { data: newReport, error } = await (supabase.from("idea_reports") as any)
         .insert({
           idea: exp.idea_text,
-          brief: {} as any,
+          brief: (isIdea ? {} : { lens }) as any,
           rounds: [] as any,
           parent_idea_id: reportId || null,
           forked_context: forkedContext,
@@ -121,7 +126,7 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
 
       if (error) throw error;
 
-      navigate("/simulate", {
+      navigate(simulateHref, {
         state: {
           prefillIdea: exp.idea_text,
           forkedFrom: idea,
@@ -131,14 +136,16 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
     } catch (err) {
       console.error("Fork error:", err);
       // Fallback to simple prefill
-      navigate("/simulate", { state: { prefillIdea: exp.idea_text } });
+      navigate(simulateHref, { state: { prefillIdea: exp.idea_text } });
     }
   };
 
   const handleRebuildDistilled = () => {
     if (!distillResult) return;
-    const distilledIdea = `${distillResult.thesis_statement}. Core feature: ${distillResult.one_feature}. Target customer: ${distillResult.one_customer}. Revenue: ${distillResult.one_revenue}.`;
-    navigate("/simulate", {
+    const distilledIdea = isIdea
+      ? `${distillResult.thesis_statement}. Core feature: ${distillResult.one_feature}. Target customer: ${distillResult.one_customer}. Revenue: ${distillResult.one_revenue}.`
+      : `${distillResult.thesis_statement} ${distillLabel(lens, "one_feature", "")}: ${distillResult.one_feature}. ${distillLabel(lens, "one_customer", "")}: ${distillResult.one_customer}.`;
+    navigate(simulateHref, {
       state: {
         prefillIdea: distilledIdea,
         forkedFrom: idea,
@@ -150,11 +157,13 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-display text-sm font-semibold text-foreground">Expand Your Idea</h3>
-          <span className="text-[10px] text-muted-foreground">3 orthogonal variations</span>
+          <h3 className="font-display text-sm font-semibold text-foreground">{isIdea ? "Expand Your Idea" : "See It Differently"}</h3>
+          <span className="text-[10px] text-muted-foreground">{isIdea ? "3 orthogonal variations" : "3 other framings"}</span>
         </div>
         <p className="text-xs text-muted-foreground">
-          Same core insight, different markets, models, and scale. What else could this be?
+          {isIdea
+            ? "Same core insight, different markets, models, and scale. What else could this be?"
+            : "Three genuinely different ways to frame the same question, each pointing to a different next move."}
         </p>
 
         {!expandResult && (
@@ -191,7 +200,8 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
 
               <div className="space-y-3">
                 {expandResult.expansions.map((exp, i) => {
-                  const pot = potentialLabels[exp.potential] || { label: exp.potential, color: "text-muted-foreground" };
+                  // The advantage tags describe business variations, so only the idea lens shows them.
+                  const pot = isIdea ? potentialLabels[exp.potential] || { label: exp.potential, color: "text-muted-foreground" } : null;
                   return (
                     <motion.div
                       key={i}
@@ -202,9 +212,11 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
                     >
                       <div className="flex items-start justify-between gap-2">
                         <h4 className="font-display text-sm font-semibold text-foreground">{exp.title}</h4>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full border border-current/20 ${pot.color} whitespace-nowrap`}>
-                          {pot.label}
-                        </span>
+                        {pot && (
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full border border-current/20 ${pot.color} whitespace-nowrap`}>
+                            {pot.label}
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-foreground/80">{exp.pitch}</p>
                       <p className="text-[10px] text-muted-foreground italic">{exp.how_its_different}</p>
@@ -213,7 +225,7 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
                         className="flex items-center gap-1.5 text-[10px] text-primary hover:text-primary/80 transition-colors mt-1"
                       >
                         <ArrowRight size={10} />
-                        Explore this variation
+                        {isIdea ? "Explore this variation" : "Explore this framing"}
                       </button>
                     </motion.div>
                   );
@@ -231,7 +243,9 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-display text-sm font-semibold text-foreground">Distill to Core</h3>
-        <span className="text-[10px] text-muted-foreground">one feature, one customer, one thesis</span>
+        <span className="text-[10px] text-muted-foreground">
+          {isIdea ? "one feature, one customer, one thesis" : "the few things that matter"}
+        </span>
       </div>
       <p className="text-xs text-muted-foreground">
         Strip away everything that isn't essential. What's the ONE thing that matters?
@@ -251,7 +265,7 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
           ) : (
             <>
               <Minimize2 size={14} />
-              Distill This Idea
+              {isIdea ? "Distill This Idea" : "Distill This Question"}
             </>
           )}
         </button>
@@ -280,21 +294,21 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
               <div className="p-3 rounded-lg border border-border/30 bg-muted/10">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Target size={10} className="text-primary" />
-                  <span className="text-[10px] text-primary uppercase">One Feature</span>
+                  <span className="text-[10px] text-primary uppercase">{distillLabel(lens, "one_feature", "One Feature")}</span>
                 </div>
                 <p className="text-xs text-foreground/80">{distillResult.one_feature}</p>
               </div>
               <div className="p-3 rounded-lg border border-border/30 bg-muted/10">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Target size={10} className="text-accent-foreground" />
-                  <span className="text-[10px] text-accent-foreground uppercase">One Customer</span>
+                  <span className="text-[10px] text-accent-foreground uppercase">{distillLabel(lens, "one_customer", "One Customer")}</span>
                 </div>
                 <p className="text-xs text-foreground/80">{distillResult.one_customer}</p>
               </div>
               <div className="p-3 rounded-lg border border-border/30 bg-muted/10">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Target size={10} className="text-secondary" />
-                  <span className="text-[10px] text-secondary uppercase">One Revenue</span>
+                  <span className="text-[10px] text-secondary uppercase">{distillLabel(lens, "one_revenue", "One Revenue")}</span>
                 </div>
                 <p className="text-xs text-foreground/80">{distillResult.one_revenue}</p>
               </div>
@@ -305,7 +319,7 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
               <div className="p-3 rounded-lg border border-destructive/20 bg-destructive/5">
                 <div className="flex items-center gap-1.5 mb-2">
                   <Scissors size={10} className="text-destructive" />
-                  <span className="text-[10px] text-destructive uppercase">Cut from V1</span>
+                  <span className="text-[10px] text-destructive uppercase">{isIdea ? "Cut from V1" : "Set aside"}</span>
                 </div>
                 <ul className="space-y-1">
                   {distillResult.what_to_cut.map((item, i) => (
@@ -319,7 +333,7 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
 
             {/* MVP scope */}
             <div className="p-3 rounded-lg border border-border/30 bg-muted/10">
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">MVP Scope (1-2 weeks)</span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{isIdea ? "MVP Scope (1-2 weeks)" : "Smallest next step"}</span>
               <p className="text-xs text-foreground/80 mt-1">{distillResult.mvp_scope}</p>
             </div>
 
@@ -329,7 +343,7 @@ const ExpandContractPanel = ({ mode, brief, idea, highlights, antiHighlights, on
               className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-primary/30 hover:border-primary/50 bg-primary/5 text-xs text-primary hover:text-primary/80 transition-all"
             >
               <ArrowRight size={14} />
-              Rebuild with this scope
+              {isIdea ? "Rebuild with this scope" : "Run it again from here"}
             </button>
           </motion.div>
         )}

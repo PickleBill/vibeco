@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DELIVERABLE_LABEL, lensOfBrief, sectionLabel } from "@/lib/lenses";
+import SourcesList, { type BriefResearch } from "@/components/simulator/SourcesList";
 import { copyToClipboard } from "@/lib/copyToClipboard";
 
 const sectionMeta = [
@@ -35,6 +36,7 @@ const sectionMeta = [
 
 interface BriefData {
   lens?: string;
+  research?: BriefResearch;
   problem: string;
   target_customer: string;
   core_features: { name: string; description: string }[];
@@ -271,6 +273,8 @@ const Report = () => {
             </div>
           </div>
         </div>
+
+        <SourcesList research={report.brief.research} className="mb-8" />
 
         {report.lovable_prompt && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="mb-8">

@@ -28,6 +28,7 @@ serve(async (req) => {
       idea: body.idea,
       mode: body.mode,
       lens: body.lens,
+      research: body.research,
       history: body.history,
       round: body.round,
     });

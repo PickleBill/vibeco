@@ -16,6 +16,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { BriefData } from "./SimulatorShell";
+import { criticFor, lensOfBrief } from "@/lib/lenses";
 
 // ─── Types matching synthesize agent output ───
 
@@ -285,13 +286,18 @@ const SynthesisPanel = ({ brief, idea, reportId, highlights, antiHighlights, lov
   // ─── Running state ───
 
   if (running) {
+    const lens = lensOfBrief(brief);
+    const seat = (id: string, label: string, role: string) => {
+      const c = criticFor(lens, id);
+      return { key: `persona-${id}`, label: c?.name ?? label, role: c?.tagline ?? role };
+    };
     const agentList = [
-      { key: "persona-skeptic", label: "Skeptic", role: "Pokes holes" },
-      { key: "persona-champion", label: "Champion", role: "Finds the win" },
-      { key: "persona-competitor", label: "Competitor", role: "Plays defense" },
-      { key: "persona-customer", label: "Customer", role: "Will they buy?" },
-      { key: "persona-builder", label: "Builder", role: "Can we ship it?" },
-      { key: "expand", label: "Expand", role: "What else could this be?" },
+      seat("skeptic", "Skeptic", "Pokes holes"),
+      seat("champion", "Champion", "Finds the win"),
+      seat("competitor", "Competitor", "Plays defense"),
+      seat("customer", "Customer", "Will they buy?"),
+      seat("builder", "Builder", "Can we ship it?"),
+      { key: "expand", label: "Expand", role: lens === "idea" ? "What else could this be?" : "Other ways to see it" },
       { key: "distill", label: "Distill", role: "What's the one thing?" },
     ];
     const completed = progress?.completed ?? 0;

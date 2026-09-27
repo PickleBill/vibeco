@@ -22,6 +22,7 @@ import { useVibeStack } from "@/hooks/useVibeStack";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureSession } from "@/lib/ensureSession";
 import { lensOfBrief, type Lens } from "@/lib/lenses";
+import type { BriefResearch } from "./SourcesList";
 import { toast } from "sonner";
 
 // Derive a short, human-friendly title from the brief's problem statement.
@@ -65,6 +66,8 @@ const AnalyzingMessages = ({ isInitial }: { isInitial: boolean }) => {
 export interface BriefData {
   /** Question type; set server-side by simulate-idea (absent on older briefs). */
   lens?: Lens;
+  /** Live web sources behind a company brief (set server-side). */
+  research?: BriefResearch;
   problem: string;
   target_customer: string;
   core_features: { name: string; description: string }[];
@@ -475,7 +478,15 @@ const SimulatorShell = ({ resumeId, prefillIdea, forkedFrom, draftIdea, initialL
       const body: Record<string, unknown> =
         type === "initial"
           ? { type: "initial", idea: ideaText || idea, mode: thinkingMode, lens }
-          : { type: "refine", history: buildHistory(currentRound - 1), round, mode: thinkingMode, lens };
+          : {
+              type: "refine",
+              history: buildHistory(currentRound - 1),
+              round,
+              mode: thinkingMode,
+              lens,
+              // Later rounds cite the sources found in round one.
+              research: rounds[rounds.length - 1]?.brief?.research,
+            };
 
       const { data, error } = await supabase.functions.invoke("simulate-idea", {
         body,

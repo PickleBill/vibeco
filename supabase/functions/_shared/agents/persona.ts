@@ -1,6 +1,6 @@
 import { callLLMWithTool } from "../llm-client.ts";
 import { selectModel } from "../model-router.ts";
-import { lensAgentNote, lensOf } from "../lens.ts";
+import { criticPrompt, lensAgentNote, lensOf } from "../lens.ts";
 import type { PersonaInput, PersonaType, PerspectiveResult } from "../types.ts";
 
 // ─── Persona System Prompts ───
@@ -77,7 +77,8 @@ export function formatBriefContext(brief: Record<string, unknown>): string {
 // ─── Core Logic ───
 
 export async function generatePerspective(input: PersonaInput): Promise<PerspectiveResult> {
-  const personaPrompt = PERSONA_PROMPTS[input.persona];
+  // Non-idea lenses seat different critics in the same five persona ids.
+  const personaPrompt = criticPrompt(lensOf(input.brief), input.persona) ?? PERSONA_PROMPTS[input.persona];
   if (!personaPrompt) throw new Error(`Unknown persona: ${input.persona}`);
 
   const briefContext = formatBriefContext(input.brief as unknown as Record<string, unknown>);
