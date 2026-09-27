@@ -28,7 +28,17 @@ const SNIPPET_CHARS = 280; // per source, stored on the brief
 interface FcResult { url?: string; title?: string; description?: string; markdown?: string }
 
 function clean(text: string, max: number): string {
-  return text.replace(/!\[[^\]]*\]\([^)]*\)/g, "").replace(/\s+/g, " ").trim().slice(0, max);
+  return stripMarkdown(text).replace(/\s+/g, " ").trim().slice(0, max);
+}
+
+/** Scraped pages arrive as markdown; keep the words, drop the syntax. */
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "") // images
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1") // links -> link text
+    .replace(/(^|\s)#{1,6}\s+/g, "$1") // headings, including ones already flattened onto one line
+    .replace(/(\*\*|__|\*|`)/g, "") // emphasis, code
+    .replace(/^\s*[-*+]\s+/gm, ""); // bullets
 }
 
 function isHttpUrl(url: unknown): url is string {

@@ -22,6 +22,16 @@ function hostOf(url: string): string {
   }
 }
 
+/** Older runs stored snippets with markdown syntax; show plain text. */
+function plain(text: string): string {
+  return text
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/(^|\s)#{1,6}\s+/g, "$1")
+    .replace(/(\*\*|__|`)/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function dateOf(iso?: string): string {
   if (!iso) return "";
   const d = new Date(iso);
@@ -69,11 +79,11 @@ const SourcesList = ({ research, className = "" }: { research?: BriefResearch | 
                 rel="noopener noreferrer nofollow"
                 className="inline-flex items-center gap-1 font-medium text-foreground hover:text-primary hover:underline underline-offset-4"
               >
-                <span className="break-words">{s.title || hostOf(s.url)}</span>
+                <span className="break-words">{plain(s.title) || hostOf(s.url)}</span>
                 <ExternalLink size={11} className="shrink-0" aria-hidden />
               </a>
               <p className="text-[11px] text-muted-foreground">{hostOf(s.url)}</p>
-              {s.snippet && <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed line-clamp-2">{s.snippet}</p>}
+              {s.snippet && <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed line-clamp-2">{plain(s.snippet)}</p>}
             </div>
           </li>
         ))}
