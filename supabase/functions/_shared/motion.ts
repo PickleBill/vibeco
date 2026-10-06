@@ -58,6 +58,12 @@ const DATA_ROLE_TITLE =
   /\b(?:data|analytics|BI|business intelligence|insights|reporting)\b[^|()]{0,30}\b(?:analyst|engineer|scientist|developer|architect|manager|lead|director|head)\b|\banalytics engineer/i;
 
 const HIRING_PATH = /\/(?:careers?|jobs?|hiring|join|team|people|culture|about)(?:\/|$|[-_.?#])/i;
+// A product or feature page on its own site, titled for analytics it offers its
+// customers: "Operational Insights, Continuous Monitoring & Performance Trends".
+const PRODUCT_PATH = /\/(?:products?|features?|platform|solutions?)\//i;
+const PRODUCT_TITLE = /\b(?:analytics|insights|reporting|reports|dashboards?|performance trends)\b/i;
+/** "Operational Insights, Continuous Monitoring | Relay" -> "Operational Insights". */
+const titleLead = (title: string) => title.split(/\s*(?:,|\||\s[-–—:]\s)\s*/)[0].trim().slice(0, 60);
 const pathOf = (url: string) => {
   try {
     return new URL(url).pathname;
@@ -127,7 +133,12 @@ export function embeddedEvidence(ctx: {
     if (!own && !cited.has(s.id)) continue;
     // A careers page describes the team's own work, not the product.
     const found = embeddedIn(text, own && !HIRING_PATH.test(pathOf(s.url)));
-    if (!found) continue;
+    if (!found) {
+      if (own && PRODUCT_PATH.test(pathOf(s.url)) && PRODUCT_TITLE.test(s.title)) {
+        out.push({ source: s.id, signal: `${titleLead(s.title)} (product page)`, quote: s.title });
+      }
+      continue;
+    }
     if (!own && !aboutCompany(text, company, text.indexOf(found.quote.replace(/…$/, "").slice(0, 60)))) continue;
     out.push({ source: s.id, ...found });
   }

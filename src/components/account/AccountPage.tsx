@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
 import type { SellerConfig } from "@/lib/sellers";
 import AccountRunner from "./AccountRunner";
 
@@ -9,7 +8,6 @@ import AccountRunner from "./AccountRunner";
  * Words only for the seller: no logos, no brand colors, no personal names.
  */
 const AccountPage = ({ seller, initialCompany }: { seller?: SellerConfig; initialCompany?: string }) => {
-  const saved = seller?.savedRuns ?? [];
   return (
     <>
       <main className="pt-28 pb-20 lg:pt-32">
@@ -31,25 +29,6 @@ const AccountPage = ({ seller, initialCompany }: { seller?: SellerConfig; initia
                     "Type a company. VibeCo reads its own job posts and product pages, searches the web for its data stack and the last 12 months of news, then writes a first-call plan with every claim linked to its source."}
                 </p>
               </>
-            }
-            afterForm={
-              saved.length > 0 ? (
-                <div className="mt-6 max-w-2xl">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Saved runs</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {saved.map((r) => (
-                      <Link
-                        key={r.reportId}
-                        to={`/report/${r.reportId}`}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:text-primary"
-                      >
-                        {r.company}
-                        <ArrowRight size={13} aria-hidden />
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ) : null
             }
           />
         </div>
