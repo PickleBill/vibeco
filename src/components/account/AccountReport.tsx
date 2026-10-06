@@ -28,7 +28,7 @@ const AccountReport = ({ company, brief, plan, createdAt, analysis, verdict }: P
         <div className="mx-auto max-w-3xl space-y-6 px-4 sm:px-6">
           <header className="pb-2 text-center">
             <p className="text-xs uppercase tracking-widest text-primary">
-              First-call plan{seller ? ` for a ${seller.name} seller` : ""}
+              First-call plan{seller ? ` for ${/^[aeiou]/i.test(seller.name) ? "an" : "a"} ${seller.name} seller` : ""}
             </p>
             <h1 className="mt-1 font-display text-2xl font-black text-foreground sm:text-3xl">{company}</h1>
             <p className="mt-2 text-xs text-muted-foreground">
