@@ -338,6 +338,7 @@ export async function runSimulation(input: SimulateInput, opts: { models?: strin
         const brief = usableBrief(answer?.brief);
         if (!brief) throw new Error(`simulate: ${model} returned no usable brief`);
         answer.brief = brief as unknown as BriefData;
+        answer.model = model;
       }
       result = answer;
       break;

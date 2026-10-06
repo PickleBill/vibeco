@@ -655,7 +655,8 @@ export function finalizeAccount(
         cited: (Array.isArray(rawMotion.embedded_sources) ? rawMotion.embedded_sources : []).map(Number),
       });
   const internal = noSources ? [] : internalEvidence({ company, research, sourceText, stack: brief.core_features });
-  brief.motion = buildMotion(rawBrief.motion, internal, embedded, tidy, seller);
+  const postings = research.sources.filter((s) => s.kind === "jobs").map((s) => s.title);
+  brief.motion = buildMotion(rawBrief.motion, internal, embedded, tidy, seller, postings);
 
   const fit = (rawBrief.fit ?? {}) as { grade?: string; motion?: string; reason?: string };
   const motionGraded = fitMotion(brief.motion.label, fit.motion, brief.motion);
