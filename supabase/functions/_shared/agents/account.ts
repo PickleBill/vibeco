@@ -84,7 +84,7 @@ export function accountToolSchema() {
               start_with: {
                 type: "object",
                 properties: {
-                  role: str("Who to start with: a role (put any sourced name in 'people', not here)."),
+                  role: str("Who to start with: a role that exists at the company today, not an open job posting. Put any sourced name in 'people', not here."),
                   why: str("Why this person first, in 1-2 sentences, with [n] citations where a source supports it."),
                 },
                 required: ["role", "why"],
@@ -137,6 +137,7 @@ export function accountPrompts(
   seller: SellerProfile | undefined,
   match: CustomerListResult | undefined,
   sourcesBlock: string,
+  noSources = false,
 ) {
   const today = new Date().toISOString().slice(0, 10);
   const systemPrompt = `You are VibeCo's account researcher. A seller is preparing a first call with ${company}. Write a target-account brief from the LIVE SOURCES. Today is ${today}.
@@ -155,7 +156,15 @@ Rules:
 5. customer_perspective is synthetic: start it with "Synthetic:".
 6. Never write outreach emails, LinkedIn messages or any message to send.
 7. Fit grade: A = a clear trigger now, a stack the seller works with, and a matching buying motion. B = plausible, but missing a trigger or evidence. C = weak fit or poor timing.
-8. Exactly seven discovery questions.
+8. Exactly seven discovery questions.${
+    noSources
+      ? `\n9. There are NO live sources for this run. Mark every stack line "Not found", name no tools or people at ${company}, state no facts about ${company}, and write what to find out instead.`
+      : ""
+  }${
+    seller && match?.onList
+      ? `\n10. ${company} is on ${seller.name}'s public customer list, so this is an existing customer: write the plan for an expansion call (wider use, adoption, renewal risk), not a first sale.`
+      : ""
+  }
 ${seller && match ? sellerPromptBlock(seller, company, match) : "\nNo seller profile was given: grade fit for a modern governed BI and AI analytics platform, and skip any customer-list statement."}`;
 
   const userContent = `Target account: "${company}"${sourcesBlock}`;
@@ -193,13 +202,21 @@ function toolPatterns(tool: string): RegExp[] {
   return keys.map(looseWord);
 }
 
+/** Every place a source names the tool, in order. */
+function toolHits(text: string, tool: string): { at: number; len: number }[] {
+  const folded = fold(text);
+  const hits = new Map<number, number>();
+  for (const re of toolPatterns(tool)) {
+    for (const m of folded.matchAll(new RegExp(re.source, re.flags.includes("g") ? re.flags : `${re.flags}g`))) {
+      hits.set(m.index ?? 0, Math.max(hits.get(m.index ?? 0) ?? 0, m[0].length));
+    }
+  }
+  return [...hits].sort((a, b) => a[0] - b[0]).map(([at, len]) => ({ at, len }));
+}
+
 /** First place a source names the tool, if any. */
 export function findTool(text: string, tool: string): number {
-  for (const re of toolPatterns(tool)) {
-    const m = re.exec(fold(text));
-    if (m) return m.index;
-  }
-  return -1;
+  return toolHits(text, tool)[0]?.at ?? -1;
 }
 
 /** "Tableau / Power BI" is two tools; a source must name each of them. */
@@ -223,17 +240,49 @@ function mentionsName(text: string, name: string): boolean {
   return words.length > 0 && new RegExp(`\\b${words.join("\\s+")}\\b`, "i").test(fold(text));
 }
 
-/** The sentence around a match (at most ~220 characters each side), on one line. */
-function quoteAround(text: string, at: number): string {
-  const winStart = Math.max(0, at - 220);
-  let start = winStart;
-  for (const m of text.slice(winStart, at).matchAll(/[.!?](?:\s+)|\n/g)) start = winStart + (m.index ?? 0) + m[0].length;
-  const after = /[.!?](?=\s|$)|\n/.exec(text.slice(at, at + 220));
-  const end = after ? at + after.index + (after[0] === "\n" ? 0 : 1) : Math.min(text.length, at + 220);
+/**
+ * The sentence around a match, on one line. Sentence ends, line breaks and the
+ * " … " seams between excerpt windows are boundaries; a cut never splits a word.
+ */
+function sentenceAround(text: string, at: number, len: number): { quote: string; whole: boolean } {
+  const lo = Math.max(0, at - 220);
+  const hi = Math.min(text.length, at + len + 220);
+  let start = lo;
+  let startClean = lo === 0;
+  for (const m of text.slice(lo, at).matchAll(/[.!?]\s+|\n|\s…\s/g)) {
+    start = lo + (m.index ?? 0) + m[0].length;
+    startClean = !m[0].includes("…");
+  }
+  const em = /[.!?](?=\s|$)|\n|\s…\s/.exec(text.slice(at + len, hi));
+  let end = em ? at + len + em.index + (/[.!?]/.test(em[0]) ? 1 : 0) : hi;
+  const endClean = em ? !em[0].includes("…") : hi === text.length;
+  if (!startClean) {
+    const sp = text.indexOf(" ", start);
+    if (sp !== -1 && sp < at) start = sp + 1; // drop a partial first word
+  }
+  if (!endClean) {
+    const sp = text.lastIndexOf(" ", end - 1);
+    if (sp > at + len) end = sp; // drop a partial last word
+  }
   const quote = text.slice(start, end).replace(/\s+/g, " ").trim();
-  const cutStart = start === winStart && winStart > 0;
-  const cutEnd = !after && end < text.length;
-  return `${cutStart ? "…" : ""}${quote}${cutEnd ? "…" : ""}`;
+  return { quote: `${startClean ? "" : "…"}${quote}${endClean ? "" : "…"}`, whole: startClean && endClean };
+}
+
+/** The clearest sentence naming the tool: prose over navigation text, whole sentences over cut ones. */
+function bestQuote(texts: string[], tool: string): string | undefined {
+  let best: { quote: string; score: number } | undefined;
+  for (const text of texts) {
+    for (const h of toolHits(text, tool)) {
+      const { quote, whole } = sentenceAround(text, h.at, h.len);
+      const words = quote.split(/\s+/).filter(Boolean);
+      const capitalized = words.filter((w) => /^[A-Z]/.test(w)).length / Math.max(1, words.length);
+      const score =
+        (/[.!?]$/.test(quote) ? 2 : 0) + (whole ? 1 : 0) + (capitalized < 0.4 ? 2 : 0) +
+        (quote.length >= 40 && quote.length <= 320 ? 1 : 0);
+      if (!best || score > best.score) best = { quote, score };
+    }
+  }
+  return best?.quote;
 }
 
 function canonicalCategory(name: string): string {
@@ -279,8 +328,7 @@ export function verifyStack(
       });
       if (supporting.length) {
         sources = supporting;
-        const text = sourceText.get(supporting[0]) ?? "";
-        evidence = quoteAround(text, findTool(text, named[0]));
+        evidence = bestQuote(supporting.map((id) => sourceText.get(id) ?? ""), named[0]);
       } else {
         status = "Inferred";
         downgraded = true;
@@ -356,9 +404,13 @@ export function finalizeAccount(
   const listWording = (t: string) => (seller ? customerListWording(t, seller.name) : t);
   const tidy = (t: unknown) => listWording(sanitizeCitations(String(t ?? ""), valid)).trim();
 
+  const noSources = research.sources.length === 0;
   const brief = { ...rawBrief } as AccountBrief;
   for (const k of TEXT_FIELDS) brief[k] = tidy(brief[k]);
-  brief.core_features = verifyStack(rawBrief.core_features, company, sourceText);
+  // Nothing was checked, so nothing about the stack is known: unknown means Not found.
+  brief.core_features = noSources
+    ? STACK_CATEGORIES.map((name) => ({ name, tool: "", status: "Not found" as const, sources: [], description: "No live sources were checked." }))
+    : verifyStack(rawBrief.core_features, company, sourceText);
   for (const line of brief.core_features) line.description = listWording(line.description);
 
   // Keep a named person only when the cited source shows that name.
@@ -382,7 +434,6 @@ export function finalizeAccount(
   if (!/^\s*synthetic/i.test(String(brief.customer_perspective))) {
     brief.customer_perspective = `Synthetic: ${brief.customer_perspective}`;
   }
-  const noSources = research.sources.length === 0;
   if (noSources && !/no live sources were checked/i.test(String(brief.problem))) {
     brief.problem = `No live sources were checked for this run. ${brief.problem}`;
   }
