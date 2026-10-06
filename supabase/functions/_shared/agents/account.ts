@@ -706,14 +706,31 @@ function cites(ids: number[]): string {
 export const wordCount = (s: string) => s.split(/\s+/).filter(Boolean).length;
 const PLAN_MAX_WORDS = 600;
 
-/** The First-call plan, assembled from checked fields (300-600 words). */
+/** Word caps per free-text section when a plan runs long; "tight" is the last resort. */
+const CAPS = {
+  short: { line: 30, whyNow: 70, role: 10, why: 40, q: 20, mq: 20, objection: 25, answer: 60, verify: 60, fit: 40, clock: 25, buyer: 15, stackPerCategory: 4 },
+  tight: { line: 25, whyNow: 45, role: 10, why: 25, q: 15, mq: 15, objection: 20, answer: 35, verify: 35, fit: 30, clock: 18, buyer: 12, stackPerCategory: 2 },
+} as const;
+type Caps = (typeof CAPS)[keyof typeof CAPS];
+
+/**
+ * The First-call plan, assembled from checked fields (300-600 words). Too long:
+ * drop the Inferred notes (they stay in the brief), then cap each free-text
+ * section, then cap harder and show at most two stack lines per category.
+ */
 export function composePlan(company: string, brief: AccountBrief, noSources: boolean): string {
-  const full = buildPlan(company, brief, noSources, { stackNotes: true, short: false });
-  if (wordCount(full) <= PLAN_MAX_WORDS) return full;
-  // Too long: drop the Inferred notes (they stay in the brief), then shorten the free-text sections.
-  const shorter = buildPlan(company, brief, noSources, { stackNotes: false, short: false });
-  if (wordCount(shorter) <= PLAN_MAX_WORDS) return shorter;
-  return buildPlan(company, brief, noSources, { stackNotes: false, short: true });
+  const tiers: { stackNotes: boolean; caps?: Caps }[] = [
+    { stackNotes: true },
+    { stackNotes: false },
+    { stackNotes: false, caps: CAPS.short },
+    { stackNotes: false, caps: CAPS.tight },
+  ];
+  let plan = "";
+  for (const tier of tiers) {
+    plan = buildPlan(company, brief, noSources, tier);
+    if (wordCount(plan) <= PLAN_MAX_WORDS) return plan;
+  }
+  return plan;
 }
 
 /** At most n words, cut at a line or sentence end when one fits. */
@@ -735,14 +752,19 @@ const MOTION_NAME = { internal: "Internal", embedded: "Embedded" } as const;
  * clock to test and the buyer to start with, each with citations. Unclear means
  * nothing showed either motion, so both are listed as things to test.
  */
-function motionBlock(motion: MotionRead, graded: string | undefined, cap: (t: unknown, n: number) => string): string[] {
+function motionBlock(
+  motion: MotionRead,
+  graded: string | undefined,
+  cap: (t: unknown, n: number) => string,
+  caps: { clock: number; buyer: number } = { clock: 25, buyer: 15 },
+): string[] {
   const out = [`MOTION: ${motion.label}`];
   const live = (["internal", "embedded"] as const).filter((id) => motion[id].sources.length > 0);
   // The graded motion leads when both are live.
   if (live.length === 2 && graded === "Embedded") live.reverse();
   const detail = (id: "internal" | "embedded") => [
-    `  Clock to test: ${cap(motion[id].clock, 25)}`,
-    `  Buyer to start with: ${cap(motion[id].buyer, 15)}`,
+    `  Clock to test: ${cap(motion[id].clock, caps.clock)}`,
+    `  Buyer to start with: ${cap(motion[id].buyer, caps.buyer)}`,
   ];
   if (!live.length) {
     out.push("No source shows either motion yet, so test both on the call.");
@@ -766,18 +788,23 @@ function buildPlan(
   company: string,
   brief: AccountBrief,
   noSources: boolean,
-  opts: { stackNotes: boolean; short: boolean },
+  opts: { stackNotes: boolean; caps?: Caps },
 ): string {
-  // Short mode caps every free-text section so the plan fits in 600 words.
-  const cap = (t: unknown, n: number) => (opts.short ? capWords(String(t ?? ""), n) : String(t ?? ""));
+  // With caps, every free-text section is cut to its word limit so the plan fits in 600 words.
+  const c = opts.caps;
+  const cap = (t: unknown, n: number) => (c ? capWords(String(t ?? ""), n) : String(t ?? ""));
   const out: string[] = [`FIRST-CALL PLAN: ${company}`];
   if (noSources) {
     out.push("", "No live sources were checked for this run. Everything below is general knowledge, so verify it before the call.");
   }
-  if (brief.motion) out.push("", ...motionBlock(brief.motion, brief.fit?.motion, cap));
-  out.push("", "ACCOUNT IN ONE LINE", cap(brief.account_line, 30));
+  if (brief.motion) out.push("", ...motionBlock(brief.motion, brief.fit?.motion, cap, c ?? CAPS.short));
+  out.push("", "ACCOUNT IN ONE LINE", cap(brief.account_line, c?.line ?? 30));
   out.push("", "STACK READ");
+  const shown = new Map<string, number>();
   for (const l of brief.core_features) {
+    const n = (shown.get(l.name) ?? 0) + 1;
+    shown.set(l.name, n);
+    if (c && n > c.stackPerCategory) continue; // the full read stays in the brief
     if (l.status === "Not found") out.push(`- ${l.name}: Not found`);
     else if (l.status === "Confirmed") out.push(`- ${l.name}: ${l.tool} (Confirmed${cites(l.sources)})`);
     else out.push(`- ${l.name}: ${l.tool || "tool not named"} (Inferred${cites(l.sources)})${opts.stackNotes && l.description ? `. ${l.description}` : ""}`);
@@ -786,20 +813,20 @@ function buildPlan(
   if (scan?.found && scan.ats && scan.scanned_jobs) {
     out.push(`(Job-board scan: read ${scan.scanned_jobs} open roles on its ${ATS_LABEL[scan.ats]} board.)`);
   }
-  out.push("", "WHY NOW", cap(brief.revenue_model, 70));
-  const role = cap(brief.start_with?.role, 10).replace(/[.\s]+$/, "");
-  out.push("", "WHO TO START WITH", [role, cap(brief.start_with?.why, 40)].filter(Boolean).join(". "));
+  out.push("", "WHY NOW", cap(brief.revenue_model, c?.whyNow ?? 70));
+  const role = cap(brief.start_with?.role, c?.role ?? 10).replace(/[.\s]+$/, "");
+  out.push("", "WHO TO START WITH", [role, cap(brief.start_with?.why, c?.why ?? 40)].filter(Boolean).join(". "));
   const people = brief.people ?? [];
   if (people.length) out.push(`Named in the sources: ${people.map((p) => `${p.name}, ${p.role} [${p.source}]`).join("; ")}.`);
   const questions = brief.discovery_questions ?? [];
   out.push(
     "",
     questions.length === 7 ? "SEVEN DISCOVERY QUESTIONS" : `${questions.length} DISCOVERY QUESTIONS`,
-    ...questions.map((q, i) => `${i + 1}. ${cap(q, 20)}`),
+    ...questions.map((q, i) => `${i + 1}. ${cap(q, c?.q ?? 20)}`),
   );
   const perMotion = brief.motion
     ? (["internal", "embedded"] as const)
-        .map((id) => ({ id, q: cap(brief.motion![id].question, 20) }))
+        .map((id) => ({ id, q: cap(brief.motion![id].question, c?.mq ?? 20) }))
         .filter((x) => x.q)
     : [];
   if (perMotion.length) {
@@ -808,13 +835,13 @@ function buildPlan(
   out.push(
     "",
     "THE MIGRATION OBJECTION",
-    `"${cap(brief.migration_objection?.objection, 25)}"`,
-    `Honest answer: ${cap(brief.migration_objection?.honest_answer, 60)}`,
+    `"${cap(brief.migration_objection?.objection, c?.objection ?? 25)}"`,
+    `Honest answer: ${cap(brief.migration_objection?.honest_answer, c?.answer ?? 60)}`,
   );
-  out.push("", "WHAT TO VERIFY BEFORE THE CALL", cap(brief.investor_perspective, 60));
+  out.push("", "WHAT TO VERIFY BEFORE THE CALL", cap(brief.investor_perspective, c?.verify ?? 60));
   const graded = brief.fit?.motion;
   const forMotion = graded === "Internal" || graded === "Embedded" ? ` (${graded} motion)` : graded === "Unclear" ? " (motion unclear)" : "";
-  out.push("", `FIT GRADE: ${brief.fit?.grade ?? "B"}${forMotion}`, cap(brief.fit?.reason, 40));
+  out.push("", `FIT GRADE: ${brief.fit?.grade ?? "B"}${forMotion}`, cap(brief.fit?.reason, c?.fit ?? 40));
   const list = brief.customer_list as { sentence?: string } | undefined;
   if (list?.sentence) out.push("", "CUSTOMER LIST", list.sentence);
   return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();

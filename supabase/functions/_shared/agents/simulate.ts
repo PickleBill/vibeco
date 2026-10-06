@@ -244,6 +244,28 @@ export async function runAccountResearch(typed: string) {
   return { research, excerpts, timing };
 }
 
+const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+
+/** The account brief, unwrapped and parsed if needed; undefined when it has no content to check. */
+export function usableBrief(raw: unknown): Record<string, unknown> | undefined {
+  let b: unknown = raw;
+  for (let depth = 0; depth < 3; depth++) {
+    if (typeof b === "string") {
+      try {
+        b = JSON.parse(b);
+      } catch {
+        return undefined;
+      }
+    }
+    if (isObj(b) && !Array.isArray(b.core_features) && (isObj(b.brief) || typeof b.brief === "string")) b = b.brief;
+    else break;
+  }
+  if (!isObj(b)) return undefined;
+  const text = (v: unknown) => typeof v === "string" && v.trim().length > 0;
+  const hasContent = Array.isArray(b.core_features) && (text(b.account_line) || text(b.problem));
+  return hasContent ? b : undefined;
+}
+
 /**
  * The account brief's models, best first: the brief is one call, so quality
  * leads and the fast model is the fallback. One provider failure isn't fatal.
@@ -310,8 +332,13 @@ export async function runSimulation(input: SimulateInput, opts: { models?: strin
         // Express: a slow first model still leaves time for the fallback.
         ...(express && i === 0 && models.length > 1 ? { timeoutMs: ACCOUNT_PRIMARY_TIMEOUT_MS } : {}),
       });
-      // Account: a brief that isn't an object can't be checked, so treat it as a failed call.
-      if (express && (!answer?.brief || typeof answer.brief !== "object")) throw new Error(`simulate: ${model} returned no usable brief`);
+      if (express) {
+        // Some models nest the answer one level deep ({brief: {brief: {...}, is_final}})
+        // or send it as a JSON string; anything still unusable counts as a failed call.
+        const brief = usableBrief(answer?.brief);
+        if (!brief) throw new Error(`simulate: ${model} returned no usable brief`);
+        answer.brief = brief as unknown as BriefData;
+      }
       result = answer;
       break;
     } catch (e) {
