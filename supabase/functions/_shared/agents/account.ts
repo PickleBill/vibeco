@@ -287,9 +287,9 @@ export function findTool(text: string, tool: string): number {
   return toolHits(text, tool)[0]?.at ?? -1;
 }
 
-/** "Tableau / Power BI" is two tools; a source must name each of them. */
+/** "Tableau / Power BI" is two tools; a source must name each of them. A note in parentheses isn't a tool. */
 function toolsIn(tool: string): string[] {
-  return tool.split(/\s*(?:\/|,|&|\band\b)\s*/i).map((t) => t.trim()).filter(Boolean);
+  return tool.replace(/\s*\(.*?\)/g, "").split(/\s*(?:\/|,|&|\band\b)\s*/i).map((t) => t.trim()).filter(Boolean);
 }
 
 const NEAR = 400;
@@ -669,9 +669,16 @@ export function mergeStack(lines: StackLine[], board: StackLine[]): StackLine[] 
   };
   const RANKS: Record<Status, number> = { Confirmed: 0, Inferred: 1, Former: 2, "Not found": 3 };
   const rank = (l: StackLine) => RANKS[l.status];
-  const kept = out
+  const sorted = out
     .filter((l) => l.status !== "Not found" || !out.some((o) => o.name === l.name && o.status !== "Not found"))
     .sort((a, b) => order(a.name) - order(b.name) || rank(a) - rank(b) || b.sources.length - a.sources.length);
+  // One line per product: "Databricks (Lakehouse, Delta Lake)" and "Databricks" are the same tool.
+  const kept: StackLine[] = [];
+  for (const l of sorted) {
+    const twin = single(l) && l.tool ? kept.find((k) => single(k) && toolKey(k.tool) === toolKey(l.tool) && k.status === l.status) : undefined;
+    if (twin) twin.sources = [...new Set([...twin.sources, ...l.sources])].sort((x, y) => x - y);
+    else kept.push(l);
+  }
   // Keep the plan readable: at most four lines per category, Confirmed first.
   const seen = new Map<string, number>();
   return kept.filter((l) => {
