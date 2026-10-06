@@ -273,7 +273,7 @@ export async function runSimulation(input: SimulateInput): Promise<SimulationRes
   }
 
   const { systemPrompt, userContent } = lens === "account"
-    ? accountPrompts(company, seller, match, grounding?.promptBlock ?? "")
+    ? accountPrompts(company, seller, match, grounding?.promptBlock ?? "", !grounding?.research.sources.length)
     : input.type === "initial"
     ? buildInitialPrompts(input.idea, lens)
     : buildRefinePrompts(input.idea, input.history || "", input.round || 2, lens);
