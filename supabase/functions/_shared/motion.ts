@@ -3,7 +3,7 @@
 // Both, or Unclear. Code decides the label from evidence it can check in the
 // sources; the model writes the clock, the buyer and one question per motion.
 // No evidence either way means Unclear: the label is never a guess.
-import { companyHits, isOwnSite } from "./match.ts";
+import { companyHits, isAggregator, isOwnSite } from "./match.ts";
 import type { Research } from "./research.ts";
 import type { SellerMotion } from "./sellers/index.ts";
 import { EMBEDDED_PHRASE, EMBEDDED_ROLE, sentencesOf, toolMentions } from "./stack-tools.ts";
@@ -52,7 +52,7 @@ const PRODUCT_FEATURE =
   /\b(?:analytics|reporting|reports|insights|dashboards?)\s+(?:for|to)\s+(?:your|their)\s+(?:customers|clients|users|merchants|members|partners|teams?)\b|\b(?:customers|clients|users|merchants|members)\s+(?:can|get|see|track|view)\b[^.]{0,60}?\b(?:dashboards?|reports|reporting|analytics|insights)\b|\b(?:real-time|custom|interactive|self-serve)\s+(?:dashboards?|reports|reporting|analytics)\b|\b(?:reporting|analytics|insights)\s+(?:dashboard|portal|API|module|suite|hub)s?\b/i;
 
 // Warehouses that usually run the product itself, not the analytics on top.
-const OPERATIONAL = /^(?:postgresql|postgres|clickhouse|apache kafka|kafka)$/i;
+const OPERATIONAL = /^(?:postgresql|postgres|clickhouse|apache kafka|kafka|(?:amazon |aws )?(?:rds|aurora|dynamodb)|mysql|mongodb|redis|cassandra|elasticsearch)$/i;
 // A data, analytics or BI role: the account runs analytics for its own teams.
 const DATA_ROLE_TITLE =
   /\b(?:data|analytics|BI|business intelligence|insights|reporting)\b[^|()]{0,30}\b(?:analyst|engineer|scientist|developer|architect|manager|lead|director|head)\b|\banalytics engineer/i;
@@ -86,8 +86,11 @@ function aboutCompany(text: string, company: string, at: number): boolean {
   return hits.some((h) => (titleEnd !== -1 && h < titleEnd) || Math.abs(h - at) <= 400);
 }
 
-/** A job post's role, without our " at Company (Greenhouse job post)" suffix. */
-const roleOf = (title: string) => title.replace(/\s+at\s+.+$/i, "").trim();
+/** A job post's role, without " at Company (Greenhouse job post)", " - Company | LinkedIn" and the like. */
+const roleOf = (title: string) =>
+  title.replace(/\s+at\s+.+$/i, "").replace(/\s+[|–—-]\s+.*$/, "").replace(/\s*\([^)]*\)\s*$/, "").trim().slice(0, 60);
+// Search-result pages that list many openings ("Data Analyst Jobs Near Me"), not one role.
+const LISTING = /\bjobs\b|\bnear me\b|\bnow hiring\b|\bopenings\b|\bcareers?\b|\bvacanc/i;
 
 /**
  * Embedded evidence, checked in code:
@@ -148,9 +151,10 @@ export function internalEvidence(ctx: {
   for (const s of ctx.research.sources) {
     if (s.kind !== "jobs" || !ctx.sourceText.has(s.id)) continue;
     const role = roleOf(s.title);
-    const atCompany = !!s.via || companyHits(s.title, ctx.company).length > 0;
-    if (atCompany && DATA_ROLE_TITLE.test(role) && !EMBEDDED_ROLE.test(role)) {
-      out.push({ source: s.id, signal: `${role.replace(/\s*[|–—-]\s.*$/, "")} role`, quote: role });
+    // One posting at the company: its own board, or a page that names it and isn't a listing or an aggregator.
+    const onePosting = !!s.via || (companyHits(s.title, ctx.company).length > 0 && !isAggregator(s.url) && !LISTING.test(s.title));
+    if (onePosting && DATA_ROLE_TITLE.test(role) && !EMBEDDED_ROLE.test(role)) {
+      out.push({ source: s.id, signal: `${role} role`, quote: role });
       if (out.filter((e) => e.signal.endsWith(" role")).length >= 2) break;
     }
   }

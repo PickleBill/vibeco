@@ -250,7 +250,11 @@ function orderedModels(task: "account-brief", mode?: AnalysisMode): string[] {
   return [first, ...modelChain(task).filter((m) => m !== first)];
 }
 
-export async function runSimulation(input: SimulateInput): Promise<SimulationResult> {
+/**
+ * `opts.models` (server-side only, never from a request body) overrides the
+ * model chain; probe-models uses it to compare models on a real brief.
+ */
+export async function runSimulation(input: SimulateInput, opts: { models?: string[] } = {}): Promise<SimulationResult> {
   const lens = asLens(input.lens);
   const express = isExpress(lens);
   const taskType = express ? "account-brief"
@@ -283,7 +287,9 @@ export async function runSimulation(input: SimulateInput): Promise<SimulationRes
     : buildRefinePrompts(input.idea, input.history || "", input.round || 2, lens);
   const userMessage = lens === "account" ? userContent : userContent + (grounding?.promptBlock ?? "");
 
-  const models = express ? orderedModels("account-brief", input.mode) : [selectModel(taskType, { mode: input.mode })];
+  const models = opts.models?.length
+    ? opts.models
+    : express ? orderedModels("account-brief", input.mode) : [selectModel(taskType, { mode: input.mode })];
   let result: SimulationResult | undefined;
   let lastError: unknown;
   for (const model of models) {

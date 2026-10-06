@@ -4,7 +4,7 @@
 // the customer-list sentence are exact rather than left to the model.
 import { LENS_SPECS } from "../lens.ts";
 import type { Research } from "../research.ts";
-import { companyHits, escapeRe, fold, looseWord, mentionsCompany, squash } from "../match.ts";
+import { companyHits, escapeRe, fold, isAggregator, looseWord, mentionsCompany, squash } from "../match.ts";
 import { ATS_LABEL, type ScanSummary } from "../stack-scan.ts";
 import { toolMentions } from "../stack-tools.ts";
 import {
@@ -43,15 +43,17 @@ export interface StackLine {
 
 const str = (description: string) => ({ type: "string", description });
 
-function motionSide(what: string) {
+function motionSide(what: string, usualClock: string) {
   return {
     type: "object",
     description: `The ${what} motion.`,
     properties: {
       clock: str(
-        "What would set the timing for this motion here and how to test it, under 25 words, with [n] where a source supports it. When no source shows a date, name the usual clock as the thing to test; never invent a date.",
+        `The event that would set the timing for this motion here (usually ${usualClock}) and how to test it, under 25 words, with [n] where a source shows it. When no source shows a date, name that event as the thing to ask about; never invent a date.`,
       ),
-      buyer: str("The role to start with for this motion here, under 15 words, with [n] where a source supports it. Roles only; sourced names go in 'people'."),
+      buyer: str(
+        "The role to start with for this motion here, under 15 words, with [n] where a source supports it: a role that exists at the company today, never an open job posting. Roles only; sourced names go in 'people'.",
+      ),
       question: str("One discovery question that tests whether this motion is live here, under 20 words."),
     },
     required: ["clock", "buyer", "question"],
@@ -149,8 +151,8 @@ export function accountToolSchema() {
                     description:
                       "Numbers of the sources that show this company ships analytics, reporting, dashboards or insights inside its own product to its customers: product or pricing pages, release notes about reporting, job posts for engineers building customer-facing dashboards or reporting, data product manager roles, or an embedded analytics vendor named in its materials (Looker embedded, Sisense, GoodData, Power BI Embedded, Tableau embedded, Cube, Qrvey, Luzmo, Metabase embedded). Empty when none do. The seller's own marketing doesn't count.",
                   },
-                  internal: motionSide("internal analytics (its own teams)"),
-                  embedded: motionSide("embedded analytics (inside its product, for its customers)"),
+                  internal: motionSide("internal analytics (its own teams)", "a renewal with the current BI vendor"),
+                  embedded: motionSide("embedded analytics (inside its product, for its customers)", "a customer-facing launch date"),
                 },
                 required: ["embedded_sources", "internal", "embedded"],
                 additionalProperties: false,
@@ -233,7 +235,7 @@ ${seller && match ? sellerPromptBlock(seller, company, match) : "\nNo seller pro
 
 // ─── Evidence checks ───
 
-export { mentionsCompany };
+export { isAggregator, mentionsCompany };
 
 // Tool names that are also everyday words need a stricter pattern.
 const STRICT_TOOL_PATTERNS: Record<string, RegExp[]> = {
@@ -307,16 +309,6 @@ export function supportsTool(text: string, company: string, tools: string[], nea
     const hits = toolHits(text, t).filter((h) => !BOILERPLATE.test(sentenceAround(text, h.at, h.len).quote));
     return hits.length > 0 && (inTitle || hits.some((h) => companyAt.some((c) => Math.abs(c - h.at) <= NEAR)));
   });
-}
-
-// Job-board aggregators mix employers on one page: the title naming the company isn't enough.
-const AGGREGATOR = /(^|\.)(ziprecruiter|indeed|glassdoor|simplyhired|talent|jooble|bebee|careerbuilder|monster|adzuna|lensa|jobleads|whatjobs|jobrapido)\./i;
-export function isAggregator(url: string): boolean {
-  try {
-    return AGGREGATOR.test(new URL(url).hostname);
-  } catch {
-    return false;
-  }
 }
 
 /** The source writes this person's name (any spacing or case). */
