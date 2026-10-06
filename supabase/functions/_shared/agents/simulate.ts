@@ -255,8 +255,9 @@ function shapeOf(v: unknown, depth = 0): string {
 }
 
 /**
- * JSON a model wrote as text: inside a ```json fence, with words around it, or
- * with raw line breaks inside string values (invalid JSON, but common).
+ * JSON a model wrote as text: inside a ```json fence, with words around it,
+ * with raw line breaks inside string values, or with unescaped quotes inside
+ * them ("the "single source of truth" pitch"). Invalid JSON, but common.
  */
 export function looseJson(text: string): unknown {
   const fenced = /```(?:json)?\s*([\s\S]*?)```/i.exec(text)?.[1] ?? text;
@@ -267,25 +268,44 @@ export function looseJson(text: string): unknown {
   try {
     return JSON.parse(body);
   } catch {
-    // Escape control characters that sit inside string literals.
-    let out = "";
-    let inString = false;
-    let escaped = false;
-    for (const ch of body) {
-      if (inString && !escaped && (ch === "\n" || ch === "\r" || ch === "\t")) {
-        out += ch === "\n" ? "\\n" : ch === "\r" ? "\\r" : "\\t";
-        continue;
-      }
-      if (ch === '"' && !escaped) inString = !inString;
-      escaped = ch === "\\" && !escaped;
-      out += ch;
-    }
+    const repaired = repairJson(body);
     try {
-      return JSON.parse(out);
-    } catch {
+      return JSON.parse(repaired);
+    } catch (e) {
+      // Name the spot, so the next cause shows up in the logs.
+      const at = Number(/position (\d+)/.exec(String(e))?.[1] ?? -1);
+      console.warn(`looseJson: ${String(e).slice(0, 120)}`, at >= 0 ? JSON.stringify(repaired.slice(Math.max(0, at - 60), at + 60)) : "");
       return undefined;
     }
   }
+}
+
+// A real closing quote is followed by } ] or :, or by a comma and then the next
+// JSON token ("He said "no", twice" keeps its inner quotes); any other quote is text.
+const CLOSES_STRING = /^\s*(?:[}\]:]|,\s*(?:["{[]|-?\d|true\b|false\b|null\b)|$)/;
+
+/** Escape raw control characters and stray quotes inside string literals. */
+function repairJson(body: string): string {
+  let out = "";
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < body.length; i++) {
+    const ch = body[i];
+    if (inString && !escaped) {
+      if (ch === "\n" || ch === "\r" || ch === "\t") {
+        out += ch === "\n" ? "\\n" : ch === "\r" ? "\\r" : "\\t";
+        continue;
+      }
+      if (ch === '"' && !CLOSES_STRING.test(body.slice(i + 1, i + 40))) {
+        out += '\\"';
+        continue;
+      }
+    }
+    if (ch === '"' && !escaped) inString = !inString;
+    escaped = ch === "\\" && !escaped;
+    out += ch;
+  }
+  return out;
 }
 
 /** The account brief, unwrapped and parsed if needed; undefined when it has no content to check. */

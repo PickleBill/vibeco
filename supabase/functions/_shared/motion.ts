@@ -219,12 +219,14 @@ export function buildMotion(
  * Head of Data [1]" becomes "Head of Data [1]". Empty when nothing else is left.
  */
 export function withoutPostings(buyer: string, postings: string[]): string {
-  const posted = new Set(postings.map((t) => roleOf(t).toLowerCase()).filter((t) => t.length > 3));
+  // "Sr. Software Engineer (Numbers)" and "Sr. Software Engineer" are the same posting.
+  const norm = (t: string) => t.replace(/\([^)]*\)/g, " ").replace(/\s*\[[\d,\s]+\]/g, "").replace(/[.\s]+$/, "").replace(/\s+/g, " ").trim().toLowerCase();
+  const posted = new Set(postings.map((t) => norm(roleOf(t))).filter((t) => t.length > 3));
   if (!buyer || !posted.size) return buyer;
   const cites = buyer.match(/\s*\[[\d,\s]+\]\s*$/)?.[0] ?? "";
   const body = cites ? buyer.slice(0, -cites.length) : buyer;
   const parts = body.split(/\s*(?:,\s*or\s+|\s+or\s+|,|\/|;)\s*/).map((p) => p.trim()).filter(Boolean);
-  const kept = parts.filter((p) => !posted.has(p.replace(/\s*\[[\d,\s]+\]$/, "").replace(/[.\s]+$/, "").toLowerCase()));
+  const kept = parts.filter((p) => !posted.has(norm(p)));
   if (kept.length === parts.length) return buyer;
   return kept.length ? `${kept.join(" or ")}${cites}` : "";
 }
