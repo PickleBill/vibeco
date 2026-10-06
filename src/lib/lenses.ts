@@ -1,11 +1,15 @@
 /**
- * The four kinds of question VibeCo takes. The same agents run for all
- * of them; the lens only changes how simulate-idea frames the brief.
+ * The kinds of question VibeCo takes. The same agents run for all of them;
+ * the lens only changes how simulate-idea frames the brief.
  * Keep ids in sync with `Lens` in supabase/functions/_shared/types.ts.
+ *
+ * "account" (target account) is written for a seller and answers in one
+ * round. It isn't in the public picker (LENSES); it runs from /for/:seller
+ * and /simulate?lens=account.
  */
-export type Lens = "idea" | "company" | "initiative" | "decision";
+export type Lens = "idea" | "company" | "initiative" | "decision" | "account";
 
-export const LENS_IDS: Lens[] = ["idea", "company", "initiative", "decision"];
+export const LENS_IDS: Lens[] = ["idea", "company", "initiative", "decision", "account"];
 
 export function isLens(value: string | null | undefined): value is Lens {
   return !!value && (LENS_IDS as string[]).includes(value);
@@ -177,7 +181,49 @@ export const LENSES: LensConfig[] = [
   },
 ];
 
+/** Target account: unlisted, so the homepage and simulator pickers keep four types. */
+export const ACCOUNT_LENS: LensConfig = {
+  id: "account",
+  label: "Target account",
+  tag: "Account",
+  placeholder: "Company name or domain",
+  startingQuestion: "Guitar Center",
+  example: {
+    perspectives: [
+      {
+        label: "Head of Data",
+        quote: "If you can show me fewer tools and faster answers, I'll take the meeting.",
+        note: "Lead with the pain the sources show, not the product tour.",
+      },
+      {
+        label: "CFO",
+        quote: "We already pay for a BI tool. Why switch this year?",
+        note: "Find the trigger that makes this year different.",
+      },
+      {
+        label: "Analytics engineer",
+        quote: "Migration is the real cost. Tell me what moves and how long it takes.",
+        note: "Answer the migration question honestly before it's asked.",
+      },
+    ],
+    nextMove: {
+      title: "Open with the one question that matters to them.",
+      body: "Start with the person the sources point to, and verify the stack before the call.",
+    },
+  },
+  youGet: "A first-call plan: the stack read with sources, why now, who to start with, seven discovery questions and a fit grade.",
+  useCase: {
+    title: "Prepare a first sales call",
+    body: "Type a company. Get its data stack, trigger events and buying committee from public sources, with every claim tied to a source.",
+  },
+};
+
+export function isExpress(lens: Lens): boolean {
+  return lens === "account";
+}
+
 export function getLens(id: Lens): LensConfig {
+  if (id === "account") return ACCOUNT_LENS;
   return LENSES.find((l) => l.id === id) ?? LENSES[0];
 }
 
@@ -235,6 +281,15 @@ const SECTION_LABELS: Record<Exclude<Lens, "idea">, Record<SectionKey, string>> 
     investor_perspective: "Questions for each side",
     customer_perspective: "Each side, in their own words",
   },
+  account: {
+    problem: "Data & analytics situation",
+    target_customer: "Buying committee",
+    core_features: "Stack signals",
+    revenue_model: "Why now",
+    industry_trends: "What they run today & who's in the deal",
+    investor_perspective: "What to verify before the call",
+    customer_perspective: "What business users would say (synthetic)",
+  },
 };
 
 export function sectionLabel(lens: Lens, key: string, fallback: string): string {
@@ -248,7 +303,25 @@ export const DELIVERABLE_LABEL: Record<Lens, string> = {
   company: "Briefing",
   initiative: "Proposal Memo",
   decision: "Decision Memo",
+  account: "First-call Plan",
 };
+
+/** Stack lines on an account brief carry a tool and a tag; other lenses just name + description. */
+export interface StackFeature {
+  name: string;
+  description: string;
+  tool?: string;
+  status?: "Confirmed" | "Inferred" | "Not found" | string;
+  sources?: number[];
+  evidence?: string;
+  downgraded?: boolean;
+}
+
+/** "BI tools: Tableau (Confirmed)" for account stack lines; the name otherwise. */
+export function featureTitle(feat: StackFeature): string {
+  if (!feat.status) return feat.name;
+  return feat.tool ? `${feat.name}: ${feat.tool} (${feat.status})` : `${feat.name}: ${feat.status}`;
+}
 
 // ─── Critics & distill (Phase B) ───
 // Five fixed persona seats (DB constraint); each lens seats different critics.
@@ -278,7 +351,17 @@ const CRITICS: Record<Exclude<Lens, "idea">, Record<Seat, { name: string; taglin
     customer: { name: "Most affected", tagline: "What it means for me" },
     builder: { name: "Fair advisor", tagline: "How to settle it" },
   },
+  account: {
+    champion: { name: "Head of Data", tagline: "Why I'd take the meeting" },
+    skeptic: { name: "CFO", tagline: "Why I wouldn't buy this year" },
+    competitor: { name: "Incumbent BI vendor", tagline: "How I'd defend the account" },
+    customer: { name: "Business user", tagline: "What I can't get today" },
+    builder: { name: "Analytics engineer", tagline: "What migration really takes" },
+  },
 };
+
+/** Seat order for display. */
+export const SEATS: Seat[] = ["champion", "skeptic", "competitor", "customer", "builder"];
 
 /** Display name + tagline for a critic seat, or undefined to keep the idea-lens defaults. */
 export function criticFor(lens: Lens, seat: string): { name: string; tagline: string } | undefined {
@@ -291,6 +374,7 @@ const DISTILL_LABELS: Record<Exclude<Lens, "idea">, Record<DistillKey, string>> 
   company: { one_feature: "The one insight", one_customer: "The one question to ask", one_revenue: "The one idea to bring" },
   initiative: { one_feature: "The one workflow to pilot", one_customer: "The one sponsor to win", one_revenue: "The one metric" },
   decision: { one_feature: "The milestone that settles it", one_customer: "Who has to agree", one_revenue: "The message to send" },
+  account: { one_feature: "The one reason to call now", one_customer: "The one person to start with", one_revenue: "The one question to open with" },
 };
 
 export function distillLabel(lens: Lens, key: DistillKey, fallback: string): string {

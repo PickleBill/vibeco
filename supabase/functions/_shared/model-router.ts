@@ -19,7 +19,8 @@ export type TaskType =
   | "quick-classification"  // Fast categorization/routing
   | "pain-classification"   // Signal Mine: label social items (pain/feature/noise)
   | "feedback-synthesis"    // Signal Mine: cluster → feature candidate synthesis
-  | "bill-qa";              // bricker-os: corpus-grounded Q&A in Bill's voice
+  | "bill-qa"               // bricker-os: corpus-grounded Q&A in Bill's voice
+  | "account-brief";        // Target-account lens: brief + first-call plan in one express call
 
 // ─── Model Selection ───
 
@@ -117,6 +118,12 @@ const ROUTING_TABLE: Record<TaskType, ModelCandidate[]> = {
     { model: "google/gemini-2.5-pro", rationale: "Reasoning depth to turn a cluster of complaints into a crisp feature candidate", cost: "medium", speed: "medium" },
     { model: "openai/gpt-5", rationale: "Higher-quality fallback", cost: "high", speed: "slow" },
     { model: "google/gemini-3-flash-preview", rationale: "Fast-mode fallback", cost: "low", speed: "fast" },
+  ],
+  // One express call returns the whole account brief. "fast" mode picks the
+  // flash model (seconds); "deep" uses 2.5 Pro for more careful tagging.
+  "account-brief": [
+    { model: "google/gemini-2.5-pro", rationale: "Careful evidence tagging and citations", cost: "medium", speed: "medium" },
+    { model: "google/gemini-3-flash-preview", rationale: "Fast structured output within the demo time budget", cost: "low", speed: "fast" },
   ],
   // Gateway-served models only: the Lovable gateway does not serve anthropic/* ids,
   // which is why the résumé terminal returned "AI service error" on every call.

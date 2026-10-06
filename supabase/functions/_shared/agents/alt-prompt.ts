@@ -91,7 +91,7 @@ export async function generateAltPrompt(input: AltPromptInput): Promise<AltPromp
     ? `${systemPrompt}\n\nReference the existing build prompt for consistency: ${input.lovable_prompt.substring(0, 500)}`
     : systemPrompt;
   // For company / initiative / decision questions, research the question itself, not a product.
-  const fullSystemPrompt = basePrompt + lensAgentNote(lensOf(input.brief));
+  const fullSystemPrompt = basePrompt + lensAgentNote(lensOf(input.brief), input.brief);
 
   const userContent = `
 ## Idea

@@ -224,7 +224,7 @@ Synthesize all of the above into a unified analysis. Find what they agree on, wh
       const result = await callLLMWithTool<SynthesisResult>({
         model,
         messages: [
-          { role: "system", content: systemPrompt + lensAgentNote(lensOf(input.brief)) },
+          { role: "system", content: systemPrompt + lensAgentNote(lensOf(input.brief), input.brief) },
           { role: "user", content: userContent },
         ],
         tools: [synthesizeToolSchema],

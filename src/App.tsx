@@ -13,6 +13,7 @@ import MySimulations from "./pages/MySimulations.tsx";
 import Portfolio from "./pages/Portfolio.tsx";
 import SignalBoard from "./pages/SignalBoard.tsx";
 import Hub from "./pages/Hub.tsx";
+import ForSeller from "./pages/ForSeller.tsx";
 // Inbox route hidden until Sprint 3 (auto-evaluate flywheel wiring)
 // import Inbox from "./pages/Inbox.tsx";
 import NotFound from "./pages/NotFound.tsx";
@@ -42,6 +43,8 @@ const App = () => {
           <Route path="/signal" element={<SignalBoard />} />
           <Route path="/hub" element={<Hub />} />
           {/* <Route path="/inbox" element={<Inbox />} /> hidden until Sprint 3 */}
+          {/* Unlisted seller pages (target-account lens): not in the nav or sitemap, noindex */}
+          <Route path="/for/:seller" element={<ForSeller />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

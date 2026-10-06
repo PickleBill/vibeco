@@ -5,7 +5,13 @@ export interface ResearchSource {
   title: string;
   url: string;
   snippet: string;
+  /** Account research lane that found it. */
+  kind?: "stack" | "jobs" | "news" | string;
+  /** Publish date, when the search result gave one (news). */
+  date?: string;
 }
+
+const KIND_LABEL: Record<string, string> = { stack: "Stack", jobs: "Hiring", news: "News" };
 
 export interface BriefResearch {
   provider: "firecrawl" | "perplexity" | "none" | string;
@@ -38,11 +44,26 @@ function dateOf(iso?: string): string {
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
+/** Search dates are ISO, "Mar 2, 2026" or "3 weeks ago": format the first two, keep the last as written. */
+function shownDate(raw?: string): string {
+  if (!raw) return "";
+  return dateOf(raw) || (raw.length <= 24 ? raw : "");
+}
+
 /**
- * The live web sources behind a company brief, numbered to match the [n]
- * citations in the text. Renders an honest notice when none were found.
+ * The live web sources behind a company or account brief, numbered to match
+ * the [n] citations in the text. Renders an honest notice when none were found.
+ * `compact` hides snippets (narrow columns, phones).
  */
-const SourcesList = ({ research, className = "" }: { research?: BriefResearch | null; className?: string }) => {
+const SourcesList = ({
+  research,
+  className = "",
+  compact = false,
+}: {
+  research?: BriefResearch | null;
+  className?: string;
+  compact?: boolean;
+}) => {
   if (!research) return null;
   const sources = Array.isArray(research.sources) ? research.sources : [];
 
@@ -82,8 +103,18 @@ const SourcesList = ({ research, className = "" }: { research?: BriefResearch | 
                 <span className="break-words">{plain(s.title) || hostOf(s.url)}</span>
                 <ExternalLink size={11} className="shrink-0" aria-hidden />
               </a>
-              <p className="text-[11px] text-muted-foreground">{hostOf(s.url)}</p>
-              {s.snippet && <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed line-clamp-2">{plain(s.snippet)}</p>}
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                <span>{hostOf(s.url)}</span>
+                {s.kind && KIND_LABEL[s.kind] && (
+                  <span className="rounded border border-border bg-muted/60 px-1.5 py-px text-[10px] font-medium uppercase tracking-wide">
+                    {KIND_LABEL[s.kind]}
+                  </span>
+                )}
+                {shownDate(s.date) && <span>{shownDate(s.date)}</span>}
+              </p>
+              {s.snippet && !compact && (
+                <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed line-clamp-2">{plain(s.snippet)}</p>
+              )}
             </div>
           </li>
         ))}

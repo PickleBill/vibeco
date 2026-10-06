@@ -118,7 +118,7 @@ RULES:
   return callLLMWithTool<RefinePromptResult>({
     model,
     messages: [
-      { role: "system", content: systemPrompt + lensAgentNote(lensOf(input.brief)) + deliverableNote(lensOf(input.brief)) },
+      { role: "system", content: systemPrompt + lensAgentNote(lensOf(input.brief), input.brief) + deliverableNote(lensOf(input.brief)) },
       { role: "user", content: context },
     ],
     tools: [promptToolSchema],
