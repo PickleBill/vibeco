@@ -249,9 +249,43 @@ const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 
 /** "brief:{brief:object,is_final:boolean}" — what a model sent, for the error log. */
 function shapeOf(v: unknown, depth = 0): string {
   if (Array.isArray(v)) return `array(${v.length})`;
-  if (!isObj(v)) return typeof v === "string" ? `string(${v.length})` : typeof v;
+  if (!isObj(v)) return typeof v === "string" ? `string(${v.length}):${JSON.stringify(v.slice(0, 80))}` : typeof v;
   if (depth >= 2) return "object";
   return `{${Object.entries(v).map(([k, x]) => `${k}:${shapeOf(x, depth + 1)}`).join(",")}}`.slice(0, 400);
+}
+
+/**
+ * JSON a model wrote as text: inside a ```json fence, with words around it, or
+ * with raw line breaks inside string values (invalid JSON, but common).
+ */
+export function looseJson(text: string): unknown {
+  const fenced = /```(?:json)?\s*([\s\S]*?)```/i.exec(text)?.[1] ?? text;
+  const start = fenced.search(/[[{]/);
+  if (start === -1) return undefined;
+  const end = Math.max(fenced.lastIndexOf("}"), fenced.lastIndexOf("]"));
+  const body = fenced.slice(start, end + 1);
+  try {
+    return JSON.parse(body);
+  } catch {
+    // Escape control characters that sit inside string literals.
+    let out = "";
+    let inString = false;
+    let escaped = false;
+    for (const ch of body) {
+      if (inString && !escaped && (ch === "\n" || ch === "\r" || ch === "\t")) {
+        out += ch === "\n" ? "\\n" : ch === "\r" ? "\\r" : "\\t";
+        continue;
+      }
+      if (ch === '"' && !escaped) inString = !inString;
+      escaped = ch === "\\" && !escaped;
+      out += ch;
+    }
+    try {
+      return JSON.parse(out);
+    } catch {
+      return undefined;
+    }
+  }
 }
 
 /** The account brief, unwrapped and parsed if needed; undefined when it has no content to check. */
@@ -259,11 +293,8 @@ export function usableBrief(raw: unknown): Record<string, unknown> | undefined {
   let b: unknown = raw;
   for (let depth = 0; depth < 3; depth++) {
     if (typeof b === "string") {
-      try {
-        b = JSON.parse(b);
-      } catch {
-        return undefined;
-      }
+      b = looseJson(b);
+      if (b === undefined) return undefined;
     }
     if (isObj(b) && !Array.isArray(b.core_features) && (isObj(b.brief) || typeof b.brief === "string")) b = b.brief;
     else break;
@@ -271,13 +302,9 @@ export function usableBrief(raw: unknown): Record<string, unknown> | undefined {
   if (!isObj(b)) return undefined;
   // Nested fields can arrive as JSON strings too ("core_features": "[{...}]").
   for (const [k, v] of Object.entries(b)) {
-    if (typeof v !== "string" || !/^\s*[[{]/.test(v)) continue;
-    try {
-      const parsed = JSON.parse(v);
-      if (parsed && typeof parsed === "object") b[k] = parsed;
-    } catch {
-      // Not JSON after all: leave it as written.
-    }
+    if (typeof v !== "string" || !/^\s*(?:```(?:json)?\s*)?[[{]/.test(v)) continue;
+    const parsed = looseJson(v);
+    if (parsed && typeof parsed === "object") b[k] = parsed;
   }
   const text = (v: unknown) => typeof v === "string" && v.trim().length > 0;
   const hasContent = Array.isArray(b.core_features) && (text(b.account_line) || text(b.problem));
