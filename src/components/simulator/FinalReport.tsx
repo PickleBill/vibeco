@@ -29,7 +29,7 @@ import { toast } from "sonner";
 import { jsPDF } from "jspdf";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { DELIVERABLE_LABEL, lensOfBrief, sectionLabel, type Lens } from "@/lib/lenses";
+import { DELIVERABLE_LABEL, featureTitle, lensOfBrief, sectionLabel, type Lens } from "@/lib/lenses";
 import SourcesList from "./SourcesList";
 import ThunderdomePanel from "./ThunderdomePanel";
 import SynthesisPanel, { type OrchestrateResult } from "./SynthesisPanel";
@@ -102,7 +102,7 @@ const labeledSections = (lens: Lens) =>
 /* (computeScores removed — was deterministic hash filler, no real signal) */
 
 /* ─── Sortable Feature ─── */
-const SortableFeature = ({ feat, index, id }: { feat: { name: string; description: string }; index: number; id: string }) => {
+const SortableFeature = ({ feat, index, id }: { feat: { name: string; description: string; tool?: string; status?: string }; index: number; id: string }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -116,7 +116,7 @@ const SortableFeature = ({ feat, index, id }: { feat: { name: string; descriptio
       </button>
       <p className="text-base text-foreground/90 leading-relaxed">
         <span className="text-primary font-bold">{index + 1}.</span>{" "}
-        <span className="font-semibold">{feat.name}</span> — {feat.description}
+        <span className="font-semibold">{featureTitle(feat)}</span> — {feat.description}
       </p>
     </div>
   );
@@ -1122,7 +1122,7 @@ const FinalReport = ({ brief, idea, onRestart, onIterate, conceptImage, logoImag
                           {(value as BriefData["core_features"]).map((feat, fi) => (
                             <p key={fi} className="text-base text-foreground/90 leading-relaxed">
                               <span className="text-primary font-bold">{fi + 1}.</span>{" "}
-                              <span className="font-semibold">{feat.name}</span> — {feat.description}
+                              <span className="font-semibold">{featureTitle(feat)}</span> — {feat.description}
                             </p>
                           ))}
                         </div>

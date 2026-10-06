@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { Mail, Sparkles } from "lucide-react";
 import type { BriefData } from "./SimulatorShell";
-import { DELIVERABLE_LABEL, lensOfBrief, sectionLabel } from "@/lib/lenses";
+import { DELIVERABLE_LABEL, featureTitle, lensOfBrief, sectionLabel } from "@/lib/lenses";
 import SourcesList from "./SourcesList";
 
 interface Props {
@@ -295,7 +295,7 @@ const IdeaBrief = ({
                         <Zap size={12} className="text-primary" />
                       </div>
                       <p className="text-base sm:text-lg text-foreground/90 leading-relaxed flex-1">
-                        <span className="font-semibold text-foreground">{feat.name}</span>
+                        <span className="font-semibold text-foreground">{featureTitle(feat)}</span>
                         <span className="text-muted-foreground"> — {feat.description}</span>
                       </p>
                     </div>

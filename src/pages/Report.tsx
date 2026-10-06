@@ -22,6 +22,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DELIVERABLE_LABEL, lensOfBrief, sectionLabel } from "@/lib/lenses";
 import SourcesList, { type BriefResearch } from "@/components/simulator/SourcesList";
+import AccountReport from "@/components/account/AccountReport";
+import type { AccountAnalysis, AccountBrief } from "@/components/account/AccountViews";
 import { copyToClipboard } from "@/lib/copyToClipboard";
 
 const sectionMeta = [
@@ -56,6 +58,8 @@ interface SynthesisData {
 
 interface AutoAnalysis {
   synthesis: SynthesisData | null;
+  perspectives?: { persona: string; headline?: string; perspective?: string }[];
+  distillation?: Record<string, unknown> | null;
   agents_completed?: number;
   agents_total?: number;
 }
@@ -125,6 +129,96 @@ const Report = () => {
 
   const highlightSet = new Set(report.highlights || []);
 
+  const verdict = report.auto_analysis?.synthesis ? (() => {
+    const s = report.auto_analysis.synthesis!;
+    const conf = s.confidence_score >= 80
+      ? { label: "Strong consensus", cls: "text-emerald-700" }
+      : s.confidence_score >= 50
+      ? { label: "Mixed signals", cls: "text-amber-700" }
+      : { label: "High tension", cls: "text-rose-700" };
+    return (
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="mb-8 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.04] p-5 sm:p-7"
+      >
+        <div className="flex items-baseline justify-between gap-3 mb-4">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-emerald-800">Verdict</p>
+          <div className="flex items-center gap-1.5 text-xs">
+            <Gauge size={13} className={conf.cls} />
+            <span className={`font-bold tabular-nums ${conf.cls}`}>{s.confidence_score}%</span>
+            <span className="text-muted-foreground/70">· {conf.label}</span>
+          </div>
+        </div>
+
+        {s.executive_summary && (
+          <p className="text-base text-foreground/90 leading-relaxed mb-6">{s.executive_summary}</p>
+        )}
+
+        <div className="grid sm:grid-cols-2 gap-6">
+          {s.consensus?.length > 0 && (
+            <div>
+              <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-emerald-800 mb-2">
+                <CheckCircle2 size={13} /> Consensus
+              </h4>
+              <ul className="space-y-1.5">
+                {s.consensus.map((c, i) => (
+                  <li key={i} className="text-sm text-foreground/80 leading-relaxed">{c}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {s.tensions?.length > 0 && (
+            <div>
+              <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-amber-800 mb-2">
+                <AlertTriangle size={13} /> Key tensions
+              </h4>
+              <ul className="space-y-1.5">
+                {s.tensions.map((t, i) => (
+                  <li key={i} className="text-sm text-foreground/80 leading-relaxed">{t.topic}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {s.ranked_recommendations?.length > 0 && (
+          <div className="mt-6 pt-5 border-t border-emerald-500/15">
+            <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-foreground/80 mb-3">
+              <ListOrdered size={13} className="text-emerald-700" /> Ranked recommendations
+            </h4>
+            <ol className="space-y-2.5">
+              {s.ranked_recommendations.map((r, i) => (
+                <li key={i} className="flex gap-3 text-sm">
+                  <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-700 text-[11px] font-bold">{i + 1}</span>
+                  <span className="text-foreground/85 leading-relaxed">
+                    <span className="font-semibold">{r.action}</span>
+                    {r.rationale ? <span className="text-muted-foreground"> — {r.rationale}</span> : null}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+      </motion.section>
+    );
+  })() : null;
+
+  // Target-account runs: the First-call plan first, then the evidence and the critics.
+  if (lensOfBrief(report.brief) === "account") {
+    return (
+      <AccountReport
+        company={report.idea}
+        brief={report.brief as unknown as AccountBrief}
+        plan={report.lovable_prompt}
+        createdAt={report.created_at}
+        analysis={report.auto_analysis as unknown as AccountAnalysis | null}
+        verdict={verdict}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background pt-20 pb-16">
       <div className="max-w-3xl mx-auto px-6">
@@ -158,81 +252,7 @@ const Report = () => {
           </div>
         )}
 
-        {report.auto_analysis?.synthesis && (() => {
-          const s = report.auto_analysis.synthesis!;
-          const conf = s.confidence_score >= 80
-            ? { label: "Strong consensus", cls: "text-emerald-300" }
-            : s.confidence_score >= 50
-            ? { label: "Mixed signals", cls: "text-amber-300" }
-            : { label: "High tension", cls: "text-rose-300" };
-          return (
-            <motion.section
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-              className="mb-8 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.04] p-5 sm:p-7"
-            >
-              <div className="flex items-baseline justify-between gap-3 mb-4">
-                <p className="text-[10px] uppercase tracking-[0.3em] text-emerald-300/80">Verdict</p>
-                <div className="flex items-center gap-1.5 text-xs">
-                  <Gauge size={13} className={conf.cls} />
-                  <span className={`font-bold tabular-nums ${conf.cls}`}>{s.confidence_score}%</span>
-                  <span className="text-muted-foreground/70">· {conf.label}</span>
-                </div>
-              </div>
-
-              {s.executive_summary && (
-                <p className="text-base text-foreground/90 leading-relaxed mb-6">{s.executive_summary}</p>
-              )}
-
-              <div className="grid sm:grid-cols-2 gap-6">
-                {s.consensus?.length > 0 && (
-                  <div>
-                    <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-emerald-300/90 mb-2">
-                      <CheckCircle2 size={13} /> Consensus
-                    </h4>
-                    <ul className="space-y-1.5">
-                      {s.consensus.map((c, i) => (
-                        <li key={i} className="text-sm text-foreground/80 leading-relaxed">{c}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {s.tensions?.length > 0 && (
-                  <div>
-                    <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-amber-300/90 mb-2">
-                      <AlertTriangle size={13} /> Key tensions
-                    </h4>
-                    <ul className="space-y-1.5">
-                      {s.tensions.map((t, i) => (
-                        <li key={i} className="text-sm text-foreground/80 leading-relaxed">{t.topic}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-
-              {s.ranked_recommendations?.length > 0 && (
-                <div className="mt-6 pt-5 border-t border-emerald-500/15">
-                  <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-foreground/80 mb-3">
-                    <ListOrdered size={13} className="text-emerald-300" /> Ranked recommendations
-                  </h4>
-                  <ol className="space-y-2.5">
-                    {s.ranked_recommendations.map((r, i) => (
-                      <li key={i} className="flex gap-3 text-sm">
-                        <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-300 text-[11px] font-bold">{i + 1}</span>
-                        <span className="text-foreground/85 leading-relaxed">
-                          <span className="font-semibold">{r.action}</span>
-                          {r.rationale ? <span className="text-muted-foreground"> — {r.rationale}</span> : null}
-                        </span>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              )}
-            </motion.section>
-          );
-        })()}
+        {verdict}
 
 
 

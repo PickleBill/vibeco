@@ -223,11 +223,17 @@ function mentionsName(text: string, name: string): boolean {
   return words.length > 0 && new RegExp(`\\b${words.join("\\s+")}\\b`, "i").test(fold(text));
 }
 
+/** The sentence around a match (at most ~220 characters each side), on one line. */
 function quoteAround(text: string, at: number): string {
-  const start = Math.max(0, text.lastIndexOf(" ", Math.max(0, at - 140)));
-  const endSpace = text.indexOf(" ", Math.min(text.length, at + 140));
-  const end = endSpace === -1 ? text.length : endSpace;
-  return `${start > 0 ? "…" : ""}${text.slice(start, end).trim()}${end < text.length ? "…" : ""}`;
+  const winStart = Math.max(0, at - 220);
+  let start = winStart;
+  for (const m of text.slice(winStart, at).matchAll(/[.!?](?:\s+)|\n/g)) start = winStart + (m.index ?? 0) + m[0].length;
+  const after = /[.!?](?=\s|$)|\n/.exec(text.slice(at, at + 220));
+  const end = after ? at + after.index + (after[0] === "\n" ? 0 : 1) : Math.min(text.length, at + 220);
+  const quote = text.slice(start, end).replace(/\s+/g, " ").trim();
+  const cutStart = start === winStart && winStart > 0;
+  const cutEnd = !after && end < text.length;
+  return `${cutStart ? "…" : ""}${quote}${cutEnd ? "…" : ""}`;
 }
 
 function canonicalCategory(name: string): string {
@@ -259,7 +265,7 @@ export function verifyStack(
     const item = (r ?? {}) as Partial<StackLine>;
     const tool = String(item.tool ?? "").trim();
     let status: Status = STATUSES.includes(item.status as Status) ? (item.status as Status) : "Inferred";
-    let sources = (Array.isArray(item.sources) ? item.sources : []).map(Number).filter((n) => valid.has(n));
+    let sources = [...new Set((Array.isArray(item.sources) ? item.sources : []).map(Number).filter((n) => valid.has(n)))].sort((x, y) => x - y);
     let description = sanitizeCitations(String(item.description ?? ""), valid).trim();
     let evidence: string | undefined;
     let downgraded = false;
