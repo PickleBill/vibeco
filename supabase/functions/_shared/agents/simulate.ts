@@ -244,11 +244,16 @@ export async function runAccountResearch(typed: string) {
   return { research, excerpts, timing };
 }
 
-/** The task's models, the mode's pick first, so one provider failure isn't fatal. */
-function orderedModels(task: "account-brief", mode?: AnalysisMode): string[] {
-  const first = selectModel(task, { mode });
-  return [first, ...modelChain(task).filter((m) => m !== first)];
+/**
+ * The account brief's models, best first: the brief is one call, so quality
+ * leads and the fast model is the fallback. One provider failure isn't fatal.
+ */
+function accountModels(): string[] {
+  return modelChain("account-brief");
 }
+
+// The first account model gets this long, so a fallback still fits the budget.
+const ACCOUNT_PRIMARY_TIMEOUT_MS = 60_000;
 
 /**
  * `opts.models` (server-side only, never from a request body) overrides the
@@ -289,12 +294,12 @@ export async function runSimulation(input: SimulateInput, opts: { models?: strin
 
   const models = opts.models?.length
     ? opts.models
-    : express ? orderedModels("account-brief", input.mode) : [selectModel(taskType, { mode: input.mode })];
+    : express ? accountModels() : [selectModel(taskType, { mode: input.mode })];
   let result: SimulationResult | undefined;
   let lastError: unknown;
-  for (const model of models) {
+  for (const [i, model] of models.entries()) {
     try {
-      result = await callLLMWithTool<SimulationResult>({
+      const answer = await callLLMWithTool<SimulationResult>({
         model,
         messages: [
           { role: "system", content: systemPrompt },
@@ -302,7 +307,12 @@ export async function runSimulation(input: SimulateInput, opts: { models?: strin
         ],
         tools: [lens === "account" ? accountToolSchema() : analysisSchemaFor(lens)],
         toolChoice: { type: "function", function: { name: "generate_idea_analysis" } },
+        // Express: a slow first model still leaves time for the fallback.
+        ...(express && i === 0 && models.length > 1 ? { timeoutMs: ACCOUNT_PRIMARY_TIMEOUT_MS } : {}),
       });
+      // Account: a brief that isn't an object can't be checked, so treat it as a failed call.
+      if (express && (!answer?.brief || typeof answer.brief !== "object")) throw new Error(`simulate: ${model} returned no usable brief`);
+      result = answer;
       break;
     } catch (e) {
       console.error(`simulate: ${model} failed`, e);

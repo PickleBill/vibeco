@@ -30,6 +30,8 @@ export interface LLMCallOptions {
   maxTokens?: number;
   modalities?: string[];
   gateway?: "lovable" | "anthropic-direct";
+  /** Give up after this long, so a caller can fall back to another model in time. */
+  timeoutMs?: number;
 }
 
 export interface LLMToolCallResult {
@@ -71,6 +73,7 @@ async function callLovableGateway(options: LLMCallOptions): Promise<LLMResponse>
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
+    ...(options.timeoutMs ? { signal: AbortSignal.timeout(options.timeoutMs) } : {}),
   });
 
   const latencyMs = Date.now() - start;
@@ -168,6 +171,7 @@ async function callLovableMessages(options: LLMCallOptions): Promise<LLMResponse
       "Content-Type": "application/json",
     },
     body: JSON.stringify(anthropicBody(options, options.model)),
+    ...(options.timeoutMs ? { signal: AbortSignal.timeout(options.timeoutMs) } : {}),
   });
   const latencyMs = Date.now() - start;
   if (!response.ok) {
@@ -208,6 +212,25 @@ async function callAnthropicDirect(options: LLMCallOptions): Promise<LLMResponse
   return parseAnthropicResponse(data, latencyMs);
 }
 
+/**
+ * Claude sometimes sends a nested object argument as a JSON string
+ * ({"brief": "{\"problem\": …}"}). The schemas never ask for a string that
+ * starts with { or [, so parse those back into the object they encode.
+ */
+function reviveJsonArgs(args: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...(args ?? {}) };
+  for (const [k, v] of Object.entries(out)) {
+    if (typeof v !== "string" || !/^\s*[[{]/.test(v)) continue;
+    try {
+      const parsed = JSON.parse(v);
+      if (parsed && typeof parsed === "object") out[k] = parsed;
+    } catch {
+      // Not JSON after all: leave it as written.
+    }
+  }
+  return out;
+}
+
 function parseAnthropicResponse(data: Record<string, unknown>, latencyMs: number): LLMResponse {
   const result: LLMResponse = { latencyMs };
   const content = data.content as Record<string, unknown>[];
@@ -220,7 +243,7 @@ function parseAnthropicResponse(data: Record<string, unknown>, latencyMs: number
       if (!result.toolCalls) result.toolCalls = [];
       result.toolCalls.push({
         name: block.name as string,
-        arguments: block.input as Record<string, unknown>,
+        arguments: reviveJsonArgs(block.input as Record<string, unknown>),
       });
     }
   }
