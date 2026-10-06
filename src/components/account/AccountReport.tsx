@@ -45,7 +45,7 @@ const AccountReport = ({ company, brief, plan, createdAt, analysis, verdict }: P
           <StackTable lines={brief.core_features} research={brief.research} />
           <SourcesList research={brief.research} />
           <AccountSections brief={brief} />
-          <CriticsPanel analysis={analysis} />
+          <CriticsPanel analysis={analysis} brief={brief} />
           {verdict}
 
           <footer className="border-t border-border/40 pt-5 text-center">

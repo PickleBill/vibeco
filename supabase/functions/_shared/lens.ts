@@ -129,7 +129,7 @@ export function lensAgentNote(lens: Lens, brief?: unknown): string {
   const seller = lens === "account" ? asSeller((brief as { seller?: unknown } | null)?.seller) : undefined;
   const sellerNote = seller ? sellerAgentNote(seller) : "";
   const accountRules = lens === "account"
-    ? "\nNever write outreach emails or messages. Use people's names only when the brief's sources show them; otherwise use roles. Critic voices are synthetic roles: never write as, quote, or put words in the mouth of a named person."
+    ? "\nNever write outreach emails or messages. Use people's names only when the brief's sources show them; otherwise use roles. Critic voices are synthetic: they may refer to the people the brief's sources name, but never invent a name."
     : "";
   return `
 

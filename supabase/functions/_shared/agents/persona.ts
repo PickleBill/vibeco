@@ -110,22 +110,5 @@ Generate your perspective on this idea. Be specific to THIS product — no gener
     toolChoice: { type: "function", function: { name: "generate_perspective" } },
   });
 
-  return { persona: input.persona, ...unnamed(result, input.brief) };
-}
-
-/**
- * Account briefs can name real people (when a source shows them). Critics are
- * synthetic voices, so they must never speak as one: swap any such name for the
- * person's role.
- */
-export function unnamed<T extends { headline?: string; perspective?: string }>(result: T, brief: unknown): T {
-  if (lensOf(brief) !== "account") return result;
-  const people = ((brief as { people?: { name?: string; role?: string }[] })?.people ?? []).filter((p) => p?.name);
-  if (!people.length) return result;
-  const swap = (text?: string) =>
-    people.reduce(
-      (t, p) => t.replace(new RegExp(String(p.name).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), p.role || "this role"),
-      text ?? "",
-    );
-  return { ...result, headline: swap(result.headline), perspective: swap(result.perspective) };
+  return { persona: input.persona, ...result };
 }

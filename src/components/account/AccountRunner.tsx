@@ -336,7 +336,7 @@ const AccountRunner = ({ seller, initialCompany = "", afterForm }: Props) => {
                     Five critics are reading the plan: Head of Data, CFO, incumbent BI vendor, business user and analytics engineer…
                   </div>
                 )}
-                <CriticsPanel analysis={analysis} />
+                <CriticsPanel analysis={analysis} brief={brief} />
                 {brief && <AccountSections brief={brief} />}
               </div>
             </div>

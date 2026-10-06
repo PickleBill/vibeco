@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { LENSES, getLens, questionHref, type Lens } from "@/lib/lenses";
 import WorkedExample from "./WorkedExample";
+import SalesTeamsCta from "./SalesTeamsCta";
 
 const Hero = () => {
   const navigate = useNavigate();
@@ -31,6 +32,11 @@ const Hero = () => {
           <p className="mt-6 max-w-xl text-base sm:text-lg text-muted-foreground">
             Explore an idea, research a company, pressure-test an initiative, or work through a decision.
           </p>
+
+          <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <SalesTeamsCta />
+            <span className="text-sm text-muted-foreground">First-call plans for target accounts, from public sources.</span>
+          </div>
 
           <form onSubmit={handleSubmit} className="mt-10 max-w-xl">
             <p id="lens-label" className="text-sm font-semibold text-foreground">
