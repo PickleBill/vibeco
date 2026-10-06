@@ -16,6 +16,8 @@ export interface Source {
   /** Account research only: which search found it ("news" items carry a date). */
   kind?: SourceKind;
   date?: string;
+  /** Account briefs: judged not to be about the company (same-name business, personal use); never cited. */
+  off_topic?: boolean;
 }
 
 export interface Research {

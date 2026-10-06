@@ -44,6 +44,12 @@ export function accountToolSchema() {
           brief: {
             type: "object",
             properties: {
+              off_topic_sources: {
+                type: "array",
+                items: { type: "integer" },
+                description:
+                  "Decide this FIRST. Numbers of sources that are not about this company's own business: a different company or product with the same or a similar name, a person's own use of the product, or a page where the name appears only in passing. Never cite these. Empty when every source is about this company.",
+              },
               problem: str(SPEC.slots.problem),
               target_customer: str(SPEC.slots.target_customer),
               core_features: {
@@ -115,7 +121,7 @@ export function accountToolSchema() {
               },
             },
             required: [
-              "problem", "target_customer", "core_features", "revenue_model", "industry_trends",
+              "off_topic_sources", "problem", "target_customer", "core_features", "revenue_model", "industry_trends",
               "investor_perspective", "customer_perspective", "account_line", "people", "start_with",
               "discovery_questions", "migration_objection", "fit",
             ],
@@ -151,6 +157,8 @@ Rules:
    - Inferred: likely, but no source names it at ${company}. Say why in the description.
    - Not found: nothing in the sources. Leave "tool" empty.
    Code checks every Confirmed line against the cited source and downgrades it if the source doesn't name the tool and the company.
+   Only data products count: warehouses and lakehouses, transformation, ingestion and orchestration, BI, AI and ML platforms, embedded analytics. General developer tools (Git, Jira, Python, Kubernetes) don't.
+   First list in off_topic_sources any source about a different company with a similar name (for example another business called "${company}"), about someone's personal use of a product, or naming ${company} only in passing, and don't use those sources.
 3. People: use roles everywhere. If a source names a person at ${company}, list them in "people" with that source's number; code drops any name the source doesn't show. Never put a person's name in any other field.
 4. Why now: only dated events from the last 12 months that a source shows.
 5. customer_perspective is synthetic: start it with "Synthetic:".
@@ -226,12 +234,52 @@ function toolsIn(tool: string): string[] {
 
 const LEGAL_SUFFIX = /[\s,]+(?:inc|llc|ltd|limited|corp|corporation|co|company|plc|gmbh)\.?$/i;
 
-/** "Guitar Center", "guitarcenter.com" and "incident.io" as whole words, not inside other names. */
-export function mentionsCompany(text: string, company: string): boolean {
-  const host = company.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[/?#]/)[0];
-  const names = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(host) ? [host, host.split(".")[0]] : [company.trim().replace(LEGAL_SUFFIX, "")];
+/**
+ * Where a source names the company: "Guitar Center", "guitarcenter.com" and
+ * "incident.io" as whole words. A name must be capitalized or written as typed,
+ * so "Chime" counts and "chime in" doesn't.
+ */
+function companyHits(text: string, company: string): number[] {
+  const typed = company.trim();
+  const host = typed.toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[/?#]/)[0];
+  const isDomain = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(host);
+  const patterns = isDomain
+    ? [host, host.split(".")[0]].map(squash).filter((k) => k.length >= 2).map(looseWord)
+    : [typed.replace(LEGAL_SUFFIX, "")]
+        .map((n) => fold(n).split(/[\s-]+/).filter(Boolean).map(escapeRe).join("[\\s-]*"))
+        .filter((k) => k.length >= 2)
+        .map((k) => new RegExp(`\\b${k}\\b`, "gi"));
   const folded = fold(text);
-  return names.map(squash).filter((k) => k.length >= 2).some((k) => looseWord(k).test(folded));
+  const hits: number[] = [];
+  for (const re of patterns) {
+    for (const m of folded.matchAll(new RegExp(re.source, "gi"))) {
+      const word = m[0];
+      if (/^[A-Z0-9]/.test(word) || word === fold(typed) || isDomain) hits.push(m.index ?? 0);
+    }
+  }
+  return hits.sort((a, b) => a - b);
+}
+
+export function mentionsCompany(text: string, company: string): boolean {
+  return companyHits(text, company).length > 0;
+}
+
+const NEAR = 400;
+
+/**
+ * A source supports "company uses tool" when it names every tool and names the
+ * company in its title or within ~400 characters of a tool mention.
+ */
+export function supportsTool(text: string, company: string, tools: string[]): boolean {
+  if (!tools.length) return false;
+  const companyAt = companyHits(text, company);
+  if (!companyAt.length) return false;
+  const titleEnd = text.indexOf("\n");
+  const inTitle = companyAt.some((at) => titleEnd === -1 || at < titleEnd);
+  return tools.every((t) => {
+    const hits = toolHits(text, t);
+    return hits.length > 0 && (inTitle || hits.some((h) => companyAt.some((c) => Math.abs(c - h.at) <= NEAR)));
+  });
 }
 
 /** The source writes this person's name (any spacing or case). */
@@ -265,6 +313,13 @@ function sentenceAround(text: string, at: number, len: number): { quote: string;
     if (sp > at + len) end = sp; // drop a partial last word
   }
   const quote = text.slice(start, end).replace(/\s+/g, " ").trim();
+  if (quote.length < 40) {
+    // "Snowflake." alone says little: show the words around it instead.
+    const a = text.lastIndexOf(" ", Math.max(0, at - 140));
+    const b = text.indexOf(" ", Math.min(text.length, at + len + 140));
+    const wide = text.slice(a === -1 ? 0 : a, b === -1 ? text.length : b).replace(/\s+/g, " ").trim();
+    return { quote: `${a > 0 ? "…" : ""}${wide}${b !== -1 ? "…" : ""}`, whole: false };
+  }
   return { quote: `${startClean ? "" : "…"}${quote}${endClean ? "" : "…"}`, whole: startClean && endClean };
 }
 
@@ -322,10 +377,7 @@ export function verifyStack(
     if (status === "Confirmed") {
       // Supported = the source names every listed tool AND the company.
       const named = toolsIn(tool);
-      const supporting = sources.filter((id) => {
-        const text = sourceText.get(id) ?? "";
-        return named.length > 0 && named.every((t) => findTool(text, t) !== -1) && mentionsCompany(text, company);
-      });
+      const supporting = sources.filter((id) => supportsTool(sourceText.get(id) ?? "", company, named));
       if (supporting.length) {
         sources = supporting;
         evidence = bestQuote(supporting.map((id) => sourceText.get(id) ?? ""), named[0]);
@@ -398,7 +450,13 @@ export function finalizeAccount(
 ): { brief: AccountBrief; plan: string } {
   const { company, research, excerpts, seller, match } = ctx;
   const sourceText = new Map<number, string>();
-  research.sources.forEach((s, i) => sourceText.set(s.id, `${s.title}\n${s.snippet}\n${excerpts[i] ?? ""}`));
+  // Sources the model judged to be about something else can't support anything.
+  const offTopic = new Set(
+    (Array.isArray(rawBrief.off_topic_sources) ? rawBrief.off_topic_sources : []).map(Number).filter((n) => research.sources.some((s) => s.id === n)),
+  );
+  research.sources.forEach((s, i) => {
+    if (!offTopic.has(s.id)) sourceText.set(s.id, `${s.title}\n${s.snippet}\n${excerpts[i] ?? ""}`);
+  });
   const valid = new Set(sourceText.keys());
 
   const listWording = (t: string) => (seller ? customerListWording(t, seller.name) : t);
@@ -438,6 +496,8 @@ export function finalizeAccount(
     brief.problem = `No live sources were checked for this run. ${brief.problem}`;
   }
   brief.company = company;
+  delete brief.off_topic_sources;
+  brief.research = { ...research, sources: research.sources.map((s) => (offTopic.has(s.id) ? { ...s, off_topic: true } : s)) };
   if (seller && match) {
     brief.customer_list = {
       on_list: match.onList,
