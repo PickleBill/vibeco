@@ -304,6 +304,7 @@ interface Lane {
 interface LaneResult { kind: SourceKind; items: FcItem[]; scraped: boolean; ms: number; error?: string }
 
 const HEDGE_MS = 3_500; // start the plain search if page text hasn't arrived by then
+const LANE_DEADLINE_MS = 11_000; // a fallback search gets only what's left of this
 
 /**
  * Page text if it arrives within budget; otherwise the plain results. The plain
@@ -317,11 +318,18 @@ async function runLane(apiKey: string, lane: Lane): Promise<LaneResult> {
   let plain: Promise<FcItem[]> | undefined;
   const startPlain = (wait = 0) =>
     (plain ??= sleep(wait).then(() =>
-      firecrawlSearch(apiKey, lane.body, PLAIN_BUDGET_MS).catch((e) => {
-        console.warn(`research(${lane.kind}): plain search failed`, e);
-        error = errorCode(e);
-        return lane.fallback ? firecrawlSearch(apiKey, lane.fallback, PLAIN_BUDGET_MS).catch(() => [] as FcItem[]) : [];
-      })
+      firecrawlSearch(apiKey, lane.body, Math.max(1_500, Math.min(PLAIN_BUDGET_MS, LANE_DEADLINE_MS - (Date.now() - t0))))
+        .catch((e) => {
+          console.warn(`research(${lane.kind}): plain search failed`, e);
+          error = errorCode(e);
+          return [] as FcItem[];
+        })
+        // Nothing back (or rejected options): the simpler request, if the lane has one and time remains.
+        .then((items) => {
+          const left = LANE_DEADLINE_MS - (Date.now() - t0);
+          if (items.length || !lane.fallback || left < 1_500) return items;
+          return firecrawlSearch(apiKey, lane.fallback, Math.min(PLAIN_BUDGET_MS, left)).catch(() => [] as FcItem[]);
+        })
     ));
   const hedge = setTimeout(() => startPlain(), HEDGE_MS);
   try {
@@ -451,8 +459,17 @@ export async function researchAccount(
     .join(" OR ");
   const lanes: Lane[] = [
     { kind: "stack", body: { query: `${name} (${toolTerms}) data analytics`, limit: LANE_LIMIT, sources: ["web"] } },
-    // Embedded motion: does the company ship analytics to its own customers?
-    { kind: "product", body: { query: `${name} customer-facing analytics dashboards reporting product`, limit: LANE_LIMIT, sources: ["web"] } },
+    // Embedded motion: does the company ship analytics to its own customers? With
+    // a domain, its own product pages first; the open web if they say nothing.
+    {
+      kind: "product",
+      body: {
+        query: `${name} customer-facing analytics dashboards reporting product${opts.domain ? ` site:${opts.domain}` : ""}`,
+        limit: LANE_LIMIT,
+        sources: ["web"],
+      },
+      ...(opts.domain ? { fallback: { query: `${name} customer-facing analytics dashboards reporting product`, limit: LANE_LIMIT, sources: ["web"] } } : {}),
+    },
     {
       kind: "jobs",
       body: { query: `${name} ("data engineer" OR "analytics engineer" OR "data analyst" OR "BI developer") job`, limit: LANE_LIMIT, sources: ["web"] },

@@ -4,6 +4,7 @@ import { LLMError } from "../_shared/error-handler.ts";
 import { callLLM } from "../_shared/llm-client.ts";
 import { routedModels } from "../_shared/model-router.ts";
 import { createRateLimiter } from "../_shared/rate-limit.ts";
+import { cleanCompany, runAccountResearch, runSimulation } from "../_shared/agents/simulate.ts";
 
 /**
  * Model diagnostics. Reports:
@@ -14,7 +15,12 @@ import { createRateLimiter } from "../_shared/rate-limit.ts";
  * - whether the direct Anthropic fallback works.
  * Each probe spends a handful of tokens, so it's rate-limited.
  *
- * Input:  {} or { models: ["anthropic/claude-…"] } to test extra gateway models.
+ * - compare mode: one account's research, then the real account brief on each
+ *   of up to four gateway models, side by side (time, motion, evidence checks,
+ *   the plan itself), so model choices rest on real output.
+ *
+ * Input:  {} or { models: ["anthropic/claude-…"] } to test extra gateway models,
+ *         or { compare: { company: "Bandwidth (bandwidth.com)", models: [...] } }.
  */
 const limited = createRateLimiter(3);
 const MAX_PROBES = 32;
@@ -48,7 +54,8 @@ async function probe(model: string) {
       messages: [{ role: "user", content: "Call the answer tool with the word 'working'." }],
       tools: [PROBE_TOOL],
       toolChoice: { type: "function", function: { name: "answer" } },
-      maxTokens: 60,
+      // Room for reasoning models to think before they call the tool.
+      maxTokens: 800,
     });
     const word = res.toolCalls?.[0]?.arguments?.word;
     return { model, ok: true, tool_call: typeof word === "string", latency_ms: Date.now() - t0 };
@@ -75,9 +82,53 @@ async function anthropicDirect() {
       configured: true,
       ok: false,
       error: text.slice(0, 300),
-      ...(/credit balance/i.test(text) ? { note: "The key works but the Anthropic account has no credits. Claude is still reachable through the Lovable gateway." } : {}),
+      ...(/credit balance/i.test(text)
+        ? { note: "The key works but the Anthropic account has no credits. Claude models still run through the Lovable gateway's Messages endpoint." }
+        : {}),
     };
   }
+}
+
+/** The real account brief for one company on each model, side by side. */
+async function compareOnAccount(typed: string, models: string[]) {
+  const t0 = Date.now();
+  const { research, excerpts, timing } = await runAccountResearch(typed);
+  const research_ms = Date.now() - t0;
+  const runs = await Promise.all(
+    models.map(async (model) => {
+      const t = Date.now();
+      try {
+        const result = await runSimulation(
+          { type: "initial", lens: "account", idea: typed, seller: "omni", research, excerpts, mode: "fast" },
+          { models: [model] },
+        );
+        const brief = result.brief as unknown as Record<string, unknown>;
+        const stack = (brief.core_features ?? []) as { status: string; downgraded?: boolean }[];
+        const motion = (brief.motion ?? {}) as { label?: string };
+        const plan = result.lovable_prompt ?? "";
+        return {
+          model,
+          ok: true,
+          ms: Date.now() - t,
+          motion: motion.label,
+          fit: brief.fit,
+          stack: {
+            confirmed: stack.filter((l) => l.status === "Confirmed").length,
+            inferred: stack.filter((l) => l.status === "Inferred").length,
+            downgraded: stack.filter((l) => l.downgraded).length,
+          },
+          off_topic: ((brief.research as { sources?: { off_topic?: boolean }[] })?.sources ?? []).filter((x) => x.off_topic).length,
+          people: ((brief.people ?? []) as unknown[]).length,
+          questions: ((brief.discovery_questions ?? []) as unknown[]).length,
+          plan_words: plan.split(/\s+/).filter(Boolean).length,
+          plan,
+        };
+      } catch (e) {
+        return { model, ok: false, ms: Date.now() - t, error: (e instanceof LLMError ? e.body : String(e)).slice(0, 300) };
+      }
+    }),
+  );
+  return { company: typed, research: { ms: research_ms, provider: research.provider, sources: research.sources.length, lanes: timing.lanes }, runs };
 }
 
 // Top-tier models worth comparing against what the router uses today.
@@ -92,6 +143,15 @@ serve(async (req) => {
   const body = await req.json().catch(() => ({}));
   const routed = routedModels();
   const allowed = await gatewayModels();
+
+  if (body?.compare) {
+    const typed = cleanCompany(body.compare.company);
+    const models = (Array.isArray(body.compare.models) ? body.compare.models : [])
+      .filter((m: unknown): m is string => typeof m === "string" && allowed.includes(m))
+      .slice(0, 4);
+    if (!typed || !models.length) return jsonResponse({ error: "compare needs a company and 1-4 models from the gateway's list." }, 400);
+    return jsonResponse(await compareOnAccount(typed, models));
+  }
   const inRouter = [...new Set(routed.flatMap((r) => r.models))].filter((m) => !/image/.test(m));
   const requested = Array.isArray(body?.models) ? body.models.filter((m: unknown) => typeof m === "string" && allowed.includes(m)) : [];
   const notable = allowed.filter((m) => NOTABLE.test(m) && !/image|tts|audio|embed/i.test(m));

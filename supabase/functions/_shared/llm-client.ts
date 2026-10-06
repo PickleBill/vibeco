@@ -119,19 +119,17 @@ function parseLovableResponse(data: Record<string, unknown>, latencyMs: number):
   return result;
 }
 
-// ─── Anthropic Direct (fallback) ───
+// ─── Claude (Anthropic Messages format) ───
 
-async function callAnthropicDirect(options: LLMCallOptions): Promise<LLMResponse> {
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY not configured");
-
+/** OpenAI-style options as an Anthropic Messages request body. */
+function anthropicBody(options: LLMCallOptions, model: string): Record<string, unknown> {
   // Convert OpenAI-style messages to Anthropic format
   const systemMessage = options.messages.find((m) => m.role === "system");
   const userMessages = options.messages.filter((m) => m.role !== "system");
 
   const body: Record<string, unknown> = {
-    model: options.model.replace("anthropic/", ""),
-    max_tokens: options.maxTokens || 4096,
+    model,
+    max_tokens: options.maxTokens || 8192,
     messages: userMessages.map((m) => ({ role: m.role, content: m.content })),
   };
 
@@ -148,6 +146,44 @@ async function callAnthropicDirect(options: LLMCallOptions): Promise<LLMResponse
   if (options.toolChoice) {
     body.tool_choice = { type: "tool", name: options.toolChoice.function.name };
   }
+  return body;
+}
+
+const LOVABLE_MESSAGES_URL = "https://ai.gateway.lovable.dev/v1/messages";
+
+/**
+ * Claude through the Lovable gateway. The gateway serves anthropic/* models
+ * only on its Messages endpoint (native Anthropic format), not on chat
+ * completions; billing stays on LOVABLE_API_KEY.
+ */
+async function callLovableMessages(options: LLMCallOptions): Promise<LLMResponse> {
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
+  const start = Date.now();
+  const response = await fetch(LOVABLE_MESSAGES_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "anthropic-version": "2023-06-01",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(anthropicBody(options, options.model)),
+  });
+  const latencyMs = Date.now() - start;
+  if (!response.ok) {
+    const text = await response.text();
+    console.error(`LLM gateway (messages) error [${options.model}]:`, response.status, text);
+    throw new LLMError(response.status, text);
+  }
+  return parseAnthropicResponse(await response.json(), latencyMs);
+}
+
+// ─── Anthropic Direct (fallback) ───
+
+async function callAnthropicDirect(options: LLMCallOptions): Promise<LLMResponse> {
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY not configured");
+  const body = anthropicBody(options, options.model.replace("anthropic/", ""));
 
   const start = Date.now();
   const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -196,11 +232,15 @@ function parseAnthropicResponse(data: Record<string, unknown>, latencyMs: number
 
 /**
  * Call an LLM through the appropriate gateway.
- * Defaults to Lovable Gateway. Set gateway: "anthropic-direct" for direct Anthropic API.
+ * Defaults to Lovable Gateway: chat completions, or its Messages endpoint for
+ * anthropic/* models. Set gateway: "anthropic-direct" for direct Anthropic API.
  */
 export async function callLLM(options: LLMCallOptions): Promise<LLMResponse> {
   if (options.gateway === "anthropic-direct") {
     return callAnthropicDirect(options);
+  }
+  if (options.model.startsWith("anthropic/")) {
+    return callLovableMessages(options);
   }
   return callLovableGateway(options);
 }

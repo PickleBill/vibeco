@@ -42,7 +42,7 @@ All agents follow the same pattern: receive JSON → construct system prompt →
 | `generate-landing-page` | Full HTML landing page generation | Gemini 2.5-flash | None (raw HTML) |
 | `generate-idea-image` | Concept art + logo generation | Gemini 3.1-flash-image | None (image modality) |
 | `generate-alt-prompt` | Research/design/landing prompts for other AI tools | Gemini 2.5-flash | None (JSON response_format) |
-| `probe-models` | Model diagnostics: the gateway's own model list, and whether each model the router uses (plus top-tier alternatives) answers and returns a tool call, with latency; direct Anthropic status. Rate-limited | Every routed model | `answer` (probe) |
+| `probe-models` | Model diagnostics: the gateway's own model list, and whether each model the router uses (plus top-tier alternatives) answers and returns a tool call, with latency; direct Anthropic status. `{compare: {company, models}}` runs the real account brief on up to four models side by side. Rate-limited | Every routed model | `answer` (probe) |
 | `synthesize` | Cross-agent synthesis (consensus, tensions, confidence) | Claude Sonnet 4 | `generate_synthesis` |
 | `orchestrate` | Auto-Thunderdome: 7 agents parallel + synthesis | Multi-model | N/A (orchestrator) |
 | `auto-evaluate` | **Flywheel**: raw idea → simulate → thunderdome → synthesize → score | Multi-model | N/A (pipeline) |
@@ -56,7 +56,7 @@ Shared code lives here. Supabase convention: `_shared/` prefix means it's not de
 | Module | Purpose |
 |--------|---------|
 | `cors.ts` | CORS headers |
-| `llm-client.ts` | Unified LLM caller (Lovable Gateway + Anthropic direct) |
+| `llm-client.ts` | Unified LLM caller: Lovable Gateway chat completions, its Messages endpoint for `anthropic/*` models (Claude bills to `LOVABLE_API_KEY`), and Anthropic direct |
 | `model-router.ts` | Smart model selection by task type |
 | `types.ts` | Shared TypeScript types for agent I/O |
 | `error-handler.ts` | Unified error handling (429/402/500) |
@@ -96,7 +96,7 @@ All tables use UUID primary keys, `now()` timestamps, and row-level security (RL
 
 - `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` — Frontend Supabase connection
 - `LOVABLE_API_KEY` — Supabase Edge Function secret for Lovable Gateway
-- `ANTHROPIC_API_KEY` — Optional, enables direct Claude API calls as fallback
+- `ANTHROPIC_API_KEY` — Optional, enables direct Claude API calls as fallback (Claude also runs through the Lovable gateway without it)
 
 ## Design System
 

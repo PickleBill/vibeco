@@ -82,3 +82,13 @@ export function isOwnSite(url: string, company: string, domain?: string): boolea
   const name = squash(company.replace(LEGAL_SUFFIX, ""));
   return name.length >= 3 && squash(stem) === name;
 }
+
+// Job-board aggregators mix employers on one page: the title naming the company isn't enough.
+const AGGREGATOR = /(^|\.)(ziprecruiter|indeed|glassdoor|simplyhired|talent|jooble|bebee|careerbuilder|monster|adzuna|lensa|jobleads|whatjobs|jobrapido)\./i;
+export function isAggregator(url: string): boolean {
+  try {
+    return AGGREGATOR.test(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
