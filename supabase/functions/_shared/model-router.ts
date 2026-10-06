@@ -119,11 +119,15 @@ const ROUTING_TABLE: Record<TaskType, ModelCandidate[]> = {
     { model: "openai/gpt-5", rationale: "Higher-quality fallback", cost: "high", speed: "slow" },
     { model: "google/gemini-3-flash-preview", rationale: "Fast-mode fallback", cost: "low", speed: "fast" },
   ],
-  // One express call returns the whole account brief. "fast" mode picks the
-  // flash model (seconds); "deep" uses 2.5 Pro for more careful tagging.
+  // One express call returns the whole account brief, so quality leads and the
+  // chain is tried in order. Claude Sonnet 5 (through the gateway's Messages
+  // endpoint) followed the evidence rules best in a side-by-side on real
+  // accounts (probe-models compare): no invented dates, roles not job posts
+  // as buyers, the fit rubric applied as written. ~25s; Flash is the fallback.
   "account-brief": [
-    { model: "google/gemini-2.5-pro", rationale: "Careful evidence tagging and citations", cost: "medium", speed: "medium" },
-    { model: "google/gemini-3-flash-preview", rationale: "Fast structured output within the demo time budget", cost: "low", speed: "fast" },
+    { model: "anthropic/claude-sonnet-5", rationale: "Best at sticking to the sources and the grading rubric", cost: "high", speed: "medium" },
+    { model: "google/gemini-3-flash-preview", rationale: "Fast fallback (~10s) if Claude is slow or unavailable", cost: "low", speed: "fast" },
+    { model: "google/gemini-2.5-pro", rationale: "Last-resort fallback", cost: "medium", speed: "medium" },
   ],
   // Gateway-served models only. The retired ids this used to name
   // (anthropic/claude-3.5-sonnet, claude-3-haiku) are why the résumé terminal

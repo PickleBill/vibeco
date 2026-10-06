@@ -34,7 +34,7 @@ All agents follow the same pattern: receive JSON → construct system prompt →
 
 | Function | Purpose | Model | Tool Schema |
 |----------|---------|-------|-------------|
-| `simulate-idea` | 3-round idea analysis + deep dives | Gemini 3-flash / 2.5-pro | `generate_idea_analysis`, `generate_deep_dive` |
+| `simulate-idea` | 3-round idea analysis + deep dives; the account lens's one-round brief | Gemini 3-flash / 2.5-pro; account brief: Claude Sonnet 5 (gateway Messages), Flash fallback | `generate_idea_analysis`, `generate_deep_dive` |
 | `persona-perspective` | 5 persona critiques (Skeptic, Champion, Competitor, Customer, Builder) | Gemini 3-flash / 2.5-pro | `generate_perspective` |
 | `expand-idea` | 3 orthogonal business variations | Gemini 3-flash / 2.5-pro | `generate_expansions` |
 | `distill-idea` | MVP distillation (one feature, one customer, one revenue) | Gemini 3-flash / 2.5-pro | `generate_distillation` |
@@ -43,7 +43,7 @@ All agents follow the same pattern: receive JSON → construct system prompt →
 | `generate-idea-image` | Concept art + logo generation | Gemini 3.1-flash-image | None (image modality) |
 | `generate-alt-prompt` | Research/design/landing prompts for other AI tools | Gemini 2.5-flash | None (JSON response_format) |
 | `probe-models` | Model diagnostics: the gateway's own model list, and whether each model the router uses (plus top-tier alternatives) answers and returns a tool call, with latency; direct Anthropic status. `{compare: {company, models}}` runs the real account brief on up to four models side by side. Rate-limited | Every routed model | `answer` (probe) |
-| `synthesize` | Cross-agent synthesis (consensus, tensions, confidence) | Claude Sonnet 4 | `generate_synthesis` |
+| `synthesize` | Cross-agent synthesis (consensus, tensions, confidence) | Gemini 2.5-pro (GPT-5 fallback; GPT-5.5 premium) | `generate_synthesis` |
 | `orchestrate` | Auto-Thunderdome: 7 agents parallel + synthesis | Multi-model | N/A (orchestrator) |
 | `auto-evaluate` | **Flywheel**: raw idea → simulate → thunderdome → synthesize → score | Multi-model | N/A (pipeline) |
 | `stack-scan` | **P1**: reads a company's public Greenhouse, Lever or Ashby job board and lists the data tools its posts name, plainly or as one option among several. The same scan runs inside `simulate-idea`'s account research | None (no LLM) | N/A |

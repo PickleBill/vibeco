@@ -125,7 +125,7 @@ function HowItWorks() {
     },
     {
       title: "First-call plan",
-      time: "~15s",
+      time: "~30s",
       body: "The motion (internal, embedded, both or unclear), stack read, why now, who to start with, discovery questions, the migration objection and a fit grade.",
     },
     {

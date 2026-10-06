@@ -316,9 +316,27 @@ async function runLane(apiKey: string, lane: Lane): Promise<LaneResult> {
   const t0 = Date.now();
   let error: string | undefined;
   let plain: Promise<FcItem[]> | undefined;
+  const left = () => LANE_DEADLINE_MS - (Date.now() - t0);
+  // The search API caps concurrent requests: a 429 clears once other requests
+  // finish, so retry with backoff while the lane has time.
+  const plainWithRetry = async (): Promise<FcItem[]> => {
+    for (const backoff of [0, 900, 1_800, 3_000]) {
+      if (backoff) {
+        if (left() < backoff + 1_500) break;
+        await sleep(backoff + Math.random() * 300);
+      }
+      try {
+        return await firecrawlSearch(apiKey, lane.body, Math.max(1_500, Math.min(PLAIN_BUDGET_MS, left())));
+      } catch (e) {
+        error = errorCode(e);
+        if (error !== "429") throw e;
+      }
+    }
+    throw new SearchError(429, "firecrawl 429: still rate-limited");
+  };
   const startPlain = (wait = 0) =>
     (plain ??= sleep(wait).then(() =>
-      firecrawlSearch(apiKey, lane.body, Math.max(1_500, Math.min(PLAIN_BUDGET_MS, LANE_DEADLINE_MS - (Date.now() - t0))))
+      plainWithRetry()
         .catch((e) => {
           console.warn(`research(${lane.kind}): plain search failed`, e);
           error = errorCode(e);
@@ -326,9 +344,8 @@ async function runLane(apiKey: string, lane: Lane): Promise<LaneResult> {
         })
         // Nothing back (or rejected options): the simpler request, if the lane has one and time remains.
         .then((items) => {
-          const left = LANE_DEADLINE_MS - (Date.now() - t0);
-          if (items.length || !lane.fallback || left < 1_500) return items;
-          return firecrawlSearch(apiKey, lane.fallback, Math.min(PLAIN_BUDGET_MS, left)).catch(() => [] as FcItem[]);
+          if (items.length || !lane.fallback || left() < 1_500) return items;
+          return firecrawlSearch(apiKey, lane.fallback, Math.min(PLAIN_BUDGET_MS, left())).catch(() => [] as FcItem[]);
         })
     ));
   const hedge = setTimeout(() => startPlain(), HEDGE_MS);
@@ -345,8 +362,8 @@ async function runLane(apiKey: string, lane: Lane): Promise<LaneResult> {
   } finally {
     clearTimeout(hedge);
   }
-  const items = await startPlain(error === "429" ? 700 + Math.random() * 500 : 0);
-  return { kind: lane.kind, items, scraped: false, ms: Date.now() - t0, ...(items.length || !error ? {} : { error }) };
+  const items = await startPlain();
+  return { kind: lane.kind, items, scraped: false, ms: Date.now() - t0, ...(error ? { error } : {}) };
 }
 
 /** "guitarcenter.com" searches better as its stem; names are quoted for exact match. */
