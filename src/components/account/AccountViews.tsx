@@ -357,6 +357,16 @@ export function AccountSections({ brief }: { brief: AccountBrief }) {
 
 // ─── Critics and the boiled-down version ───
 
+/** Critic text arrives as markdown: drop the "## …'s Take" heading (the card has the seat) and the markup. */
+function plainCritic(text: string): string {
+  return text
+    .replace(/^\s*#{1,6}\s[^\n]*\n+/, "")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/(\*\*|__)(.+?)\1/g, "$2")
+    .replace(/^\s*[-*]\s+/gm, "• ")
+    .trim();
+}
+
 function CriticCard({ critic }: { critic: CriticResult }) {
   const [open, setOpen] = useState(false);
   const seat = criticFor("account", critic.persona);
@@ -364,11 +374,11 @@ function CriticCard({ critic }: { critic: CriticResult }) {
     <article className="rounded-lg border border-border bg-card p-4">
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">{seat?.name ?? critic.persona}</p>
       {seat && <p className="text-xs text-muted-foreground">{seat.tagline}</p>}
-      {critic.headline && <h4 className="mt-2 font-display text-base font-bold leading-snug text-foreground">{critic.headline}</h4>}
+      {critic.headline && <h4 className="mt-2 font-display text-base font-bold leading-snug text-foreground">{plainCritic(critic.headline)}</h4>}
       {critic.perspective && (
         <>
           <p className={`mt-1.5 whitespace-pre-line text-sm leading-relaxed text-foreground/85 ${open ? "" : "line-clamp-4"}`}>
-            {critic.perspective}
+            {plainCritic(critic.perspective)}
           </p>
           <button
             type="button"
