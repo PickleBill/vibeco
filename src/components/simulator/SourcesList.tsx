@@ -1,4 +1,5 @@
 import { ExternalLink, Globe, AlertTriangle } from "lucide-react";
+import { ATS_LABEL } from "@/lib/jobBoards";
 
 export interface ResearchSource {
   id: number;
@@ -11,15 +12,30 @@ export interface ResearchSource {
   date?: string;
   /** Judged not to be about the company (e.g. a different business with the same name); never cited. */
   off_topic?: boolean;
+  /** The company's own job post, read from its public job board. */
+  via?: "greenhouse" | "lever" | "ashby" | string;
+}
+
+/** What the job-board scan found (account research). */
+export interface JobBoardScan {
+  found: boolean;
+  ats?: "greenhouse" | "lever" | "ashby" | string;
+  board_url?: string;
+  company_name?: string;
+  total_jobs: number;
+  scanned_jobs: number;
+  tools: { tool: string; category: string; posts: number; firm: number }[];
+  ms: number;
 }
 
 const KIND_LABEL: Record<string, string> = { stack: "Stack", jobs: "Hiring", news: "News" };
 
 export interface BriefResearch {
-  provider: "firecrawl" | "perplexity" | "none" | string;
+  provider: "firecrawl" | "perplexity" | "jobboards" | "none" | string;
   query?: string;
   fetched_at?: string;
   sources: ResearchSource[];
+  scan?: JobBoardScan;
 }
 
 function hostOf(url: string): string {
@@ -107,7 +123,11 @@ const SourcesList = ({
               </a>
               <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
                 <span>{hostOf(s.url)}</span>
-                {s.kind && KIND_LABEL[s.kind] && (
+                {s.via && ATS_LABEL[s.via] ? (
+                  <span className="rounded border border-primary/30 bg-accent px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-primary">
+                    Own job post · {ATS_LABEL[s.via]}
+                  </span>
+                ) : s.kind && KIND_LABEL[s.kind] && (
                   <span className="rounded border border-border bg-muted/60 px-1.5 py-px text-[10px] font-medium uppercase tracking-wide">
                     {KIND_LABEL[s.kind]}
                   </span>

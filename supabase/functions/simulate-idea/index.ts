@@ -2,6 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { handleCors, jsonResponse } from "../_shared/cors.ts";
 import { handleFunctionError } from "../_shared/error-handler.ts";
 import { cleanCompany, runAccountResearch, runDeepDive, runSimulation } from "../_shared/agents/simulate.ts";
+import { createRateLimiter } from "../_shared/rate-limit.ts";
+
+// Account runs pay for web searches and a long model call: cap them per IP.
+const accountLimited = createRateLimiter(15);
 
 serve(async (req) => {
   const cors = handleCors(req);
@@ -25,6 +29,9 @@ serve(async (req) => {
     // Account lens: research and analysis need a company name or domain.
     if (body.lens === "account" && !cleanCompany(body.idea)) {
       return jsonResponse({ error: "Enter a company name or domain." }, 400);
+    }
+    if (body.lens === "account" && accountLimited(req)) {
+      return jsonResponse({ error: "That's a lot of accounts in a minute. Try again shortly." }, 429);
     }
 
     // Account lens, sources first: search only, so the UI can show sources early.

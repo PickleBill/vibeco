@@ -19,7 +19,8 @@ VibeCo helps non-technical founders go from a plain-English idea to a structured
 ## Architecture
 
 ### Frontend (`src/`)
-- `pages/` — Route components: Index (the "working AI lab" front door), Simulate (the workbench), Report, MySimulations, Portfolio, Auth
+- `pages/` — Route components: Index (the "working AI lab" front door), Simulate (the workbench), Report, MySimulations, Portfolio, Auth, ForSeller (`/for/:seller`, the target-account page, e.g. `/for/omni`; linked from the homepage "Sales Teams" button, noindex)
+- `components/account/` — Target-account lens (`lens: "account"`): AccountRunner (sources → First-call plan → five critics in one go), AccountViews (plan, stack table, job-board scan card, critics), AccountReport (`/report/:id` for account runs). Seller labels live in `src/lib/sellers.ts`
 - `components/home/` — Homepage sections (hero + worked example, how it works, use cases, builds shelf). Question types ("lenses") live in `src/lib/lenses.ts` and are passed to `simulate-idea` as `lens`
 - `components/simulator/` — Core simulator workflow: IdeaInput → IdeaBrief → FollowUpQuestions → FinalReport → ActionHub
 - `components/simulator/SimulatorShell.tsx` — **The main orchestrator.** Manages 3-round analysis state, calls edge functions, threads context between agents.
@@ -45,6 +46,7 @@ All agents follow the same pattern: receive JSON → construct system prompt →
 | `synthesize` | Cross-agent synthesis (consensus, tensions, confidence) | Claude Sonnet 4 | `generate_synthesis` |
 | `orchestrate` | Auto-Thunderdome: 7 agents parallel + synthesis | Multi-model | N/A (orchestrator) |
 | `auto-evaluate` | **Flywheel**: raw idea → simulate → thunderdome → synthesize → score | Multi-model | N/A (pipeline) |
+| `stack-scan` | **P1**: reads a company's public Greenhouse, Lever or Ashby job board and lists the data tools its posts name, plainly or as one option among several. The same scan runs inside `simulate-idea`'s account research | None (no LLM) | N/A |
 | `ask-bill` | **bricker-os**: corpus-grounded Q&A for Bill's dynamic résumé terminal (corpus fetched from the Brick repo's GitHub Pages; public endpoint, rate-limited) | Claude 3.5 Sonnet / 3 Haiku | None (plain text answer) |
 
 ### Shared Agent Infrastructure (`supabase/functions/_shared/`)
@@ -58,7 +60,13 @@ Shared code lives here. Supabase convention: `_shared/` prefix means it's not de
 | `model-router.ts` | Smart model selection by task type |
 | `types.ts` | Shared TypeScript types for agent I/O |
 | `error-handler.ts` | Unified error handling (429/402/500) |
-| `agents/*.ts` | Core logic for each agent, importable by other agents |
+| `agents/*.ts` | Core logic for each agent, importable by other agents (`agents/account.ts`: account-lens schema, evidence checks, First-call plan) |
+| `lens.ts` | Per-lens framing: brief slots, critic seats, distill slots, deliverables (`account` answers in one round) |
+| `research.ts` | Live sources: Firecrawl search (company lens), and account research (job-board scan + three web searches in parallel) |
+| `stack-scan.ts` / `stack-tools.ts` | Job-board scan and the data-tool catalog; a tool listed only as an option ("Snowflake, BigQuery, or Redshift") is never Confirmed |
+| `match.ts` | Company and word matching shared by the evidence checks ("Chime" counts, "chime in" doesn't) |
+| `sellers/` | Seller profiles for the account lens (`omni.ts`: public facts with source URLs) |
+| `rate-limit.ts` | Per-IP limits for public endpoints that pay for searches or long model calls |
 
 ### Database (Supabase PostgreSQL)
 

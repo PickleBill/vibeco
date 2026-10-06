@@ -27,8 +27,8 @@ const SELLERS: Record<string, SellerConfig> = {
     name: "Omni",
     headline: "Know the account before the first call.",
     intro:
-      "Type a company. VibeCo searches the web for its data stack, data hiring and the last 12 months of news, then writes a first-call plan for an Omni seller. Every stack line is tagged Confirmed, Inferred or Not found, and every claim links to its source.",
-    examples: ["Guitar Center", "Warby Parker", "Chime"],
+      "Type a company. VibeCo reads its own job posts, searches the web for its data stack and the last 12 months of news, then writes a first-call plan for an Omni seller, with every claim linked to its source.",
+    examples: ["Guitar Center", "Chime", "Ramp"],
     savedRuns: [],
     footer: "Unofficial. Built from public sources. Not affiliated with Omni.",
   },

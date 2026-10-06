@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
 import { HelmetProvider, Helmet } from "react-helmet-async";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Link2 } from "lucide-react";
+import { toast } from "sonner";
+import { copyToClipboard } from "@/lib/copyToClipboard";
 import { getSeller } from "@/lib/sellers";
 import SourcesList from "@/components/simulator/SourcesList";
-import { AccountSections, CriticsPanel, PlanCard, StackTable, type AccountAnalysis, type AccountBrief } from "./AccountViews";
+import { AccountSections, CriticsPanel, PlanCard, ScanCard, StackTable, type AccountAnalysis, type AccountBrief } from "./AccountViews";
 
 interface Props {
   company: string;
@@ -35,6 +37,16 @@ const AccountReport = ({ company, brief, plan, createdAt, analysis, verdict }: P
               Generated {new Date(createdAt).toLocaleDateString()}
               {seller ? " · Unofficial, built from public sources" : " · Built from public sources"}
             </p>
+            <button
+              type="button"
+              onClick={async () => {
+                if (await copyToClipboard(window.location.href)) toast.success("Link copied");
+                else toast.error("Couldn't copy the link.");
+              }}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+            >
+              <Link2 size={12} aria-hidden /> Copy link
+            </button>
           </header>
 
           {plan ? (
@@ -43,6 +55,7 @@ const AccountReport = ({ company, brief, plan, createdAt, analysis, verdict }: P
             <p className="text-center text-sm text-muted-foreground">This run has no plan saved.</p>
           )}
           <StackTable lines={brief.core_features} research={brief.research} />
+          <ScanCard scan={brief.research?.scan} company={company} />
           <SourcesList research={brief.research} />
           <AccountSections brief={brief} />
           <CriticsPanel analysis={analysis} brief={brief} />
