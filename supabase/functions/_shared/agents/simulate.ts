@@ -246,6 +246,14 @@ export async function runAccountResearch(typed: string) {
 
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 
+/** "brief:{brief:object,is_final:boolean}" — what a model sent, for the error log. */
+function shapeOf(v: unknown, depth = 0): string {
+  if (Array.isArray(v)) return `array(${v.length})`;
+  if (!isObj(v)) return typeof v === "string" ? `string(${v.length})` : typeof v;
+  if (depth >= 2) return "object";
+  return `{${Object.entries(v).map(([k, x]) => `${k}:${shapeOf(x, depth + 1)}`).join(",")}}`.slice(0, 400);
+}
+
 /** The account brief, unwrapped and parsed if needed; undefined when it has no content to check. */
 export function usableBrief(raw: unknown): Record<string, unknown> | undefined {
   let b: unknown = raw;
@@ -261,6 +269,16 @@ export function usableBrief(raw: unknown): Record<string, unknown> | undefined {
     else break;
   }
   if (!isObj(b)) return undefined;
+  // Nested fields can arrive as JSON strings too ("core_features": "[{...}]").
+  for (const [k, v] of Object.entries(b)) {
+    if (typeof v !== "string" || !/^\s*[[{]/.test(v)) continue;
+    try {
+      const parsed = JSON.parse(v);
+      if (parsed && typeof parsed === "object") b[k] = parsed;
+    } catch {
+      // Not JSON after all: leave it as written.
+    }
+  }
   const text = (v: unknown) => typeof v === "string" && v.trim().length > 0;
   const hasContent = Array.isArray(b.core_features) && (text(b.account_line) || text(b.problem));
   return hasContent ? b : undefined;
@@ -336,7 +354,7 @@ export async function runSimulation(input: SimulateInput, opts: { models?: strin
         // Some models nest the answer one level deep ({brief: {brief: {...}, is_final}})
         // or send it as a JSON string; anything still unusable counts as a failed call.
         const brief = usableBrief(answer?.brief);
-        if (!brief) throw new Error(`simulate: ${model} returned no usable brief`);
+        if (!brief) throw new Error(`simulate: ${model} returned no usable brief (${shapeOf(answer)})`);
         answer.brief = brief as unknown as BriefData;
         answer.model = model;
       }

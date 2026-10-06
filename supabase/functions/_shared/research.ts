@@ -508,25 +508,38 @@ export async function researchAccount(
     }),
   ]);
   const scan = scanSummary(scanned);
-  const { sources, excerpts } = mergeLanes(results, scanSources(scanned));
+  const boards = scanSources(scanned);
+  const { sources, excerpts } = mergeLanes(results, boards);
+  // Every web lane came back empty (often the search API's rate limit) but the
+  // job board answered: add Perplexity's sources after the posts, so the brief
+  // isn't left with job posts alone.
+  const perplexityKey = Deno.env.get("PERPLEXITY_API_KEY");
+  if (sources.length && boards.length && !results.some((r) => r.items.length) && perplexityKey) {
+    try {
+      const found = await viaPerplexity(perplexityKey, perplexityQuery(query));
+      for (const [i, s] of found.sources.entries()) {
+        if (sources.length >= ACCOUNT_MAX_SOURCES || sources.some((x) => urlKey(x.url) === urlKey(s.url))) continue;
+        sources.push({ ...s, id: sources.length + 1 });
+        excerpts.push(found.excerpts[i] ?? s.snippet);
+      }
+    } catch (e) {
+      console.error("research: perplexity supplement failed", e);
+    }
+  }
   const timing = {
     total_ms: Date.now() - t0,
     scan_ms: scanned.ms,
     lanes: results.map((r) => ({ kind: r.kind, ms: r.ms, scraped: r.scraped, results: r.items.length, ...(r.error ? { error: r.error } : {}) })),
   };
   if (sources.length) {
-    const provider = results.some((r) => r.items.length) ? "firecrawl" : "jobboards";
+    const provider = results.some((r) => r.items.length) ? "firecrawl" : sources.length > boards.length ? "perplexity" : "jobboards";
     const research: Research = { provider, query, fetched_at, sources, scan };
     return { research, promptBlock: sourcesPromptBlock(research, excerpts), excerpts, timing };
   }
 
-  const perplexityKey = Deno.env.get("PERPLEXITY_API_KEY");
   if (perplexityKey) {
     try {
-      const found = await viaPerplexity(
-        perplexityKey,
-        `${query}: data and analytics stack (warehouse, BI tools, dbt, AI), any analytics, reporting or dashboards it offers its own customers in its product, recent data and analytics job postings, and news from the last 12 months (funding, IPO, acquisitions, new data leaders).`,
-      );
+      const found = await viaPerplexity(perplexityKey, perplexityQuery(query));
       if (found.sources.length) {
         const research: Research = { provider: "perplexity", query, fetched_at, sources: found.sources, scan };
         return {
@@ -548,6 +561,10 @@ export async function researchAccount(
     excerpts: [],
     timing: { total_ms: Date.now() - t0, scan_ms: scanned.ms, lanes: [] },
   };
+}
+
+function perplexityQuery(company: string): string {
+  return `${company}: data and analytics stack (warehouse, BI tools, dbt, AI), any analytics, reporting or dashboards it offers its own customers in its product, recent data and analytics job postings, and news from the last 12 months (funding, IPO, acquisitions, new data leaders).`;
 }
 
 function sourcesPromptBlock(research: Research, excerpts: string[], summary?: string): string {
