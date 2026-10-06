@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ExternalLink, Globe, AlertTriangle } from "lucide-react";
 import { ATS_LABEL } from "@/lib/jobBoards";
 
@@ -24,7 +25,8 @@ export interface JobBoardScan {
   company_name?: string;
   total_jobs: number;
   scanned_jobs: number;
-  tools: { tool: string; category: string; posts: number; firm: number }[];
+  /** `signal`: a sign of analytics inside its product ("customer-facing dashboards"), not a product. */
+  tools: { tool: string; category: string; posts: number; firm: number; signal?: boolean }[];
   ms: number;
 }
 
@@ -36,6 +38,8 @@ export interface BriefResearch {
   fetched_at?: string;
   sources: ResearchSource[];
   scan?: JobBoardScan;
+  /** Search results dropped because they never named the company. */
+  dropped?: number;
 }
 
 function hostOf(url: string): string {
@@ -82,10 +86,14 @@ const SourcesList = ({
   className?: string;
   compact?: boolean;
 }) => {
+  const [showOff, setShowOff] = useState(false);
   if (!research) return null;
-  const sources = Array.isArray(research.sources) ? research.sources : [];
+  const all = Array.isArray(research.sources) ? research.sources : [];
+  // Sources judged not to be about the company are never cited: fold them away.
+  const offTopic = all.filter((s) => s.off_topic);
+  const sources = showOff ? all : all.filter((s) => !s.off_topic);
 
-  if (!sources.length) {
+  if (!all.length) {
     return (
       <div className={`flex items-start gap-2.5 rounded-lg border border-warning/30 bg-warning/5 px-4 py-3 ${className}`}>
         <AlertTriangle size={14} className="mt-0.5 shrink-0 text-warning" aria-hidden />
@@ -103,7 +111,7 @@ const SourcesList = ({
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
           <Globe size={13} aria-hidden />
-          {sources.length} live source{sources.length === 1 ? "" : "s"}
+          {all.length - offTopic.length} live source{all.length - offTopic.length === 1 ? "" : "s"}
         </p>
         {fetched && <p className="text-[11px] text-muted-foreground">Searched the web on {fetched}</p>}
       </div>
@@ -146,6 +154,26 @@ const SourcesList = ({
           </li>
         ))}
       </ol>
+      {(offTopic.length > 0 || (research.dropped ?? 0) > 0) && (
+        <p className="mt-3 text-xs text-muted-foreground">
+          {offTopic.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowOff((v) => !v)}
+              aria-expanded={showOff}
+              className="underline-offset-4 hover:text-foreground hover:underline"
+            >
+              {showOff ? "Hide" : "Show"} {offTopic.length} not about this company · not used
+            </button>
+          )}
+          {offTopic.length > 0 && (research.dropped ?? 0) > 0 && " · "}
+          {(research.dropped ?? 0) > 0 && (
+            <span>
+              {research.dropped} more result{research.dropped === 1 ? "" : "s"} never named it, so they were dropped
+            </span>
+          )}
+        </p>
+      )}
       <p className="mt-3 text-[11px] text-muted-foreground">
         Numbers match the [n] citations above. Sources are live web results, so open them before you quote them.
       </p>

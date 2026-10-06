@@ -154,11 +154,12 @@ function HowItWorks() {
         <div className="flex flex-wrap gap-1.5">
           <StatusTag status="Confirmed" />
           <StatusTag status="Inferred" />
+          <StatusTag status="Former" />
           <StatusTag status="Not found" />
         </div>
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-          A tool is Confirmed only when a source names it at this company, checked in code. A job post that lists it as one option among several
-          doesn&rsquo;t count.
+          A tool is Confirmed only when a source names it plainly at this company, checked in code. A job post that lists it as one option among
+          several, or as a nice-to-have, doesn&rsquo;t count. Former means a source says the company moved off it.
         </p>
       </div>
     </div>

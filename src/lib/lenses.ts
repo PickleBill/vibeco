@@ -311,7 +311,7 @@ export interface StackFeature {
   name: string;
   description: string;
   tool?: string;
-  status?: "Confirmed" | "Inferred" | "Not found" | string;
+  status?: "Confirmed" | "Inferred" | "Former" | "Not found" | string;
   sources?: number[];
   evidence?: string;
   downgraded?: boolean;

@@ -1,6 +1,8 @@
 import { callLLMWithTool } from "../llm-client.ts";
 import { selectModel } from "../model-router.ts";
-import { lensAgentNote, lensOf } from "../lens.ts";
+import { criticName, lensAgentNote, lensOf } from "../lens.ts";
+import { accountOutputTidy } from "./account.ts";
+import { asList } from "./distill.ts";
 import type {
   BriefData,
   PerspectiveResult,
@@ -143,9 +145,10 @@ export async function synthesize(input: SynthesisInput): Promise<SynthesisResult
   // Build a comprehensive context from all agent outputs
   let agentOutputs = "";
 
-  // Perspectives
+  // Perspectives, under the seat's name for this lens ("CFO", not "SKEPTIC").
+  const lens = lensOf(input.brief);
   for (const p of input.perspectives) {
-    agentOutputs += `\n### ${p.persona.toUpperCase()}'s Perspective\n`;
+    agentOutputs += `\n### ${criticName(lens, p.persona) ?? p.persona.toUpperCase()}'s Perspective\n`;
     agentOutputs += `Headline: ${p.headline}\n`;
     agentOutputs += `${p.perspective}\n`;
     if (p.challenge_questions?.length) {
@@ -172,7 +175,7 @@ export async function synthesize(input: SynthesisInput): Promise<SynthesisResult
     agentOutputs += `One Feature: ${input.distillation.one_feature}\n`;
     agentOutputs += `One Customer: ${input.distillation.one_customer}\n`;
     agentOutputs += `MVP Scope: ${input.distillation.mvp_scope}\n`;
-    agentOutputs += `Cut List: ${input.distillation.what_to_cut?.join(", ")}\n`;
+    agentOutputs += `Cut List: ${asList(input.distillation.what_to_cut).join(", ")}\n`;
   }
 
   // User signals
@@ -201,7 +204,9 @@ Your job is NOT to average opinions. Your job is to:
 6. Suggest specific Lovable prompt modifications based on the collective wisdom.
 
 RULES:
-- Reference specific agents by name (The Skeptic, The Champion, etc.)
+- Reference specific agents by name (${
+    lens === "idea" ? "The Skeptic, The Champion, etc." : `the ${["champion", "skeptic", "competitor", "customer", "builder"].map((s) => criticName(lens, s)).join(", the ")}`
+  })
 - Never be generic. Every point must trace back to a specific agent's output.
 - Tensions must be REAL disagreements, not restated agreements in different words.
 - If the distillation contradicts the expansion, that's a tension worth noting.
@@ -231,7 +236,7 @@ Synthesize all of the above into a unified analysis. Find what they agree on, wh
         toolChoice: { type: "function", function: { name: "generate_synthesis" } },
       });
       console.log(`[synthesize] ✓ ${model} in ${Date.now() - startedAt}ms`);
-      return result;
+      return accountOutputTidy(input.brief)(result);
     } catch (e) {
       lastError = e;
       console.error(`[synthesize] ✗ ${model}: ${(e as Error).message}`);

@@ -3,7 +3,7 @@
 // are first-party sources, so a tool named here can be Confirmed. No API keys:
 // all three boards publish open JSON endpoints.
 import { companyHits, squash } from "./match.ts";
-import { EMBEDDED_ROLE, SENTENCE_END, STACK_TOOLS, toolMentions, type StackCategory } from "./stack-tools.ts";
+import { EMBEDDED_ROLE, labeledUnit, STACK_TOOLS, toolMentions, unitsOf, type StackCategory } from "./stack-tools.ts";
 
 export type Ats = "greenhouse" | "lever" | "ashby";
 export const ATS_LABEL: Record<Ats, string> = { greenhouse: "Greenhouse", lever: "Lever", ashby: "Ashby" };
@@ -22,6 +22,8 @@ export interface ToolCount {
   posts: number;
   /** Posts that name it plainly, not as one option among several. */
   firm: number;
+  /** A signal of in-product analytics ("customer-facing dashboards"), not a product. */
+  signal?: true;
 }
 
 export interface ScannedPost {
@@ -88,9 +90,13 @@ export function htmlToText(html: string): string {
   return s.replace(/[ \t\u00a0]+/g, " ").replace(/\s*\n\s*/g, "\n").trim();
 }
 
-/** The sentences (or list items) that name a tool, de-duplicated, up to ~1500 characters. */
+/**
+ * The sentences (or list items) that name a tool, de-duplicated, up to ~1500
+ * characters. A nice-to-have keeps its label ("Nice to have: Looker"), so the
+ * excerpt reads the same out of context.
+ */
 function toolSentences(text: string, max = 1500): string {
-  const parts = text.split(new RegExp(`${SENTENCE_END.source}|\\n+`)).map((p) => p.trim()).filter((p) => p.length > 8 && p.length < 500);
+  const parts = unitsOf(text).map(labeledUnit).filter((p) => p.length > 8 && p.length < 500);
   const keep: string[] = [];
   let size = 0;
   for (const p of parts) {
@@ -110,7 +116,9 @@ const LEGAL = /[\s,]+(?:inc|llc|ltd|limited|corp|corporation|co|company|plc|gmbh
 export function slugCandidates(company: string, domain?: string): string[] {
   const named = slugsFor(company);
   const fromDomain = domain ? slugsFor(domain) : [];
-  return [...new Set([...named.slice(0, 2), ...fromDomain, ...named])].slice(0, 4);
+  // Boards named for the legal entity: "AvidXchange, Inc." hires at avidxchangeinc.
+  const legal = named[0] && !/[a-z0-9-]\.[a-z]{2,}/i.test(company) ? [`${named[0]}inc`] : [];
+  return [...new Set([...named.slice(0, 2), ...fromDomain.slice(0, 2), ...legal, ...fromDomain, ...named])].slice(0, 4);
 }
 
 function slugsFor(company: string): string[] {
@@ -242,7 +250,8 @@ export function scanBoard(board: Board, company: string, ms = 0, tried: string[]
     const embeddedRole = EMBEDDED_ROLE.test(p.title);
     if (!found.length && !embeddedRole) continue;
     for (const f of found) {
-      const c = counts.get(f.tool.name) ?? { tool: f.tool.name, category: f.tool.category, posts: 0, firm: 0 };
+      const c = counts.get(f.tool.name) ??
+        { tool: f.tool.name, category: f.tool.category, posts: 0, firm: 0, ...(f.tool.signal ? { signal: true as const } : {}) };
       c.posts += 1;
       if (f.firm) c.firm += 1;
       counts.set(f.tool.name, c);
