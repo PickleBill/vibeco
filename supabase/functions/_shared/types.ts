@@ -39,6 +39,8 @@ export interface SimulationResult {
   is_final: boolean;
   depth_recommendation?: "ready" | "one-more-recommended";
   lovable_prompt?: string;
+  /** Account lens: the model that wrote the brief (diagnostics; not stored). */
+  model?: string;
 }
 
 export interface DeepDiveResult {

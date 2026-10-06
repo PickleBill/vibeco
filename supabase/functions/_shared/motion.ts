@@ -182,6 +182,8 @@ export function buildMotion(
   embedded: MotionEvidence[],
   tidy: (t: unknown) => string,
   seller?: { motions: SellerMotion[] },
+  /** Titles of the job posts among the sources: an open posting is never the buyer. */
+  postings: string[] = [],
 ): MotionRead {
   const r = (raw ?? {}) as Record<string, Record<string, unknown> | undefined>;
   const side = (id: MotionId, evidence: MotionEvidence[]): MotionSide => {
@@ -195,6 +197,7 @@ export function buildMotion(
       // Nothing shows this motion, or the model left it blank: what usually holds, from the seller's playbook.
       clock = `Usually ${playbook.clock}.`;
     }
+    buyer = withoutPostings(buyer, postings);
     if (playbook && (!sources.length || !buyer)) buyer = playbook.buyers.join(", or ");
     return {
       sources,
@@ -209,6 +212,21 @@ export function buildMotion(
     internal: side("internal", internal),
     embedded: side("embedded", embedded),
   };
+}
+
+/**
+ * Drop open job postings from a buyer line: "NetSuite Application Developer or
+ * Head of Data [1]" becomes "Head of Data [1]". Empty when nothing else is left.
+ */
+export function withoutPostings(buyer: string, postings: string[]): string {
+  const posted = new Set(postings.map((t) => roleOf(t).toLowerCase()).filter((t) => t.length > 3));
+  if (!buyer || !posted.size) return buyer;
+  const cites = buyer.match(/\s*\[[\d,\s]+\]\s*$/)?.[0] ?? "";
+  const body = cites ? buyer.slice(0, -cites.length) : buyer;
+  const parts = body.split(/\s*(?:,\s*or\s+|\s+or\s+|,|\/|;)\s*/).map((p) => p.trim()).filter(Boolean);
+  const kept = parts.filter((p) => !posted.has(p.replace(/\s*\[[\d,\s]+\]$/, "").replace(/[.\s]+$/, "").toLowerCase()));
+  if (kept.length === parts.length) return buyer;
+  return kept.length ? `${kept.join(" or ")}${cites}` : "";
 }
 
 /** The motion a fit grade is for: the model's pick when both are live, else the one that is. */
