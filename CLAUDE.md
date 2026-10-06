@@ -20,7 +20,7 @@ VibeCo helps non-technical founders go from a plain-English idea to a structured
 
 ### Frontend (`src/`)
 - `pages/` — Route components: Index (the "working AI lab" front door), Simulate (the workbench), Report, MySimulations, Portfolio, Auth, ForSeller (`/for/:seller`, the target-account page, e.g. `/for/omni`; linked from the homepage "Sales Teams" button, noindex)
-- `components/account/` — Target-account lens (`lens: "account"`): AccountRunner (sources → First-call plan → five critics in one go), AccountViews (plan, stack table, job-board scan card, critics), AccountReport (`/report/:id` for account runs). Seller labels live in `src/lib/sellers.ts`
+- `components/account/` — Target-account lens (`lens: "account"`): AccountRunner (sources → First-call plan → five critics in one go), AccountViews (motion panel, plan, stack table, job-board scan card, critics), AccountReport (`/report/:id` for account runs). Seller labels live in `src/lib/sellers.ts`
 - `components/home/` — Homepage sections (hero + worked example, how it works, use cases, builds shelf). Question types ("lenses") live in `src/lib/lenses.ts` and are passed to `simulate-idea` as `lens`
 - `components/simulator/` — Core simulator workflow: IdeaInput → IdeaBrief → FollowUpQuestions → FinalReport → ActionHub
 - `components/simulator/SimulatorShell.tsx` — **The main orchestrator.** Manages 3-round analysis state, calls edge functions, threads context between agents.
@@ -42,7 +42,7 @@ All agents follow the same pattern: receive JSON → construct system prompt →
 | `generate-landing-page` | Full HTML landing page generation | Gemini 2.5-flash | None (raw HTML) |
 | `generate-idea-image` | Concept art + logo generation | Gemini 3.1-flash-image | None (image modality) |
 | `generate-alt-prompt` | Research/design/landing prompts for other AI tools | Gemini 2.5-flash | None (JSON response_format) |
-| `probe-models` | Model availability diagnostics across all providers | All models | None (diagnostic) |
+| `probe-models` | Model diagnostics: the gateway's own model list, and whether each model the router uses (plus top-tier alternatives) answers and returns a tool call, with latency; direct Anthropic status. Rate-limited | Every routed model | `answer` (probe) |
 | `synthesize` | Cross-agent synthesis (consensus, tensions, confidence) | Claude Sonnet 4 | `generate_synthesis` |
 | `orchestrate` | Auto-Thunderdome: 7 agents parallel + synthesis | Multi-model | N/A (orchestrator) |
 | `auto-evaluate` | **Flywheel**: raw idea → simulate → thunderdome → synthesize → score | Multi-model | N/A (pipeline) |
@@ -62,10 +62,11 @@ Shared code lives here. Supabase convention: `_shared/` prefix means it's not de
 | `error-handler.ts` | Unified error handling (429/402/500) |
 | `agents/*.ts` | Core logic for each agent, importable by other agents (`agents/account.ts`: account-lens schema, evidence checks, First-call plan) |
 | `lens.ts` | Per-lens framing: brief slots, critic seats, distill slots, deliverables (`account` answers in one round) |
-| `research.ts` | Live sources: Firecrawl search (company lens), and account research (job-board scan + three web searches in parallel) |
+| `research.ts` | Live sources: Firecrawl search (company lens), and account research (job-board scan + four web searches in parallel: stack, product, jobs, news; 10-source cap) |
+| `motion.ts` | Account lens: Internal, Embedded, Both or Unclear, decided in code from evidence in the sources (own job posts, own product pages, cited sources); the model writes each motion's clock, buyer and question |
 | `stack-scan.ts` / `stack-tools.ts` | Job-board scan and the data-tool catalog; a tool listed only as an option ("Snowflake, BigQuery, or Redshift") is never Confirmed |
-| `match.ts` | Company and word matching shared by the evidence checks ("Chime" counts, "chime in" doesn't) |
-| `sellers/` | Seller profiles for the account lens (`omni.ts`: public facts with source URLs) |
+| `match.ts` | Company and word matching shared by the evidence checks ("Chime" counts, "chime in" doesn't); `parseCompany` splits "Bandwidth (bandwidth.com)" into a name and a domain |
+| `sellers/` | Seller profiles for the account lens (`omni.ts`: public facts with source URLs, plus the two motions as generic seller config) |
 | `rate-limit.ts` | Per-IP limits for public endpoints that pay for searches or long model calls |
 
 ### Database (Supabase PostgreSQL)

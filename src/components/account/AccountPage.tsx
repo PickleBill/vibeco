@@ -28,7 +28,7 @@ const AccountPage = ({ seller, initialCompany }: { seller?: SellerConfig; initia
                 </h1>
                 <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
                   {seller?.intro ??
-                    "Type a company. VibeCo reads its own job posts, searches the web for its data stack and the last 12 months of news, then writes a first-call plan with every claim linked to its source."}
+                    "Type a company. VibeCo reads its own job posts and product pages, searches the web for its data stack and the last 12 months of news, then writes a first-call plan with every claim linked to its source."}
                 </p>
               </>
             }

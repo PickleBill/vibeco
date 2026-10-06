@@ -1,202 +1,117 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { handleCors, jsonResponse } from "../_shared/cors.ts";
+import { LLMError } from "../_shared/error-handler.ts";
+import { callLLM } from "../_shared/llm-client.ts";
+import { routedModels } from "../_shared/model-router.ts";
+import { createRateLimiter } from "../_shared/rate-limit.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+/**
+ * Model diagnostics. Reports:
+ * - which models the Lovable gateway serves today (its own list),
+ * - whether each model the router uses answers, and whether it returns a tool
+ *   call (every agent depends on tool calling), with latency,
+ * - other top-tier models the gateway serves, tested the same way,
+ * - whether the direct Anthropic fallback works.
+ * Each probe spends a handful of tokens, so it's rate-limited.
+ *
+ * Input:  {} or { models: ["anthropic/claude-…"] } to test extra gateway models.
+ */
+const limited = createRateLimiter(3);
+const MAX_PROBES = 32;
+
+const PROBE_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "answer",
+    description: "Return one word.",
+    parameters: { type: "object", properties: { word: { type: "string" } }, required: ["word"], additionalProperties: false },
+  },
 };
 
-const TEST_PROMPT = "Respond with exactly one word: 'working'";
-
-const LOVABLE_GATEWAY_MODELS = [
-  "google/gemini-3-flash-preview",
-  "google/gemini-2.5-flash",
-  "google/gemini-2.5-pro",
-  "google/gemini-2.0-flash",
-  "google/gemini-1.5-pro",
-  "anthropic/claude-sonnet-4-20250514",
-  "anthropic/claude-3.5-sonnet",
-  "anthropic/claude-3-haiku",
-  "openai/gpt-4o",
-  "openai/gpt-4o-mini",
-  "meta-llama/llama-3.1-70b-instruct",
-];
-
-async function testLovableGateway(model: string, apiKey: string) {
-  const start = Date.now();
+/** The gateway names the models it serves when asked for one it doesn't. */
+async function gatewayModels(): Promise<string[]> {
   try {
-    const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model,
-          messages: [{ role: "user", content: TEST_PROMPT }],
-          max_tokens: 10,
-        }),
-      }
-    );
-    const elapsed = Date.now() - start;
+    await callLLM({ model: "probe/list-models", messages: [{ role: "user", content: "hi" }], maxTokens: 5 });
+  } catch (e) {
+    const body = e instanceof LLMError ? e.body : "";
+    const list = /allowed models:\s*\[([^\]]*)\]/i.exec(body)?.[1] ?? "";
+    return list.split(/[\s,]+/).map((m) => m.replace(/["']/g, "")).filter((m) => /^[a-z0-9-]+\/[\w.:-]+$/i.test(m));
+  }
+  return [];
+}
 
-    if (!response.ok) {
-      const text = await response.text();
-      return {
-        model,
-        gateway: "lovable",
-        status: response.status,
-        available: false,
-        error: text.slice(0, 200),
-        latency_ms: elapsed,
-      };
-    }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "";
-    return {
+async function probe(model: string) {
+  const t0 = Date.now();
+  try {
+    const res = await callLLM({
       model,
-      gateway: "lovable",
-      status: 200,
-      available: true,
-      response: content.slice(0, 50),
-      latency_ms: elapsed,
-      usage: data.usage || null,
-    };
+      messages: [{ role: "user", content: "Call the answer tool with the word 'working'." }],
+      tools: [PROBE_TOOL],
+      toolChoice: { type: "function", function: { name: "answer" } },
+      maxTokens: 60,
+    });
+    const word = res.toolCalls?.[0]?.arguments?.word;
+    return { model, ok: true, tool_call: typeof word === "string", latency_ms: Date.now() - t0 };
   } catch (e) {
     return {
       model,
-      gateway: "lovable",
-      status: 0,
-      available: false,
-      error: e instanceof Error ? e.message : "Unknown error",
-      latency_ms: Date.now() - start,
+      ok: false,
+      tool_call: false,
+      latency_ms: Date.now() - t0,
+      status: e instanceof LLMError ? e.status : 0,
+      error: (e instanceof LLMError ? e.body : String(e)).slice(0, 300),
     };
   }
 }
 
-async function testAnthropicDirect(apiKey: string) {
-  const start = Date.now();
+async function anthropicDirect() {
+  if (!Deno.env.get("ANTHROPIC_API_KEY")) return { configured: false, ok: false, note: "No ANTHROPIC_API_KEY secret set." };
   try {
-    const response = await fetch(
-      "https://api.anthropic.com/v1/messages",
-      {
-        method: "POST",
-        headers: {
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 10,
-          messages: [{ role: "user", content: TEST_PROMPT }],
-        }),
-      }
-    );
-    const elapsed = Date.now() - start;
-
-    if (!response.ok) {
-      const text = await response.text();
-      return {
-        model: "claude-sonnet-4-20250514",
-        gateway: "anthropic-direct",
-        status: response.status,
-        available: false,
-        error: text.slice(0, 200),
-        latency_ms: elapsed,
-        note: response.status === 401
-          ? "401 = No ANTHROPIC_API_KEY set or key is invalid. Add one in Supabase dashboard → Edge Functions → Secrets to enable direct Anthropic calls."
-          : response.status === 403
-          ? "403 = Key exists but lacks permissions. Check your Anthropic API key."
-          : null,
-      };
-    }
-
-    const data = await response.json();
-    const content = data.content?.[0]?.text || "";
-    return {
-      model: "claude-sonnet-4-20250514",
-      gateway: "anthropic-direct",
-      status: 200,
-      available: true,
-      response: content.slice(0, 50),
-      latency_ms: elapsed,
-      usage: data.usage || null,
-      note: "Direct Anthropic API works! You can use Claude for prompt generation.",
-    };
+    await callLLM({ gateway: "anthropic-direct", model: "anthropic/claude-haiku-4-5", messages: [{ role: "user", content: "Say ok." }], maxTokens: 5 });
+    return { configured: true, ok: true };
   } catch (e) {
+    const text = e instanceof LLMError ? e.body : String(e);
     return {
-      model: "claude-sonnet-4-20250514",
-      gateway: "anthropic-direct",
-      status: 0,
-      available: false,
-      error: e instanceof Error ? e.message : "Unknown error",
-      latency_ms: Date.now() - start,
+      configured: true,
+      ok: false,
+      error: text.slice(0, 300),
+      ...(/credit balance/i.test(text) ? { note: "The key works but the Anthropic account has no credits. Claude is still reachable through the Lovable gateway." } : {}),
     };
   }
 }
+
+// Top-tier models worth comparing against what the router uses today.
+const NOTABLE = /^(anthropic\/claude-(?:opus|sonnet|fable|haiku)|openai\/gpt-5|google\/gemini-3)/i;
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const cors = handleCors(req);
+  if (cors) return cors;
+  if (limited(req)) return jsonResponse({ error: "Too many probes. Try again in a minute." }, 429);
+  if (!Deno.env.get("LOVABLE_API_KEY")) return jsonResponse({ error: "LOVABLE_API_KEY is not set." }, 500);
 
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+  const body = await req.json().catch(() => ({}));
+  const routed = routedModels();
+  const allowed = await gatewayModels();
+  const inRouter = [...new Set(routed.flatMap((r) => r.models))].filter((m) => !/image/.test(m));
+  const requested = Array.isArray(body?.models) ? body.models.filter((m: unknown) => typeof m === "string" && allowed.includes(m)) : [];
+  const notable = allowed.filter((m) => NOTABLE.test(m) && !/image|tts|audio|embed/i.test(m));
+  const toProbe = [...new Set([...inRouter, ...requested, ...notable])].slice(0, MAX_PROBES);
 
-  const results: Record<string, unknown>[] = [];
+  const [results, direct] = await Promise.all([Promise.all(toProbe.map(probe)), anthropicDirect()]);
+  const byModel = new Map(results.map((r) => [r.model, r]));
+  const broken = routed
+    .map((r) => ({ task: r.task, unavailable: r.models.filter((m) => byModel.get(m) && !byModel.get(m)!.ok) }))
+    .filter((r) => r.unavailable.length);
 
-  if (LOVABLE_API_KEY) {
-    const gatewayResults = await Promise.allSettled(
-      LOVABLE_GATEWAY_MODELS.map((model) =>
-        testLovableGateway(model, LOVABLE_API_KEY)
-      )
-    );
-    gatewayResults.forEach((r) => {
-      if (r.status === "fulfilled") results.push(r.value);
-    });
-  } else {
-    results.push({
-      gateway: "lovable",
-      error: "LOVABLE_API_KEY not set",
-      available: false,
-    });
-  }
-
-  if (ANTHROPIC_API_KEY) {
-    const anthropicResult = await testAnthropicDirect(ANTHROPIC_API_KEY);
-    results.push(anthropicResult);
-  } else {
-    results.push({
-      model: "claude-sonnet-4 (direct)",
-      gateway: "anthropic-direct",
-      available: false,
-      note: "No ANTHROPIC_API_KEY secret found. To test: go to Supabase dashboard → Project Settings → Edge Functions → Secrets → add ANTHROPIC_API_KEY with your key from console.anthropic.com.",
-    });
-  }
-
-  const available = results.filter((r) => r.available);
-  const summary = {
-    total_tested: results.length,
-    available_count: available.length,
-    available_models: available.map((r) => ({
-      model: r.model,
-      gateway: r.gateway,
-      latency_ms: r.latency_ms,
-    })),
-    recommendation: available.length > 1
-      ? `You have ${available.length} models available. Use the fastest for analysis rounds, and the most capable for prompt generation.`
-      : "Only one model available. See the full results for details on what failed and why.",
-    next_steps: !ANTHROPIC_API_KEY
-      ? "To unlock Claude for prompt generation: go to console.anthropic.com → API Keys → create a key → add it as ANTHROPIC_API_KEY in your Supabase Edge Function secrets."
-      : "Anthropic API key is configured. Check results to see if it works.",
-  };
-
-  return new Response(
-    JSON.stringify({ summary, results }, null, 2),
-    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-  );
+  return jsonResponse({
+    gateway: { allowed_models: allowed, results },
+    router: { tasks: routed, unavailable: broken },
+    anthropic_direct: direct,
+    summary: {
+      tested: results.length,
+      working: results.filter((r) => r.ok).map((r) => r.model),
+      tool_calling: results.filter((r) => r.tool_call).map((r) => r.model),
+      router_models_down: [...new Set(broken.flatMap((b) => b.unavailable))],
+    },
+  });
 });

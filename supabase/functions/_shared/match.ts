@@ -41,3 +41,44 @@ export function mentionsCompany(text: string, company: string): boolean {
   return companyHits(text, company).length > 0;
 }
 
+const DOMAIN = /^(?:https?:\/\/)?(?:www\.)?([a-z0-9-]+(?:\.[a-z0-9-]+)+)\/?$/i;
+
+/**
+ * What the user typed, split into a name and a domain: "Bandwidth (bandwidth.com)",
+ * "Bandwidth, bandwidth.com" and "Bandwidth - bandwidth.com" give name "Bandwidth"
+ * and domain "bandwidth.com". A bare domain is both; a bare name has no domain.
+ */
+export function parseCompany(raw: string): { name: string; domain?: string } {
+  const typed = raw.trim();
+  const paired =
+    /^(.+?)\s*[([]\s*([^()[\]\s]+)\s*[)\]]$/.exec(typed) ?? /^(.+?)\s*(?:,|\s[-–—|]\s)\s*(\S+)$/.exec(typed);
+  if (paired) {
+    const d = DOMAIN.exec(paired[2]);
+    if (d && paired[1].trim()) return { name: paired[1].trim(), domain: d[1].toLowerCase() };
+  }
+  const d = DOMAIN.exec(typed);
+  return d ? { name: typed, domain: d[1].toLowerCase() } : { name: typed };
+}
+
+/** "investors.bandwidth.com" -> "bandwidth"; "shop.example.co.uk" -> "example". */
+export function siteStem(url: string): string {
+  let host = "";
+  try {
+    host = new URL(url).hostname.toLowerCase();
+  } catch {
+    return "";
+  }
+  const labels = host.replace(/^www\./, "").split(".");
+  if (labels.length < 2) return labels[0] ?? "";
+  const secondLevel = labels.length >= 3 && /^(?:co|com|org|net|ac|gov|edu)$/.test(labels[labels.length - 2]);
+  return labels[labels.length - (secondLevel ? 3 : 2)];
+}
+
+/** A page on the company's own site: its domain, or a host named after it ("bandwidth.com" for Bandwidth). */
+export function isOwnSite(url: string, company: string, domain?: string): boolean {
+  const stem = siteStem(url);
+  if (!stem) return false;
+  if (domain && stem === squash(domain.split(".")[0])) return true;
+  const name = squash(company.replace(LEGAL_SUFFIX, ""));
+  return name.length >= 3 && squash(stem) === name;
+}

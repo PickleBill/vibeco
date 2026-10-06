@@ -33,32 +33,31 @@ const Hero = () => {
             Explore an idea, research a company, pressure-test an initiative, or work through a decision.
           </p>
 
-          <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
-            <SalesTeamsCta />
-            <span className="text-sm text-muted-foreground">First-call plans for target accounts, from public sources.</span>
-          </div>
-
           <form onSubmit={handleSubmit} className="mt-10 max-w-xl">
             <p id="lens-label" className="text-sm font-semibold text-foreground">
               What are you working through?
             </p>
-            <div role="radiogroup" aria-labelledby="lens-label" className="mt-3 flex flex-wrap gap-2">
-              {LENSES.map((l) => (
-                <button
-                  key={l.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={lens === l.id}
-                  onClick={() => setLens(l.id)}
-                  className={`rounded-full border px-3.5 py-2 text-xs font-medium transition-colors ${
-                    lens === l.id
-                      ? "border-primary/40 bg-accent text-primary"
-                      : "border-border bg-surface-elevated text-foreground hover:border-primary/30"
-                  }`}
-                >
-                  {l.label}
-                </button>
-              ))}
+            {/* The question types, then the Sales Teams way in, in one wrapping row. */}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <div role="radiogroup" aria-labelledby="lens-label" className="contents">
+                {LENSES.map((l) => (
+                  <button
+                    key={l.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={lens === l.id}
+                    onClick={() => setLens(l.id)}
+                    className={`rounded-full border px-3.5 py-2 text-xs font-medium transition-colors ${
+                      lens === l.id
+                        ? "border-primary/40 bg-accent text-primary"
+                        : "border-border bg-surface-elevated text-foreground hover:border-primary/30"
+                    }`}
+                  >
+                    {l.label}
+                  </button>
+                ))}
+              </div>
+              <SalesTeamsCta />
             </div>
 
             <div className="mt-4 rounded-md border border-border bg-surface-elevated shadow-warm focus-within:border-primary/50">
