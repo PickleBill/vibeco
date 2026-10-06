@@ -207,6 +207,11 @@ export function criticName(lens: Lens, seat: string): string | undefined {
   return lens === "idea" ? undefined : CRITIC_NAMES[lens][seat as Seat];
 }
 
+/** The seat's role without the closing "End with 2 sharp questions" line (for a conversation). */
+export function criticRole(lens: Lens, seat: string, brief?: unknown): string | undefined {
+  return criticPrompt(lens, seat, brief)?.replace(CLOSE, "").trim();
+}
+
 export function criticPrompt(lens: Lens, seat: string, brief?: unknown): string | undefined {
   if (lens === "idea") return undefined;
   const prompt = CRITIC_PROMPTS[lens][seat as Seat];

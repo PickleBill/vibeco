@@ -20,7 +20,7 @@ VibeCo helps non-technical founders go from a plain-English idea to a structured
 
 ### Frontend (`src/`)
 - `pages/` — Route components: Index (the "working AI lab" front door), Simulate (the workbench), Report, MySimulations, Portfolio, Auth, ForSeller (`/for/:seller`, the target-account page, e.g. `/for/omni`; linked from the homepage "Sales Teams" button, noindex)
-- `components/account/` — Target-account lens (`lens: "account"`): AccountRunner (sources → First-call plan → five critics in one go), AccountViews (motion panel, plan, stack table, job-board scan card, critics), AccountReport (`/report/:id` for account runs). Seller labels live in `src/lib/sellers.ts`
+- `components/account/` — Target-account lens (`lens: "account"`): AccountRunner (sources → First-call plan → seven agents and a verdict in one go; a research feed fills the wait; saved runs open instantly), AccountViews (citations, motion panel, status tags, job-board scan card), AccountReport (`/report/:id` for account runs). `explorer/` is the run view shared by both: hero, the seven-agent board (lit live from `agent_events`, replayed for saved runs), Verdict, "Explore one lens at a time" (stress test by seat with the live critic chat, Expand, Distill), the plan as tabs, and the saved-runs strip. Seller labels and pinned saved runs live in `src/lib/sellers.ts`
 - `components/home/` — Homepage sections (hero + worked example, how it works, use cases, builds shelf). Question types ("lenses") live in `src/lib/lenses.ts` and are passed to `simulate-idea` as `lens`
 - `components/simulator/` — Core simulator workflow: IdeaInput → IdeaBrief → FollowUpQuestions → FinalReport → ActionHub
 - `components/simulator/SimulatorShell.tsx` — **The main orchestrator.** Manages 3-round analysis state, calls edge functions, threads context between agents.
@@ -46,6 +46,7 @@ All agents follow the same pattern: receive JSON → construct system prompt →
 | `synthesize` | Cross-agent synthesis (consensus, tensions, confidence) | Gemini 2.5-pro (GPT-5 fallback; GPT-5.5 premium) | `generate_synthesis` |
 | `orchestrate` | Auto-Thunderdome: 7 agents parallel + synthesis | Multi-model | N/A (orchestrator) |
 | `auto-evaluate` | **Flywheel**: raw idea → simulate → thunderdome → synthesize → score | Multi-model | N/A (pipeline) |
+| `critic-chat` | Answer the critic: one of an account run's five critics replies to the seller in character from the brief and its sources only, grades the reply (strong, partial, misses) and asks one follow-up. Public, rate-limited | Gemini 3-flash, Claude Sonnet 5 fallback | `respond_as_critic` |
 | `stack-scan` | **P1**: reads a company's public Greenhouse, Lever or Ashby job board and lists the data tools its posts name, plainly or as one option among several. The same scan runs inside `simulate-idea`'s account research | None (no LLM) | N/A |
 | `ask-bill` | **bricker-os**: corpus-grounded Q&A for Bill's dynamic résumé terminal (corpus fetched from the Brick repo's GitHub Pages; public endpoint, rate-limited) | Claude 3.5 Sonnet / 3 Haiku | None (plain text answer) |
 
@@ -63,8 +64,8 @@ Shared code lives here. Supabase convention: `_shared/` prefix means it's not de
 | `agents/*.ts` | Core logic for each agent, importable by other agents (`agents/account.ts`: account-lens schema, evidence checks, First-call plan) |
 | `lens.ts` | Per-lens framing: brief slots, critic seats, distill slots, deliverables (`account` answers in one round) |
 | `research.ts` | Live sources: Firecrawl search (company lens), and account research (job-board scan + four web searches in parallel: stack, product, jobs, news; 10-source cap) |
-| `motion.ts` | Account lens: Internal, Embedded, Both or Unclear, decided in code from evidence in the sources (own job posts, own product pages, cited sources); the model writes each motion's clock, buyer and question |
-| `stack-scan.ts` / `stack-tools.ts` | Job-board scan and the data-tool catalog; a tool listed only as an option ("Snowflake, BigQuery, or Redshift") is never Confirmed |
+| `motion.ts` | Account lens: Internal, Embedded, Both or Unclear, decided in code from evidence in the sources (own job posts, own product pages and analytics product titles, cited sources); the model writes each motion's clock, buyer and question |
+| `stack-scan.ts` / `stack-tools.ts` | Job-board scan and the data-tool catalog; a tool listed only as an option ("Snowflake, BigQuery, or Redshift", a parenthetical list, a "Bonus" or "Preferred" line) is never Confirmed, and one the company moved off is Former |
 | `match.ts` | Company and word matching shared by the evidence checks ("Chime" counts, "chime in" doesn't); `parseCompany` splits "Bandwidth (bandwidth.com)" into a name and a domain |
 | `sellers/` | Seller profiles for the account lens (`omni.ts`: public facts with source URLs, plus the two motions as generic seller config) |
 | `rate-limit.ts` | Per-IP limits for public endpoints that pay for searches or long model calls |

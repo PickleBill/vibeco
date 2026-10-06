@@ -88,9 +88,9 @@ const Report = () => {
     (async () => {
       // Capability-based read: the base table is owner-scoped (RLS), so shared
       // links resolve through a security-definer RPC that returns non-PII fields.
-      const { data, error } = await (supabase.rpc as any)("get_shared_report", { _report_id: id });
+      const { data, error } = await supabase.rpc("get_shared_report", { _report_id: id });
       if (error || !data) { setNotFound(true); }
-      else { setReport(data as ReportData); }
+      else { setReport(data as unknown as ReportData); }
       setLoading(false);
     })();
   }, [id]);
@@ -214,7 +214,6 @@ const Report = () => {
         plan={report.lovable_prompt}
         createdAt={report.created_at}
         analysis={report.auto_analysis as unknown as AccountAnalysis | null}
-        verdict={verdict}
       />
     );
   }

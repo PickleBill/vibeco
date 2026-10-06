@@ -2,7 +2,7 @@ import { Fragment, useState } from "react";
 import { ArrowUpRight, Briefcase, Check, Compass, Copy, FileText, Quote, Users } from "lucide-react";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/copyToClipboard";
-import { SEATS, criticFor, distillLabel, sectionLabel, type StackFeature } from "@/lib/lenses";
+import { sectionLabel, type StackFeature } from "@/lib/lenses";
 import type { BriefResearch, JobBoardScan, ResearchSource } from "@/components/simulator/SourcesList";
 import { ATS_LABEL } from "@/lib/jobBoards";
 
@@ -55,17 +55,7 @@ export interface AccountBrief {
   customer_list?: CustomerList;
 }
 
-export interface CriticResult {
-  persona: string;
-  headline?: string;
-  perspective?: string;
-}
-
-export interface AccountAnalysis {
-  perspectives?: CriticResult[];
-  distillation?: Record<string, unknown> | null;
-  synthesis?: { executive_summary?: string } | null;
-}
+export type { AccountAnalysis, CriticResult } from "./explorer/model";
 
 const sourcesOf = (research?: BriefResearch | null): ResearchSource[] =>
   Array.isArray(research?.sources) ? research!.sources : [];
@@ -603,123 +593,5 @@ export function AccountSections({ brief }: { brief: AccountBrief }) {
         })}
       </div>
     </section>
-  );
-}
-
-// ─── Critics and the boiled-down version ───
-
-/** Critic text arrives as markdown: drop the "## …'s Take" heading (the card has the seat) and the markup. */
-function plainCritic(text: string): string {
-  return text
-    .replace(/^\s*#{1,6}\s[^\n]*\n+/, "")
-    .replace(/^#{1,6}\s+/gm, "")
-    .replace(/(\*\*|__)(.+?)\1/g, "$2")
-    .replace(/^\s*[-*]\s+/gm, "• ")
-    .trim();
-}
-
-type Person = NonNullable<AccountBrief["people"]>[number];
-
-// Who in the sources plausibly sits in each seat, by the role the source gives.
-const SEAT_ROLES: Partial<Record<string, RegExp>> = {
-  champion: /chief data|\bcdo\b|(head|vp|vice president|director|lead)\b[^,;]*\b(data|analytics|bi|insights)\b|\b(data|analytics)\b[^,;]*\b(head|vp|director|lead|officer)\b/i,
-  skeptic: /\bcfo\b|chief financial|\bfinance\b/i,
-  builder: /\b(analytics|data) engineer/i,
-};
-
-/** Sourced people matched to seats, each person used once, seats in priority order. */
-function seatPeople(people: Person[] = []): Record<string, Person> {
-  const out: Record<string, Person> = {};
-  const used = new Set<Person>();
-  for (const seat of ["champion", "skeptic", "builder"]) {
-    const p = people.find((x) => !used.has(x) && SEAT_ROLES[seat]?.test(x.role));
-    if (p) {
-      out[seat] = p;
-      used.add(p);
-    }
-  }
-  return out;
-}
-
-function CriticCard({ critic, person, sources }: { critic: CriticResult; person?: Person; sources: ResearchSource[] }) {
-  const [open, setOpen] = useState(false);
-  const seat = criticFor("account", critic.persona);
-  return (
-    <article className="rounded-lg border border-border bg-card p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">{seat?.name ?? critic.persona}</p>
-      {seat && <p className="text-xs text-muted-foreground">{seat.tagline}</p>}
-      {person && (
-        <p className="mt-1.5 flex flex-wrap items-center gap-x-1 text-xs text-foreground/80">
-          <Users size={12} className="text-primary" aria-hidden />
-          <span>
-            In this seat today: <span className="font-semibold text-foreground">{person.name}</span>, {person.role}
-          </span>
-          <Cited text={`[${person.source}]`} sources={sources} />
-        </p>
-      )}
-      {critic.headline && <h4 className="mt-2 font-display text-base font-bold leading-snug text-foreground">{plainCritic(critic.headline)}</h4>}
-      {critic.perspective && (
-        <>
-          <p className={`mt-1.5 whitespace-pre-line text-sm leading-relaxed text-foreground/85 ${open ? "" : "line-clamp-4"}`}>
-            {plainCritic(critic.perspective)}
-          </p>
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            className="mt-1 text-xs text-primary underline-offset-4 hover:underline"
-          >
-            {open ? "Show less" : "Read all"}
-          </button>
-        </>
-      )}
-    </article>
-  );
-}
-
-export function CriticsPanel({ analysis, brief }: { analysis?: AccountAnalysis | null; brief?: AccountBrief | null }) {
-  const seated = seatPeople(Array.isArray(brief?.people) ? brief!.people : []);
-  const sources = sourcesOf(brief?.research);
-  const perspectives = Array.isArray(analysis?.perspectives) ? analysis!.perspectives : [];
-  const ordered = SEATS.map((seat) => perspectives.find((p) => p.persona === seat)).filter(Boolean) as CriticResult[];
-  const d = (analysis?.distillation ?? null) as Record<string, unknown> | null;
-  const distilled = (["one_feature", "one_customer", "one_revenue"] as const)
-    .map((k) => ({ label: distillLabel("account", k, k), value: typeof d?.[k] === "string" ? (d[k] as string) : "" }))
-    .filter((x) => x.value);
-  if (!ordered.length && !distilled.length) return null;
-  return (
-    <>
-      {distilled.length > 0 && (
-        <section aria-labelledby="distill-title" className="space-y-3">
-          <h3 id="distill-title" className="font-display text-lg font-bold text-foreground">
-            Boiled down
-          </h3>
-          <div className="grid gap-3 sm:grid-cols-3">
-            {distilled.map((x) => (
-              <div key={x.label} className="rounded-lg border border-primary/25 bg-accent/60 p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">{x.label}</p>
-                <p className="mt-1 text-sm leading-relaxed text-foreground">{x.value}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-      {ordered.length > 0 && (
-        <section aria-labelledby="critics-title" className="space-y-3">
-          <div>
-            <h3 id="critics-title" className="font-display text-lg font-bold text-foreground">
-              Five seats at the table
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Synthetic perspectives written from the brief and its sources. They are not real quotes.
-            </p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {ordered.map((c) => (
-              <CriticCard key={c.persona} critic={c} person={seated[c.persona]} sources={sources} />
-            ))}
-          </div>
-        </section>
-      )}
-    </>
   );
 }

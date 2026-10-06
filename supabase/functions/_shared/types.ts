@@ -182,6 +182,35 @@ export interface RefinePromptInput extends BriefContext {
   premium?: boolean; // role-verified upstream; routes to GPT-5.5 when true
 }
 
+// ─── critic-chat (answer an account critic) ───
+
+export interface CriticChatTurn {
+  role: "seller" | "critic";
+  content: string;
+}
+
+export interface CriticChatInput {
+  /** The account brief the critic read (lens "account"). */
+  brief: Record<string, unknown>;
+  seat: PersonaType;
+  /** The seller's latest reply. */
+  message: string;
+  /** The challenge question being answered, if any. */
+  question?: string;
+  /** The critic's earlier take. */
+  critic: { headline: string; perspective: string };
+  /** Earlier turns, three exchanges at most. */
+  history: CriticChatTurn[];
+}
+
+export interface CriticChatResult {
+  reply: string;
+  verdict: "strong" | "partial" | "misses";
+  follow_up: string;
+  model: string;
+  latencyMs: number;
+}
+
 export interface AltPromptInput {
   brief: BriefData;
   idea: string;

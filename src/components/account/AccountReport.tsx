@@ -1,11 +1,13 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { HelmetProvider, Helmet } from "react-helmet-async";
 import { ArrowRight, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/copyToClipboard";
 import { getSeller } from "@/lib/sellers";
-import SourcesList from "@/components/simulator/SourcesList";
-import { AccountSections, CriticsPanel, PlanCard, ScanCard, StackTable, type AccountAnalysis, type AccountBrief } from "./AccountViews";
+import type { AccountAnalysis, AccountBrief } from "./AccountViews";
+import { AccountExplorer } from "./explorer/AccountExplorer";
+import { useAgentBoard } from "./explorer/useAgentBoard";
 
 interface Props {
   company: string;
@@ -13,13 +15,16 @@ interface Props {
   plan: string | null;
   createdAt: string;
   analysis: AccountAnalysis | null;
-  /** The synthesis verdict block, rendered by the report page. */
-  verdict?: React.ReactNode;
 }
 
-/** /report/:id for a target-account run: the plan first, then the evidence, then the critics. */
-const AccountReport = ({ company, brief, plan, createdAt, analysis, verdict }: Props) => {
+/** /report/:id for a target-account run: the same explorer as the live page, replayed from the saved run. */
+const AccountReport = ({ company, brief, plan, createdAt, analysis }: Props) => {
   const seller = getSeller(brief.seller);
+  const { board, settle } = useAgentBoard();
+  useEffect(() => {
+    if (analysis) settle(analysis, { replay: true });
+  }, [analysis, settle]);
+
   return (
     <HelmetProvider>
       <Helmet>
@@ -27,13 +32,9 @@ const AccountReport = ({ company, brief, plan, createdAt, analysis, verdict }: P
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
       <div className="min-h-screen bg-background pt-20 pb-16">
-        <div className="mx-auto max-w-3xl space-y-6 px-4 sm:px-6">
-          <header className="pb-2 text-center">
-            <p className="text-xs uppercase tracking-widest text-primary">
-              First-call plan{seller ? ` for ${/^[aeiou]/i.test(seller.name) ? "an" : "a"} ${seller.name} seller` : ""}
-            </p>
-            <h1 className="mt-1 font-display text-2xl font-black text-foreground sm:text-3xl">{company}</h1>
-            <p className="mt-2 text-xs text-muted-foreground">
+        <div className="mx-auto max-w-5xl space-y-6 px-4 sm:px-6">
+          <header className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
               Generated {new Date(createdAt).toLocaleDateString()}
               {seller ? " · Unofficial, built from public sources" : " · Built from public sources"}
             </p>
@@ -43,23 +44,13 @@ const AccountReport = ({ company, brief, plan, createdAt, analysis, verdict }: P
                 if (await copyToClipboard(window.location.href)) toast.success("Link copied");
                 else toast.error("Couldn't copy the link.");
               }}
-              className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
             >
               <Link2 size={12} aria-hidden /> Copy link
             </button>
           </header>
 
-          {plan ? (
-            <PlanCard company={company} plan={plan} brief={brief} sellerName={seller?.name} />
-          ) : (
-            <p className="text-center text-sm text-muted-foreground">This run has no plan saved.</p>
-          )}
-          <StackTable lines={brief.core_features} research={brief.research} />
-          <ScanCard scan={brief.research?.scan} company={company} />
-          <SourcesList research={brief.research} />
-          <AccountSections brief={brief} />
-          <CriticsPanel analysis={analysis} brief={brief} />
-          {verdict}
+          <AccountExplorer company={company} brief={brief} plan={plan} analysis={analysis} board={board} sellerName={seller?.name} />
 
           <footer className="border-t border-border/40 pt-5 text-center">
             {seller && <p className="mb-3 text-xs text-muted-foreground">{seller.footer}</p>}

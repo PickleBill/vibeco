@@ -1,42 +1,42 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, ArrowRight, Check, Link2, Loader2, Search } from "lucide-react";
+import { AlertTriangle, ArrowRight, Check, History, Link2, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { ensureSession } from "@/lib/ensureSession";
 import { copyToClipboard } from "@/lib/copyToClipboard";
 import type { SellerConfig } from "@/lib/sellers";
-import SourcesList, { type BriefResearch } from "@/components/simulator/SourcesList";
-import {
-  AccountSections,
-  CriticsPanel,
-  PlanCard,
-  ScanCard,
-  StackTable,
-  StatusTag,
-  type AccountAnalysis,
-  type AccountBrief,
-} from "./AccountViews";
+import type { BriefResearch } from "@/components/simulator/SourcesList";
+import { StatusTag, type AccountAnalysis, type AccountBrief } from "./AccountViews";
+import { AccountExplorer } from "./explorer/AccountExplorer";
+import { ResearchFeed } from "./explorer/ResearchFeed";
+import { TerritoryStrip } from "./explorer/TerritoryStrip";
+import { useAgentBoard } from "./explorer/useAgentBoard";
+import { loadReport, recentRuns, rememberReport, rememberRun, type RunRef, type SavedReport } from "./explorer/savedRuns";
 
 /**
  * Target-account express run: sources first, then the First-call plan, then
- * the five critics, with no clicks in between.
+ * seven agents in parallel and their verdict, with no clicks in between.
  *   1. simulate-idea {type: "research"}  → job-board scan + live web sources
  *   2. simulate-idea {type: "initial"}   → brief + plan, reusing those sources
- *   3. orchestrate                        → critics, boil-down, synthesis
- * The run is saved to idea_reports so it opens at /report/:id.
+ *   3. orchestrate                        → five critics, Expand, Distill, then synthesis
+ * The run is saved to idea_reports so it opens at /report/:id; its agents'
+ * progress arrives through agent_events while orchestrate runs.
  */
 
 type Step = "sources" | "plan" | "critics";
 type Status = "idle" | "running" | "done" | "error";
 
+// Typical times on the live site (sources ~2-7s, plan ~30-40s, agents ~15-20s).
 const STEPS: { id: Step; label: string; typical: number }[] = [
-  { id: "sources", label: "Live sources", typical: 6_000 },
-  { id: "plan", label: "First-call plan", typical: 12_000 },
-  { id: "critics", label: "Five critics", typical: 18_000 },
+  { id: "sources", label: "Live sources", typical: 5_000 },
+  { id: "plan", label: "First-call plan", typical: 38_000 },
+  { id: "critics", label: "Seven agents + verdict", typical: 18_000 },
 ];
+
+/** Past this, a slow run offers the saved one. */
+const SLOW_MS = 50_000;
 
 // "fast" puts Gemini 3 Flash first, with 2.5 Pro as the server's fallback.
 const MODE = "fast";
@@ -113,8 +113,6 @@ function cleanCompany(raw: string): string {
   return raw.replace(/["“”]/g, "").replace(/\s+/g, " ").trim().slice(0, 120);
 }
 
-const reveal = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.35, ease: "easeOut" } } as const;
-
 /** The right-hand panel before a run: what happens, how long, and what "Confirmed" means. */
 function HowItWorks() {
   const rows = [
@@ -125,13 +123,13 @@ function HowItWorks() {
     },
     {
       title: "First-call plan",
-      time: "~30s",
-      body: "The motion (internal, embedded, both or unclear), stack read, why now, who to start with, discovery questions, the migration objection and a fit grade.",
+      time: "~35s",
+      body: "The motion (internal, embedded, both or unclear), stack read, why now, who to start with, discovery questions, the objection and a fit grade. Code checks every stack claim against its source.",
     },
     {
-      title: "Five critics",
-      time: "~30s",
-      body: "Head of Data, CFO, incumbent BI vendor, business user and analytics engineer pressure-test it.",
+      title: "Seven agents, then a verdict",
+      time: "~15s",
+      body: "Five critics (Head of Data, CFO, incumbent BI vendor, business user, analytics engineer), Expand and Distill run in parallel. Pick a seat and answer it.",
     },
   ];
   return (
@@ -166,16 +164,21 @@ function HowItWorks() {
   );
 }
 
+
 interface Props {
   seller?: SellerConfig;
   initialCompany?: string;
   /** Headline and intro, shown beside the "how it works" panel. */
   intro?: React.ReactNode;
-  /** Rendered between the form and the results (e.g. saved runs). */
-  afterForm?: React.ReactNode;
 }
 
-const AccountRunner = ({ seller, initialCompany = "", intro, afterForm }: Props) => {
+/** "Relay (relaypro.com)" and "relay" are the same account. */
+const sameAccount = (a: string, b: string) => {
+  const norm = (s: string) => s.replace(/\s*\([^)]*\)\s*$/, "").trim().toLowerCase();
+  return norm(a) === norm(b);
+};
+
+const AccountRunner = ({ seller, initialCompany = "", intro }: Props) => {
   const [input, setInput] = useState(initialCompany);
   const [company, setCompany] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -189,6 +192,10 @@ const AccountRunner = ({ seller, initialCompany = "", intro, afterForm }: Props)
   const [reportId, setReportId] = useState<string | null>(null);
   const [saveFailed, setSaveFailed] = useState(false);
   const [analysis, setAnalysis] = useState<AccountAnalysis | null>(null);
+  /** A saved run opened from the strip (no live calls). */
+  const [saved, setSaved] = useState<SavedReport | null>(null);
+  const [recent, setRecent] = useState<RunRef[]>(() => recentRuns(seller?.id));
+  const { board, listen, settle, reset, fail } = useAgentBoard();
   const startRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -200,6 +207,31 @@ const AccountRunner = ({ seller, initialCompany = "", intro, afterForm }: Props)
     const id = window.setInterval(() => setElapsed(performance.now() - startRef.current), 100);
     return () => window.clearInterval(id);
   }, [status]);
+
+  // Pinned runs first, then this browser's recent ones; three at most.
+  const pinned = useMemo(() => seller?.savedRuns ?? [], [seller]);
+  const runs = useMemo(() => {
+    const out = [...pinned];
+    for (const r of recent) if (!out.some((x) => x.reportId === r.reportId || sameAccount(x.company, r.company))) out.push(r);
+    return out.slice(0, 3);
+  }, [pinned, recent]);
+
+  const scrollToResults = () => requestAnimationFrame(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+
+  /** Seven agents in parallel, then the verdict; the board fills as each finishes. */
+  const runAgents = async (name: string, b: AccountBrief, p: string, id: string | null, signal: AbortSignal) => {
+    await listen(id);
+    const critics = await callFunction<AccountAnalysis>("orchestrate", { idea: name, brief: b, report_id: id ?? undefined, mode: MODE }, signal);
+    setAnalysis(critics);
+    settle(critics);
+    if (id) {
+      const { error: saveErr } = await supabase.from("idea_reports").update({ auto_analysis: critics as unknown as Json }).eq("id", id);
+      if (saveErr) console.error("Saving the agents' results failed:", saveErr.message);
+      rememberReport({ id, idea: name, brief: b, lovable_prompt: p, auto_analysis: critics, created_at: new Date().toISOString() });
+      rememberRun(seller?.id, { company: name, reportId: id });
+      setRecent(recentRuns(seller?.id));
+    }
+  };
 
   const run = async (raw: string) => {
     const name = cleanCompany(raw);
@@ -220,9 +252,11 @@ const AccountRunner = ({ seller, initialCompany = "", intro, afterForm }: Props)
     setReportId(null);
     setSaveFailed(false);
     setAnalysis(null);
+    setSaved(null);
+    reset();
     startRef.current = performance.now();
     const mark = (s: Step) => setMarks((m) => ({ ...m, [s]: performance.now() - startRef.current }));
-    requestAnimationFrame(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    scrollToResults();
 
     let current: Step = "sources";
     try {
@@ -247,31 +281,64 @@ const AccountRunner = ({ seller, initialCompany = "", intro, afterForm }: Props)
       setPlan(result.lovable_prompt);
       mark("plan");
 
-      // 3. Save, then the critics (no extra click).
+      // 3. Save, then the seven agents (no extra click).
       current = "critics";
       setStep("critics");
       const id = await saveReport(name, result.brief, result.lovable_prompt);
       setReportId(id);
       setSaveFailed(!id);
-      const critics = await callFunction<AccountAnalysis>(
-        "orchestrate",
-        { idea: name, brief: result.brief, report_id: id ?? undefined, mode: MODE },
-        ctrl.signal,
-      );
-      setAnalysis(critics);
+      await runAgents(name, result.brief, result.lovable_prompt, id, ctrl.signal);
       mark("critics");
       setStatus("done");
-      if (id) {
-        const { error: saveErr } = await supabase.from("idea_reports").update({ auto_analysis: critics as unknown as Json }).eq("id", id);
-        if (saveErr) console.error("Saving the critics failed:", saveErr.message);
-      }
     } catch (e) {
       if (ctrl.signal.aborted) return;
       console.error("Account run failed:", e);
+      if (current === "critics") fail();
       setStep(current);
       setError(e instanceof Error ? e.message : "Something went wrong.");
       setStatus("error");
     }
+  };
+
+  /** The plan is in but the agents didn't finish: run just them again. */
+  const retryAgents = async () => {
+    if (!brief || !plan || status === "running") return;
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    setStatus("running");
+    setStep("critics");
+    setError(null);
+    try {
+      await runAgents(company, brief, plan, reportId, ctrl.signal);
+      setStatus("done");
+    } catch (e) {
+      if (ctrl.signal.aborted) return;
+      fail();
+      setError(e instanceof Error ? e.message : "Something went wrong.");
+      setStatus("error");
+    }
+  };
+
+  /** A saved run, shown at once from stored data: no AI calls. */
+  const openSaved = (report: SavedReport) => {
+    abortRef.current?.abort();
+    setInput(report.idea);
+    setCompany(report.idea);
+    setStatus("done");
+    setStep("critics");
+    setMarks({});
+    setError(null);
+    setResearch(report.brief.research ?? null);
+    setBrief(report.brief);
+    setPlan(report.lovable_prompt);
+    setReportId(report.id);
+    setSaveFailed(false);
+    setAnalysis(report.auto_analysis);
+    setSaved(report);
+    if (report.auto_analysis) settle(report.auto_analysis, { replay: true });
+    else reset();
+    scrollToResults();
   };
 
   const copyLink = async () => {
@@ -285,12 +352,22 @@ const AccountRunner = ({ seller, initialCompany = "", intro, afterForm }: Props)
   const started = status !== "idle";
   const sellerName = seller?.name;
 
-  // Progress: finished steps count fully; the current one fills toward 90% of its share over its typical time.
+  // Progress: finished steps count fully; the current one eases toward its share and never parks.
   const share = 100 / STEPS.length;
   const stepIndex = Math.max(0, STEPS.findIndex((s) => s.id === step));
   const prevMark = stepIndex > 0 ? marks[STEPS[stepIndex - 1].id] ?? 0 : 0;
+  const inStep = Math.max(0, elapsed - prevMark);
   const progress =
-    status === "done" ? 100 : stepIndex * share + (running ? Math.min(0.9, (elapsed - prevMark) / STEPS[stepIndex].typical) * share : 0);
+    status === "done" ? 100 : stepIndex * share + (running ? Math.min(0.97, 1 - Math.exp((-2.3 * inStep) / STEPS[stepIndex].typical)) * share : 0);
+
+  // A slow live run offers the saved run for the same account (or any saved run).
+  const fallback = runs.find((r) => sameAccount(r.company, company)) ?? runs[0];
+  const slow = running && !plan && elapsed > SLOW_MS && !!fallback;
+  const openFallback = async () => {
+    if (!fallback) return;
+    const rep = await loadReport(fallback.reportId);
+    if (rep) openSaved(rep);
+  };
 
   return (
     <div>
@@ -331,6 +408,9 @@ const AccountRunner = ({ seller, initialCompany = "", intro, afterForm }: Props)
                 {!running && <ArrowRight size={15} aria-hidden />}
               </button>
             </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Add its domain when the name is a common word: <span className="font-mono">Relay (relaypro.com)</span>.
+            </p>
             {seller && seller.examples.length > 0 && (
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <span className="text-xs text-muted-foreground">Try:</span>
@@ -348,19 +428,37 @@ const AccountRunner = ({ seller, initialCompany = "", intro, afterForm }: Props)
               </div>
             )}
           </form>
-          {afterForm}
         </div>
         <div className={`lg:pt-14 ${started ? "hidden lg:block" : ""}`}>
           <HowItWorks />
         </div>
       </div>
 
+      {runs.length > 0 && (
+        <TerritoryStrip
+          runs={runs}
+          title={pinned.length ? "Saved runs · open instantly, no AI calls" : "Your recent runs · open instantly"}
+          activeId={saved?.id}
+          onOpen={openSaved}
+        />
+      )}
+
       <div ref={resultsRef} className="scroll-mt-24">
         {started && (
-          <div className="mt-12" aria-live="polite">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <h2 className="font-display text-2xl font-bold tracking-tight text-foreground">{company}</h2>
-              {reportId && (
+          <div className="mt-10" aria-live="polite">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {saved ? (
+                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <History size={15} className="text-primary" aria-hidden />
+                  Saved run, opened instantly from stored results.
+                  <button type="button" onClick={() => run(saved.idea)} className="font-medium text-primary underline-offset-4 hover:underline">
+                    Run it live
+                  </button>
+                </p>
+              ) : (
+                <h2 className="font-display text-2xl font-bold tracking-tight text-foreground">{plan ? "" : company}</h2>
+              )}
+              {reportId && !running && (
                 <div className="flex items-center gap-3 text-xs">
                   <Link to={`/report/${reportId}`} className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
                     Open the shareable report <ArrowRight size={12} aria-hidden />
@@ -372,116 +470,110 @@ const AccountRunner = ({ seller, initialCompany = "", intro, afterForm }: Props)
               )}
             </div>
 
-            <div className="mt-4">
-              <div
-                className="h-1 overflow-hidden rounded-full bg-muted"
-                role="progressbar"
-                aria-label="Run progress"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={Math.round(progress)}
-              >
+            {!saved && (
+              <div className="mt-4">
                 <div
-                  className={`h-full rounded-full transition-[width] duration-500 ease-out ${status === "error" ? "bg-destructive" : "bg-primary"}`}
-                  style={{ width: `${progress}%` }}
-                />
+                  className="h-1 overflow-hidden rounded-full bg-muted"
+                  role="progressbar"
+                  aria-label="Run progress"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(progress)}
+                >
+                  <div
+                    className={`h-full rounded-full transition-[width] duration-500 ease-out ${status === "error" ? "bg-destructive" : "bg-primary"}`}
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <ol className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                  {STEPS.map((s, i) => {
+                    const done = marks[s.id] !== undefined;
+                    const active = running && step === s.id;
+                    const failed = status === "error" && step === s.id;
+                    return (
+                      <li key={s.id} className="flex items-center gap-2">
+                        <span
+                          className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold ${
+                            done ? "bg-primary text-primary-foreground" : failed ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {done ? <Check size={12} aria-hidden /> : active ? <Loader2 size={12} className="animate-spin" aria-hidden /> : i + 1}
+                        </span>
+                        <span className={done || active ? "font-medium text-foreground" : "text-muted-foreground"}>{s.label}</span>
+                        <span className="tabular-nums text-xs text-muted-foreground">
+                          {done ? secs((marks[s.id] ?? 0) - (i > 0 ? marks[STEPS[i - 1].id] ?? 0 : 0)) : active ? secs(inStep) : ""}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ol>
               </div>
-              <ol className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-                {STEPS.map((s, i) => {
-                  const done = marks[s.id] !== undefined;
-                  const active = running && step === s.id;
-                  const failed = status === "error" && step === s.id;
-                  return (
-                    <li key={s.id} className="flex items-center gap-2">
-                      <span
-                        className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold ${
-                          done ? "bg-primary text-primary-foreground" : failed ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {done ? <Check size={12} aria-hidden /> : active ? <Loader2 size={12} className="animate-spin" aria-hidden /> : i + 1}
-                      </span>
-                      <span className={done || active ? "font-medium text-foreground" : "text-muted-foreground"}>{s.label}</span>
-                      <span className="tabular-nums text-xs text-muted-foreground">{done ? secs(marks[s.id]) : active ? secs(elapsed) : ""}</span>
-                    </li>
-                  );
-                })}
-              </ol>
-            </div>
+            )}
 
-            {status === "error" && error && (
+            {status === "error" && error && !(step === "critics" && plan) && (
               <div className="mt-5 flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">
                 <AlertTriangle size={15} className="mt-0.5 shrink-0 text-destructive" aria-hidden />
                 <div>
-                  <p className="text-foreground">
-                    {step === "critics" && plan ? "The plan is ready, but the critics didn't finish. " : "This run stopped. "}
-                    {error}
-                  </p>
-                  <button type="button" onClick={() => run(company)} className="mt-1 text-xs font-medium text-primary underline-offset-4 hover:underline">
-                    Run {company} again
-                  </button>
+                  <p className="text-foreground">This run stopped. {error}</p>
+                  <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs font-medium">
+                    <button type="button" onClick={() => run(company)} className="text-primary underline-offset-4 hover:underline">
+                      Run {company} again
+                    </button>
+                    {fallback && (
+                      <button type="button" onClick={openFallback} className="text-primary underline-offset-4 hover:underline">
+                        Open the saved {fallback.company.replace(/\s*\([^)]*\)\s*$/, "")} run
+                      </button>
+                    )}
+                  </div>
                 </div>
+              </div>
+            )}
+            {slow && fallback && (
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/30 bg-accent/50 px-4 py-3 text-sm">
+                <p className="text-foreground">This one is taking longer than usual. The live run keeps going.</p>
+                <button
+                  type="button"
+                  onClick={openFallback}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:brightness-110"
+                >
+                  <History size={14} aria-hidden /> Show the saved {fallback.company.replace(/\s*\([^)]*\)\s*$/, "")} run
+                </button>
               </div>
             )}
             {saveFailed && (
               <p className="mt-4 text-xs text-muted-foreground">This run couldn&rsquo;t be saved, so there&rsquo;s no shareable link. Copy the plan instead.</p>
             )}
 
-            <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
-              {/* Phones: sources on top until the plan lands, then below it. Desktop: right column. */}
-              <aside className={`space-y-4 lg:sticky lg:top-24 lg:order-last ${plan ? "order-last" : "order-first"}`}>
-                <AnimatePresence>
-                  {research ? (
-                    <motion.div key="sources" {...reveal} className="space-y-4">
-                      <ScanCard scan={research.scan} company={company} />
-                      <SourcesList research={research} compact />
-                    </motion.div>
-                  ) : running ? (
-                    <div className="space-y-3 rounded-lg border border-border bg-card/40 p-4">
-                      <p className="text-sm text-muted-foreground">
-                        <Loader2 size={14} className="mr-2 inline animate-spin" aria-hidden />
-                        Reading {company}&rsquo;s job board, product, stack, data hiring and news…
-                      </p>
-                      {[0, 1, 2, 3].map((i) => (
-                        <div key={i} className="h-3 animate-pulse rounded bg-muted" style={{ width: `${90 - i * 12}%` }} />
-                      ))}
-                    </div>
-                  ) : null}
-                </AnimatePresence>
-              </aside>
-
-              <div className="min-w-0 space-y-6">
-                {plan && brief ? (
-                  <motion.div {...reveal} className="space-y-6">
-                    <PlanCard company={company} plan={plan} brief={brief} sellerName={sellerName} />
-                    <StackTable lines={brief.core_features} research={brief.research} />
-                  </motion.div>
-                ) : running && research ? (
-                  <div className="rounded-lg border border-dashed border-primary/30 bg-accent/40 p-5">
-                    <p className="text-sm text-foreground/80">
-                      <Loader2 size={14} className="mr-2 inline animate-spin text-primary" aria-hidden />
-                      Reading {research.sources.length} source{research.sources.length === 1 ? "" : "s"} and writing the first-call plan…
-                    </p>
-                    <div className="mt-4 space-y-2.5">
-                      {[0, 1, 2, 3, 4].map((i) => (
-                        <div key={i} className="h-3 animate-pulse rounded bg-primary/10" style={{ width: `${95 - i * 9}%` }} />
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-
-                {brief && running && step === "critics" && (
-                  <div className="rounded-lg border border-border bg-card/40 p-4 text-sm text-muted-foreground">
-                    <Loader2 size={14} className="mr-2 inline animate-spin" aria-hidden />
-                    Five critics are reading the plan: Head of Data, CFO, incumbent BI vendor, business user and analytics engineer…
-                  </div>
-                )}
-                {analysis && (
-                  <motion.div {...reveal} className="space-y-6">
-                    <CriticsPanel analysis={analysis} brief={brief} />
-                  </motion.div>
-                )}
-                {brief && <AccountSections brief={brief} />}
-              </div>
+            <div className="mt-6">
+              {plan && brief ? (
+                <AccountExplorer
+                  key={reportId ?? company}
+                  company={company.replace(/\s*\([^)]*\)\s*$/, "")}
+                  brief={brief}
+                  plan={plan}
+                  analysis={analysis}
+                  board={board}
+                  sellerName={sellerName}
+                  notice={
+                    status === "error" && step === "critics" ? (
+                      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">
+                        <p className="text-foreground">The plan is ready, but the agents didn&rsquo;t finish. {error}</p>
+                        <button type="button" onClick={retryAgents} className="font-medium text-primary underline-offset-4 hover:underline">
+                          Run the seven agents again
+                        </button>
+                      </div>
+                    ) : null
+                  }
+                />
+              ) : (
+                <ResearchFeed
+                  research={research}
+                  company={company.replace(/\s*\([^)]*\)\s*$/, "")}
+                  researchMs={marks.sources}
+                  writingMs={running && step === "plan" ? inStep : undefined}
+                  typicalMs={STEPS[1].typical}
+                />
+              )}
             </div>
           </div>
         )}
