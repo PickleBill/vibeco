@@ -13,6 +13,10 @@ const CHIP: Record<string, string> = {
   Signal: "border-dashed border-primary/50 bg-accent/50 text-primary",
 };
 
+/** "Databricks (Lakehouse, Delta Lake)" and "Databricks" name the same product. */
+const toolName = (t: string) => t.replace(/\(.*?\)/g, "").replace(/^(?:amazon|aws|google|microsoft|apache)\s+/i, "").replace(/[^a-z0-9]/gi, "").toLowerCase();
+const sameTool = (a: string, b: string) => !!toolName(a) && toolName(a) === toolName(b);
+
 interface Item {
   key: string;
   label: string;
@@ -33,16 +37,18 @@ export function StackMap({ lines, motion, sources }: { lines?: StackFeature[]; m
   const [picked, setPicked] = useState<string | null>(null);
   const all = Array.isArray(lines) ? lines : [];
   const columns = COLUMNS.map((name) => {
-    const items: Item[] = all
-      .filter((l) => l.name === name && l.status !== "Not found" && l.tool)
-      .map((l, i) => ({
-        key: `${name}-${i}`,
-        label: l.tool ?? "",
-        status: l.status ?? "Inferred",
-        sources: Array.isArray(l.sources) ? l.sources : [],
-        detail: l.evidence || l.description,
-        quoted: !!l.evidence,
-      }));
+    const items: Item[] = [];
+    for (const l of all.filter((x) => x.name === name && x.status !== "Not found" && x.tool)) {
+      const status = l.status ?? "Inferred";
+      const sources = Array.isArray(l.sources) ? l.sources : [];
+      // One chip per product: "Databricks (Lakehouse, Delta Lake)" and "Databricks" with the same tag merge.
+      const twin = items.find((it) => it.status === status && sameTool(it.label, l.tool ?? ""));
+      if (twin) {
+        twin.sources = [...new Set([...twin.sources, ...sources])].sort((a, b) => a - b);
+        continue;
+      }
+      items.push({ key: `${name}-${items.length}`, label: l.tool ?? "", status, sources, detail: l.evidence || l.description, quoted: !!l.evidence });
+    }
     if (name === "Embedded analytics") {
       const seen = new Set<string>();
       for (const e of motion?.embedded?.evidence ?? []) {
