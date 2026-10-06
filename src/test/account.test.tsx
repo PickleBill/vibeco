@@ -3,7 +3,7 @@ import path from "node:path";
 import { render, screen } from "@testing-library/react";
 import { LENS_IDS, criticFor, distillLabel, featureTitle, getLens, LENSES, sectionLabel } from "@/lib/lenses";
 import { getSeller } from "@/lib/sellers";
-import { PlanCard, StackTable, type AccountBrief } from "@/components/account/AccountViews";
+import { PlanCard, ScanCard, StackTable, type AccountBrief } from "@/components/account/AccountViews";
 
 const root = path.resolve(__dirname, "../..");
 const read = (p: string) => readFileSync(path.join(root, p), "utf8");
@@ -106,5 +106,37 @@ describe("account views", () => {
     expect(featureTitle({ name: "Warehouse", tool: "Snowflake", status: "Confirmed", description: "" })).toBe("Warehouse: Snowflake (Confirmed)");
     expect(featureTitle({ name: "AI", tool: "", status: "Not found", description: "" })).toBe("AI: Not found");
     expect(featureTitle({ name: "Onboarding", description: "x" })).toBe("Onboarding");
+  });
+});
+
+describe("job-board scan card", () => {
+  it("separates plainly named tools from options and links the board", () => {
+    render(
+      <ScanCard
+        company="Acme"
+        scan={{
+          found: true,
+          ats: "greenhouse",
+          board_url: "https://example.com/board",
+          company_name: "Acme Outfitters",
+          total_jobs: 48,
+          scanned_jobs: 48,
+          tools: [
+            { tool: "Snowflake", category: "Warehouse", posts: 6, firm: 4 },
+            { tool: "BigQuery", category: "Warehouse", posts: 2, firm: 0 },
+          ],
+          ms: 640,
+        }}
+      />,
+    );
+    expect(screen.getByText(/Job-board scan · Greenhouse/)).toBeInTheDocument();
+    expect(screen.getByText("Snowflake")).toBeInTheDocument();
+    expect(screen.getByText(/Only listed as options:/).parentElement?.textContent).toMatch(/BigQuery/);
+    expect(screen.getByRole("link", { name: /Board/ })).toHaveAttribute("href", "https://example.com/board");
+  });
+
+  it("says so when there's no public board", () => {
+    render(<ScanCard company="Guitar Center" scan={{ found: false, total_jobs: 0, scanned_jobs: 0, tools: [], ms: 120 }} />);
+    expect(screen.getByText(/No public Greenhouse, Lever or Ashby board found/)).toBeInTheDocument();
   });
 });

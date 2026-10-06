@@ -4,6 +4,9 @@
 // the customer-list sentence are exact rather than left to the model.
 import { LENS_SPECS } from "../lens.ts";
 import type { Research } from "../research.ts";
+import { companyHits, escapeRe, fold, looseWord, mentionsCompany, squash } from "../match.ts";
+import { ATS_LABEL, type ScanSummary } from "../stack-scan.ts";
+import { toolMentions } from "../stack-tools.ts";
 import {
   customerListSentence,
   sellerPromptBlock,
@@ -158,6 +161,7 @@ Rules:
    - Not found: nothing in the sources. Leave "tool" empty.
    Code checks every Confirmed line against the cited source and downgrades it if the source doesn't name the tool and the company.
    Only data products count: warehouses and lakehouses, transformation, ingestion and orchestration, BI, AI and ML platforms, embedded analytics. General developer tools (Git, Jira, Python, Kubernetes) don't.
+   Sources tagged as a greenhouse, lever or ashby job post are ${company}'s own job posts from its public job board: the strongest evidence of what it runs. A tool a post lists only as one option among several ("Snowflake, BigQuery, or Redshift", "e.g. Looker or similar") is Inferred, not Confirmed.
    First list in off_topic_sources any source about a different company with a similar name (for example another business called "${company}"), about someone's personal use of a product, or naming ${company} only in passing, and don't use those sources.
 3. People: use roles everywhere. If a source names a person at ${company}, list them in "people" with that source's number; code drops any name the source doesn't show. Never put a person's name in any other field.
 4. Why now: only dated events from the last 12 months that a source shows.
@@ -181,12 +185,7 @@ ${seller && match ? sellerPromptBlock(seller, company, match) : "\nNo seller pro
 
 // ─── Evidence checks ───
 
-/** Lowercase letters and digits only, accents folded ("Café" -> "cafe"). */
-const squash = (s: string) => fold(s).toLowerCase().replace(/[^a-z0-9]/g, "");
-const fold = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-/** Word-bounded, with optional spaces, dots or hyphens between letters: "powerbi" matches "Power BI". */
-const looseWord = (key: string) => new RegExp(`\\b${key.split("").map(escapeRe).join("[\\s.\\-&']?")}\\b`, "i");
+export { mentionsCompany };
 
 // Tool names that are also everyday words need a stricter pattern.
 const STRICT_TOOL_PATTERNS: Record<string, RegExp[]> = {
@@ -230,38 +229,6 @@ export function findTool(text: string, tool: string): number {
 /** "Tableau / Power BI" is two tools; a source must name each of them. */
 function toolsIn(tool: string): string[] {
   return tool.split(/\s*(?:\/|,|&|\band\b)\s*/i).map((t) => t.trim()).filter(Boolean);
-}
-
-const LEGAL_SUFFIX = /[\s,]+(?:inc|llc|ltd|limited|corp|corporation|co|company|plc|gmbh)\.?$/i;
-
-/**
- * Where a source names the company: "Guitar Center", "guitarcenter.com" and
- * "incident.io" as whole words. A name must be capitalized or written as typed,
- * so "Chime" counts and "chime in" doesn't.
- */
-function companyHits(text: string, company: string): number[] {
-  const typed = company.trim();
-  const host = typed.toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[/?#]/)[0];
-  const isDomain = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(host);
-  const patterns = isDomain
-    ? [host, host.split(".")[0]].map(squash).filter((k) => k.length >= 2).map(looseWord)
-    : [typed.replace(LEGAL_SUFFIX, "")]
-        .map((n) => fold(n).split(/[\s-]+/).filter(Boolean).map(escapeRe).join("[\\s-]*"))
-        .filter((k) => k.length >= 2)
-        .map((k) => new RegExp(`\\b${k}\\b`, "gi"));
-  const folded = fold(text);
-  const hits: number[] = [];
-  for (const re of patterns) {
-    for (const m of folded.matchAll(new RegExp(re.source, "gi"))) {
-      const word = m[0];
-      if (/^[A-Z0-9]/.test(word) || word === fold(typed) || isDomain) hits.push(m.index ?? 0);
-    }
-  }
-  return hits.sort((a, b) => a - b);
-}
-
-export function mentionsCompany(text: string, company: string): boolean {
-  return companyHits(text, company).length > 0;
 }
 
 const NEAR = 400;
@@ -386,6 +353,8 @@ export function verifyStack(
   company: string,
   sourceText: Map<number, string>,
   nearOnly: Set<number> = new Set(),
+  /** Job-post sources: the tools each post names plainly (not as one option among several). */
+  boardFirm: Map<number, Set<string>> = new Map(),
 ): StackLine[] {
   const valid = new Set(sourceText.keys());
   const items = Array.isArray(raw) ? raw : [];
@@ -401,7 +370,11 @@ export function verifyStack(
     if (status === "Confirmed") {
       // Supported = the source names every listed tool AND the company.
       const named = toolsIn(tool);
-      const supporting = sources.filter((id) => supportsTool(sourceText.get(id) ?? "", company, named, nearOnly.has(id)));
+      const supporting = sources.filter((id) =>
+        boardFirm.has(id)
+          ? named.length > 0 && !named.some(isGenericTool) && named.every((t) => boardFirm.get(id)!.has(toolKey(t)))
+          : supportsTool(sourceText.get(id) ?? "", company, named, nearOnly.has(id))
+      );
       if (supporting.length) {
         sources = supporting;
         evidence = bestQuote(supporting.map((id) => sourceText.get(id) ?? ""), named[0]);
@@ -434,6 +407,110 @@ export function verifyStack(
     return i === -1 ? STACK_CATEGORIES.length : i;
   };
   return lines.sort((a, b) => order(a.name) - order(b.name));
+}
+
+// ─── The company's own job posts ───
+
+const TOOL_ALIASES: Record<string, string> = {
+  postgresql: "postgres",
+  sigmacomputing: "sigma",
+  modeanalytics: "mode",
+  anthropicclaude: "claude",
+  pyspark: "spark",
+  awsglue: "glue",
+  awsredshift: "redshift",
+};
+
+/** One key per product: "Amazon Redshift" = "Redshift", "Apache Spark" = "Spark", "Postgres" = "PostgreSQL". */
+export function toolKey(name: string): string {
+  const k = squash(name.replace(/\(.*?\)/g, "").replace(VENDOR_PREFIX, "").replace(/^apache\s+/i, ""));
+  return TOOL_ALIASES[k] ?? k;
+}
+
+/** Stack lines from the company's own job posts: Confirmed when a post names the tool plainly. */
+export function jobBoardLines(boards: { id: number; text: string }[], scan?: ScanSummary): StackLine[] {
+  // Per tool: the posts that name it plainly, and the posts that mention it at all.
+  const found = new Map<string, { line: StackLine; firm: number[]; any: number[] }>();
+  for (const b of boards) {
+    for (const m of toolMentions(b.text)) {
+      const key = toolKey(m.tool.name);
+      let f = found.get(key);
+      if (!f) {
+        f = { line: { name: m.tool.category, tool: m.tool.name, status: "Inferred", sources: [], description: "" }, firm: [], any: [] };
+        found.set(key, f);
+      }
+      f.any.push(b.id);
+      if (m.firm) {
+        f.firm.push(b.id);
+        if (!f.line.evidence) f.line.evidence = m.quote;
+      }
+    }
+  }
+  // A Confirmed line cites only the posts that confirm it.
+  const lines = new Map<string, StackLine>();
+  for (const [key, f] of found) {
+    f.line.status = f.firm.length ? "Confirmed" : "Inferred";
+    f.line.sources = [...new Set(f.firm.length ? f.firm : f.any)].sort((x, y) => x - y);
+    lines.set(key, f.line);
+  }
+  const label = scan?.ats ? ATS_LABEL[scan.ats] : "job board";
+  for (const l of lines.values()) {
+    const c = scan?.tools.find((t) => toolKey(t.tool) === toolKey(l.tool));
+    l.description =
+      l.status === "Confirmed"
+        ? c && scan?.scanned_jobs
+          ? `Named in ${c.posts} of the ${scan.scanned_jobs} open roles on its ${label} board.`
+          : `Named in its own job post on ${label}.`
+        : `Listed only as one option among several in its own ${label} job posts, so this is Inferred.`;
+  }
+  return [...lines.values()];
+}
+
+const CATEGORY_CAP = 4;
+
+/**
+ * Fold the job-post lines into the model's verified lines: a post that names a
+ * tool plainly confirms it; options-only mentions fill a category only when
+ * nothing there is Confirmed. "Not found" placeholders give way.
+ */
+export function mergeStack(lines: StackLine[], board: StackLine[]): StackLine[] {
+  const out = lines.map((l) => ({ ...l, sources: [...l.sources] }));
+  const single = (l: StackLine) => toolsIn(l.tool).length === 1;
+  for (const b of board.filter((l) => l.status === "Confirmed")) {
+    const hit = out.find((l) => single(l) && toolKey(l.tool) === toolKey(b.tool));
+    if (hit) {
+      const wasConfirmed = hit.status === "Confirmed";
+      hit.status = "Confirmed";
+      hit.name = b.name;
+      hit.sources = [...new Set([...hit.sources, ...b.sources])].sort((x, y) => x - y);
+      if (!wasConfirmed || !hit.evidence) {
+        hit.evidence = b.evidence;
+        hit.description = b.description;
+      }
+      delete hit.downgraded;
+    } else out.push({ ...b });
+  }
+  for (const b of board.filter((l) => l.status === "Inferred")) {
+    if (out.some((l) => toolsIn(l.tool).some((t) => toolKey(t) === toolKey(b.tool)))) continue;
+    if (out.some((l) => l.name === b.name && l.status === "Confirmed")) continue;
+    if (out.filter((l) => l.name === b.name && l.status === "Inferred").length >= 2) continue;
+    out.push({ ...b });
+  }
+  const order = (n: string) => {
+    const i = (STACK_CATEGORIES as readonly string[]).indexOf(n);
+    return i === -1 ? STACK_CATEGORIES.length : i;
+  };
+  const rank = (l: StackLine) => (l.status === "Confirmed" ? 0 : l.status === "Inferred" ? 1 : 2);
+  const kept = out
+    .filter((l) => l.status !== "Not found" || !out.some((o) => o.name === l.name && o.status !== "Not found"))
+    .sort((a, b) => order(a.name) - order(b.name) || rank(a) - rank(b) || b.sources.length - a.sources.length);
+  // Keep the plan readable: at most four lines per category, Confirmed first.
+  const seen = new Map<string, number>();
+  return kept.filter((l) => {
+    const n = (seen.get(l.name) ?? 0) + 1;
+    seen.set(l.name, n);
+    return n <= CATEGORY_CAP;
+  });
 }
 
 // ─── Assembly ───
@@ -480,10 +557,17 @@ export function finalizeAccount(
   const offTopic = new Set(
     (Array.isArray(rawBrief.off_topic_sources) ? rawBrief.off_topic_sources : []).map(Number).filter((n) => research.sources.some((s) => s.id === n)),
   );
+  // Job posts: the post's own words only (their snippet is ours, not theirs).
+  const boards: { id: number; text: string }[] = [];
   research.sources.forEach((s, i) => {
-    if (!offTopic.has(s.id)) sourceText.set(s.id, `${s.title}\n${s.snippet}\n${excerpts[i] ?? ""}`);
+    if (offTopic.has(s.id)) return;
+    if (s.via) {
+      sourceText.set(s.id, `${s.title}\n${excerpts[i] ?? ""}`);
+      boards.push({ id: s.id, text: excerpts[i] ?? "" });
+    } else sourceText.set(s.id, `${s.title}\n${s.snippet}\n${excerpts[i] ?? ""}`);
   });
   const valid = new Set(sourceText.keys());
+  const boardFirm = new Map(boards.map((b) => [b.id, new Set(toolMentions(b.text).filter((m) => m.firm).map((m) => toolKey(m.tool.name)))]));
 
   const listWording = (t: string) => (seller ? customerListWording(t, seller.name) : t);
   const tidy = (t: unknown) => listWording(sanitizeCitations(String(t ?? ""), valid)).trim();
@@ -494,7 +578,10 @@ export function finalizeAccount(
   // Nothing was checked, so nothing about the stack is known: unknown means Not found.
   brief.core_features = noSources
     ? STACK_CATEGORIES.map((name) => ({ name, tool: "", status: "Not found" as const, sources: [], description: "No live sources were checked." }))
-    : verifyStack(rawBrief.core_features, company, sourceText, new Set(research.sources.filter((s) => isAggregator(s.url)).map((s) => s.id)));
+    : mergeStack(
+        verifyStack(rawBrief.core_features, company, sourceText, new Set(research.sources.filter((s) => isAggregator(s.url)).map((s) => s.id)), boardFirm),
+        jobBoardLines(boards, research.scan),
+      );
   for (const line of brief.core_features) line.description = listWording(line.description);
 
   // Keep a named person only when the cited source shows that name.
@@ -597,6 +684,10 @@ function buildPlan(
     if (l.status === "Not found") out.push(`- ${l.name}: Not found`);
     else if (l.status === "Confirmed") out.push(`- ${l.name}: ${l.tool} (Confirmed${cites(l.sources)})`);
     else out.push(`- ${l.name}: ${l.tool || "tool not named"} (Inferred${cites(l.sources)})${opts.stackNotes && l.description ? `. ${l.description}` : ""}`);
+  }
+  const scan = (brief.research as { scan?: ScanSummary } | undefined)?.scan;
+  if (scan?.found && scan.ats && scan.scanned_jobs) {
+    out.push(`(Job-board scan: read ${scan.scanned_jobs} open roles on its ${ATS_LABEL[scan.ats]} board.)`);
   }
   out.push("", "WHY NOW", cap(brief.revenue_model, 70));
   const role = cap(brief.start_with?.role, 10).replace(/[.\s]+$/, "");

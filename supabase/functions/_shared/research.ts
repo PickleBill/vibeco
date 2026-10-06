@@ -5,8 +5,16 @@
 // the primary provider; Perplexity Sonar (PERPLEXITY_API_KEY) is the fallback.
 // With neither, the run proceeds on model knowledge and the brief says so.
 // These are search APIs, not LLM calls, so they don't go through llm-client.
+//
+// Account research also scans the company's own public job board (Greenhouse,
+// Lever or Ashby; see stack-scan.ts). Those posts lead the source list.
+
+import { emptyScan, scanJobBoards, scanSources, scanSummary, type Ats, type ScanSummary } from "./stack-scan.ts";
+import type { StackCategory } from "./stack-tools.ts";
 
 export type SourceKind = "stack" | "jobs" | "news";
+const ATS_IDS: Ats[] = ["greenhouse", "lever", "ashby"];
+const CATEGORIES: StackCategory[] = ["Warehouse", "Transformation", "BI tools", "AI", "Embedded analytics"];
 
 export interface Source {
   id: number;
@@ -18,13 +26,17 @@ export interface Source {
   date?: string;
   /** Account briefs: judged not to be about the company (same-name business, personal use); never cited. */
   off_topic?: boolean;
+  /** The company's own job post, from its public board. */
+  via?: Ats;
 }
 
 export interface Research {
-  provider: "firecrawl" | "perplexity" | "none";
+  provider: "firecrawl" | "perplexity" | "jobboards" | "none";
   query: string;
   fetched_at: string;
   sources: Source[];
+  /** Account research: what the job-board scan found (counts only). */
+  scan?: ScanSummary;
 }
 
 const FIRECRAWL_SEARCH = "https://api.firecrawl.dev/v2/search";
@@ -181,7 +193,7 @@ export function carriedResearch(
 ): { research: Research; promptBlock: string; excerpts: string[] } | undefined {
   const r = raw as Partial<Research> | null;
   if (!r || typeof r !== "object" || !Array.isArray(r.sources)) return undefined;
-  const provider = r.provider === "firecrawl" || r.provider === "perplexity" ? r.provider : "none";
+  const provider = r.provider === "firecrawl" || r.provider === "perplexity" || r.provider === "jobboards" ? r.provider : "none";
   // Excerpts come back from the client after a "research" call; keep them only
   // when they line up with the sources, and cap their size.
   const rawExcerpts = Array.isArray(opts.excerpts) && opts.excerpts.length === r.sources.length ? opts.excerpts : undefined;
@@ -191,25 +203,51 @@ export function carriedResearch(
     if (sources.length >= (opts.max ?? MAX_SOURCES) || !s || !isHttpUrl((s as Source).url)) return;
     const kind = (s as Source).kind;
     const date = (s as Source).date;
+    const via = (s as Source).via;
     const snippet = clean(String((s as Source).snippet ?? ""), SNIPPET_CHARS);
     sources.push({
       id: sources.length + 1,
-      title: clean(String((s as Source).title ?? ""), 140),
+      title: clean(String((s as Source).title ?? ""), 160),
       url: (s as Source).url,
       snippet,
       ...(kind === "stack" || kind === "jobs" || kind === "news" ? { kind } : {}),
       ...(typeof date === "string" && date ? { date: clean(date, 40) } : {}),
+      ...(via && ATS_IDS.includes(via) ? { via } : {}),
     });
     const excerpt = rawExcerpts && typeof rawExcerpts[i] === "string" ? clean(rawExcerpts[i] as string, ACCOUNT_EXCERPT_CHARS) : "";
     excerpts.push(excerpt || snippet);
   });
+  const scan = carriedScan(r.scan);
   const research: Research = {
     provider: sources.length ? provider : "none",
     query: clean(String(r.query ?? ""), 300),
     fetched_at: typeof r.fetched_at === "string" ? r.fetched_at.slice(0, 40) : new Date().toISOString(),
     sources,
+    ...(scan ? { scan } : {}),
   };
   return { research, promptBlock: sourcesPromptBlock(research, excerpts), excerpts };
+}
+
+/** The scan summary comes back from the client: keep known fields, bounded. */
+function carriedScan(raw: unknown): ScanSummary | undefined {
+  const s = raw as Partial<ScanSummary> | null;
+  if (!s || typeof s !== "object") return undefined;
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.min(Math.round(v), 100_000) : 0);
+  const ats = ATS_IDS.includes(s.ats as Ats) ? (s.ats as Ats) : undefined;
+  const tools = (Array.isArray(s.tools) ? s.tools : [])
+    .filter((t) => t && typeof t.tool === "string" && CATEGORIES.includes(t.category))
+    .slice(0, 16)
+    .map((t) => ({ tool: clean(t.tool, 40), category: t.category, posts: n(t.posts), firm: n(t.firm) }));
+  return {
+    found: !!s.found && !!ats,
+    ...(ats ? { ats } : {}),
+    ...(isHttpUrl(s.board_url) ? { board_url: s.board_url } : {}),
+    ...(typeof s.company_name === "string" ? { company_name: clean(s.company_name, 80) } : {}),
+    total_jobs: n(s.total_jobs),
+    scanned_jobs: n(s.scanned_jobs),
+    tools,
+    ms: n(s.ms),
+  };
 }
 
 // ─── Account research ───
@@ -300,11 +338,24 @@ function urlKey(url: string): string {
   return `${u.hostname.replace(/^www\./, "")}${u.pathname.replace(/\/$/, "")}`.toLowerCase();
 }
 
-/** Round-robin across lanes so stack, jobs and news each get a share; dedupe by URL. */
-function mergeLanes(lanes: LaneResult[]): { sources: Source[]; excerpts: string[] } {
+type BoardSource = ReturnType<typeof scanSources>[number];
+
+/**
+ * The company's own job posts first, then a round-robin across lanes so stack,
+ * jobs and news each get a share; dedupe by URL, cap at 10.
+ */
+function mergeLanes(lanes: LaneResult[], first: BoardSource[] = []): { sources: Source[]; excerpts: string[] } {
   const seen = new Set<string>();
   const sources: Source[] = [];
   const excerpts: string[] = [];
+  for (const b of first) {
+    if (sources.length >= ACCOUNT_MAX_SOURCES || !isHttpUrl(b.url)) continue;
+    const key = urlKey(b.url);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    sources.push({ id: sources.length + 1, title: clean(b.title, 160), url: b.url, snippet: clean(b.snippet, SNIPPET_CHARS), kind: "jobs", via: b.via });
+    excerpts.push(clean(b.excerpt, ACCOUNT_EXCERPT_CHARS));
+  }
   const queues = lanes.map((l) => [...l.items]);
   while (sources.length < ACCOUNT_MAX_SOURCES && queues.some((q) => q.length)) {
     lanes.forEach((lane, i) => {
@@ -335,7 +386,7 @@ export interface AccountResearch {
   promptBlock: string;
   /** Aligned with research.sources; sent to the client and back for the brief call. */
   excerpts: string[];
-  timing: { total_ms: number; lanes: { kind: SourceKind; ms: number; scraped: boolean; results: number }[] };
+  timing: { total_ms: number; scan_ms?: number; lanes: { kind: SourceKind; ms: number; scraped: boolean; results: number }[] };
 }
 
 /**
@@ -366,18 +417,26 @@ export async function researchAccount(company: string, tools: string[] = []): Pr
     },
   ];
 
+  // The job-board scan needs no key and runs alongside the web searches.
   const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
-  if (firecrawlKey) {
-    const results = await Promise.all(lanes.map((lane) => runLane(firecrawlKey, lane)));
-    const { sources, excerpts } = mergeLanes(results);
-    const timing = {
-      total_ms: Date.now() - t0,
-      lanes: results.map((r) => ({ kind: r.kind, ms: r.ms, scraped: r.scraped, results: r.items.length })),
-    };
-    if (sources.length) {
-      const research: Research = { provider: "firecrawl", query, fetched_at, sources };
-      return { research, promptBlock: sourcesPromptBlock(research, excerpts), excerpts, timing };
-    }
+  const [results, scanned] = await Promise.all([
+    firecrawlKey ? Promise.all(lanes.map((lane) => runLane(firecrawlKey, lane))) : Promise.resolve([] as LaneResult[]),
+    scanJobBoards(company).catch((e) => {
+      console.error("research: job-board scan failed", e);
+      return emptyScan();
+    }),
+  ]);
+  const scan = scanSummary(scanned);
+  const { sources, excerpts } = mergeLanes(results, scanSources(scanned));
+  const timing = {
+    total_ms: Date.now() - t0,
+    scan_ms: scanned.ms,
+    lanes: results.map((r) => ({ kind: r.kind, ms: r.ms, scraped: r.scraped, results: r.items.length })),
+  };
+  if (sources.length) {
+    const provider = results.some((r) => r.items.length) ? "firecrawl" : "jobboards";
+    const research: Research = { provider, query, fetched_at, sources, scan };
+    return { research, promptBlock: sourcesPromptBlock(research, excerpts), excerpts, timing };
   }
 
   const perplexityKey = Deno.env.get("PERPLEXITY_API_KEY");
@@ -388,12 +447,12 @@ export async function researchAccount(company: string, tools: string[] = []): Pr
         `${query}: data and analytics stack (warehouse, BI tools, dbt, AI), recent data and analytics job postings, and news from the last 12 months (funding, IPO, acquisitions, new data leaders).`,
       );
       if (found.sources.length) {
-        const research: Research = { provider: "perplexity", query, fetched_at, sources: found.sources };
+        const research: Research = { provider: "perplexity", query, fetched_at, sources: found.sources, scan };
         return {
           research,
           promptBlock: sourcesPromptBlock(research, found.excerpts, found.summary),
           excerpts: found.excerpts,
-          timing: { total_ms: Date.now() - t0, lanes: [] },
+          timing: { total_ms: Date.now() - t0, scan_ms: scanned.ms, lanes: [] },
         };
       }
     } catch (e) {
@@ -401,8 +460,13 @@ export async function researchAccount(company: string, tools: string[] = []): Pr
     }
   }
 
-  const research: Research = { provider: "none", query, fetched_at, sources: [] };
-  return { research, promptBlock: sourcesPromptBlock(research, []), excerpts: [], timing: { total_ms: Date.now() - t0, lanes: [] } };
+  const research: Research = { provider: "none", query, fetched_at, sources: [], scan };
+  return {
+    research,
+    promptBlock: sourcesPromptBlock(research, []),
+    excerpts: [],
+    timing: { total_ms: Date.now() - t0, scan_ms: scanned.ms, lanes: [] },
+  };
 }
 
 function sourcesPromptBlock(research: Research, excerpts: string[], summary?: string): string {
@@ -413,7 +477,7 @@ LIVE SOURCES: none were available for this run. Work from general knowledge, say
   }
   const list = research.sources
     .map((s, i) => {
-      const tag = [s.kind, s.date].filter(Boolean).join(", ");
+      const tag = [s.kind, s.via ? `${s.via} job post` : "", s.date].filter(Boolean).join(", ");
       return `[${s.id}]${tag ? ` (${tag})` : ""} ${s.title} (${s.url})\n${excerpts[i] ?? s.snippet}`;
     })
     .join("\n\n");

@@ -1,9 +1,10 @@
 import { Fragment, useState } from "react";
-import { Check, Copy, FileText, Quote, Users } from "lucide-react";
+import { ArrowUpRight, Briefcase, Check, Copy, FileText, Quote, Users } from "lucide-react";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/copyToClipboard";
 import { SEATS, criticFor, distillLabel, sectionLabel, type StackFeature } from "@/lib/lenses";
-import type { BriefResearch, ResearchSource } from "@/components/simulator/SourcesList";
+import type { BriefResearch, JobBoardScan, ResearchSource } from "@/components/simulator/SourcesList";
+import { ATS_LABEL } from "@/lib/jobBoards";
 
 // ─── Shapes (set by supabase/functions/_shared/agents/account.ts) ───
 
@@ -92,6 +93,75 @@ export function Cited({ text, sources }: { text?: string; sources: ResearchSourc
         );
       })}
     </>
+  );
+}
+
+// ─── Job-board scan ───
+
+/** What the company's own job posts say about its stack: plainly named tools, then options-only mentions. */
+export function ScanCard({ scan, company }: { scan?: JobBoardScan | null; company: string }) {
+  if (!scan) return null;
+  const label = scan.ats ? ATS_LABEL[scan.ats] ?? scan.ats : "";
+  if (!scan.found) {
+    return (
+      <section className="rounded-lg border border-dashed border-border bg-card/40 p-4 text-xs leading-relaxed text-muted-foreground">
+        <p className="flex items-center gap-1.5 font-semibold uppercase tracking-[0.14em] text-[11px] text-muted-foreground">
+          <Briefcase size={13} aria-hidden /> Job-board scan
+        </p>
+        <p className="mt-1.5">
+          No public Greenhouse, Lever or Ashby board found for &ldquo;{company}&rdquo;. If it hires on one, try its domain (for example{" "}
+          <span className="font-mono">company.com</span>).
+        </p>
+      </section>
+    );
+  }
+  const firm = scan.tools.filter((t) => t.firm > 0);
+  const options = scan.tools.filter((t) => t.firm === 0);
+  return (
+    <section aria-label="Job-board scan" className="rounded-lg border border-primary/25 bg-card p-4">
+      <div className="flex items-start justify-between gap-2">
+        <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
+          <Briefcase size={13} aria-hidden /> Job-board scan · {label}
+        </p>
+        {scan.board_url && (
+          <a
+            href={scan.board_url}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            className="inline-flex shrink-0 items-center gap-0.5 text-[11px] text-muted-foreground hover:text-primary"
+          >
+            Board <ArrowUpRight size={11} aria-hidden />
+          </a>
+        )}
+      </div>
+      <p className="mt-1.5 text-sm text-foreground">
+        Read <span className="font-semibold tabular-nums">{scan.scanned_jobs}</span> open role{scan.scanned_jobs === 1 ? "" : "s"}
+        {scan.company_name ? ` at ${scan.company_name}` : ""}.
+      </p>
+      {firm.length > 0 && (
+        <>
+          <p className="mt-3 text-[11px] font-medium text-muted-foreground">Named plainly in its posts</p>
+          <ul className="mt-1.5 flex flex-wrap gap-1.5">
+            {firm.map((t) => (
+              <li
+                key={t.tool}
+                title={`Named plainly in ${t.firm} post${t.firm === 1 ? "" : "s"}; mentioned in ${t.posts}`}
+                className="inline-flex items-center gap-1 rounded-full border border-emerald-600/25 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-900"
+              >
+                {t.tool}
+                <span className="tabular-nums text-emerald-700/80">{t.posts}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {options.length > 0 && (
+        <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+          <span className="font-medium">Only listed as options:</span> {options.map((t) => t.tool).join(", ")}
+        </p>
+      )}
+      {!scan.tools.length && <p className="mt-2 text-xs text-muted-foreground">None of its open roles name a data tool.</p>}
+    </section>
   );
 }
 
