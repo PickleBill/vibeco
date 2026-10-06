@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Helmet, HelmetProvider } from "react-helmet-async";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -21,6 +23,16 @@ const jsonLd = {
 };
 
 const Index = () => {
+  const { hash } = useLocation();
+
+  // Links like /#model (from Brick) arrive before the page has rendered, so the
+  // browser's own jump finds nothing. Jump once the section exists.
+  useEffect(() => {
+    if (!hash) return;
+    const t = window.setTimeout(() => document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView(), 60);
+    return () => window.clearTimeout(t);
+  }, [hash]);
+
   return (
     <HelmetProvider>
       <Helmet>
