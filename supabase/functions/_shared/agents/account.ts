@@ -266,20 +266,42 @@ export function mentionsCompany(text: string, company: string): boolean {
 
 const NEAR = 400;
 
+// Categories and skills, not products: never Confirmed on their own.
+const GENERIC_TOOLS = new Set([
+  "ai", "genai", "generativeai", "artificialintelligence", "machinelearning", "ml", "llm", "llms", "deeplearning", "nlp",
+  "datawarehouse", "datalake", "lakehouse", "etl", "elt", "bi", "businessintelligence", "analytics", "dashboards",
+  "reporting", "cloud", "sql", "python", "r", "git", "github", "jira", "api", "apis", "datascience", "bigdata",
+]);
+export const isGenericTool = (tool: string) => GENERIC_TOOLS.has(squash(tool.replace(/\(.*?\)/g, "")));
+
+// Site furniture: a tool named in a privacy notice or a sign-in prompt says nothing about the company.
+const BOILERPLATE = /privacy|cookie|terms of (use|service)|©|all rights reserved|we['’]re updating|sign in|log in|subscribe|newsletter/i;
+
 /**
- * A source supports "company uses tool" when it names every tool and names the
- * company in its title or within ~400 characters of a tool mention.
+ * A source supports "company uses tool" when it names every tool outside site
+ * boilerplate, and names the company in its title or within ~400 characters of
+ * the tool. `nearOnly` (job-board aggregators) needs the company near the tool.
  */
-export function supportsTool(text: string, company: string, tools: string[]): boolean {
-  if (!tools.length) return false;
+export function supportsTool(text: string, company: string, tools: string[], nearOnly = false): boolean {
+  if (!tools.length || tools.some(isGenericTool)) return false;
   const companyAt = companyHits(text, company);
   if (!companyAt.length) return false;
   const titleEnd = text.indexOf("\n");
-  const inTitle = companyAt.some((at) => titleEnd === -1 || at < titleEnd);
+  const inTitle = !nearOnly && companyAt.some((at) => titleEnd === -1 || at < titleEnd);
   return tools.every((t) => {
-    const hits = toolHits(text, t);
+    const hits = toolHits(text, t).filter((h) => !BOILERPLATE.test(sentenceAround(text, h.at, h.len).quote));
     return hits.length > 0 && (inTitle || hits.some((h) => companyAt.some((c) => Math.abs(c - h.at) <= NEAR)));
   });
+}
+
+// Job-board aggregators mix employers on one page: the title naming the company isn't enough.
+const AGGREGATOR = /(^|\.)(ziprecruiter|indeed|glassdoor|simplyhired|talent|jooble|bebee|careerbuilder|monster|adzuna|lensa|jobleads|whatjobs|jobrapido)\./i;
+export function isAggregator(url: string): boolean {
+  try {
+    return AGGREGATOR.test(new URL(url).hostname);
+  } catch {
+    return false;
+  }
 }
 
 /** The source writes this person's name (any spacing or case). */
@@ -329,6 +351,7 @@ function bestQuote(texts: string[], tool: string): string | undefined {
   for (const text of texts) {
     for (const h of toolHits(text, tool)) {
       const { quote, whole } = sentenceAround(text, h.at, h.len);
+      if (BOILERPLATE.test(quote)) continue;
       const words = quote.split(/\s+/).filter(Boolean);
       const capitalized = words.filter((w) => /^[A-Z]/.test(w)).length / Math.max(1, words.length);
       const score =
@@ -362,6 +385,7 @@ export function verifyStack(
   raw: unknown,
   company: string,
   sourceText: Map<number, string>,
+  nearOnly: Set<number> = new Set(),
 ): StackLine[] {
   const valid = new Set(sourceText.keys());
   const items = Array.isArray(raw) ? raw : [];
@@ -377,14 +401,16 @@ export function verifyStack(
     if (status === "Confirmed") {
       // Supported = the source names every listed tool AND the company.
       const named = toolsIn(tool);
-      const supporting = sources.filter((id) => supportsTool(sourceText.get(id) ?? "", company, named));
+      const supporting = sources.filter((id) => supportsTool(sourceText.get(id) ?? "", company, named, nearOnly.has(id)));
       if (supporting.length) {
         sources = supporting;
         evidence = bestQuote(supporting.map((id) => sourceText.get(id) ?? ""), named[0]);
       } else {
         status = "Inferred";
         downgraded = true;
-        description = `${description}${description ? " " : ""}(No cited source names ${tool || "it"} at ${company}, so this is marked Inferred.)`;
+        description = isGenericTool(tool)
+          ? `${description}${description ? " " : ""}(Not a named product, so this is marked Inferred.)`
+          : `${description}${description ? " " : ""}(No cited source names ${tool || "it"} at ${company}, so this is marked Inferred.)`;
       }
     }
     return {
@@ -468,7 +494,7 @@ export function finalizeAccount(
   // Nothing was checked, so nothing about the stack is known: unknown means Not found.
   brief.core_features = noSources
     ? STACK_CATEGORIES.map((name) => ({ name, tool: "", status: "Not found" as const, sources: [], description: "No live sources were checked." }))
-    : verifyStack(rawBrief.core_features, company, sourceText);
+    : verifyStack(rawBrief.core_features, company, sourceText, new Set(research.sources.filter((s) => isAggregator(s.url)).map((s) => s.id)));
   for (const line of brief.core_features) line.description = listWording(line.description);
 
   // Keep a named person only when the cited source shows that name.
