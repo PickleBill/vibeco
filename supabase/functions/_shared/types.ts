@@ -23,6 +23,8 @@ export interface BriefData {
   lens?: Lens;
   /** Live web sources behind a "company" brief (set server-side, cited as [n]). */
   research?: Research;
+  /** Seller profile id an account brief was written for. */
+  seller?: string;
 }
 
 export interface FollowUpQuestion {
@@ -123,15 +125,20 @@ export interface BriefContext {
 }
 
 /** Kind of question the workbench was asked. Mirrors src/lib/lenses.ts. */
-export type Lens = "idea" | "company" | "initiative" | "decision";
+export type Lens = "idea" | "company" | "initiative" | "decision" | "account";
 
 export interface SimulateInput {
-  type: "initial" | "refine" | "deep_dive";
+  /** "research" (account lens) returns sources only, so the UI can show them first. */
+  type: "initial" | "refine" | "deep_dive" | "research";
   idea: string;
   mode?: AnalysisMode;
   lens?: Lens;
   /** brief.research from the previous round, so later rounds keep the same sources. */
   research?: unknown;
+  /** Page excerpts returned by a "research" call, aligned with research.sources. */
+  excerpts?: unknown;
+  /** Seller profile id for the account lens (see _shared/sellers). */
+  seller?: unknown;
   // Refine-specific
   history?: string;
   round?: number;

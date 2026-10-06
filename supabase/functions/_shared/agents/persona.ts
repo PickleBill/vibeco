@@ -78,7 +78,7 @@ export function formatBriefContext(brief: Record<string, unknown>): string {
 
 export async function generatePerspective(input: PersonaInput): Promise<PerspectiveResult> {
   // Non-idea lenses seat different critics in the same five persona ids.
-  const personaPrompt = criticPrompt(lensOf(input.brief), input.persona) ?? PERSONA_PROMPTS[input.persona];
+  const personaPrompt = criticPrompt(lensOf(input.brief), input.persona, input.brief) ?? PERSONA_PROMPTS[input.persona];
   if (!personaPrompt) throw new Error(`Unknown persona: ${input.persona}`);
 
   const briefContext = formatBriefContext(input.brief as unknown as Record<string, unknown>);
@@ -91,7 +91,7 @@ LANGUAGE RULE: RESPOND ONLY IN ENGLISH.
 You are analyzing this specific idea. Reference the product name, target customer, and market throughout. Do not be generic.
 
 Builder intent: ${input.builder_intent || "venture"}
-Adjust your perspective depth accordingly — a "fun" project gets lighter treatment than a "venture" idea.${lensAgentNote(lensOf(input.brief))}`;
+Adjust your perspective depth accordingly — a "fun" project gets lighter treatment than a "venture" idea.${lensAgentNote(lensOf(input.brief), input.brief)}`;
 
   const userContent = `Original idea: "${input.idea}"
 

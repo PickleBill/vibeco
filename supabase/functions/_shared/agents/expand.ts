@@ -70,7 +70,7 @@ Generate 3 orthogonal variations. Each should make the founder say "huh, I hadn'
   return callLLMWithTool<ExpandResult>({
     model,
     messages: [
-      { role: "system", content: systemPrompt + lensAgentNote(lensOf(input.brief)) },
+      { role: "system", content: systemPrompt + lensAgentNote(lensOf(input.brief), input.brief) },
       { role: "user", content: userContent },
     ],
     tools: [expandToolSchema],

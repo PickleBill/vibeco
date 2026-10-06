@@ -1,8 +1,10 @@
 import { callLLMWithTool } from "../llm-client.ts";
-import { selectModel } from "../model-router.ts";
-import type { SimulateInput, SimulationResult, DeepDiveResult, AnalysisMode, Lens } from "../types.ts";
-import { asLens, lensAgentNote, lensOf, lensSpec } from "../lens.ts";
-import { carriedResearch, researchQuestion } from "../research.ts";
+import { modelChain, selectModel } from "../model-router.ts";
+import type { SimulateInput, SimulationResult, DeepDiveResult, AnalysisMode, Lens, BriefData } from "../types.ts";
+import { asLens, isExpress, lensAgentNote, lensOf, lensSpec } from "../lens.ts";
+import { carriedResearch, researchAccount, researchQuestion, type Research } from "../research.ts";
+import { asSeller, matchCustomer } from "../sellers/index.ts";
+import { accountPrompts, accountToolSchema, finalizeAccount } from "./account.ts";
 
 // ─── Tool Schemas ───
 
@@ -225,36 +227,87 @@ ${isLastRound ? `This is the FINAL round. Set is_final to true. Generate the mos
 
 // ─── Core Logic ───
 
+/** A company name or domain, as typed: one line, no quotes, at most 120 characters. */
+export function cleanCompany(raw: unknown): string {
+  return String(raw ?? "").replace(/["\u201c\u201d]/g, "").replace(/\s+/g, " ").trim().slice(0, 120);
+}
+
+/**
+ * Account lens, step 1 of 2: search the web and return the sources (plus page
+ * excerpts) right away, so the UI can show them before the brief is written.
+ * The client sends both back with the brief request; nothing is searched twice.
+ */
+export async function runAccountResearch(company: string) {
+  const { research, excerpts, timing } = await researchAccount(company);
+  return { research, excerpts, timing };
+}
+
+/** The task's models, the mode's pick first, so one provider failure isn't fatal. */
+function orderedModels(task: "account-brief", mode?: AnalysisMode): string[] {
+  const first = selectModel(task, { mode });
+  return [first, ...modelChain(task).filter((m) => m !== first)];
+}
+
 export async function runSimulation(input: SimulateInput): Promise<SimulationResult> {
-  const taskType = input.type === "initial" ? "analysis-initial"
+  const lens = asLens(input.lens);
+  const express = isExpress(lens);
+  const taskType = express ? "account-brief"
+    : input.type === "initial" ? "analysis-initial"
     : (input.round && input.round >= 3) ? "analysis-final"
     : "analysis-refine";
 
-  const model = selectModel(taskType, { mode: input.mode });
-  const lens = asLens(input.lens);
-
-  const { systemPrompt, userContent } = input.type === "initial"
-    ? buildInitialPrompts(input.idea, lens)
-    : buildRefinePrompts(input.idea, input.history || "", input.round || 2, lens);
+  // Account lens: written for a seller (if one is named) about one company.
+  const seller = lens === "account" ? asSeller(input.seller) : undefined;
+  const company = lens === "account" ? cleanCompany(input.idea) : "";
+  const match = seller ? matchCustomer(seller, company) : undefined;
 
   // Company questions are grounded in live web sources: fetched on the first
   // round, then carried on the brief so later rounds cite the same ones.
-  const grounding = lens === "company"
-    ? (input.type === "initial" ? await researchQuestion(input.idea) : carriedResearch(input.research))
-    : undefined;
+  // Account questions reuse the sources (and excerpts) from the client's
+  // "research" call when it sends them, and research inline otherwise.
+  let grounding: { research: Research; promptBlock: string; excerpts?: string[] } | undefined;
+  if (lens === "company") {
+    grounding = input.type === "initial" ? await researchQuestion(input.idea) : carriedResearch(input.research);
+  } else if (lens === "account") {
+    grounding = carriedResearch(input.research, { max: 10, excerpts: input.excerpts }) ?? await researchAccount(company);
+  }
 
-  const result = await callLLMWithTool<SimulationResult>({
-    model,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userContent + (grounding?.promptBlock ?? "") },
-    ],
-    tools: [analysisSchemaFor(lens)],
-    toolChoice: { type: "function", function: { name: "generate_idea_analysis" } },
-  });
+  const { systemPrompt, userContent } = lens === "account"
+    ? accountPrompts(company, seller, match, grounding?.promptBlock ?? "")
+    : input.type === "initial"
+    ? buildInitialPrompts(input.idea, lens)
+    : buildRefinePrompts(input.idea, input.history || "", input.round || 2, lens);
+  const userMessage = lens === "account" ? userContent : userContent + (grounding?.promptBlock ?? "");
 
-  // SERVER-SIDE ENFORCEMENT: Never allow is_final on early rounds
-  if (input.type === "initial" || (input.round && input.round < 3)) {
+  const models = express ? orderedModels("account-brief", input.mode) : [selectModel(taskType, { mode: input.mode })];
+  let result: SimulationResult | undefined;
+  let lastError: unknown;
+  for (const model of models) {
+    try {
+      result = await callLLMWithTool<SimulationResult>({
+        model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userMessage },
+        ],
+        tools: [lens === "account" ? accountToolSchema() : analysisSchemaFor(lens)],
+        toolChoice: { type: "function", function: { name: "generate_idea_analysis" } },
+      });
+      break;
+    } catch (e) {
+      console.error(`simulate: ${model} failed`, e);
+      lastError = e;
+    }
+  }
+  if (!result) throw lastError;
+
+  // SERVER-SIDE ENFORCEMENT: Never allow is_final on early rounds.
+  // Explicit exception: express lenses (account) answer in one round, so the
+  // first response is final and carries the deliverable (set below).
+  if (express) {
+    result.is_final = true;
+    result.follow_up_questions = [];
+  } else if (input.type === "initial" || (input.round && input.round < 3)) {
     result.is_final = false;
     delete result.lovable_prompt;
     if (!result.follow_up_questions || result.follow_up_questions.length === 0) {
@@ -269,6 +322,20 @@ export async function runSimulation(input: SimulateInput): Promise<SimulationRes
   // agents know how to read it.
   if (lens && result.brief) result.brief.lens = lens;
   if (grounding && result.brief) result.brief.research = grounding.research;
+
+  // Account: check the evidence in code and assemble the First-call plan.
+  if (lens === "account" && result.brief && grounding) {
+    const { brief, plan } = finalizeAccount(result.brief as unknown as Record<string, unknown>, {
+      company,
+      research: grounding.research,
+      excerpts: grounding.excerpts ?? [],
+      seller,
+      match,
+    });
+    if (seller) brief.seller = seller.id;
+    result.brief = brief as unknown as BriefData;
+    result.lovable_prompt = plan;
+  }
 
   return result;
 }
@@ -319,7 +386,7 @@ You are analyzing the "${input.section_label}" section. Provide:
 - Include specific competitor names, market size estimates, risk factors, or implementation recommendations as relevant
 - Reference the user's specific idea and product throughout
 - Use markdown formatting (bold for emphasis, bullet points)
-- Be more detailed and specific than the original brief — this is a DEEP DIVE${lensAgentNote(lensOf(input.brief))}`;
+- Be more detailed and specific than the original brief — this is a DEEP DIVE${lensAgentNote(lensOf(input.brief), input.brief)}`;
 
   const userContent = `Original idea: "${input.idea}"
 

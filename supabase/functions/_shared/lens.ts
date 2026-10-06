@@ -2,8 +2,17 @@
 // lens changes what each slot means, the follow-up questions, and the final
 // deliverable. Mirrors src/lib/lenses.ts (labels live there).
 import type { Lens } from "./types.ts";
+import { asSeller, sellerAgentNote } from "./sellers/index.ts";
 
-export const LENS_IDS: Lens[] = ["idea", "company", "initiative", "decision"];
+export const LENS_IDS: Lens[] = ["idea", "company", "initiative", "decision", "account"];
+
+/**
+ * Express lenses answer in one round: no follow-up questions, and the
+ * deliverable comes back in the first response.
+ */
+export function isExpress(lens: Lens | undefined): boolean {
+  return lens === "account";
+}
 
 // `lens` arrives from request bodies and stored briefs, so only accept known ids.
 export function asLens(value: unknown): Lens | undefined {
@@ -85,6 +94,23 @@ export const LENS_SPECS: Record<Exclude<Lens, "idea">, LensSpec> = {
       format: "A one-page decision memo in plain text with short headings: 1) The decision, in one sentence. 2) The options, each with its strongest case. 3) The 3-5 criteria that matter. 4) A recommendation or leaning, with reasoning. 5) What would change the call: the milestone or metric, and the date that settles it. 6) A short, fair message the user could send to the other side. 300-600 words.",
     },
   },
+  account: {
+    kind: "target account: a company they want to win as a customer, researched before a first sales call",
+    slots: {
+      problem: "Their data and analytics situation today and the pressure on it right now, specific to this company, with [n] citations.",
+      target_customer: "The buying committee by role (for example Head of Data, analytics engineering lead, CFO, business-unit leaders) and what each cares about. Include a person's name ONLY when a cited source shows it, with the citation; otherwise roles only.",
+      core_features: "Stack signals, one line per named tool or capability, covering Warehouse, Transformation, BI tools, AI and Embedded analytics. Each line is tagged Confirmed (a cited source names it), Inferred (likely, but no source names it) or Not found.",
+      revenue_model: "Why now, as dated trigger events from the last 12 months, one per line: 'YYYY-MM: event [n]'. Use 'Date not found' when a source gives no date. Only events that a source shows; if there are none, write 'No dated trigger events found in the sources.'",
+      industry_trends: "What they run today for analytics, and who else would likely be in the deal (the incumbent BI vendor and other tools they might evaluate), each marked Confirmed or Inferred.",
+      investor_perspective: "What to verify before a first call: 3-5 specific facts this brief could not confirm.",
+      customer_perspective: "What their business users would say about getting answers from data today, in the first person. This is SYNTHETIC, not real quotes: start with 'Synthetic:'.",
+    },
+    followUps: "None: this lens answers in one round.",
+    deliverable: {
+      name: "First-call plan",
+      format: "A first-call plan, 300-600 words: the account in one line; the stack read, each line tagged Confirmed, Inferred or Not found with [n] citations; why now; who to start with and why; seven discovery questions; the migration objection with an honest answer; what to verify; a fit grade A, B or C with the reason; and whether the company is on the seller's public customer list. Never include outreach emails or messages.",
+    },
+  },
 };
 
 export function lensSpec(lens: Lens | undefined): LensSpec | undefined {
@@ -95,14 +121,20 @@ export function lensSpec(lens: Lens | undefined): LensSpec | undefined {
  * Framing for downstream agents (critics, alternatives, distill, synthesis,
  * deep dives). Empty for the original idea flow.
  */
-export function lensAgentNote(lens: Lens): string {
+export function lensAgentNote(lens: Lens, brief?: unknown): string {
   const spec = lensSpec(lens);
   if (!spec) return "";
   const slotGuide = Object.entries(spec.slots).map(([k, v]) => `- ${k}: ${v}`).join("\n");
+  // Account briefs are written for a seller; downstream agents need to know who.
+  const seller = lens === "account" ? asSeller((brief as { seller?: unknown } | null)?.seller) : undefined;
+  const sellerNote = seller ? sellerAgentNote(seller) : "";
+  const accountRules = lens === "account"
+    ? "\nNever write outreach emails or messages. Use people's names only when the brief's sources show them; otherwise use roles."
+    : "";
   return `
 
 IMPORTANT CONTEXT: This is NOT a product or app idea. The user brought a ${spec.kind}. Respond to the question as asked. Do not recommend building an app, tool or startup unless the question is about building one. Wherever your role mentions a product, founder, customers, features or revenue, read them as the question, the person asking, the people affected, the options or components, and the costs and benefits. The brief's fields mean:
-${slotGuide}`;
+${slotGuide}${sellerNote}${accountRules}`;
 }
 
 /** For refine-prompt: the "prompt" of a non-idea report is its deliverable. */
@@ -145,11 +177,21 @@ export const CRITIC_PROMPTS: Record<Exclude<Lens, "idea">, Record<Seat, string>>
     customer: `You are The Person Most Affected by the outcome. Speak in the first person about what each path means for you, and what you need from whoever decides. ${CLOSE}`,
     builder: `You are The Fair Advisor. Turn the disagreement into 3 clear criteria, a way to test the leading option cheaply, and the milestone and date that should settle it. ${CLOSE}`,
   },
+  // {SELLER} is replaced with the seller's name (or "a new analytics vendor").
+  account: {
+    champion: `You are the Head of Data at this account. A seller from {SELLER} wants a first meeting. Say why you'd take it: the pain on your team that makes 30 minutes worth it, grounded in the brief and its sources, and what you'd need to see in that meeting. ${CLOSE}`,
+    skeptic: `You are the CFO at this account. Explain why you wouldn't buy from {SELLER} this year: budget timing, overlap with tools you already pay for, switching cost, and the proof that would change your mind. ${CLOSE}`,
+    competitor: `You are the account executive for this account's incumbent BI vendor. Explain how you'd defend the account against {SELLER}: what you'd say about migration risk, bundling and existing investment, and where you are honestly vulnerable. ${CLOSE}`,
+    customer: `You are a business user at this account (a manager in sales, finance or operations). Speak in the first person about what you can't get from data today, how long answers take, and what you'd want instead. You are a synthetic voice, not a real person. ${CLOSE}`,
+    builder: `You are an analytics engineer at this account. Explain what moving to {SELLER} would really take: models and dashboards to migrate, dbt or warehouse work, permissions, and how long. Be honest about the effort. ${CLOSE}`,
+  },
 };
 
-export function criticPrompt(lens: Lens, seat: string): string | undefined {
+export function criticPrompt(lens: Lens, seat: string, brief?: unknown): string | undefined {
   if (lens === "idea") return undefined;
-  return CRITIC_PROMPTS[lens][seat as Seat];
+  const prompt = CRITIC_PROMPTS[lens][seat as Seat];
+  const seller = asSeller((brief as { seller?: unknown } | null)?.seller);
+  return prompt?.replaceAll("{SELLER}", seller?.name ?? "a new analytics vendor");
 }
 
 // ─── Distill (Phase B) ───
@@ -180,6 +222,14 @@ export const DISTILL_SLOTS: Record<Exclude<Lens, "idea">, Record<"one_feature" |
     thesis_statement: "One sentence: the decision, the leaning, and why.",
     what_to_cut: "3-5 arguments or worries that are distracting from the real tradeoff.",
     mvp_scope: "In 2-3 sentences, the cheapest way to test the leading option before fully committing.",
+  },
+  account: {
+    one_feature: "The ONE reason to call this account now, tied to a trigger or signal in the brief (cite it).",
+    one_customer: "The ONE person to start with: a role, or a name only if a source shows it, and why them.",
+    one_revenue: "The ONE question to open the first call with.",
+    thesis_statement: "One sentence: why this account, why now, and the angle for the first call.",
+    what_to_cut: "3-5 things that look relevant but aren't worth raising on a first call.",
+    mvp_scope: "In 2-3 sentences, the goal of the first call and the next step to ask for. No outreach emails or messages.",
   },
 };
 

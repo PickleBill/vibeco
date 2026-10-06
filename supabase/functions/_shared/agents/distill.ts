@@ -97,7 +97,7 @@ Distill this to its absolute core. What's the ONE thing that matters?`;
   return callLLMWithTool<DistillResult>({
     model,
     messages: [
-      { role: "system", content: systemPrompt + lensAgentNote(lensOf(input.brief)) },
+      { role: "system", content: systemPrompt + lensAgentNote(lensOf(input.brief), input.brief) },
       { role: "user", content: userContent },
     ],
     tools: [distillSchemaFor(input.brief)],
