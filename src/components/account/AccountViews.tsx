@@ -367,13 +367,45 @@ function plainCritic(text: string): string {
     .trim();
 }
 
-function CriticCard({ critic }: { critic: CriticResult }) {
+type Person = NonNullable<AccountBrief["people"]>[number];
+
+// Who in the sources plausibly sits in each seat, by the role the source gives.
+const SEAT_ROLES: Partial<Record<string, RegExp>> = {
+  champion: /chief data|\bcdo\b|(head|vp|vice president|director|lead)\b[^,;]*\b(data|analytics|bi|insights)\b|\b(data|analytics)\b[^,;]*\b(head|vp|director|lead|officer)\b/i,
+  skeptic: /\bcfo\b|chief financial|\bfinance\b/i,
+  builder: /\b(analytics|data) engineer/i,
+};
+
+/** Sourced people matched to seats, each person used once, seats in priority order. */
+function seatPeople(people: Person[] = []): Record<string, Person> {
+  const out: Record<string, Person> = {};
+  const used = new Set<Person>();
+  for (const seat of ["champion", "skeptic", "builder"]) {
+    const p = people.find((x) => !used.has(x) && SEAT_ROLES[seat]?.test(x.role));
+    if (p) {
+      out[seat] = p;
+      used.add(p);
+    }
+  }
+  return out;
+}
+
+function CriticCard({ critic, person, sources }: { critic: CriticResult; person?: Person; sources: ResearchSource[] }) {
   const [open, setOpen] = useState(false);
   const seat = criticFor("account", critic.persona);
   return (
     <article className="rounded-lg border border-border bg-card p-4">
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">{seat?.name ?? critic.persona}</p>
       {seat && <p className="text-xs text-muted-foreground">{seat.tagline}</p>}
+      {person && (
+        <p className="mt-1.5 flex flex-wrap items-center gap-x-1 text-xs text-foreground/80">
+          <Users size={12} className="text-primary" aria-hidden />
+          <span>
+            In this seat today: <span className="font-semibold text-foreground">{person.name}</span>, {person.role}
+          </span>
+          <Cited text={`[${person.source}]`} sources={sources} />
+        </p>
+      )}
       {critic.headline && <h4 className="mt-2 font-display text-base font-bold leading-snug text-foreground">{plainCritic(critic.headline)}</h4>}
       {critic.perspective && (
         <>
@@ -393,7 +425,9 @@ function CriticCard({ critic }: { critic: CriticResult }) {
   );
 }
 
-export function CriticsPanel({ analysis }: { analysis?: AccountAnalysis | null }) {
+export function CriticsPanel({ analysis, brief }: { analysis?: AccountAnalysis | null; brief?: AccountBrief | null }) {
+  const seated = seatPeople(Array.isArray(brief?.people) ? brief!.people : []);
+  const sources = sourcesOf(brief?.research);
   const perspectives = Array.isArray(analysis?.perspectives) ? analysis!.perspectives : [];
   const ordered = SEATS.map((seat) => perspectives.find((p) => p.persona === seat)).filter(Boolean) as CriticResult[];
   const d = (analysis?.distillation ?? null) as Record<string, unknown> | null;
@@ -424,11 +458,13 @@ export function CriticsPanel({ analysis }: { analysis?: AccountAnalysis | null }
             <h3 id="critics-title" className="font-display text-lg font-bold text-foreground">
               Five seats at the table
             </h3>
-            <p className="text-xs text-muted-foreground">Synthetic perspectives written from the brief, not real people or quotes.</p>
+            <p className="text-xs text-muted-foreground">
+              Synthetic perspectives written from the brief and its sources. They are not real quotes.
+            </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {ordered.map((c) => (
-              <CriticCard key={c.persona} critic={c} />
+              <CriticCard key={c.persona} critic={c} person={seated[c.persona]} sources={sources} />
             ))}
           </div>
         </section>
