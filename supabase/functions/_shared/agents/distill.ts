@@ -2,6 +2,7 @@ import { callLLMWithTool } from "../llm-client.ts";
 import { selectModel } from "../model-router.ts";
 import { distillSlots, lensAgentNote, lensOf } from "../lens.ts";
 import type { DistillInput, DistillResult } from "../types.ts";
+import { accountOutputTidy } from "./account.ts";
 
 // ─── Tool Schema ───
 
@@ -94,7 +95,7 @@ ${highlightContext}
 
 Distill this to its absolute core. What's the ONE thing that matters?`;
 
-  return callLLMWithTool<DistillResult>({
+  const result = await callLLMWithTool<DistillResult>({
     model,
     messages: [
       { role: "system", content: systemPrompt + lensAgentNote(lensOf(input.brief), input.brief) },
@@ -103,4 +104,23 @@ Distill this to its absolute core. What's the ONE thing that matters?`;
     tools: [distillSchemaFor(input.brief)],
     toolChoice: { type: "function", function: { name: "generate_distillation" } },
   });
+  return accountOutputTidy(input.brief)({ ...result, what_to_cut: asList(result.what_to_cut) });
+}
+
+/** what_to_cut sometimes comes back as one string holding a list ("['a', 'b']"): make it a list. */
+export function asList(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(String).filter(Boolean);
+  if (typeof value !== "string" || !value.trim()) return [];
+  const text = value.trim();
+  if (text.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean);
+    } catch {
+      // Python-style quotes: ['a', "b's"]
+      const items = [...text.matchAll(/(['"])((?:\\.|(?!\1).)*)\1/g)].map((m) => m[2].replace(/\\(['"])/g, "$1"));
+      if (items.length) return items;
+    }
+  }
+  return text.split(/\n+|;\s+/).map((s) => s.replace(/^[-•*\d.)\s]+/, "").trim()).filter(Boolean);
 }

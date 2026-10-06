@@ -2,6 +2,7 @@ import { callLLMWithTool } from "../llm-client.ts";
 import { selectModel } from "../model-router.ts";
 import { criticPrompt, lensAgentNote, lensOf } from "../lens.ts";
 import type { PersonaInput, PersonaType, PerspectiveResult } from "../types.ts";
+import { accountOutputTidy } from "./account.ts";
 
 // ─── Persona System Prompts ───
 
@@ -110,5 +111,6 @@ Generate your perspective on this idea. Be specific to THIS product — no gener
     toolChoice: { type: "function", function: { name: "generate_perspective" } },
   });
 
-  return { persona: input.persona, ...result };
+  // Account critics: only real citations, and the seller's customer-list wording.
+  return accountOutputTidy(input.brief)({ persona: input.persona, ...result });
 }

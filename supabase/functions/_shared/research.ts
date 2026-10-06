@@ -9,6 +9,7 @@
 // Account research also scans the company's own public job board (Greenhouse,
 // Lever or Ashby; see stack-scan.ts). Those posts lead the source list.
 
+import { isOwnSite, mentionsCompany, squash } from "./match.ts";
 import { emptyScan, scanJobBoards, scanSources, scanSummary, type Ats, type ScanSummary } from "./stack-scan.ts";
 import type { StackCategory } from "./stack-tools.ts";
 
@@ -38,6 +39,8 @@ export interface Research {
   sources: Source[];
   /** Account research: what the job-board scan found (counts only). */
   scan?: ScanSummary;
+  /** Account research: search results dropped because they never name the company. */
+  dropped?: number;
 }
 
 const FIRECRAWL_SEARCH = "https://api.firecrawl.dev/v2/search";
@@ -52,11 +55,16 @@ function clean(text: string, max: number): string {
   return stripMarkdown(text).replace(/\s+/g, " ").trim().slice(0, max);
 }
 
-/** Scraped pages arrive as markdown; keep the words, drop the syntax. */
+/** Scraped pages arrive as markdown; keep the words, drop the syntax and the link addresses. */
 function stripMarkdown(text: string): string {
   return text
+    .replace(/\\([[\]()#*_>`~|!-])/g, "$1") // escaped characters ("\[Virtual session\]", "\# Results")
     .replace(/!\[[^\]]*\]\([^)]*\)/g, "") // images
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1") // links -> link text
+    .replace(/\]\((?:https?:\/\/|\/)[^)\s]*\)/g, "") // the address of a link whose text has brackets in it
+    .replace(/https?:\/\/(?:www\.)?([^/\s)\]]+)[^\s)\]]*/g, "$1") // bare addresses -> their host
+    .replace(/\[\d{1,3}\]/g, "") // footnote marks, which would read as citations
+    .replace(/[[\]]/g, "") // leftover brackets
     .replace(/(^|\s)#{1,6}\s+/g, "$1") // headings, including ones already flattened onto one line
     .replace(/(\*\*|__|\*|`)/g, "") // emphasis, code
     .replace(/^\s*[-*+]\s+/gm, ""); // bullets
@@ -219,12 +227,14 @@ export function carriedResearch(
     excerpts.push(excerpt || snippet);
   });
   const scan = carriedScan(r.scan);
+  const dropped = count(r.dropped);
   const research: Research = {
     provider: sources.length ? provider : "none",
     query: clean(String(r.query ?? ""), 300),
     fetched_at: typeof r.fetched_at === "string" ? r.fetched_at.slice(0, 40) : new Date().toISOString(),
     sources,
     ...(scan ? { scan } : {}),
+    ...(dropped ? { dropped } : {}),
   };
   return { research, promptBlock: sourcesPromptBlock(research, excerpts), excerpts };
 }
@@ -238,7 +248,7 @@ function carriedScan(raw: unknown): ScanSummary | undefined {
   const tools = (Array.isArray(s.tools) ? s.tools : [])
     .filter((t) => t && typeof t.tool === "string" && CATEGORIES.includes(t.category))
     .slice(0, 16)
-    .map((t) => ({ tool: clean(t.tool, 40), category: t.category, posts: n(t.posts), firm: n(t.firm) }));
+    .map((t) => ({ tool: clean(t.tool, 40), category: t.category, posts: n(t.posts), firm: n(t.firm), ...(t.signal === true ? { signal: true as const } : {}) }));
   return {
     found: !!s.found && !!ats,
     ...(ats ? { ats } : {}),
@@ -250,6 +260,8 @@ function carriedScan(raw: unknown): ScanSummary | undefined {
     ms: n(s.ms),
   };
 }
+
+const count = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v > 0 ? Math.min(Math.round(v), 100) : 0);
 
 // ─── Account research ───
 
@@ -366,11 +378,17 @@ async function runLane(apiKey: string, lane: Lane): Promise<LaneResult> {
   return { kind: lane.kind, items, scraped: false, ms: Date.now() - t0, ...(error ? { error } : {}) };
 }
 
-/** "guitarcenter.com" searches better as its stem; names are quoted for exact match. */
-function companyTerm(company: string): string {
+/**
+ * "guitarcenter.com" searches better as its stem; names are quoted for exact
+ * match. When the domain's stem differs from the name ("Relay", relaypro.com),
+ * the stem joins the query, so other companies with the same name drop out.
+ */
+export function companyTerm(company: string, domain?: string): string {
   const s = company.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[/?#]/)[0];
   if (/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(s)) return `"${s.split(".")[0]}"`;
-  return `"${clean(company, 100).replace(/"/g, "")}"`;
+  const quoted = `"${clean(company, 100).replace(/"/g, "")}"`;
+  const stem = squash((domain ?? "").split(".")[0]);
+  return stem.length >= 3 && !squash(company).includes(stem) ? `${quoted} ${stem}` : quoted;
 }
 
 /** Long pages: the head, plus context windows around stack terms further down. */
@@ -405,14 +423,20 @@ const ORDER_NO_BOARD: SourceKind[] = ["stack", "product", "jobs", "news"];
 
 /**
  * The company's own job posts first, then a round-robin across lanes so stack,
- * product, jobs and news each get a share; dedupe by URL, cap at 10.
+ * product, jobs and news each get a share; dedupe by URL, cap at 10. A result
+ * that never names the company (and isn't on its own site) is dropped and counted.
  */
-function mergeLanes(unordered: LaneResult[], first: BoardSource[] = []): { sources: Source[]; excerpts: string[] } {
+function mergeLanes(
+  unordered: LaneResult[],
+  first: BoardSource[] = [],
+  about: (item: FcItem) => boolean = () => true,
+): { sources: Source[]; excerpts: string[]; dropped: number } {
   const order = first.length ? ORDER_WITH_BOARD : ORDER_NO_BOARD;
   const lanes = [...unordered].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
   const seen = new Set<string>();
   const sources: Source[] = [];
   const excerpts: string[] = [];
+  let dropped = 0;
   for (const b of first) {
     if (sources.length >= ACCOUNT_MAX_SOURCES || !isHttpUrl(b.url)) continue;
     const key = urlKey(b.url);
@@ -432,6 +456,10 @@ function mergeLanes(unordered: LaneResult[], first: BoardSource[] = []): { sourc
       const excerpt = accountExcerpt(raw);
       if (!excerpt) return;
       seen.add(key);
+      if (!about(item)) {
+        dropped++;
+        return;
+      }
       sources.push({
         id: sources.length + 1,
         title: clean(item.title || new URL(item.url).hostname, 140),
@@ -443,7 +471,15 @@ function mergeLanes(unordered: LaneResult[], first: BoardSource[] = []): { sourc
       excerpts.push(excerpt);
     });
   }
-  return { sources, excerpts };
+  return { sources, excerpts, dropped };
+}
+
+/** A search result about the company: on its own site, or naming it ("Bandwidth" counts, "greater bandwidth" doesn't). */
+export function aboutCompany(item: FcItem, company: string, domain?: string): boolean {
+  if (item.url && isOwnSite(item.url, company, domain)) return true;
+  const text = [item.title, item.description, item.snippet, item.markdown].filter(Boolean).join("\n");
+  // The full domain only: its stem alone ("bandwidth") is often an everyday word.
+  return mentionsCompany(text, company) || (!!domain && text.toLowerCase().includes(domain.toLowerCase()));
 }
 
 export interface AccountResearch {
@@ -469,7 +505,7 @@ export async function researchAccount(
   const t0 = Date.now();
   const query = clean(company, 120);
   const fetched_at = new Date().toISOString();
-  const name = companyTerm(company);
+  const name = companyTerm(company, opts.domain);
   const toolTerms = (tools.length ? tools : ["Snowflake", "Databricks", "BigQuery", "Redshift", "dbt", "Tableau", "Power BI", "Looker"])
     .slice(0, 12)
     .map((t) => (t.includes(" ") ? `"${t}"` : t))
@@ -509,7 +545,7 @@ export async function researchAccount(
   ]);
   const scan = scanSummary(scanned);
   const boards = scanSources(scanned);
-  const { sources, excerpts } = mergeLanes(results, boards);
+  const { sources, excerpts, dropped } = mergeLanes(results, boards, (item) => aboutCompany(item, company, opts.domain));
   // Every web lane came back empty (often the search API's rate limit) but the
   // job board answered: add Perplexity's sources after the posts, so the brief
   // isn't left with job posts alone.
@@ -533,7 +569,7 @@ export async function researchAccount(
   };
   if (sources.length) {
     const provider = results.some((r) => r.items.length) ? "firecrawl" : sources.length > boards.length ? "perplexity" : "jobboards";
-    const research: Research = { provider, query, fetched_at, sources, scan };
+    const research: Research = { provider, query, fetched_at, sources, scan, ...(dropped ? { dropped } : {}) };
     return { research, promptBlock: sourcesPromptBlock(research, excerpts), excerpts, timing };
   }
 

@@ -133,8 +133,11 @@ export function ScanCard({ scan, company }: { scan?: JobBoardScan | null; compan
       </section>
     );
   }
-  const firm = scan.tools.filter((t) => t.firm > 0);
-  const options = scan.tools.filter((t) => t.firm === 0);
+  // "Customer-facing dashboards" is a sign of analytics inside its product, not a tool.
+  const signals = scan.tools.filter((t) => t.signal || t.tool === "Customer-facing analytics");
+  const tools = scan.tools.filter((t) => !signals.includes(t));
+  const firm = tools.filter((t) => t.firm > 0);
+  const options = tools.filter((t) => t.firm === 0);
   return (
     <section aria-label="Job-board scan" className="rounded-lg border border-primary/25 bg-card p-4">
       <div className="flex items-start justify-between gap-2">
@@ -178,6 +181,12 @@ export function ScanCard({ scan, company }: { scan?: JobBoardScan | null; compan
           <span className="font-medium">Only listed as options:</span> {options.map((t) => t.tool).join(", ")}
         </p>
       )}
+      {signals.length > 0 && (
+        <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+          <span className="font-medium">Signal, not a tool:</span> {signals.reduce((n, t) => n + t.posts, 0)} post
+          {signals.reduce((n, t) => n + t.posts, 0) === 1 ? "" : "s"} describe analytics shipped to its customers.
+        </p>
+      )}
       {!scan.tools.length && <p className="mt-2 text-xs text-muted-foreground">None of its open roles name a data tool.</p>}
     </section>
   );
@@ -188,13 +197,24 @@ export function ScanCard({ scan, company }: { scan?: JobBoardScan | null; compan
 const TAG_STYLE: Record<string, string> = {
   Confirmed: "border-emerald-600/30 bg-emerald-50 text-emerald-800",
   Inferred: "border-amber-500/40 bg-amber-50 text-amber-800",
+  Former: "border-border bg-muted text-muted-foreground line-through decoration-1",
   "Not found": "border-border bg-muted text-muted-foreground",
+};
+
+const TAG_TITLE: Record<string, string> = {
+  Confirmed: "A cited source names this tool at the company, checked in code.",
+  Inferred: "Likely, but no source names it plainly at the company.",
+  Former: "A cited source says the company moved off it or replaced it.",
+  "Not found": "Nothing in the sources.",
 };
 
 export function StatusTag({ status }: { status?: string }) {
   if (!status) return null;
   return (
-    <span className={`inline-flex shrink-0 items-center rounded border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide ${TAG_STYLE[status] ?? TAG_STYLE["Not found"]}`}>
+    <span
+      title={TAG_TITLE[status]}
+      className={`inline-flex shrink-0 items-center rounded border px-1.5 py-px text-xs font-semibold uppercase tracking-wide ${TAG_STYLE[status] ?? TAG_STYLE["Not found"]}`}
+    >
       {status}
     </span>
   );
@@ -393,7 +413,7 @@ function PlanBody({ plan, sources, skip }: { plan: string; sources: ResearchSour
         // "- Warehouse: Snowflake (Confirmed [3])", "- AI: Cortex (Inferred). why", "- BI tools: Not found"
         const stack = /^- ([^:]+): (.*)$/.exec(line);
         if (stack) {
-          const tagged = /^(.*?) \((Confirmed|Inferred)((?: \[[\d, ]+\])?)\)(.*)$/.exec(stack[2]);
+          const tagged = /^(.*?) \((Confirmed|Inferred|Former)(?:: moved off it)?((?: \[[\d, ]+\])?)\)(.*)$/.exec(stack[2]);
           const notFound = stack[2] === "Not found";
           return (
             <p key={i} className="flex flex-wrap items-baseline gap-x-2 gap-y-1 pl-1">

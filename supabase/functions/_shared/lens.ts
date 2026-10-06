@@ -128,8 +128,15 @@ export function lensAgentNote(lens: Lens, brief?: unknown): string {
   // Account briefs are written for a seller; downstream agents need to know who.
   const seller = lens === "account" ? asSeller((brief as { seller?: unknown } | null)?.seller) : undefined;
   const sellerNote = seller ? sellerAgentNote(seller) : "";
+  const onList = (brief as { customer_list?: { on_list?: unknown } } | null)?.customer_list?.on_list === true;
   const accountRules = lens === "account"
-    ? "\nNever write outreach emails or messages. Use people's names only when the brief's sources show them; otherwise use roles. Critic voices are synthetic: they may refer to the people the brief's sources name, but never invent a name."
+    ? `
+Never write outreach emails or messages. Use people's names only when the brief's sources show them; otherwise use roles. Critic voices are synthetic: they may refer to the people the brief's sources name, but never invent a name.
+GROUNDING: every fact about this account comes from the brief and its sources, with their [n] citations. Never state a number, date, timeline, duration, price, headcount, funding amount, valuation, IPO or public/private status, or what a product can or can't do unless the brief or its sources state it. If it matters and isn't there, say it's unknown and turn it into a question. Never claim the account uses a tool the brief's stack read doesn't show, and treat Former tools as ones it moved off.${
+        onList
+          ? "\nThis account is already on the seller's public customer list: it's an existing customer. Frame everything around expanding use (more teams, more use cases, renewal), never a first sale or a migration to the seller."
+          : ""
+      }`
     : "";
   return `
 
@@ -180,12 +187,25 @@ export const CRITIC_PROMPTS: Record<Exclude<Lens, "idea">, Record<Seat, string>>
   // {SELLER} is replaced with the seller's name (or "a new analytics vendor").
   account: {
     champion: `You are the Head of Data at this account. A seller from {SELLER} wants a first meeting. Say why you'd take it: the pain on your team that makes 30 minutes worth it, grounded in the brief and its sources, and what you'd need to see in that meeting. ${CLOSE}`,
-    skeptic: `You are the CFO at this account. Explain why you wouldn't buy from {SELLER} this year: budget timing, overlap with tools you already pay for, switching cost, and the proof that would change your mind. ${CLOSE}`,
+    skeptic: `You are the CFO at this account. Explain why you wouldn't buy from {SELLER} this year: what decides your budget timing (say what you'd need to know, don't assume a date), overlap with tools the brief shows you already pay for, switching cost, and the proof that would change your mind. ${CLOSE}`,
     competitor: `You are the account executive for this account's incumbent BI vendor. Explain how you'd defend the account against {SELLER}: what you'd say about migration risk, bundling and existing investment, and where you are honestly vulnerable. ${CLOSE}`,
     customer: `You are a business user at this account (a manager in sales, finance or operations). Speak in the first person about what you can't get from data today, how long answers take, and what you'd want instead. You are a synthetic voice, not a real person. ${CLOSE}`,
-    builder: `You are an analytics engineer at this account. Explain what moving to {SELLER} would really take: models and dashboards to migrate, dbt or warehouse work, permissions, and how long. Be honest about the effort. ${CLOSE}`,
+    builder: `You are an analytics engineer at this account. Explain what moving to {SELLER} would really take: models and dashboards to migrate, dbt or warehouse work, and permissions. Say what would decide how long it takes instead of guessing a duration. Be honest about the effort. ${CLOSE}`,
   },
 };
+
+/** Who sits in each seat, as the page names them (mirrors CRITICS in src/lib/lenses.ts). */
+export const CRITIC_NAMES: Record<Exclude<Lens, "idea">, Record<Seat, string>> = {
+  company: { champion: "Bull analyst", skeptic: "Bear analyst", competitor: "Competitor", customer: "Customer", builder: "Insider" },
+  initiative: { champion: "Sponsor", skeptic: "CFO", competitor: "Blocker", customer: "Frontline user", builder: "Operator" },
+  decision: { champion: "Leading option", skeptic: "The alternative", competitor: "Precedent", customer: "Most affected", builder: "Fair advisor" },
+  account: { champion: "Head of Data", skeptic: "CFO", competitor: "Incumbent BI vendor", customer: "Business user", builder: "Analytics engineer" },
+};
+
+/** The seat's name for this lens ("CFO"), or undefined for the idea flow. */
+export function criticName(lens: Lens, seat: string): string | undefined {
+  return lens === "idea" ? undefined : CRITIC_NAMES[lens][seat as Seat];
+}
 
 export function criticPrompt(lens: Lens, seat: string, brief?: unknown): string | undefined {
   if (lens === "idea") return undefined;

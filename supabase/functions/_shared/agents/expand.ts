@@ -3,6 +3,7 @@ import { selectModel } from "../model-router.ts";
 import { lensAgentNote, lensOf } from "../lens.ts";
 import { formatBriefContext } from "./persona.ts";
 import type { ExpandInput, ExpandResult } from "../types.ts";
+import { accountOutputTidy } from "./account.ts";
 
 // ─── Tool Schema ───
 
@@ -43,9 +44,38 @@ export const expandToolSchema = {
 
 // ─── Core Logic ───
 
+// Account lens: three ways in for the seller, not three new businesses.
+const ACCOUNT_RULES = `You are a strategist helping a seller see three different ways into this account. The brief below is a target-account brief.
+
+LANGUAGE RULE: RESPOND ONLY IN ENGLISH.
+
+Rules:
+1. core_insight: the one thing about this account that makes it worth pursuing, in one sentence, with [n] citations from the brief.
+2. Then 3 plays that each change ONE thing:
+   - Play 1: a different starting team or buyer (same product, different door in).
+   - Play 2: a different motion (internal analytics for its own teams vs. analytics inside its product for its customers), or a different use case if the brief rules that out.
+   - Play 3: a different size of first step (a narrow wedge, or a broader platform conversation).
+3. Ground every play in the brief and its sources, with [n] citations. Never invent numbers, dates, customers, partners, prices or headcounts; if a play depends on something the brief doesn't show, say what to confirm.
+4. title: 3-6 words. pitch: 2 sentences on what you'd bring to that team and why it lands here. how_its_different: 1 sentence on what changed versus the obvious approach. potential: bigger-market = a bigger deal, easier-to-build = an easier start, less-competition = less competition, faster-revenue = a faster close.
+5. idea_text: one sentence naming the account and the play, so it could be researched on its own. No outreach emails or messages.`;
+
 export async function generateExpansions(input: ExpandInput): Promise<ExpandResult> {
   const briefContext = formatBriefContext(input.brief as unknown as Record<string, unknown>);
   const model = selectModel("expansion", { mode: input.mode });
+  const lens = lensOf(input.brief);
+
+  if (lens === "account") {
+    const result = await callLLMWithTool<ExpandResult>({
+      model,
+      messages: [
+        { role: "system", content: ACCOUNT_RULES + lensAgentNote(lens, input.brief) },
+        { role: "user", content: `Target account: "${input.idea}"\n\nBrief:\n${briefContext}\n\nGive three plays.` },
+      ],
+      tools: [expandToolSchema],
+      toolChoice: { type: "function", function: { name: "generate_expansions" } },
+    });
+    return accountOutputTidy(input.brief)(result);
+  }
 
   const systemPrompt = `You are a creative strategist who helps founders see adjacent opportunities. Given a business idea and its analysis, generate 3 GENUINELY DIFFERENT variations.
 
