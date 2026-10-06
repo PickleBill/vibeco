@@ -255,7 +255,8 @@ function shapeOf(v: unknown, depth = 0): string {
 }
 
 /**
- * JSON a model wrote as text: inside a ```json fence, with words around it,
+ * JSON a model wrote as text: inside a ```json fence, with words or stray
+ * closing brackets after it (Claude has sent `{...brief...}\n},\n"is_final": true}`),
  * with raw line breaks inside string values, or with unescaped quotes inside
  * them ("the "single source of truth" pitch"). Invalid JSON, but common.
  */
@@ -263,21 +264,44 @@ export function looseJson(text: string): unknown {
   const fenced = /```(?:json)?\s*([\s\S]*?)```/i.exec(text)?.[1] ?? text;
   const start = fenced.search(/[[{]/);
   if (start === -1) return undefined;
-  const end = Math.max(fenced.lastIndexOf("}"), fenced.lastIndexOf("]"));
-  const body = fenced.slice(start, end + 1);
-  try {
-    return JSON.parse(body);
-  } catch {
-    const repaired = repairJson(body);
+  const rest = fenced.slice(start);
+  const attempts = [firstValue(rest), firstValue(repairJson(rest))];
+  let lastError: unknown;
+  for (const candidate of attempts) {
     try {
-      return JSON.parse(repaired);
+      return JSON.parse(candidate);
     } catch (e) {
-      // Name the spot, so the next cause shows up in the logs.
-      const at = Number(/position (\d+)/.exec(String(e))?.[1] ?? -1);
-      console.warn(`looseJson: ${String(e).slice(0, 120)}`, at >= 0 ? JSON.stringify(repaired.slice(Math.max(0, at - 60), at + 60)) : "");
-      return undefined;
+      lastError = e;
     }
   }
+  // Name the spot, so the next cause shows up in the logs.
+  const at = Number(/position (\d+)/.exec(String(lastError))?.[1] ?? -1);
+  const shown = attempts[1];
+  console.warn(`looseJson: ${String(lastError).slice(0, 120)}`, at >= 0 ? JSON.stringify(shown.slice(Math.max(0, at - 60), at + 60)) : "");
+  return undefined;
+}
+
+/** The first complete JSON object or array in the text (string-aware bracket count); the rest is dropped. */
+function firstValue(text: string): string {
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === "{" || ch === "[") depth++;
+    else if (ch === "}" || ch === "]") {
+      depth--;
+      if (depth === 0) return text.slice(0, i + 1);
+    }
+  }
+  return text;
 }
 
 // A real closing quote is followed by } ] or :, or by a comma and then the next
