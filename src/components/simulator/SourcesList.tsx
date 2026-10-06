@@ -9,6 +9,8 @@ export interface ResearchSource {
   kind?: "stack" | "jobs" | "news" | string;
   /** Publish date, when the search result gave one (news). */
   date?: string;
+  /** Judged not to be about the company (e.g. a different business with the same name); never cited. */
+  off_topic?: boolean;
 }
 
 const KIND_LABEL: Record<string, string> = { stack: "Stack", jobs: "Hiring", news: "News" };
@@ -91,7 +93,7 @@ const SourcesList = ({
       </div>
       <ol className="space-y-2.5">
         {sources.map((s) => (
-          <li key={s.id} className="flex gap-3 text-sm">
+          <li key={s.id} className={`flex gap-3 text-sm ${s.off_topic ? "opacity-60" : ""}`}>
             <span className="w-6 shrink-0 text-right font-mono text-xs text-muted-foreground">[{s.id}]</span>
             <div className="min-w-0">
               <a
@@ -111,6 +113,11 @@ const SourcesList = ({
                   </span>
                 )}
                 {shownDate(s.date) && <span>{shownDate(s.date)}</span>}
+                {s.off_topic && (
+                  <span className="rounded border border-warning/40 bg-warning/10 px-1.5 py-px text-[10px] font-medium text-foreground">
+                    Not about this company · not used
+                  </span>
+                )}
               </p>
               {s.snippet && !compact && (
                 <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed line-clamp-2">{plain(s.snippet)}</p>
