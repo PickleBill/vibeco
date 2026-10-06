@@ -13,12 +13,19 @@ export interface StackTool {
 
 // Names that are also everyday words count only next to another data tool in a list.
 const NEIGHBOR =
-  "(?:Looker|Tableau|Power ?BI|Mode|Hex|Sigma|Omni|Metabase|ThoughtSpot|Periscope|Superset|Jupyter|dbt|Snowflake|BigQuery|Databricks|Redshift|Fivetran|Airflow)";
+  "(?:Looker|Tableau|Power ?BI|Mode|Hex|Sigma|Omni|Metabase|ThoughtSpot|Periscope|Superset|Jupyter|dbt|Snowflake|BigQuery|Databricks|Redshift|Fivetran|Airflow|ClickHouse|Postgres(?:QL)?)";
 const LIST = "\\s*(?:,|/|\\bor\\b|\\band\\b)\\s*";
 const listed = (word: string, extra = "") =>
   new RegExp(`${extra}\\b${word}\\b(?=${LIST}${NEIGHBOR}\\b)|\\b${NEIGHBOR}${LIST}${word}\\b`);
 
 const tool = (name: string, category: StackCategory, re: RegExp): StackTool => ({ name, category, re });
+
+/**
+ * Analytics shipped to the company's own customers: "embedded analytics",
+ * "customer-facing dashboards", "in-product reporting", "white-labeled analytics".
+ */
+export const EMBEDDED_PHRASE =
+  /\bembedded (?:analytics|dashboards?|BI|reporting|reports)\b|\b(?:customer|client|user|partner|merchant)[- ]facing (?:analytics|dashboards?|reporting|reports|insights|data products?)\b|\bin-product (?:analytics|reporting|reports|dashboards?|insights)\b|\bwhite[- ]?label(?:ed|led)? (?:analytics|dashboards?|reporting|reports|BI)\b/i;
 
 export const STACK_TOOLS: StackTool[] = [
   // Warehouses, lakehouses and query engines
@@ -79,23 +86,35 @@ export const STACK_TOOLS: StackTool[] = [
   tool("LangChain", "AI", /\bLangChain\b/i),
   tool("Hugging Face", "AI", /\bHugging\s?Face\b/i),
 
-  // Embedded analytics: analytics built for the company's own customers
-  tool(
-    "Customer-facing analytics",
-    "Embedded analytics",
-    /\b(?:customer|client|user|partner)[- ]facing (?:analytics|dashboards?|reporting|insights|data products?)\b|\bembedded (?:analytics|dashboards?|BI|reporting)\b/i,
-  ),
+  // Embedded analytics: analytics the company ships inside its own product.
+  tool("Customer-facing analytics", "Embedded analytics", EMBEDDED_PHRASE),
+  tool("Looker Embedded", "Embedded analytics", /\bLooker (?:Embedded|embed(?:ded)? analytics|Powered)\b|\bembedded Looker\b/i),
+  tool("Tableau Embedded", "Embedded analytics", /\bTableau Embedded\b|\bTableau embedded analytics\b|\bembedded Tableau\b/i),
+  tool("Power BI Embedded", "Embedded analytics", /\bPower\s?BI Embedded\b|\bembedded Power\s?BI\b/i),
+  tool("Metabase Embedded", "Embedded analytics", /\bMetabase (?:Embedded|embedding)\b|\bembedded Metabase\b/i),
+  tool("Sisense", "Embedded analytics", /\bSisense\b/i),
+  tool("GoodData", "Embedded analytics", /\bGoodData\b/i),
+  tool("Qrvey", "Embedded analytics", /\bQrvey\b/i),
+  tool("Luzmo", "Embedded analytics", /\bLuzmo\b|\bCumul\.io\b/i),
+  tool("Cube", "Embedded analytics", listed("Cube", "\\bCube\\.(?:dev|js)\\b|\\bCube Cloud\\b|\\bCube semantic layer\\b|")),
 ];
 
-// A tool offered as one option among several isn't evidence the company runs
-// it. Two kinds of hedge:
+/** A role that builds analytics for the company's customers ("Data Product Manager", "Product Manager, Reporting"). */
+export const EMBEDDED_ROLE =
+  /\bdata products? manager\b|\bproduct manager\b[^|]{0,24}\b(?:analytics|reporting|insights|dashboards?)\b|\b(?:analytics|reporting|insights) product manager\b/i;
+
+// A tool offered as one option among several, or as a nice-to-have, isn't
+// evidence the company runs it. Hedges:
 //   lead-ins that cover the rest of the sentence ("such as AWS (Redshift), GCP
 //   (BigQuery)", "e.g. Looker, Tableau", "preferably Snowflake"), and
 //   alternatives inside the tool's own clause ("Snowflake, BigQuery, or
-//   Redshift", "dbt / Omni / Hex or equivalents").
+//   Redshift", "dbt / Omni / Hex or equivalents"), and
+//   a plus anywhere in the sentence ("Experience with Looker is a plus").
 const LEAD_HEDGE =
   /\b(?:e\.g|eg|such as|for example|for instance|like|preferabl[ey]|ideally|any (?:of|modern|major|other)|one or more|at least one|including but not limited)\b/i;
 const CLAUSE_HEDGE = /\bor\b|\b(?:similar|equivalents?|comparable)\b/i;
+// A nice-to-have anywhere in the sentence: "Experience with Looker is a plus."
+const NICE_TO_HAVE = /\b(?:is|are|would be|a)\s+(?:a\s+)?(?:big\s+|huge\s+|strong\s+)?(?:plus|bonus)\b|\bnice[- ]to[- ]haves?\b|\bbonus points?\b/i;
 const BOUNDARIES = [";", ":", "(", ")", "[", "]", " - ", " – ", " — "];
 
 /** The clause around a match, bounded by ; : ( ) [ ] or a spaced dash. */
@@ -112,7 +131,7 @@ function clauseAround(sentence: string, at: number, len: number): string {
 }
 
 function isFirm(sentence: string, at: number, len: number): boolean {
-  return !LEAD_HEDGE.test(sentence.slice(0, at)) && !CLAUSE_HEDGE.test(clauseAround(sentence, at, len));
+  return !NICE_TO_HAVE.test(sentence) && !LEAD_HEDGE.test(sentence.slice(0, at)) && !CLAUSE_HEDGE.test(clauseAround(sentence, at, len));
 }
 
 export interface Mention {
@@ -122,10 +141,17 @@ export interface Mention {
   quote: string;
 }
 
+/**
+ * A sentence end: ". ", "! " or "? ", but not after an abbreviation, so
+ * "(e.g. Looker or Tableau)" and "Sr. Data Engineer" stay whole.
+ */
+export const SENTENCE_END =
+  /(?<=[.!?])(?<!\b(?:e\.g|i\.e|etc|vs|incl|approx|esp|Inc|Corp|Co|Ltd|Jr|Sr|Mr|Ms|Mrs|Dr|St|No)\.)\s+/;
+
 /** Sentences, bullets and excerpt windows (" … ") as separate units. */
 export function sentencesOf(text: string): string[] {
   return text
-    .split(/\s…\s|(?<=[.!?])\s+|\n+|\s•\s/)
+    .split(new RegExp(`\\s…\\s|${SENTENCE_END.source}|\\n+|\\s•\\s`))
     .map((s) => s.replace(/^[•\-*\s]+/, "").trim())
     .filter((s) => s.length > 3);
 }

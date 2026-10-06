@@ -13,10 +13,29 @@ export const OMNI: SellerProfile = {
   sells:
     "an AI analytics platform built on a governed semantic model (shared metrics, permissions and Git version control). The same model answers dashboards, spreadsheets, SQL and AI queries.",
   // PRESS: "companies consolidating legacy BI use cases, accelerating AI adoption, and building AI data products with Omni"
-  motions: [
+  reasons: [
     "Consolidating legacy BI tools",
     "AI adoption on trusted, governed data",
     "Building AI data products for their own customers",
+  ],
+  // The two motions, as generic seller config: how these deals usually run.
+  // Not quotes or sourced claims; the brief tests them against each account.
+  motions: [
+    {
+      id: "internal",
+      label: "Internal analytics",
+      what: "Analytics for the account's own teams: dashboards, self-serve exploration and AI answers on governed data.",
+      buyers: ["VP or Head of Data", "CTO"],
+      clock: "a renewal with the current BI vendor, 6 to 9 months out",
+    },
+    {
+      id: "embedded",
+      label: "Embedded analytics",
+      what: "Analytics shipped inside the account's own product to its customers, often white-labeled.",
+      buyers: ["CTO", "Chief Product and Technology Officer", "VP of Product"],
+      clock: "a customer-facing launch date",
+      fit: "Fit is strongest under about 5,000 employees; above that, test build versus buy before assuming.",
+    },
   ],
   // PRESS: "Omni integrates with Snowflake, Google BigQuery, Databricks, Amazon Redshift, Postgres, ClickHouse"
   warehouses: ["Snowflake", "BigQuery", "Databricks", "Redshift", "Postgres", "ClickHouse"],

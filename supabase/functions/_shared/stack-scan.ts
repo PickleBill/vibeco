@@ -3,7 +3,7 @@
 // are first-party sources, so a tool named here can be Confirmed. No API keys:
 // all three boards publish open JSON endpoints.
 import { companyHits, squash } from "./match.ts";
-import { STACK_TOOLS, toolMentions, type StackCategory } from "./stack-tools.ts";
+import { EMBEDDED_ROLE, SENTENCE_END, STACK_TOOLS, toolMentions, type StackCategory } from "./stack-tools.ts";
 
 export type Ats = "greenhouse" | "lever" | "ashby";
 export const ATS_LABEL: Record<Ats, string> = { greenhouse: "Greenhouse", lever: "Lever", ashby: "Ashby" };
@@ -33,6 +33,8 @@ export interface ScannedPost {
   firm: string[];
   /** A data or analytics role (vs. an engineering role). */
   data: boolean;
+  /** A role that builds analytics for the company's customers ("Data Product Manager"). */
+  embedded_role?: boolean;
   /** Sentences that name the tools, joined with " … ". */
   excerpt: string;
 }
@@ -88,7 +90,7 @@ export function htmlToText(html: string): string {
 
 /** The sentences (or list items) that name a tool, de-duplicated, up to ~1500 characters. */
 function toolSentences(text: string, max = 1500): string {
-  const parts = text.split(/(?<=[.!?])\s+|\n+/).map((p) => p.trim()).filter((p) => p.length > 8 && p.length < 500);
+  const parts = text.split(new RegExp(`${SENTENCE_END.source}|\\n+`)).map((p) => p.trim()).filter((p) => p.length > 8 && p.length < 500);
   const keep: string[] = [];
   let size = 0;
   for (const p of parts) {
@@ -105,7 +107,13 @@ function toolSentences(text: string, max = 1500): string {
 const LEGAL = /[\s,]+(?:inc|llc|ltd|limited|corp|corporation|co|company|plc|gmbh)\.?$/i;
 
 /** Likely board slugs: "Warby Parker" -> warbyparker, warby-parker; "incident.io" -> incident, incidentio. */
-export function slugCandidates(company: string): string[] {
+export function slugCandidates(company: string, domain?: string): string[] {
+  const named = slugsFor(company);
+  const fromDomain = domain ? slugsFor(domain) : [];
+  return [...new Set([...named.slice(0, 2), ...fromDomain, ...named])].slice(0, 4);
+}
+
+function slugsFor(company: string): string[] {
   const typed = company.trim().replace(LEGAL, "");
   const host = typed.toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[/?#]/)[0];
   const out: string[] = [];
@@ -231,7 +239,8 @@ export function scanBoard(board: Board, company: string, ms = 0, tried: string[]
   const posts: ScannedPost[] = [];
   for (const p of scanned) {
     const found = toolMentions(p.text);
-    if (!found.length) continue;
+    const embeddedRole = EMBEDDED_ROLE.test(p.title);
+    if (!found.length && !embeddedRole) continue;
     for (const f of found) {
       const c = counts.get(f.tool.name) ?? { tool: f.tool.name, category: f.tool.category, posts: 0, firm: 0 };
       c.posts += 1;
@@ -246,6 +255,7 @@ export function scanBoard(board: Board, company: string, ms = 0, tried: string[]
       firm: found.filter((f) => f.firm).map((f) => f.tool.name),
       excerpt: toolSentences(p.text),
       data: DATA_ROLE.test(p.title),
+      ...(embeddedRole ? { embedded_role: true } : {}),
     });
   }
   return {
@@ -264,9 +274,9 @@ export function scanBoard(board: Board, company: string, ms = 0, tried: string[]
 }
 
 /** Find the company's public board and scan it. Never throws; gives up after ~6.5s. */
-export async function scanJobBoards(company: string, budgetMs = BUDGET_MS): Promise<StackScan> {
+export async function scanJobBoards(company: string, budgetMs = BUDGET_MS, domain?: string): Promise<StackScan> {
   const t0 = Date.now();
-  const slugs = slugCandidates(company);
+  const slugs = slugCandidates(company, domain);
   if (!slugs.length) return emptyScan();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), budgetMs);
@@ -293,7 +303,7 @@ export async function scanJobBoards(company: string, budgetMs = BUDGET_MS): Prom
  * The fewest posts that cover the most tools (up to `max`), as research
  * sources: the company's own job posts, cited like any other source.
  */
-export function scanSources(scan: StackScan, max = 5): { title: string; url: string; snippet: string; excerpt: string; via: Ats }[] {
+export function scanSources(scan: StackScan, max = 4): { title: string; url: string; snippet: string; excerpt: string; via: Ats }[] {
   if (!scan.found || !scan.ats) return [];
   const label = ATS_LABEL[scan.ats];
   const company = scan.company_name ?? "";
@@ -303,18 +313,22 @@ export function scanSources(scan: StackScan, max = 5): { title: string; url: str
   const leftAny = new Set(scan.tools.map((t) => t.tool));
   const pool = scan.posts.filter((p) => /^https?:\/\//.test(p.url));
   const picked: ScannedPost[] = [];
-  // Score: a confirmed BI tool counts most (it's what a BI seller replaces),
-  // any newly confirmed tool next, a new hedged mention least; data roles break ties.
+  // Score: plainly named embedded work counts most (it decides the motion), a
+  // confirmed BI tool next (it's what a BI seller replaces), then any newly
+  // confirmed tool, then a new hedged mention; data roles break ties.
   const category = new Map(scan.tools.map((t) => [t.tool, t.category]));
+  let roleShown = false;
   const score = (p: ScannedPost) => {
     let sum = p.data ? 0.5 : 0;
+    if (p.embedded_role && !roleShown) sum += 3.5;
     for (const t of p.tools) {
-      if (p.firm.includes(t) && leftFirm.has(t)) sum += category.get(t) === "BI tools" ? 3 : 2;
+      const cat = category.get(t);
+      if (p.firm.includes(t) && leftFirm.has(t)) sum += cat === "Embedded analytics" ? 4 : cat === "BI tools" ? 3 : 2;
       else if (leftAny.has(t)) sum += 1;
     }
     return sum;
   };
-  while (picked.length < max && (leftFirm.size || leftAny.size)) {
+  while (picked.length < max && (leftFirm.size || leftAny.size || !roleShown)) {
     let best: ScannedPost | undefined;
     let top = 0.5;
     for (const p of pool) {
@@ -327,6 +341,7 @@ export function scanSources(scan: StackScan, max = 5): { title: string; url: str
     }
     if (!best) break;
     picked.push(best);
+    if (best.embedded_role) roleShown = true;
     best.firm.forEach((t) => leftFirm.delete(t));
     best.tools.forEach((t) => leftAny.delete(t));
   }
@@ -335,6 +350,7 @@ export function scanSources(scan: StackScan, max = 5): { title: string; url: str
     const named = [
       p.firm.length ? `names ${p.firm.join(", ")}` : "",
       options.length ? `lists ${options.join(", ")} as options` : "",
+      !p.tools.length && p.embedded_role ? "is a role building analytics for its customers" : "",
     ].filter(Boolean);
     return {
       title: `${p.title} at ${company} (${label} job post)`,
@@ -346,8 +362,10 @@ export function scanSources(scan: StackScan, max = 5): { title: string; url: str
   });
 }
 
-/** What the page shows about the scan: counts only, no post text. */
+/** What the page shows about the scan: counts only, no post text. Embedded tools always make the cut. */
 export function scanSummary(scan: StackScan) {
+  const top = scan.tools.slice(0, 16);
+  const embedded = scan.tools.filter((t) => t.category === "Embedded analytics" && !top.includes(t));
   return {
     found: scan.found,
     ...(scan.ats ? { ats: scan.ats } : {}),
@@ -355,7 +373,7 @@ export function scanSummary(scan: StackScan) {
     ...(scan.company_name ? { company_name: scan.company_name } : {}),
     total_jobs: scan.total_jobs,
     scanned_jobs: scan.scanned_jobs,
-    tools: scan.tools.slice(0, 16),
+    tools: [...top.slice(0, 16 - embedded.length), ...embedded],
     ms: scan.ms,
   };
 }

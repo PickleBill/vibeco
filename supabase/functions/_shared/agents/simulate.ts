@@ -4,6 +4,7 @@ import type { SimulateInput, SimulationResult, DeepDiveResult, AnalysisMode, Len
 import { asLens, isExpress, lensAgentNote, lensOf, lensSpec } from "../lens.ts";
 import { carriedResearch, researchAccount, researchQuestion, type Research } from "../research.ts";
 import { asSeller, matchCustomer } from "../sellers/index.ts";
+import { parseCompany } from "../match.ts";
 import { accountPrompts, accountToolSchema, finalizeAccount } from "./account.ts";
 
 // ─── Tool Schemas ───
@@ -237,8 +238,9 @@ export function cleanCompany(raw: unknown): string {
  * excerpts) right away, so the UI can show them before the brief is written.
  * The client sends both back with the brief request; nothing is searched twice.
  */
-export async function runAccountResearch(company: string) {
-  const { research, excerpts, timing } = await researchAccount(company);
+export async function runAccountResearch(typed: string) {
+  const { name, domain } = parseCompany(typed);
+  const { research, excerpts, timing } = await researchAccount(name, { domain });
   return { research, excerpts, timing };
 }
 
@@ -258,8 +260,10 @@ export async function runSimulation(input: SimulateInput): Promise<SimulationRes
 
   // Account lens: written for a seller (if one is named) about one company.
   const seller = lens === "account" ? asSeller(input.seller) : undefined;
-  const company = lens === "account" ? cleanCompany(input.idea) : "";
-  const match = seller ? matchCustomer(seller, company) : undefined;
+  // "Bandwidth (bandwidth.com)": the name is the company, the domain helps find it.
+  const { name: company, domain } = lens === "account" ? parseCompany(cleanCompany(input.idea)) : { name: "", domain: undefined };
+  const byName = seller ? matchCustomer(seller, company) : undefined;
+  const match = seller && byName && !byName.onList && domain ? matchCustomer(seller, domain) : byName;
 
   // Company questions are grounded in live web sources: fetched on the first
   // round, then carried on the brief so later rounds cite the same ones.
@@ -269,7 +273,7 @@ export async function runSimulation(input: SimulateInput): Promise<SimulationRes
   if (lens === "company") {
     grounding = input.type === "initial" ? await researchQuestion(input.idea) : carriedResearch(input.research);
   } else if (lens === "account") {
-    grounding = carriedResearch(input.research, { max: 10, excerpts: input.excerpts }) ?? await researchAccount(company);
+    grounding = carriedResearch(input.research, { max: 10, excerpts: input.excerpts }) ?? await researchAccount(company, { domain });
   }
 
   const { systemPrompt, userContent } = lens === "account"
@@ -331,6 +335,7 @@ export async function runSimulation(input: SimulateInput): Promise<SimulationRes
       excerpts: grounding.excerpts ?? [],
       seller,
       match,
+      domain,
     });
     if (seller) brief.seller = seller.id;
     result.brief = brief as unknown as BriefData;

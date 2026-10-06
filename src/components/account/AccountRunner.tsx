@@ -121,12 +121,12 @@ function HowItWorks() {
     {
       title: "Live sources",
       time: "~5s",
-      body: "Its own job posts on Greenhouse, Lever or Ashby, plus the web and the last 12 months of news.",
+      body: "Its own job posts on Greenhouse, Lever or Ashby, its product pages, the web and the last 12 months of news.",
     },
     {
       title: "First-call plan",
       time: "~15s",
-      body: "Stack read, why now, who to start with, seven discovery questions, the migration objection and a fit grade.",
+      body: "The motion (internal, embedded, both or unclear), stack read, why now, who to start with, discovery questions, the migration objection and a fit grade.",
     },
     {
       title: "Five critics",
@@ -438,7 +438,7 @@ const AccountRunner = ({ seller, initialCompany = "", intro, afterForm }: Props)
                     <div className="space-y-3 rounded-lg border border-border bg-card/40 p-4">
                       <p className="text-sm text-muted-foreground">
                         <Loader2 size={14} className="mr-2 inline animate-spin" aria-hidden />
-                        Reading {company}&rsquo;s job board, stack, data hiring and news…
+                        Reading {company}&rsquo;s job board, product, stack, data hiring and news…
                       </p>
                       {[0, 1, 2, 3].map((i) => (
                         <div key={i} className="h-3 animate-pulse rounded bg-muted" style={{ width: `${90 - i * 12}%` }} />

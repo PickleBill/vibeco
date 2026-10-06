@@ -7,7 +7,7 @@ export interface ResearchSource {
   url: string;
   snippet: string;
   /** Account research lane that found it. */
-  kind?: "stack" | "jobs" | "news" | string;
+  kind?: "stack" | "jobs" | "news" | "product" | string;
   /** Publish date, when the search result gave one (news). */
   date?: string;
   /** Judged not to be about the company (e.g. a different business with the same name); never cited. */
@@ -28,7 +28,7 @@ export interface JobBoardScan {
   ms: number;
 }
 
-const KIND_LABEL: Record<string, string> = { stack: "Stack", jobs: "Hiring", news: "News" };
+const KIND_LABEL: Record<string, string> = { stack: "Stack", jobs: "Hiring", news: "News", product: "Product" };
 
 export interface BriefResearch {
   provider: "firecrawl" | "perplexity" | "jobboards" | "none" | string;

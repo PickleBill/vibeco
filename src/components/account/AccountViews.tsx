@@ -1,5 +1,5 @@
 import { Fragment, useState } from "react";
-import { ArrowUpRight, Briefcase, Check, Copy, FileText, Quote, Users } from "lucide-react";
+import { ArrowUpRight, Briefcase, Check, Compass, Copy, FileText, Quote, Users } from "lucide-react";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/copyToClipboard";
 import { SEATS, criticFor, distillLabel, sectionLabel, type StackFeature } from "@/lib/lenses";
@@ -14,6 +14,23 @@ export interface CustomerList {
   source?: string;
   ambiguous?: boolean;
   sentence: string;
+}
+
+export type MotionLabel = "Internal" | "Embedded" | "Both" | "Unclear";
+
+export interface MotionSide {
+  sources: number[];
+  evidence: { source: number; signal: string; quote: string }[];
+  clock: string;
+  buyer: string;
+  question: string;
+}
+
+/** Which way the seller would sell here; decided in code from the sources. */
+export interface MotionRead {
+  label: MotionLabel;
+  internal: MotionSide;
+  embedded: MotionSide;
 }
 
 export interface AccountBrief {
@@ -33,7 +50,8 @@ export interface AccountBrief {
   start_with?: { role?: string; why?: string };
   discovery_questions?: string[];
   migration_objection?: { objection?: string; honest_answer?: string };
-  fit?: { grade?: string; reason?: string };
+  fit?: { grade?: string; motion?: string; reason?: string };
+  motion?: MotionRead;
   customer_list?: CustomerList;
 }
 
@@ -208,11 +226,137 @@ export function CustomerListBadge({ list, sellerName }: { list?: CustomerList; s
 
 export function FitGrade({ fit }: { fit?: AccountBrief["fit"] }) {
   if (!fit?.grade) return null;
+  const graded = fit.motion === "Internal" || fit.motion === "Embedded" ? `${fit.motion} motion` : fit.motion === "Unclear" ? "Motion unclear" : "";
   return (
-    <div className="flex items-center gap-2 rounded-md border border-border bg-surface-elevated px-3 py-2">
+    <div
+      className="flex items-center gap-2 rounded-md border border-border bg-surface-elevated px-3 py-2"
+      title={graded ? `Fit grade for the ${graded.toLowerCase()}` : undefined}
+    >
       <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Fit</span>
       <span className="font-display text-lg font-bold leading-none text-primary">{fit.grade}</span>
+      {graded && <span className="text-[11px] leading-tight text-muted-foreground">{graded}</span>}
     </div>
+  );
+}
+
+// ─── Motion ───
+
+const MOTION_STYLE: Record<MotionLabel, string> = {
+  Internal: "border-primary/40 bg-accent text-primary",
+  Embedded: "border-primary bg-primary text-primary-foreground",
+  Both: "border-primary bg-primary text-primary-foreground",
+  Unclear: "border-dashed border-border bg-muted text-muted-foreground",
+};
+
+const MOTION_SUMMARY: Record<MotionLabel, string> = {
+  Internal: "Analytics for its own teams.",
+  Embedded: "Analytics inside its product, for its customers.",
+  Both: "Analytics for its own teams, and inside its product for its customers.",
+  Unclear: "No source shows either motion yet, so test both on the call.",
+};
+
+export function MotionBadge({ label }: { label?: string }) {
+  if (!label || !(label in MOTION_STYLE)) return null;
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.1em] ${MOTION_STYLE[label as MotionLabel]}`}
+    >
+      {label}
+    </span>
+  );
+}
+
+function MotionSideCard({
+  name,
+  side,
+  live,
+  sources,
+}: {
+  name: "Internal" | "Embedded";
+  side: MotionSide;
+  live: boolean;
+  sources: ResearchSource[];
+}) {
+  const seen = new Set<string>();
+  const signals = side.evidence.filter((e) => !seen.has(e.signal.toLowerCase()) && seen.add(e.signal.toLowerCase())).slice(0, 3);
+  // A sentence from a source; role titles and stack lines aren't quotes.
+  const quote = side.evidence.find((e) => e.quote && e.quote !== e.signal && !e.signal.endsWith(" role") && !/^[A-Z][\w ]+: /.test(e.quote))?.quote;
+  return (
+    <div className="rounded-md border border-border bg-surface-elevated p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">{name}</p>
+      {live ? (
+        <p className="mt-1 text-sm font-medium text-foreground">
+          {signals.map((e, i) => (
+            <Fragment key={i}>
+              {i > 0 && "; "}
+              {e.signal} <Cited text={`[${e.source}]`} sources={sources} />
+            </Fragment>
+          ))}
+        </p>
+      ) : (
+        <p className="mt-1 text-xs text-muted-foreground">Nothing in the sources yet.</p>
+      )}
+      {quote && (
+        <p className="mt-1.5 flex gap-1.5 text-xs leading-relaxed text-muted-foreground">
+          <Quote size={12} className="mt-0.5 shrink-0 text-primary/60" aria-hidden />
+          <span className="italic">{quote}</span>
+        </p>
+      )}
+      <dl className="mt-2.5 grid gap-2 text-xs leading-relaxed">
+        {(
+          [
+            ["Clock to test", side.clock],
+            ["Buyer to start with", side.buyer],
+          ] as const
+        ).map(([label, value]) => (
+          <div key={label}>
+            <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{label}</dt>
+            <dd className="mt-0.5 text-foreground/90">
+              <Cited text={value} sources={sources} />
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+/** The motion: a badge, then each motion the sources show with its clock and buyer. */
+export function MotionPanel({ motion, fit, research }: { motion?: MotionRead; fit?: AccountBrief["fit"]; research?: BriefResearch | null }) {
+  if (!motion?.label || !(motion.label in MOTION_STYLE)) return null;
+  const sources = sourcesOf(research);
+  const live = (["internal", "embedded"] as const).filter((id) => motion[id]?.sources?.length > 0);
+  if (live.length === 2 && fit?.motion === "Embedded") live.reverse();
+  const shown = motion.label === "Unclear" ? (["internal", "embedded"] as const) : live;
+  const missing = motion.label === "Internal" ? "embedded" : motion.label === "Embedded" ? "internal" : null;
+  return (
+    <section aria-label="Motion" className="rounded-md border border-primary/20 bg-accent/30 p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
+          <Compass size={13} aria-hidden /> Motion
+        </p>
+        <MotionBadge label={motion.label} />
+        <p className="text-xs text-muted-foreground">{MOTION_SUMMARY[motion.label]}</p>
+      </div>
+      <div className={`mt-2.5 grid gap-2 ${shown.length === 2 ? "sm:grid-cols-2" : ""}`}>
+        {shown.map((id) => (
+          <MotionSideCard
+            key={id}
+            name={id === "internal" ? "Internal" : "Embedded"}
+            side={motion[id]}
+            live={motion[id].sources.length > 0}
+            sources={sources}
+          />
+        ))}
+      </div>
+      {missing && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          {missing === "embedded"
+            ? "Embedded: no source shows analytics inside its product for its customers."
+            : "Internal: no source shows the stack its own teams use for analytics."}
+        </p>
+      )}
+    </section>
   );
 }
 
@@ -221,10 +365,17 @@ export function FitGrade({ fit }: { fit?: AccountBrief["fit"] }) {
 /** Section headings in the composed plan are upper case: "WHY NOW", "FIT GRADE: B". */
 const HEADING = /^([A-Z0-9][A-Z0-9 '-]{3,})(?::\s*(.*))?$/;
 
-function PlanBody({ plan, sources }: { plan: string; sources: ResearchSource[] }) {
+function PlanBody({ plan, sources, skip }: { plan: string; sources: ResearchSource[]; skip?: string[] }) {
   const lines = plan.split("\n");
   // The first line ("FIRST-CALL PLAN: Company") is the card's title.
-  const body = /^FIRST-CALL PLAN/.test(lines[0] ?? "") ? lines.slice(1) : lines;
+  const all = /^FIRST-CALL PLAN/.test(lines[0] ?? "") ? lines.slice(1) : lines;
+  // Sections drawn elsewhere on the card (the motion panel) are left out here.
+  let skipping = false;
+  const body = all.filter((raw) => {
+    const h = HEADING.exec(raw.trim());
+    if (h && /[A-Z]{3,}/.test(h[1]) && !raw.startsWith(" ")) skipping = !!skip?.includes(h[1].trim());
+    return !skipping;
+  });
   return (
     <div className="space-y-1.5 text-sm leading-relaxed text-foreground/90">
       {body.map((raw, i) => {
@@ -263,6 +414,15 @@ function PlanBody({ plan, sources }: { plan: string; sources: ResearchSource[] }
               ) : (
                 <Cited text={stack[2]} sources={sources} />
               )}
+            </p>
+          );
+        }
+        // "Internal: Who owns Sigma today?" under ONE QUESTION PER MOTION
+        const perMotion = /^(Internal|Embedded): (.*)$/.exec(line);
+        if (perMotion) {
+          return (
+            <p key={i} className="pl-1">
+              <span className="font-semibold text-foreground">{perMotion[1]}:</span> <Cited text={perMotion[2]} sources={sources} />
             </p>
           );
         }
@@ -332,7 +492,8 @@ export function PlanCard({
       </div>
       <div className="space-y-3 px-4 py-4 sm:px-5">
         {sellerName && <CustomerListBadge list={brief.customer_list} sellerName={sellerName} />}
-        <PlanBody plan={plan} sources={sources} />
+        <MotionPanel motion={brief.motion} fit={brief.fit} research={brief.research} />
+        <PlanBody plan={plan} sources={sources} skip={brief.motion ? ["MOTION"] : undefined} />
       </div>
     </section>
   );

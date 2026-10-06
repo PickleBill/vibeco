@@ -3,7 +3,7 @@ import path from "node:path";
 import { render, screen } from "@testing-library/react";
 import { LENS_IDS, criticFor, distillLabel, featureTitle, getLens, LENSES, sectionLabel } from "@/lib/lenses";
 import { getSeller } from "@/lib/sellers";
-import { PlanCard, ScanCard, StackTable, type AccountBrief } from "@/components/account/AccountViews";
+import { MotionPanel, PlanCard, ScanCard, StackTable, type AccountBrief, type MotionRead } from "@/components/account/AccountViews";
 
 const root = path.resolve(__dirname, "../..");
 const read = (p: string) => readFileSync(path.join(root, p), "utf8");
@@ -138,5 +138,65 @@ describe("job-board scan card", () => {
   it("says so when there's no public board", () => {
     render(<ScanCard company="Guitar Center" scan={{ found: false, total_jobs: 0, scanned_jobs: 0, tools: [], ms: 120 }} />);
     expect(screen.getByText(/No public Greenhouse, Lever or Ashby board found/)).toBeInTheDocument();
+  });
+});
+
+const motion: MotionRead = {
+  label: "Both",
+  internal: {
+    sources: [1],
+    evidence: [{ source: 1, signal: "Snowflake", quote: "Warehouse: Snowflake" }],
+    clock: "Ask when the Tableau contract renews [1]",
+    buyer: "Head of Data [1]",
+    question: "Who owns the Tableau renewal?",
+  },
+  embedded: {
+    sources: [2],
+    evidence: [{ source: 2, signal: "customer-facing dashboards", quote: "Build customer-facing dashboards in React." }],
+    clock: "Ask when the next customer reporting release ships [2]",
+    buyer: "CTO [2]",
+    question: "Which customer dashboards are on the roadmap?",
+  },
+};
+
+describe("motion", () => {
+  it("shows the badge, each live motion's signal, clock and buyer, graded motion first", () => {
+    render(<MotionPanel motion={motion} fit={{ grade: "A", motion: "Embedded" }} research={research} />);
+    expect(screen.getByText("Both")).toBeInTheDocument();
+    const names = screen.getAllByText(/^(Internal|Embedded)$/).map((n) => n.textContent);
+    expect(names).toEqual(["Embedded", "Internal"]);
+    expect(screen.getByText("Build customer-facing dashboards in React.")).toBeInTheDocument();
+    expect(screen.getAllByText("Clock to test")).toHaveLength(2);
+    expect(screen.getAllByText("Buyer to start with")).toHaveLength(2);
+  });
+
+  it("Unclear lists both motions to test, with nothing claimed", () => {
+    const unclear: MotionRead = {
+      label: "Unclear",
+      internal: { ...motion.internal, sources: [], evidence: [], clock: "Usually a renewal with the current BI vendor, 6 to 9 months out.", buyer: "VP or Head of Data, or CTO" },
+      embedded: { ...motion.embedded, sources: [], evidence: [], clock: "Usually a customer-facing launch date.", buyer: "CTO" },
+    };
+    render(<MotionPanel motion={unclear} research={research} />);
+    expect(screen.getByText("Unclear")).toBeInTheDocument();
+    expect(screen.getByText(/No source shows either motion yet/)).toBeInTheDocument();
+    expect(screen.getAllByText("Nothing in the sources yet.")).toHaveLength(2);
+  });
+
+  it("the plan card draws the motion once, above the stack read, and names the graded motion", () => {
+    const withMotion = `FIRST-CALL PLAN: Acme Outfitters
+
+MOTION: Both
+- Embedded: customer-facing dashboards [2]
+  Clock to test: Ask when the next customer reporting release ships [2]
+  Buyer to start with: CTO [2]
+
+${plan.split("\n").slice(2).join("\n").replace("FIT GRADE: B", "FIT GRADE: A (Embedded motion)")}`;
+    render(<PlanCard company="Acme Outfitters" plan={withMotion} brief={{ ...brief, motion, fit: { grade: "A", motion: "Embedded", reason: "x" } }} sellerName="Omni" />);
+    expect(screen.queryByText(/^MOTION$/)).toBeNull();
+    expect(screen.getAllByText("Both")).toHaveLength(1);
+    expect(screen.getByText("Embedded motion")).toBeInTheDocument();
+    const panel = screen.getByRole("region", { name: "Motion" });
+    const stack = screen.getByText("STACK READ");
+    expect(panel.compareDocumentPosition(stack) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

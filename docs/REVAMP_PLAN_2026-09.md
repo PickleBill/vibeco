@@ -17,12 +17,12 @@
 
 ## Prompt-forge read
 
-**Goal as I read it:** turn vibeco.lovable.app into "Bill Bricker's working AI lab", a clear, honest workbench that shows your skills in interviews and that you actually use for job-hunt research. Use Codex's design, run it on VibeCo's existing agents, keep all the code in one repo, and link it prominently from picklebill.github.io/Brick.
+**Goal as I read it:** turn vibeco.lovable.app into "Bill Bricker's working AI lab", a clear, honest workbench that people can use for real research and decisions. Use Codex's design, run it on VibeCo's existing agents, keep all the code in one repo, and link it prominently from picklebill.github.io/Brick.
 
 **Open assumptions:**
 - "Live site" means vibeco.lovable.app (project `b653b128`), not "live VibeCo V2.1" (`8563d10e`, the Signal scanner, which has its own repo and hasn't been touched since July 7).
 - Codex's code exists only on your Mac. 127.0.0.1:8087 is your laptop, so I can't reach it. Its plan text is only partly visible in your screenshot.
-- The audience is hiring managers and interviewers first, and you second (for research). It is no longer "founders who hire a studio".
+- The audience is anyone working through a question: an idea, a company, an initiative or a decision. It is no longer "founders who hire a studio".
 
 **Decisions, with the defaults I'll use unless you say otherwise:**
 1. **Home base:** VibeCo Labs + `PickleBill/vibeco`. *Default: yes.* A new project or remix would lose the URL, the Supabase backend, and the ask-bill function Brick depends on.
@@ -53,7 +53,7 @@ CONSTRAINTS:
 - No fabricated proof: remove the invented stats, fake testimonials and partnership FAQ.
 - No schema changes unless a step needs one. Don't touch the Supabase secrets.
 EDGE CASES: If the Codex code is missing, rebuild from the screenshot. If Lovable sync lags, verify the Lovable project's latest_commit_sha equals main before publishing. If an agent call fails, show a plain-English error rather than a blank step.
-QUALITY BAR: A hiring manager lands on the page, understands what it does in 10 seconds, runs a real question in under 3 minutes, and leaves with a shareable report. Every claim on the page is true.
+QUALITY BAR: A first-time visitor lands on the page, understands what it does in 10 seconds, runs a real question in under 3 minutes, and leaves with a shareable report. Every claim on the page is true.
 ```
 
 **Self-rate: 8/10, capped.** It reaches 10 once Codex's actual code and full plan text are on GitHub (Phase 0).
@@ -105,7 +105,7 @@ QUALITY BAR: A hiring manager lands on the page, understands what it does in 10 
 
 **Phase 4 · Examples + About Bill**
 - Run 3–4 real questions through the live pipeline, one per lens. Good candidates: the coach question from Codex's card, a company-research run, and a decision run. Link each through the existing `get_shared_report` RPC → `/report/:id`. With that, "Open the worked report" opens a real report instead of a mock.
-- About Bill: 3 lines, a photo, and a prominent "Résumé & proof → picklebill.github.io/Brick" link. Plus a small "How it's built" panel (Lovable + Claude Code + Codex, a multi-model router, 18 agents), because that's the interview talking point.
+- About Bill: 3 lines, a photo, and a prominent "Résumé & proof → picklebill.github.io/Brick" link. Plus a small "How it's built" panel (Lovable + Claude Code + Codex, a multi-model router, 18 agents).
 
 **Phase 5 · Fix Brick's terminal backend** (`_shared/model-router.ts` "bill-qa")
 - Swap the retired Claude IDs for current ones. Put a gateway-served model first so it works even without `ANTHROPIC_API_KEY`. Redeploy through Lovable (done 2026-09-25; the old `deploy-ask-bill.yml` workflow was removed because Lovable Cloud has no Supabase access token).

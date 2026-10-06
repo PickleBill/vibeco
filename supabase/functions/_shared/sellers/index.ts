@@ -15,11 +15,32 @@ export interface SellerCustomer {
   ambiguous?: boolean;
 }
 
+/**
+ * One way the seller sells: who buys and what sets the clock. Generic seller
+ * config (how this kind of deal usually works), not a claim about any account.
+ */
+export interface SellerMotion {
+  id: "internal" | "embedded";
+  /** "Internal analytics" */
+  label: string;
+  /** What the account would use the product for. */
+  what: string;
+  /** Roles that usually buy, most likely first. */
+  buyers: string[];
+  /** What usually sets the timing. */
+  clock: string;
+  /** Where fit is strongest, or what to test before assuming it. */
+  fit?: string;
+}
+
 export interface SellerProfile {
   id: string;
   name: string;
   sells: string;
-  motions: string[];
+  /** Why companies buy it, from the seller's own public materials. */
+  reasons: string[];
+  /** The two motions an account brief must choose between: internal and embedded. */
+  motions: SellerMotion[];
   warehouses: string[];
   biTools: string[];
   signals: string[];
@@ -85,15 +106,17 @@ export function sellerPromptBlock(seller: SellerProfile, company: string, match:
   return `
 THE USER SELLS FOR ${seller.name.toUpperCase()}. Public facts about ${seller.name} (use only these; don't add others):
 - What it sells: ${seller.sells}
-- Why companies buy it: ${seller.motions.join("; ")}.
+- Why companies buy it: ${seller.reasons.join("; ")}.
 - Warehouses it works with: ${seller.warehouses.join(", ")}.
 - BI tools a prospect may be replacing: ${seller.biTools.join(", ")}.
 - Other buying signals: ${seller.signals.join("; ")}.
 - Customer list (decided by code, not by you): ${customerListSentence(seller, company, match)}
+${seller.name.toUpperCase()} SELLS IN TWO MOTIONS (seller playbook; general patterns, not facts about ${company}):
+${seller.motions.map((m) => `- ${m.label} (${m.id}): ${m.what} Buyer: ${m.buyers.join(", or ")}. Clock: usually ${m.clock}.${m.fit ? ` ${m.fit}` : ""}`).join("\n")}
 Wording rule: say "on ${seller.name}'s public customer list" or "not on ${seller.name}'s public customer list". Never write "not a customer". Don't mention ${seller.name}'s funding or customer counts.`;
 }
 
 /** One-paragraph seller note for downstream agents (critics, synthesis). */
 export function sellerAgentNote(seller: SellerProfile): string {
-  return `\nThe user sells for ${seller.name}: ${seller.sells} Typical reasons to buy: ${seller.motions.join("; ")}. Speak to whether and how ${seller.name} could help this account; don't invent facts about ${seller.name}.`;
+  return `\nThe user sells for ${seller.name}: ${seller.sells} Typical reasons to buy: ${seller.reasons.join("; ")}. It sells in two motions: ${seller.motions.map((m) => `${m.label.toLowerCase()} (${m.what.replace(/\.$/, "").toLowerCase()})`).join(" and ")}. Speak to whether and how ${seller.name} could help this account; don't invent facts about ${seller.name}.`;
 }

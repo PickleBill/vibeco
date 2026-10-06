@@ -125,8 +125,9 @@ const ROUTING_TABLE: Record<TaskType, ModelCandidate[]> = {
     { model: "google/gemini-2.5-pro", rationale: "Careful evidence tagging and citations", cost: "medium", speed: "medium" },
     { model: "google/gemini-3-flash-preview", rationale: "Fast structured output within the demo time budget", cost: "low", speed: "fast" },
   ],
-  // Gateway-served models only: the Lovable gateway does not serve anthropic/* ids,
-  // which is why the résumé terminal returned "AI service error" on every call.
+  // Gateway-served models only. The retired ids this used to name
+  // (anthropic/claude-3.5-sonnet, claude-3-haiku) are why the résumé terminal
+  // returned "AI service error"; probe-models lists what the gateway serves now.
   "bill-qa": [
     { model: "google/gemini-2.5-flash", rationale: "Fast, grounded first-person answers from a supplied corpus", cost: "low", speed: "fast" },
     { model: "google/gemini-3-flash-preview", rationale: "Fallback", cost: "low", speed: "fast" },
@@ -210,6 +211,14 @@ export function selectModel(
 
   // Everything unavailable — return first candidate anyway and let it fail at call time
   return candidates[0].model;
+}
+
+/** Every model the router can pick, by task (premium overrides included), for diagnostics. */
+export function routedModels(): { task: TaskType; models: string[] }[] {
+  return (Object.keys(ROUTING_TABLE) as TaskType[]).map((task) => ({
+    task,
+    models: [...new Set([...(PREMIUM_MODELS[task] ? [PREMIUM_MODELS[task]!] : []), ...modelChain(task)])],
+  }));
 }
 
 /** Ordered candidates for a task, for callers that retry down the chain. */

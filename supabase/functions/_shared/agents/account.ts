@@ -8,6 +8,14 @@ import { companyHits, escapeRe, fold, looseWord, mentionsCompany, squash } from 
 import { ATS_LABEL, type ScanSummary } from "../stack-scan.ts";
 import { toolMentions } from "../stack-tools.ts";
 import {
+  buildMotion,
+  embeddedEvidence,
+  fitMotion,
+  internalEvidence,
+  signalLine,
+  type MotionRead,
+} from "../motion.ts";
+import {
   customerListSentence,
   sellerPromptBlock,
   type CustomerListResult,
@@ -33,8 +41,25 @@ export interface StackLine {
 
 // ─── Tool schema ───
 
+const str = (description: string) => ({ type: "string", description });
+
+function motionSide(what: string) {
+  return {
+    type: "object",
+    description: `The ${what} motion.`,
+    properties: {
+      clock: str(
+        "What would set the timing for this motion here and how to test it, under 25 words, with [n] where a source supports it. When no source shows a date, name the usual clock as the thing to test; never invent a date.",
+      ),
+      buyer: str("The role to start with for this motion here, under 15 words, with [n] where a source supports it. Roles only; sourced names go in 'people'."),
+      question: str("One discovery question that tests whether this motion is live here, under 20 words."),
+    },
+    required: ["clock", "buyer", "question"],
+    additionalProperties: false,
+  };
+}
+
 export function accountToolSchema() {
-  const str = (description: string) => ({ type: "string", description });
   return {
     type: "function" as const,
     function: {
@@ -113,20 +138,42 @@ export function accountToolSchema() {
                 required: ["objection", "honest_answer"],
                 additionalProperties: false,
               },
+              motion: {
+                type: "object",
+                description:
+                  "Which way the seller would sell here. Code decides Internal, Embedded, Both or Unclear from the evidence; you give the embedded evidence numbers and, for each motion, the clock to test, the buyer to start with and one discovery question.",
+                properties: {
+                  embedded_sources: {
+                    type: "array",
+                    items: { type: "integer" },
+                    description:
+                      "Numbers of the sources that show this company ships analytics, reporting, dashboards or insights inside its own product to its customers: product or pricing pages, release notes about reporting, job posts for engineers building customer-facing dashboards or reporting, data product manager roles, or an embedded analytics vendor named in its materials (Looker embedded, Sisense, GoodData, Power BI Embedded, Tableau embedded, Cube, Qrvey, Luzmo, Metabase embedded). Empty when none do. The seller's own marketing doesn't count.",
+                  },
+                  internal: motionSide("internal analytics (its own teams)"),
+                  embedded: motionSide("embedded analytics (inside its product, for its customers)"),
+                },
+                required: ["embedded_sources", "internal", "embedded"],
+                additionalProperties: false,
+              },
               fit: {
                 type: "object",
                 properties: {
                   grade: { type: "string", enum: ["A", "B", "C"] },
-                  reason: str("Why this grade, in 1-2 sentences, citing the signals."),
+                  motion: {
+                    type: "string",
+                    enum: ["Internal", "Embedded"],
+                    description: "The motion this grade is for: the one the sources support best.",
+                  },
+                  reason: str("Why this grade for that motion, in 1-2 sentences, citing the signals."),
                 },
-                required: ["grade", "reason"],
+                required: ["grade", "motion", "reason"],
                 additionalProperties: false,
               },
             },
             required: [
               "off_topic_sources", "problem", "target_customer", "core_features", "revenue_model", "industry_trends",
               "investor_perspective", "customer_perspective", "account_line", "people", "start_with",
-              "discovery_questions", "migration_objection", "fit",
+              "discovery_questions", "migration_objection", "motion", "fit",
             ],
             additionalProperties: false,
           },
@@ -167,14 +214,15 @@ Rules:
 4. Why now: only dated events from the last 12 months that a source shows.
 5. customer_perspective is synthetic: start it with "Synthetic:".
 6. Never write outreach emails, LinkedIn messages or any message to send.
-7. Fit grade: A = a clear trigger now, a stack the seller works with, and a matching buying motion. B = plausible, but missing a trigger or evidence. C = weak fit or poor timing.
-8. Exactly seven discovery questions.${
+7. Fit grade: A = a clear trigger now, a stack the seller works with, and a matching buying motion. B = plausible, but missing a trigger or evidence. C = weak fit or poor timing. Grade one motion and name it in fit.motion.
+8. Exactly seven discovery questions, plus one question per motion in "motion".
+9. Motion: internal analytics (its own teams use the product) or embedded analytics (it ships analytics inside its own product to its customers). List in motion.embedded_sources only sources that show the embedded kind: a product or pricing page with analytics, reporting, insights or dashboard features for its customers; release notes about reporting; a job post for engineers building customer-facing dashboards or reporting; a data product manager role; an embedded analytics vendor in its materials. Code checks each one, and with no evidence either way the motion is Unclear: never guess. Write the clock and buyer for both motions; cite sources where they support it.${
     noSources
-      ? `\n9. There are NO live sources for this run. Mark every stack line "Not found", name no tools or people at ${company}, state no facts about ${company}, and write what to find out instead.`
+      ? `\n10. There are NO live sources for this run. Mark every stack line "Not found", name no tools or people at ${company}, state no facts about ${company}, and write what to find out instead.`
       : ""
   }${
     seller && match?.onList
-      ? `\n10. ${company} is on ${seller.name}'s public customer list, so this is an existing customer: write the plan for an expansion call (wider use, adoption, renewal risk), not a first sale.`
+      ? `\n11. ${company} is on ${seller.name}'s public customer list, so this is an existing customer: write the plan for an expansion call (wider use, adoption, renewal risk), not a first sale.`
       : ""
   }
 ${seller && match ? sellerPromptBlock(seller, company, match) : "\nNo seller profile was given: grade fit for a modern governed BI and AI analytics platform, and skip any customer-list statement."}`;
@@ -528,7 +576,8 @@ interface AccountBrief extends Record<string, unknown> {
   start_with?: { role?: string; why?: string };
   discovery_questions?: string[];
   migration_objection?: { objection?: string; honest_answer?: string };
-  fit?: { grade?: string; reason?: string };
+  fit?: { grade?: string; motion?: string; reason?: string };
+  motion?: MotionRead;
 }
 
 const TEXT_FIELDS = [
@@ -549,9 +598,11 @@ export function finalizeAccount(
     excerpts: string[];
     seller?: SellerProfile;
     match?: CustomerListResult;
+    /** The company's domain, when the user typed one ("bandwidth.com"). */
+    domain?: string;
   },
 ): { brief: AccountBrief; plan: string } {
-  const { company, research, excerpts, seller, match } = ctx;
+  const { company, research, excerpts, seller, match, domain } = ctx;
   const sourceText = new Map<number, string>();
   // Sources the model judged to be about something else can't support anything.
   const offTopic = new Set(
@@ -599,8 +650,27 @@ export function finalizeAccount(
     .slice(0, 7);
   const objection = (rawBrief.migration_objection ?? {}) as { objection?: string; honest_answer?: string };
   brief.migration_objection = { objection: tidy(objection.objection), honest_answer: tidy(objection.honest_answer) };
-  const fit = (rawBrief.fit ?? {}) as { grade?: string; reason?: string };
-  brief.fit = { grade: ["A", "B", "C"].includes(String(fit.grade)) ? String(fit.grade) : "B", reason: tidy(fit.reason) };
+  // Motion: decided in code from evidence the sources show; Unclear when there is none.
+  const rawMotion = (rawBrief.motion ?? {}) as { embedded_sources?: unknown };
+  const embedded = noSources
+    ? []
+    : embeddedEvidence({
+        company,
+        domain,
+        research,
+        sourceText,
+        boardText: new Map(boards.map((b) => [b.id, b.text])),
+        cited: (Array.isArray(rawMotion.embedded_sources) ? rawMotion.embedded_sources : []).map(Number),
+      });
+  const internal = noSources ? [] : internalEvidence({ company, research, sourceText, stack: brief.core_features });
+  brief.motion = buildMotion(rawBrief.motion, internal, embedded, tidy, seller);
+
+  const fit = (rawBrief.fit ?? {}) as { grade?: string; motion?: string; reason?: string };
+  const motionGraded = fitMotion(brief.motion.label, fit.motion, brief.motion);
+  let grade = ["A", "B", "C"].includes(String(fit.grade)) ? String(fit.grade) : "B";
+  // An A needs a matching buying motion; with none shown, B is the ceiling.
+  if (motionGraded === "Unclear" && grade === "A") grade = "B";
+  brief.fit = { grade, motion: motionGraded, reason: tidy(fit.reason) };
 
   if (!/^\s*synthetic/i.test(String(brief.customer_perspective))) {
     brief.customer_perspective = `Synthetic: ${brief.customer_perspective}`;
@@ -666,6 +736,40 @@ function capWords(text: string, n: number): string {
   return out.trim() || `${text.split(/\s+/).slice(0, n).join(" ")}…`;
 }
 
+const MOTION_NAME = { internal: "Internal", embedded: "Embedded" } as const;
+
+/**
+ * MOTION: the label, then for each motion the sources show: what shows it, the
+ * clock to test and the buyer to start with, each with citations. Unclear means
+ * nothing showed either motion, so both are listed as things to test.
+ */
+function motionBlock(motion: MotionRead, graded: string | undefined, cap: (t: unknown, n: number) => string): string[] {
+  const out = [`MOTION: ${motion.label}`];
+  const live = (["internal", "embedded"] as const).filter((id) => motion[id].sources.length > 0);
+  // The graded motion leads when both are live.
+  if (live.length === 2 && graded === "Embedded") live.reverse();
+  const detail = (id: "internal" | "embedded") => [
+    `  Clock to test: ${cap(motion[id].clock, 25)}`,
+    `  Buyer to start with: ${cap(motion[id].buyer, 15)}`,
+  ];
+  if (!live.length) {
+    out.push("No source shows either motion yet, so test both on the call.");
+    for (const id of ["internal", "embedded"] as const) {
+      out.push(`- ${MOTION_NAME[id]}: nothing in the sources yet`, ...detail(id));
+    }
+    return out;
+  }
+  for (const id of live) out.push(`- ${MOTION_NAME[id]}: ${signalLine(motion[id])}`, ...detail(id));
+  if (live.length === 1) {
+    out.push(
+      live[0] === "internal"
+        ? "- Embedded: no source shows analytics inside its product for its customers."
+        : "- Internal: no source shows the stack its own teams use for analytics.",
+    );
+  }
+  return out;
+}
+
 function buildPlan(
   company: string,
   brief: AccountBrief,
@@ -678,6 +782,7 @@ function buildPlan(
   if (noSources) {
     out.push("", "No live sources were checked for this run. Everything below is general knowledge, so verify it before the call.");
   }
+  if (brief.motion) out.push("", ...motionBlock(brief.motion, brief.fit?.motion, cap));
   out.push("", "ACCOUNT IN ONE LINE", cap(brief.account_line, 30));
   out.push("", "STACK READ");
   for (const l of brief.core_features) {
@@ -700,6 +805,14 @@ function buildPlan(
     questions.length === 7 ? "SEVEN DISCOVERY QUESTIONS" : `${questions.length} DISCOVERY QUESTIONS`,
     ...questions.map((q, i) => `${i + 1}. ${cap(q, 20)}`),
   );
+  const perMotion = brief.motion
+    ? (["internal", "embedded"] as const)
+        .map((id) => ({ id, q: cap(brief.motion![id].question, 20) }))
+        .filter((x) => x.q)
+    : [];
+  if (perMotion.length) {
+    out.push("", "ONE QUESTION PER MOTION", ...perMotion.map((x) => `${MOTION_NAME[x.id]}: ${x.q}`));
+  }
   out.push(
     "",
     "THE MIGRATION OBJECTION",
@@ -707,7 +820,9 @@ function buildPlan(
     `Honest answer: ${cap(brief.migration_objection?.honest_answer, 60)}`,
   );
   out.push("", "WHAT TO VERIFY BEFORE THE CALL", cap(brief.investor_perspective, 60));
-  out.push("", `FIT GRADE: ${brief.fit?.grade ?? "B"}`, cap(brief.fit?.reason, 40));
+  const graded = brief.fit?.motion;
+  const forMotion = graded === "Internal" || graded === "Embedded" ? ` (${graded} motion)` : graded === "Unclear" ? " (motion unclear)" : "";
+  out.push("", `FIT GRADE: ${brief.fit?.grade ?? "B"}${forMotion}`, cap(brief.fit?.reason, 40));
   const list = brief.customer_list as { sentence?: string } | undefined;
   if (list?.sentence) out.push("", "CUSTOMER LIST", list.sentence);
   return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();

@@ -1,5 +1,5 @@
 // Live web research for the "company or topic" lens (Phase B) and the
-// "target account" lens (researchAccount: three searches in parallel).
+// "target account" lens (researchAccount: four searches in parallel).
 //
 // Firecrawl search (FIRECRAWL_API_KEY, the same key signal-collect uses) is
 // the primary provider; Perplexity Sonar (PERPLEXITY_API_KEY) is the fallback.
@@ -12,7 +12,8 @@
 import { emptyScan, scanJobBoards, scanSources, scanSummary, type Ats, type ScanSummary } from "./stack-scan.ts";
 import type { StackCategory } from "./stack-tools.ts";
 
-export type SourceKind = "stack" | "jobs" | "news";
+export type SourceKind = "stack" | "jobs" | "news" | "product";
+const KINDS: SourceKind[] = ["stack", "jobs", "news", "product"];
 const ATS_IDS: Ats[] = ["greenhouse", "lever", "ashby"];
 const CATEGORIES: StackCategory[] = ["Warehouse", "Transformation", "BI tools", "AI", "Embedded analytics"];
 
@@ -210,7 +211,7 @@ export function carriedResearch(
       title: clean(String((s as Source).title ?? ""), 160),
       url: (s as Source).url,
       snippet,
-      ...(kind === "stack" || kind === "jobs" || kind === "news" ? { kind } : {}),
+      ...(kind && KINDS.includes(kind) ? { kind } : {}),
       ...(typeof date === "string" && date ? { date: clean(date, 40) } : {}),
       ...(via && ATS_IDS.includes(via) ? { via } : {}),
     });
@@ -256,13 +257,27 @@ const ACCOUNT_MAX_SOURCES = 10;
 const ACCOUNT_EXCERPT_CHARS = 3000; // per source: page head plus windows around stack terms
 const LANE_LIMIT = 5; // results per search
 const SCRAPE_BUDGET_MS = 8_500; // page text after this long isn't worth the wait
-const PLAIN_BUDGET_MS = 7_000;
+const PLAIN_BUDGET_MS = 6_000;
 
 // Terms worth keeping context around when a page is long (job postings list
 // tools far below the fold). Word-bounded, case-insensitive.
-const STACK_TERMS = /\b(snowflake|bigquery|databricks|redshift|postgres(?:ql)?|clickhouse|synapse|microsoft fabric|teradata|sql server|dbt|airflow|fivetran|matillion|informatica|airbyte|tableau|power ?bi|looker|hex|sigma computing|thoughtspot|metabase|microstrategy|qlik|domo|mode analytics|superset|semantic layer|embedded analytics|customer-facing analytics|data warehouse|lakehouse|generative ai|genai|llms?|openai|chief data officer|head of data|vp,? data|analytics engineer(?:ing)?)\b/gi;
+const STACK_TERMS = /\b(snowflake|bigquery|databricks|redshift|postgres(?:ql)?|clickhouse|synapse|microsoft fabric|teradata|sql server|dbt|airflow|fivetran|matillion|informatica|airbyte|tableau|power ?bi|looker|hex|sigma computing|thoughtspot|metabase|microstrategy|qlik|domo|mode analytics|superset|semantic layer|embedded (?:analytics|dashboards?|reporting)|(?:customer|client|user)-facing (?:analytics|dashboards?|reporting|insights)|in-product (?:analytics|reporting|dashboards?)|white-?label(?:ed)? (?:analytics|dashboards?|reporting)|sisense|gooddata|qrvey|luzmo|(?:analytics|reporting|insights) (?:dashboard|portal|api)s?|data warehouse|lakehouse|generative ai|genai|llms?|openai|chief data officer|head of data|vp,? data|analytics engineer(?:ing)?)\b/gi;
 
 interface FcItem { url?: string; title?: string; description?: string; snippet?: string; markdown?: string; date?: string }
+
+class SearchError extends Error {
+  constructor(readonly status: number, message: string) {
+    super(message);
+  }
+}
+
+/** "429", "timeout" or "error": kept in the timing so failures show up in diagnostics. */
+function errorCode(e: unknown): string {
+  if (e instanceof SearchError) return String(e.status);
+  return e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError") ? "timeout" : "error";
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function firecrawlSearch(apiKey: string, body: Record<string, unknown>, timeoutMs: number): Promise<FcItem[]> {
   const res = await fetch(FIRECRAWL_SEARCH, {
@@ -272,7 +287,7 @@ async function firecrawlSearch(apiKey: string, body: Record<string, unknown>, ti
     signal: AbortSignal.timeout(timeoutMs),
   });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(`firecrawl ${res.status}: ${JSON.stringify(json).slice(0, 200)}`);
+  if (!res.ok) throw new SearchError(res.status, `firecrawl ${res.status}: ${JSON.stringify(json).slice(0, 200)}`);
   const data = (json as Record<string, unknown>).data;
   if (Array.isArray(data)) return data as FcItem[];
   const d = (data ?? {}) as Record<string, unknown>;
@@ -286,15 +301,29 @@ interface Lane {
   fallback?: Record<string, unknown>;
 }
 
-interface LaneResult { kind: SourceKind; items: FcItem[]; scraped: boolean; ms: number }
+interface LaneResult { kind: SourceKind; items: FcItem[]; scraped: boolean; ms: number; error?: string }
 
-/** Page text if it arrives within budget; otherwise the plain results, fetched in parallel. */
+const HEDGE_MS = 3_500; // start the plain search if page text hasn't arrived by then
+
+/**
+ * Page text if it arrives within budget; otherwise the plain results. The plain
+ * search starts only when page text fails or runs slow, so a run makes four
+ * requests, not eight (the search API limits concurrent requests). After a 429
+ * it waits briefly before asking again.
+ */
 async function runLane(apiKey: string, lane: Lane): Promise<LaneResult> {
   const t0 = Date.now();
-  const plain = firecrawlSearch(apiKey, lane.body, PLAIN_BUDGET_MS).catch((e) => {
-    console.warn(`research(${lane.kind}): plain search failed`, e);
-    return lane.fallback ? firecrawlSearch(apiKey, lane.fallback, PLAIN_BUDGET_MS).catch(() => [] as FcItem[]) : [];
-  });
+  let error: string | undefined;
+  let plain: Promise<FcItem[]> | undefined;
+  const startPlain = (wait = 0) =>
+    (plain ??= sleep(wait).then(() =>
+      firecrawlSearch(apiKey, lane.body, PLAIN_BUDGET_MS).catch((e) => {
+        console.warn(`research(${lane.kind}): plain search failed`, e);
+        error = errorCode(e);
+        return lane.fallback ? firecrawlSearch(apiKey, lane.fallback, PLAIN_BUDGET_MS).catch(() => [] as FcItem[]) : [];
+      })
+    ));
+  const hedge = setTimeout(() => startPlain(), HEDGE_MS);
   try {
     const items = await firecrawlSearch(
       apiKey,
@@ -304,8 +333,12 @@ async function runLane(apiKey: string, lane: Lane): Promise<LaneResult> {
     if (items.length) return { kind: lane.kind, items, scraped: true, ms: Date.now() - t0 };
   } catch (e) {
     console.warn(`research(${lane.kind}): page text not ready, using plain results`, e);
+    error = errorCode(e);
+  } finally {
+    clearTimeout(hedge);
   }
-  return { kind: lane.kind, items: await plain, scraped: false, ms: Date.now() - t0 };
+  const items = await startPlain(error === "429" ? 700 + Math.random() * 500 : 0);
+  return { kind: lane.kind, items, scraped: false, ms: Date.now() - t0, ...(items.length || !error ? {} : { error }) };
 }
 
 /** "guitarcenter.com" searches better as its stem; names are quoted for exact match. */
@@ -340,11 +373,18 @@ function urlKey(url: string): string {
 
 type BoardSource = ReturnType<typeof scanSources>[number];
 
+// Round-robin order. With the company's own posts in hand, the web job search
+// matters least; without them it carries the hiring evidence.
+const ORDER_WITH_BOARD: SourceKind[] = ["product", "news", "stack", "jobs"];
+const ORDER_NO_BOARD: SourceKind[] = ["stack", "product", "jobs", "news"];
+
 /**
  * The company's own job posts first, then a round-robin across lanes so stack,
- * jobs and news each get a share; dedupe by URL, cap at 10.
+ * product, jobs and news each get a share; dedupe by URL, cap at 10.
  */
-function mergeLanes(lanes: LaneResult[], first: BoardSource[] = []): { sources: Source[]; excerpts: string[] } {
+function mergeLanes(unordered: LaneResult[], first: BoardSource[] = []): { sources: Source[]; excerpts: string[] } {
+  const order = first.length ? ORDER_WITH_BOARD : ORDER_NO_BOARD;
+  const lanes = [...unordered].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
   const seen = new Set<string>();
   const sources: Source[] = [];
   const excerpts: string[] = [];
@@ -386,16 +426,21 @@ export interface AccountResearch {
   promptBlock: string;
   /** Aligned with research.sources; sent to the client and back for the brief call. */
   excerpts: string[];
-  timing: { total_ms: number; scan_ms?: number; lanes: { kind: SourceKind; ms: number; scraped: boolean; results: number }[] };
+  timing: { total_ms: number; scan_ms?: number; lanes: { kind: SourceKind; ms: number; scraped: boolean; results: number; error?: string }[] };
 }
 
 /**
- * Account research: data stack, data and analytics job postings, and news from
- * the last 12 months, searched in parallel, merged, deduped and capped at 10.
- * `tools` biases the stack search toward the seller's warehouses and BI tools.
- * Never throws; falls back to Perplexity, then to "none".
+ * Account research: data stack, customer-facing analytics in the product, data
+ * and analytics job postings, and news from the last 12 months, searched in
+ * parallel, merged, deduped and capped at 10. `domain` (when the user typed one)
+ * helps find the job board. `tools` biases the stack search toward the seller's
+ * warehouses and BI tools. Never throws; falls back to Perplexity, then to "none".
  */
-export async function researchAccount(company: string, tools: string[] = []): Promise<AccountResearch> {
+export async function researchAccount(
+  company: string,
+  opts: { domain?: string; tools?: string[] } = {},
+): Promise<AccountResearch> {
+  const tools = opts.tools ?? [];
   const t0 = Date.now();
   const query = clean(company, 120);
   const fetched_at = new Date().toISOString();
@@ -406,6 +451,8 @@ export async function researchAccount(company: string, tools: string[] = []): Pr
     .join(" OR ");
   const lanes: Lane[] = [
     { kind: "stack", body: { query: `${name} (${toolTerms}) data analytics`, limit: LANE_LIMIT, sources: ["web"] } },
+    // Embedded motion: does the company ship analytics to its own customers?
+    { kind: "product", body: { query: `${name} customer-facing analytics dashboards reporting product`, limit: LANE_LIMIT, sources: ["web"] } },
     {
       kind: "jobs",
       body: { query: `${name} ("data engineer" OR "analytics engineer" OR "data analyst" OR "BI developer") job`, limit: LANE_LIMIT, sources: ["web"] },
@@ -421,7 +468,7 @@ export async function researchAccount(company: string, tools: string[] = []): Pr
   const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
   const [results, scanned] = await Promise.all([
     firecrawlKey ? Promise.all(lanes.map((lane) => runLane(firecrawlKey, lane))) : Promise.resolve([] as LaneResult[]),
-    scanJobBoards(company).catch((e) => {
+    scanJobBoards(company, undefined, opts.domain).catch((e) => {
       console.error("research: job-board scan failed", e);
       return emptyScan();
     }),
@@ -431,7 +478,7 @@ export async function researchAccount(company: string, tools: string[] = []): Pr
   const timing = {
     total_ms: Date.now() - t0,
     scan_ms: scanned.ms,
-    lanes: results.map((r) => ({ kind: r.kind, ms: r.ms, scraped: r.scraped, results: r.items.length })),
+    lanes: results.map((r) => ({ kind: r.kind, ms: r.ms, scraped: r.scraped, results: r.items.length, ...(r.error ? { error: r.error } : {}) })),
   };
   if (sources.length) {
     const provider = results.some((r) => r.items.length) ? "firecrawl" : "jobboards";
@@ -444,7 +491,7 @@ export async function researchAccount(company: string, tools: string[] = []): Pr
     try {
       const found = await viaPerplexity(
         perplexityKey,
-        `${query}: data and analytics stack (warehouse, BI tools, dbt, AI), recent data and analytics job postings, and news from the last 12 months (funding, IPO, acquisitions, new data leaders).`,
+        `${query}: data and analytics stack (warehouse, BI tools, dbt, AI), any analytics, reporting or dashboards it offers its own customers in its product, recent data and analytics job postings, and news from the last 12 months (funding, IPO, acquisitions, new data leaders).`,
       );
       if (found.sources.length) {
         const research: Research = { provider: "perplexity", query, fetched_at, sources: found.sources, scan };
