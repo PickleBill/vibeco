@@ -2,10 +2,9 @@ import { useCallback, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, CircleHelp } from "lucide-react";
 import type { SellerConfig } from "@/lib/sellers";
-import { splitCompany } from "../model";
 import { FRONT_DOOR, moduleHref } from "../nav";
 import { closeWelcome, markWelcomeSeen, openWelcome, setStep, useTourState } from "./store";
-import { tourSteps } from "./steps";
+import { onStepView, sellerTour } from "./steps";
 import { TourButton, TourCard } from "./TourPopover";
 import { WelcomeDialog } from "./WelcomeDialog";
 
@@ -21,18 +20,16 @@ function without(search: string, ...keys: string[]) {
  * The welcome card and the guided tour for the command center. Both are opt-in:
  * nothing pops up on arrival. The card opens from "How it works" or ?welcome,
  * ?tour starts the tour (the link to send someone), and ?demo (the presenter
- * bar) keeps both out of the way. The tour ("Demo in 60 seconds") walks four
- * views on the territory's first account, one highlighted element per step.
+ * bar) keeps both out of the way. The tour ("Demo in 2 minutes") walks seven
+ * steps from the front door through the territory's first account to its
+ * committee, one highlighted element per step.
  */
 export function TourHost({ seller }: { seller: SellerConfig }) {
   const { welcome, step } = useTourState();
   const { pathname, search } = useLocation();
   const params = useParams<{ module?: string; reportId?: string }>();
   const navigate = useNavigate();
-  const demo = seller.territory?.accounts[0];
-  const demoId = demo?.reportId;
-  const demoName = demo ? splitCompany(demo.company).name : "This account";
-  const steps = useMemo(() => tourSteps(demoName), [demoName]);
+  const { steps, demoId } = useMemo(() => sellerTour(seller), [seller]);
 
   const hrefFor = useCallback((i: number) => moduleHref(seller.id, steps[i].module, steps[i].withAccount ? demoId : undefined), [seller.id, steps, demoId]);
 
@@ -42,8 +39,12 @@ export function TourHost({ seller }: { seller: SellerConfig }) {
       setStep(i);
       const s = steps[i];
       if (!s) return;
-      const here = (params.module ?? FRONT_DOOR) === s.module && (!s.withAccount || !demoId || params.reportId === demoId);
-      if (!here) navigate(hrefFor(i), { replace });
+      const here = onStepView(s, params.module ?? FRONT_DOOR, params.reportId, demoId);
+      if (!here) {
+        // A new view opens at its top; the step then scrolls to its target if it has to.
+        window.scrollTo?.(0, 0);
+        navigate(hrefFor(i), { replace });
+      }
       else if (replace) navigate({ pathname, search: without(search, "tour", "welcome") }, { replace: true });
     },
     [steps, params.module, params.reportId, demoId, navigate, hrefFor, pathname, search],
@@ -86,6 +87,8 @@ export function TourHost({ seller }: { seller: SellerConfig }) {
         <TourCard
           stepKey={`step-${step}`}
           target={s.target}
+          fallback={s.fallback}
+          reveal={s.reveal}
           count={`${step + 1} of ${steps.length}`}
           title={s.title}
           body={s.body}

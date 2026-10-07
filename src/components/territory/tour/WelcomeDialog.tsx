@@ -18,7 +18,7 @@ const ROWS: { icon: LucideIcon; name: string; line: ReactNode }[] = [
 
 /**
  * "How this works": what the command center is, the five views in a line
- * each, and the way in (the 60-second demo or your own clicks). Built on the
+ * each, and the way in (the two-minute demo or your own clicks). Built on the
  * shadcn Dialog, with a lighter scrim and a full-size close button.
  */
 export function WelcomeDialog({ open, sellerName, onClose, onTour }: { open: boolean; sellerName: string; onClose: () => void; onTour: () => void }) {
@@ -59,7 +59,7 @@ export function WelcomeDialog({ open, sellerName, onClose, onTour }: { open: boo
           <div className="flex flex-col gap-3 px-5 pb-5 pt-4 sm:px-7">
             <div className="flex flex-col gap-2 sm:flex-row">
               <button type="button" onClick={onTour} className={cx(primaryButton, "min-h-12 text-base")}>
-                <Play size={16} aria-hidden /> Demo in 60 seconds
+                <Play size={16} aria-hidden /> Demo in 2 minutes
               </button>
               <DialogClose className={cx(secondaryButton, "min-h-12 text-base")}>Explore on my own</DialogClose>
             </div>
