@@ -151,12 +151,9 @@ export function AccountsTable({
 
   return (
     <div>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 px-4 pt-4 sm:px-6 sm:pt-5">
-        <p className="text-[15px] text-[#4A4F63]">
-          {accounts.length} accounts · sorted by {label} · select a header to sort
-        </p>
-        <p className="font-mono text-xs text-muted-foreground">pink dot = trigger in the last 30 days</p>
-      </div>
+      <p className="mb-3 px-4 pt-4 text-[15px] text-[#4A4F63] sm:px-6 sm:pt-5">
+        {accounts.length} accounts · sorted by {label}
+      </p>
       {/* Positioned, so the cells' screen-reader text scrolls with the sheet instead of widening the page. */}
       <div className="relative overflow-x-auto border-t border-border">
         <table className="w-full min-w-[820px] table-fixed border-collapse text-left text-[15px] min-[1400px]:min-w-[1080px] 2xl:min-w-[1200px]">
@@ -219,12 +216,7 @@ export function AccountsTable({
                     />
                     <span className="pointer-events-none relative flex items-center gap-1.5">
                       <span aria-hidden className={cx("h-2 w-2 shrink-0 rounded-full", a.pulse ? "bg-brand" : "bg-transparent")} />
-                      <CompanyName
-                        row={row}
-                        seller={seller}
-                        className="pointer-events-auto min-w-0 font-bold"
-                        sub={row.domain && <span className="truncate font-mono text-xs font-normal text-muted-foreground">{row.domain}</span>}
-                      />
+                      <CompanyName row={row} seller={seller} className="pointer-events-auto min-w-0 font-bold" />
                     </span>
                   </td>
                   {cols.slice(1).map((c) => (

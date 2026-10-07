@@ -1,5 +1,5 @@
 // Small pieces the radar views share: source chips by number, the pink
-// "fresh" pill, a stat tile, a stack chip.
+// "fresh" pill, a stack chip.
 import type { ReactNode } from "react";
 import type { ResearchSource } from "@/components/simulator/SourcesList";
 import type { StackChip } from "../model";
@@ -24,15 +24,6 @@ export function Chips({ ids, sources, className }: { ids: number[]; sources: Res
 /** Pink fill, readable pink text: "Fresh trigger · 6d", "Changed since last run". */
 export function FreshPill({ children }: { children: ReactNode }) {
   return <span className="inline-flex h-[26px] shrink-0 items-center rounded-[4px] border border-brand bg-brand-tint px-2 text-xs font-bold text-primary">{children}</span>;
-}
-
-export function StatTile({ value, label, hot, children }: { value?: ReactNode; label: string; hot?: boolean; children?: ReactNode }) {
-  return (
-    <div className={cx("min-w-[88px] rounded-lg border px-3.5 py-2.5", hot ? "border-brand bg-brand-tint" : "border-border bg-white")}>
-      {children ?? <div className={cx("font-mono text-2xl font-semibold leading-tight", hot && "text-primary")}>{value}</div>}
-      <div className={cx("text-[13px]", hot ? "text-foreground" : "text-muted-foreground")}>{label}</div>
-    </div>
-  );
 }
 
 /** "● Snowflake" for Confirmed, struck grey for Former. */

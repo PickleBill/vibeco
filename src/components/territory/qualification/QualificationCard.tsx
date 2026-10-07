@@ -14,16 +14,12 @@ const TILE: Record<QualStatus, string> = {
   Gap: "border-[1.5px] border-dotted border-[#9097A6] bg-white text-[#6B7080]",
 };
 
-function Letter({ row, size = "md" }: { row: QualRow; size?: "md" | "sm" }) {
+function Letter({ row }: { row: QualRow }) {
   return (
     <span
       data-testid="meddpicc-letter"
       title={`${row.name}: ${row.status}`}
-      className={cx(
-        "inline-flex shrink-0 items-center justify-center rounded-md font-mono font-semibold",
-        size === "md" ? "h-9 w-8 text-base sm:h-10 sm:w-9 sm:text-lg" : "h-7 w-7 text-sm",
-        TILE[row.status],
-      )}
+      className={cx("inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md font-mono text-sm font-semibold", TILE[row.status])}
     >
       <span aria-hidden>{row.letter}</span>
       <span className="sr-only">
@@ -34,10 +30,11 @@ function Letter({ row, size = "md" }: { row: QualRow; size?: "md" | "sm" }) {
 }
 
 /**
- * MEDDPICC as a deal review would read it: eight letters, each solid, dashed
- * or dotted by what's known, and a one-line summary. Open, each row gives the
- * evidence (sourced, or a hint from the simulated meeting) and the question
- * or step that would close it.
+ * MEDDPICC as a slim reference bar: eight letters, each solid, dashed or
+ * dotted by what's known, and one line. Public research reads about the same
+ * for most accounts (Competition, then Pain and Champion), so it stays shut.
+ * Open, each row gives the evidence (sourced, or a hint from the simulated
+ * meeting) and the question or step that would close it.
  */
 export function QualificationCard({
   qualification: q,
@@ -53,35 +50,31 @@ export function QualificationCard({
   const [open, setOpen] = useState(defaultOpen);
   const id = `meddpicc-${useId().replace(/:/g, "")}`;
   return (
-    <section data-tour="meddpicc" aria-labelledby={`${id}-title`} className={cx("rounded-xl border border-foreground bg-white", className)}>
+    <section data-tour="meddpicc" aria-labelledby={`${id}-title`} className={cx("rounded-xl border border-border bg-white", className)}>
       <h3 id={`${id}-title`} className="m-0">
         <button
           type="button"
           aria-expanded={open}
           aria-controls={id}
           onClick={() => setOpen((v) => !v)}
-          className="flex w-full flex-col gap-3 rounded-xl px-4 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex-row sm:items-center sm:gap-5 sm:px-5"
+          className="flex min-h-11 w-full flex-wrap items-center gap-x-4 gap-y-2 rounded-xl px-3 py-2 text-left hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-4"
         >
-          <span className="min-w-0 flex-1">
-            <span className="block font-mono text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">Qualification · MEDDPICC</span>
-            <span className="mt-0.5 block font-display text-xl font-semibold leading-snug tracking-[-0.01em] text-foreground">
-              {q.known} of 8 known · {q.gaps} {q.gaps === 1 ? "gap" : "gaps"}
-            </span>
-            {q.biggest && <span className="mt-0.5 block text-[15px] text-[#4A4F63]">Biggest gap: {q.biggest.name}</span>}
-          </span>
-          <span className="flex items-center gap-1 sm:gap-1.5">
+          <span className="flex items-center gap-1">
             {q.rows.map((r) => (
               <Letter key={r.id} row={r} />
             ))}
-            <ChevronDown size={18} aria-hidden className={cx("ml-1.5 shrink-0 text-foreground transition-transform duration-200 motion-reduce:transition-none", open && "rotate-180")} />
           </span>
+          <span className="min-w-0 flex-[1_1_260px] text-[15px] leading-snug text-[#4A4F63]">
+            <span className="font-semibold text-foreground">MEDDPICC</span> · {q.known} of 8 from public research. The rest is discovery.
+          </span>
+          <ChevronDown size={18} aria-hidden className={cx("ml-auto shrink-0 text-foreground transition-transform duration-200 motion-reduce:transition-none", open && "rotate-180")} />
         </button>
       </h3>
       <Fold open={open} id={id}>
         <ol className="border-t border-border px-4 sm:px-5">
           {q.rows.map((r) => (
             <li key={r.id} className="flex gap-3 border-b border-border py-3.5 last:border-b-0 sm:gap-4">
-              <Letter row={r} size="sm" />
+              <Letter row={r} />
               <div className="min-w-0 flex-1">
                 <p className="flex flex-wrap items-center gap-2">
                   <span className="text-base font-semibold text-foreground">{r.name}</span>
@@ -99,9 +92,7 @@ export function QualificationCard({
             </li>
           ))}
         </ol>
-        <p className="border-t border-border px-4 py-3 text-sm text-muted-foreground sm:px-5">
-          Confirmed: a public source says it. Inferred: the agents&rsquo; read of the sources, to test on a call. Gap: unknown until the account says, whatever the simulated meeting hints.
-        </p>
+        <p className="border-t border-border px-4 py-3 text-sm text-muted-foreground sm:px-5">Gaps close on a call, not from research.</p>
       </Fold>
     </section>
   );
