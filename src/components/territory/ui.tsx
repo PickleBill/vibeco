@@ -2,6 +2,13 @@
 // sheet. Evidence colors are semantic and fixed (never the accent); the accent
 // (bg-brand) marks live and "just finished" moments; pink that must be read is
 // text-primary. Every cue has a shape as well as a color.
+//
+// Three kinds of marks, one rule each:
+// - Tags describe (motion, fit, segment, evidence status, live/saved). Square
+//   corners, no hover, never clickable: everything in this file but the tabs.
+// - Sources are the small numbered chips; a number always opens a source.
+// - Actions do something: buttons (style.ts), or fully rounded pills for
+//   choices and quick picks (toggle in explorer/look.ts). Round means click.
 import type { ReactNode } from "react";
 import type { ResearchSource } from "@/components/simulator/SourcesList";
 import { ageDays } from "./model";
@@ -24,7 +31,7 @@ const TAG: Record<string, { label: string; cls: string }> = {
 /** Confirmed solid, Inferred dashed amber, Former struck, Not found dotted. */
 export function EvidenceTag({ status, className }: { status?: string; className?: string }) {
   const t = TAG[status ?? ""] ?? TAG.Inferred;
-  return <span className={cx("inline-flex h-[26px] shrink-0 items-center rounded-full px-2.5 text-xs font-semibold", t.cls, className)}>{t.label}</span>;
+  return <span className={cx("inline-flex h-[26px] shrink-0 items-center rounded-[4px] px-2 text-xs font-semibold", t.cls, className)}>{t.label}</span>;
 }
 
 // ─── Source chips: numbered, with an age that fades ───
@@ -66,7 +73,7 @@ export function SourceChip({ source, n, now }: { source?: ResearchSource; n: num
 /** A field-style pill: "Aa Both". */
 export function FieldPill({ children, glyph = "Aa", className }: { children: ReactNode; glyph?: string; className?: string }) {
   return (
-    <span className={cx("inline-flex h-[26px] items-center gap-1.5 rounded-md border border-[#D9D4C7] bg-white px-2 text-[13px] font-medium text-foreground", className)}>
+    <span className={cx("inline-flex h-[26px] items-center gap-1.5 rounded-[4px] border border-[#D9D4C7] bg-white px-2 text-[13px] font-medium text-foreground", className)}>
       <span className="font-mono text-xs text-muted-foreground">{glyph}</span>
       {children}
     </span>
@@ -81,7 +88,7 @@ export function FitBadge({ grade, label = true }: { grade?: string; label?: bool
   const badge = <span className={cx("inline-flex h-5 w-5 items-center justify-center rounded font-mono text-[13px] font-semibold", box)}>{g || "?"}</span>;
   if (!label) return badge;
   return (
-    <span title="Fit: evidence and timing, not deal size" className="inline-flex h-[26px] items-center gap-1.5 rounded-md border border-[#D9D4C7] bg-white pl-2 pr-1 text-[13px] font-medium">
+    <span title="Fit: evidence and timing, not deal size" className="inline-flex h-[26px] items-center gap-1.5 rounded-[4px] border border-[#D9D4C7] bg-white pl-2 pr-1 text-[13px] font-medium">
       Fit {badge}
     </span>
   );
@@ -90,7 +97,7 @@ export function FitBadge({ grade, label = true }: { grade?: string; label?: bool
 /** Pink live pill: "● Run finished 06:02". */
 export function LivePill({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <span className={cx("inline-flex h-8 items-center gap-2 rounded-full border border-brand bg-brand-tint px-3 text-sm font-semibold text-foreground", className)}>
+    <span className={cx("inline-flex h-8 items-center gap-2 rounded-[4px] border border-brand bg-brand-tint px-3 text-sm font-semibold text-foreground", className)}>
       <span className="h-2.5 w-2.5 rounded-full bg-brand" aria-hidden />
       {children}
     </span>

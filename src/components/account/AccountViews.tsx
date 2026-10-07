@@ -227,7 +227,7 @@ export function StatusTag({ status }: { status?: string }) {
       {status in TAG_TITLE ? (
         <EvidenceTag status={status} />
       ) : (
-        <span className="inline-flex h-[26px] items-center rounded-full border border-dotted border-[#9097A6] px-2.5 text-xs font-semibold text-[#6B7080]">{status}</span>
+        <span className="inline-flex h-[26px] items-center rounded-[4px] border border-dotted border-[#9097A6] px-2 text-xs font-semibold text-[#6B7080]">{status}</span>
       )}
     </span>
   );
