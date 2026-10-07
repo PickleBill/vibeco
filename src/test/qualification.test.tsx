@@ -73,14 +73,16 @@ describe("threeWhys", () => {
 });
 
 describe("QualificationCard", () => {
-  it("shows the letters and the summary shut, and the eight rows open", () => {
+  it("is one slim bar shut (eight letters and a line), and the eight rows open", () => {
     const q = qualify(brief, analysis, meeting);
     render(<QualificationCard qualification={q} sources={[]} />);
-    expect(screen.getByText(/3 of 8 known/)).toBeInTheDocument();
-    expect(screen.getByText(/Biggest gap: Economic buyer/)).toBeInTheDocument();
+    const bar = screen.getByRole("button", { name: /3 of 8 from public research\. The rest is discovery\./ });
+    expect(bar).toHaveAttribute("aria-expanded", "false");
     expect(screen.getAllByTestId("meddpicc-letter")).toHaveLength(8);
+    expect(screen.queryByText(/Biggest gap/)).toBeNull();
     expect(screen.queryByText("Paper process")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /3 of 8 known/ }));
+    fireEvent.click(bar);
+    expect(bar).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText("Paper process")).toBeInTheDocument();
     expect(screen.getAllByText("Gap").length).toBeGreaterThanOrEqual(5);
   });

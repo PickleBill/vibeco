@@ -1,4 +1,7 @@
+import { useId, useState } from "react";
 import { useReducedMotion } from "framer-motion";
+import type { MotionLabel } from "@/components/account/AccountViews";
+import { Fold, FoldButton } from "../Memo";
 import { OMNI_TEXT } from "../model";
 import { cx } from "../style";
 import { agoText } from "./evidence";
@@ -30,7 +33,8 @@ const CORNER: Record<string, string> = {
  * size is fit. Fresh or changed accounts pulse pink; the sweep runs once on
  * load. A navy ring marks Omni at the account (solid: on the public list;
  * dashed: named in a stack line). Each blip is a button that opens the
- * account in focus.
+ * account in focus. Each corner counts its motion; the key to the marks is
+ * one tap away, under the chart.
  */
 export function RadarChart({
   accounts,
@@ -43,9 +47,12 @@ export function RadarChart({
 }) {
   const reduce = useReducedMotion();
   const [box, width] = useWidth<HTMLDivElement>(420);
+  const [keyOpen, setKeyOpen] = useState(false);
+  const keyId = `radar-key-${useId().replace(/:/g, "")}`;
   const blips = placeBlips(accounts);
   const secs = sectors(accounts.some((a) => a.row.motion === "Unclear"));
   const empty = secs.filter((s) => !accounts.some((a) => a.row.motion === s.motion));
+  const counts = Object.fromEntries(secs.map((s) => [s.motion, accounts.filter((a) => a.row.motion === s.motion).length])) as Partial<Record<MotionLabel, number>>;
   const scale = 400 / Math.max(200, width);
   const dense = accounts.length > DENSE_AT;
   const sizes = dense ? DENSE_SIZE : FIT_SIZE;
@@ -58,6 +65,7 @@ export function RadarChart({
       secs,
       empty.map((s) => s.motion),
       scale,
+      counts,
     ),
   );
 
@@ -101,7 +109,7 @@ export function RadarChart({
 
         {secs.map((s) => (
           <span key={s.motion} aria-hidden className={cx("pointer-events-none absolute font-mono text-xs font-semibold uppercase tracking-[0.06em] text-[#4A4F63]", CORNER[s.corner])}>
-            {s.motion}
+            {s.motion} <span className="text-foreground">{counts[s.motion]}</span>
           </span>
         ))}
         {empty.map((s) => {
@@ -190,32 +198,38 @@ export function RadarChart({
           );
         })}
       </div>
-      <div className="mt-3.5 flex flex-wrap gap-x-[18px] gap-y-2 text-sm text-[#4A4F63]">
-        <span>Distance from center = trigger freshness</span>
-        <span>Outer band = no dated trigger{dense ? ", drawn smaller" : ""}</span>
-        <span className="inline-flex items-center gap-1.5">
-          Size = fit
-          {(["A", "B", "C"] as const).map((g) => (
-            <span key={g} className="inline-flex items-center gap-1">
-              <span aria-hidden className="inline-block rounded-full bg-foreground" style={{ width: sizes[g], height: sizes[g] }} />
-              {g}
+      <p className="sr-only">{secs.map((s) => `${counts[s.motion]} ${s.motion}`).join(", ")}</p>
+      <FoldButton open={keyOpen} controls={keyId} onClick={() => setKeyOpen((v) => !v)} className="mt-1">
+        How to read the radar
+      </FoldButton>
+      <Fold open={keyOpen} id={keyId}>
+        <div className="flex flex-wrap gap-x-[18px] gap-y-2 pb-1 text-sm text-[#4A4F63]">
+          <span>Distance from center = trigger freshness</span>
+          <span>Outer band = no dated trigger{dense ? ", drawn smaller" : ""}</span>
+          <span className="inline-flex items-center gap-1.5">
+            Size = fit
+            {(["A", "B", "C"] as const).map((g) => (
+              <span key={g} className="inline-flex items-center gap-1">
+                <span aria-hidden className="inline-block rounded-full bg-foreground" style={{ width: sizes[g], height: sizes[g] }} />
+                {g}
+              </span>
+            ))}
+          </span>
+          {omni.map((s) => (
+            <span key={s} className="inline-flex items-center gap-1.5">
+              <span aria-hidden className="relative inline-flex h-[22px] w-[22px] items-center justify-center">
+                <span className="block h-2.5 w-2.5 rounded-full bg-foreground" />
+                <OmniRing status={s} around={0} />
+              </span>
+              {OMNI_TEXT[s].full}
             </span>
           ))}
-        </span>
-        {omni.map((s) => (
-          <span key={s} className="inline-flex items-center gap-1.5">
-            <span aria-hidden className="relative inline-flex h-[22px] w-[22px] items-center justify-center">
-              <span className="block h-2.5 w-2.5 rounded-full bg-foreground" />
-              <OmniRing status={s} around={0} />
-            </span>
-            {OMNI_TEXT[s].full}
+          <span className="inline-flex items-center gap-1.5">
+            <span aria-hidden className="inline-block h-3.5 w-3.5 rounded-full bg-brand shadow-[0_0_0_2px_hsl(var(--foreground))]" />
+            Trigger in the last 30 days{accounts.some((a) => a.changes.length) ? " or changed" : ""}
           </span>
-        ))}
-        <span className="inline-flex items-center gap-1.5">
-          <span aria-hidden className="inline-block h-3.5 w-3.5 rounded-full bg-brand shadow-[0_0_0_2px_hsl(var(--foreground))]" />
-          Trigger in the last 30 days{accounts.some((a) => a.changes.length) ? " or changed" : ""}
-        </span>
-      </div>
+        </div>
+      </Fold>
     </section>
   );
 }

@@ -21,7 +21,7 @@ export function CompanyName({
   row: TerritoryRow;
   seller: string;
   logo?: LogoSize | false;
-  /** A small line under the name, inside the button (the domain in a table cell). */
+  /** A small line under the name, inside the button. */
   sub?: ReactNode;
   /** Also runs when the brief opens (e.g. to select the account in a chart). */
   onOpen?: () => void;

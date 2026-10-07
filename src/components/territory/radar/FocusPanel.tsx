@@ -81,7 +81,6 @@ export function FocusPanel({
         <h2 id="focus-title" className="font-display text-2xl font-bold tracking-[-0.01em]">
           <CompanyName row={row} seller={seller} />
         </h2>
-        {row.domain && <span className="font-mono text-[13px] text-[#4A4F63]">{row.domain}</span>}
         {row.segment && <SegmentTag segment={row.segment} note={segmentNote} />}
         <FieldPill>Motion: {row.motion}</FieldPill>
         <FitBadge grade={row.fit} />

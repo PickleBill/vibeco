@@ -4,7 +4,7 @@ import type { AccountBrief } from "@/components/account/AccountViews";
 import type { SavedReport } from "@/components/account/explorer/savedRuns";
 import { CompanyLogo } from "@/components/territory/company/CompanyLogo";
 import { CompanyName } from "@/components/territory/company/CompanyName";
-import { briefFacts, initialsOf, logoUrl } from "@/components/territory/company/model";
+import { briefFacts, firstSentence, initialsOf, logoUrl } from "@/components/territory/company/model";
 import { toRow } from "@/components/territory/model";
 
 const NOW = new Date(Date.UTC(2026, 9, 7));
@@ -71,7 +71,7 @@ describe("CompanyLogo", () => {
 });
 
 describe("CompanyName and the brief", () => {
-  it("opens the brief: tags, the account line, why now, the confirmed stack and the actions", () => {
+  it("opens the brief: tags, the account line, why now and the actions, nothing more", () => {
     const row = rowOf(report());
     const rowClick = vi.fn();
     render(
@@ -88,15 +88,17 @@ describe("CompanyName and the brief", () => {
 
     const dialog = screen.getByRole("dialog", { name: "Acme Outfitters" });
     expect(within(dialog).getByText("Acme sells outdoor gear and ships dashboards to its dealers.")).toBeInTheDocument();
-    expect(within(dialog).getByRole("link", { name: /acme\.example/ })).toHaveAttribute("href", "https://acme.example");
+    // No bare domain beside the name: one small Website link in the actions.
+    expect(within(dialog).queryByText("acme.example")).toBeNull();
+    expect(within(dialog).getByRole("link", { name: /Website/ })).toHaveAttribute("href", "https://acme.example");
     expect(within(dialog).getByText("Motion: Both")).toBeInTheDocument();
     expect(within(dialog).getByText("Strategic")).toBeInTheDocument();
-    expect(within(dialog).getByText("Not on Omni's public customer list")).toBeInTheDocument();
     expect(within(dialog).getByText("Sep 2026")).toBeInTheDocument();
     expect(within(dialog).getByText("Raised $20M.")).toBeInTheDocument();
-    expect(within(dialog).getByText("Snowflake")).toBeInTheDocument();
-    expect(within(dialog).queryByText("Looker")).toBeNull();
-    expect(within(dialog).getByText(/From 3 sources · saved run of Oct 6, 2026/)).toBeInTheDocument();
+    // The Omni status, the stack and the sources are one click away on the run.
+    expect(within(dialog).queryByText(/public customer list/)).toBeNull();
+    expect(within(dialog).queryByText("Snowflake")).toBeNull();
+    expect(within(dialog).queryByText(/From \d+ sources?/)).toBeNull();
     expect(within(dialog).getByRole("link", { name: /Open the run/ })).toHaveAttribute("href", "/for/omni/account/acme");
     expect(within(dialog).getByRole("link", { name: /Simulate its committee/ })).toHaveAttribute("href", "/for/omni/committee/acme");
     expect(within(dialog).getByRole("link", { name: /Find lookalikes/ })).toHaveAttribute("href", "/for/omni/lookalikes/acme");
@@ -106,10 +108,11 @@ describe("CompanyName and the brief", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("says when there's no dated trigger and leaves the stack out when nothing is confirmed", () => {
+  it("says when there's no dated trigger, and keeps why now to one sentence", () => {
     const facts = briefFacts(rowOf(report({ whyNow: "", stack: [["BI tools", "Looker", "Inferred"]] })));
     expect(facts.why).toBeUndefined();
-    expect(facts.stack).toEqual([]);
+    expect(firstSentence("Raised $20M from U.S. Bank. The round closes in May.")).toBe("Raised $20M from U.S. Bank.");
+    expect(firstSentence("Hired a CDO.")).toBe("Hired a CDO.");
 
     render(
       <MemoryRouter>
@@ -119,6 +122,5 @@ describe("CompanyName and the brief", () => {
     fireEvent.click(screen.getByRole("button", { name: "Acme Outfitters" }));
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByText("No dated trigger found")).toBeInTheDocument();
-    expect(within(dialog).queryByText("Confirmed stack")).toBeNull();
   });
 });

@@ -290,7 +290,7 @@ function Expand({ analysis, sources }: { analysis: AccountAnalysis | null; sourc
           <article key={i} className="flex flex-col border-t-2 border-foreground pt-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className={label}>Way in {i + 1}</p>
-              {p.potential && POTENTIAL_LABEL[p.potential] && <FieldPill glyph="+">{POTENTIAL_LABEL[p.potential]}</FieldPill>}
+              {p.potential && POTENTIAL_LABEL[p.potential] && <FieldPill>{POTENTIAL_LABEL[p.potential]}</FieldPill>}
             </div>
             {p.title && <h4 className="mt-2 font-display text-lg font-semibold leading-snug text-foreground">{stripMarks(p.title)}</h4>}
             {/* The pitch's first lines show; the rest and how it's different open on a tap. */}

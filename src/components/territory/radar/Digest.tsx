@@ -25,9 +25,9 @@ export function Digest({ accounts, territory, subject }: { accounts: RadarAccoun
     } else toast.error("Couldn't copy. Select the text instead.");
   };
 
-  // Shut on phones (a title and the subject line), open from 1024px.
+  // Shut: a title and the subject line; the email opens on a tap.
   return (
-    <Memo className="mt-4" defaultOpen="wide" title="Morning digest" count={`preview · top ${top.length}`} preview={subject}>
+    <Memo className="mt-4" title="Morning digest" count={`preview · top ${top.length}`} preview={subject}>
       <span className="mb-3.5 flex min-h-[26px] w-fit items-center rounded-md border border-dashed border-foreground px-2.5 text-xs font-bold">
         Internal · for the seller only · never sent to prospects
       </span>

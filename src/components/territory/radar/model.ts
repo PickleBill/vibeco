@@ -217,11 +217,15 @@ export const RING_LABELS: { r: number; text: string }[] = [
 export const emptyNoteAt = (s: Sector) => polar(118, (s.start + s.end) / 2);
 export const EMPTY_NOTE = "No accounts yet";
 
-/** Boxes the fixed labels take (corner motions, ring ages, empty-sector notes), at `s` chart units per pixel. */
-export function reservedBoxes(secs: Sector[], empty: MotionLabel[], s: number): Box[] {
+/**
+ * Boxes the fixed labels take (corner motions with their counts, ring ages,
+ * empty-sector notes), at `s` chart units per pixel.
+ */
+export function reservedBoxes(secs: Sector[], empty: MotionLabel[], s: number, counts: Partial<Record<MotionLabel, number>> = {}): Box[] {
   const out: Box[] = [];
   for (const sec of secs) {
-    const w = (sec.motion.length * 8.2 + 8) * s;
+    const chars = sec.motion.length + (counts[sec.motion] != null ? String(counts[sec.motion]).length + 1 : 0);
+    const w = (chars * 8.2 + 8) * s;
     const h = 22 * s;
     const left = sec.corner === "tl" || sec.corner === "bl";
     const top = sec.corner === "tl" || sec.corner === "tr";

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useNavigationType } from "react-router-dom";
 import AccountRunner from "@/components/account/AccountRunner";
-import { AccountSwitcher } from "../AccountSwitcher";
 import { rememberRan } from "../current";
 import { splitCompany } from "../model";
 import { moduleHref } from "../nav";
@@ -11,16 +10,17 @@ import type { ModuleProps } from "./types";
 
 /**
  * 01 · Run an account, the front door (/for/omni): always the empty form
- * first (a box, saved and live quick picks). A saved run opens from a pill,
- * the picker, a next-step link or a URL with its id; ?run=<company> starts a
- * live run of it once. Once a run starts the intro folds into a compact run
- * bar, so the results start near the top. The URL follows the run on screen
- * (a saved run opened, a live run once it's saved), so the rail carries it to
- * the committee and the deal room; a run from outside the territory is also
- * kept as "Just ran" for the pickers in lookalikes, the committee and the
- * deal room.
+ * first (a box, saved runs as small cards, live picks as pills). A saved run
+ * opens from a card, the Radar, a next-step link or a URL with its id;
+ * ?run=<company> starts a live run of it once. Once a run starts the intro
+ * folds into a compact run bar (no account picker; the Run tab is the way
+ * back to the picks), so the results start near the top. The URL follows
+ * the run on screen (a saved run opened, a live run once it's saved), so the
+ * rail carries it to the committee and the deal room; a run from outside the
+ * territory is also kept as "Just ran" for the pickers in lookalikes, the
+ * committee and the deal room.
  */
-export function AccountModule({ seller, territory, reportId }: ModuleProps) {
+export function AccountModule({ seller, reportId }: ModuleProps) {
   const navigate = useNavigate();
   const { search, key } = useLocation();
   const navType = useNavigationType();
@@ -66,18 +66,6 @@ export function AccountModule({ seller, territory, reportId }: ModuleProps) {
         autoRun={fresh.run}
         inShell
         onRunChange={onRunChange}
-        picker={
-          territory.rows.length > 0 ? (
-            <AccountSwitcher
-              label="Saved runs"
-              rows={territory.rows}
-              activeId={open?.id ?? reportId}
-              hrefFor={(id) => moduleHref(seller.id, "account", id)}
-              loading={territory.loading}
-              segments={seller.territory?.segments}
-            />
-          ) : undefined
-        }
         intro={
           <PageHeader eyebrow="Run an account" title={seller.headline}>
             {seller.intro}

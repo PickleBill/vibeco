@@ -33,18 +33,17 @@ beforeEach(() => {
 });
 
 describe("Beyond the territory", () => {
-  it("starts idle: a title, the not-researched line and one button, no call", () => {
+  it("starts idle: one line and one primary button, no call", () => {
     renderIt();
-    expect(screen.getByRole("heading", { name: "Beyond the territory" })).toBeInTheDocument();
-    expect(screen.getByText("AI suggestions like Relay. Not researched yet.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Suggest companies like Relay" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Companies like Relay that aren’t in your territory yet" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Find new companies like Relay" })).toBeInTheDocument();
     expect(invoke).not.toHaveBeenCalled();
   });
 
   it("asks with the seed and the territory to exclude, then shows hypotheses with a research link", async () => {
     invoke.mockResolvedValue({ data: { suggestions, model: "m", latencyMs: 1 }, error: null });
     renderIt();
-    fireEvent.click(screen.getByRole("button", { name: "Suggest companies like Relay" }));
+    fireEvent.click(screen.getByRole("button", { name: "Find new companies like Relay" }));
     expect(await screen.findByRole("status")).toHaveTextContent("Usually 10 to 25 seconds.");
 
     const list = await screen.findByRole("list", { name: "Suggestions like Relay" });
@@ -56,8 +55,11 @@ describe("Beyond the territory", () => {
     expect(first.getByText("May ship customer-facing reporting to its bank partners.")).toBeInTheDocument();
     expect(first.getByText("Motion guess: Embedded")).toBeInTheDocument();
     expect(first.getByText("Atlanta, GA")).toBeInTheDocument();
-    expect(first.getByRole("link", { name: /cardlytics\.com/ })).toHaveAttribute("href", "https://cardlytics.com");
+    // No domains on the card: the one link researches it live.
+    expect(first.queryByText(/cardlytics\.com/)).toBeNull();
     expect(first.getByRole("link", { name: /Research it live/ })).toHaveAttribute("href", "/for/omni/account?run=Cardlytics%20(cardlytics.com)");
+    expect(screen.getByText("AI suggestions, not researched yet. Each website answered when checked.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Find again" })).toBeInTheDocument();
 
     const [name, opts] = invoke.mock.calls[0] as [string, { body: { seed: BeyondSeed; exclude: string[] } }];
     expect(name).toBe("suggest-accounts");
@@ -68,11 +70,11 @@ describe("Beyond the territory", () => {
   it("says so when nothing survives, and offers Try again on an error", async () => {
     invoke.mockResolvedValueOnce({ data: { suggestions: [] }, error: null });
     renderIt();
-    fireEvent.click(screen.getByRole("button", { name: "Suggest companies like Relay" }));
+    fireEvent.click(screen.getByRole("button", { name: "Find new companies like Relay" }));
     expect(await screen.findByText(/No suggestion passed the checks/)).toBeInTheDocument();
 
     invoke.mockResolvedValueOnce({ data: null, error: { context: new Response(JSON.stringify({ error: "x" }), { status: 500 }) } });
-    fireEvent.click(screen.getByRole("button", { name: "Suggest again" }));
+    fireEvent.click(screen.getByRole("button", { name: "Find again" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("didn’t finish on our side");
     invoke.mockResolvedValueOnce({ data: { suggestions }, error: null });
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
@@ -82,7 +84,7 @@ describe("Beyond the territory", () => {
   it("a new seed clears the results", async () => {
     invoke.mockResolvedValue({ data: { suggestions }, error: null });
     const { rerender } = renderIt();
-    fireEvent.click(screen.getByRole("button", { name: "Suggest companies like Relay" }));
+    fireEvent.click(screen.getByRole("button", { name: "Find new companies like Relay" }));
     await screen.findByRole("list", { name: "Suggestions like Relay" });
     rerender(
       <MemoryRouter>
@@ -90,7 +92,7 @@ describe("Beyond the territory", () => {
       </MemoryRouter>,
     );
     await waitFor(() => expect(screen.queryByRole("list", { name: /Suggestions like/ })).not.toBeInTheDocument());
-    expect(screen.getByRole("button", { name: "Suggest companies like Equifax" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Find new companies like Equifax" })).toBeInTheDocument();
   });
 });
 

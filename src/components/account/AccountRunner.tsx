@@ -9,7 +9,6 @@ import { copyToClipboard } from "@/lib/copyToClipboard";
 import type { SellerConfig } from "@/lib/sellers";
 import type { BriefResearch } from "@/components/simulator/SourcesList";
 import { moduleHref } from "@/components/territory/nav";
-import { ReadingKey } from "@/components/territory/ReadingKey";
 import { cx } from "@/components/territory/style";
 import { Eyebrow, LivePill } from "@/components/territory/ui";
 import { StatusTag, type AccountAnalysis, type AccountBrief } from "./AccountViews";
@@ -155,19 +154,13 @@ function HowItWorks() {
           </li>
         ))}
       </ol>
-      <div className="mt-5 border-t border-border pt-4">
-        <div className="flex flex-wrap gap-2">
-          <StatusTag status="Confirmed" />
-          <StatusTag status="Inferred" />
-          <StatusTag status="Former" />
-          <StatusTag status="Not found" />
-        </div>
-        <p className="mt-2.5 text-[15px] leading-relaxed text-[#4A4F63]">
-          A tool is Confirmed only when a source names it plainly at this company, checked in code. A job post that lists it as one option among
-          several, or as a nice-to-have, doesn&rsquo;t count. Former means a source says the company moved off it.
-        </p>
-      </div>
-      <ReadingKey className="mt-4 border-t border-border pt-4" />
+      <p className="mt-5 flex flex-wrap items-center gap-2 border-t border-border pt-4 text-[15px] text-[#4A4F63]">
+        <StatusTag status="Confirmed" />
+        <StatusTag status="Inferred" />
+        <StatusTag status="Former" />
+        <StatusTag status="Not found" />
+        <span>Confirmed only when a source names it plainly.</span>
+      </p>
     </div>
   );
 }
@@ -249,8 +242,6 @@ interface Props {
   inShell?: boolean;
   /** The run on screen once it's saved (a saved run opened, or a live run finished), or null when a live run starts. */
   onRunChange?: (run: { id: string; company: string } | null) => void;
-  /** Stands in for the saved-run pills in the run bar (the territory's account picker). */
-  picker?: React.ReactNode;
   /** A company to run live once, on arrival (a "research it live" link); the box shows it. */
   autoRun?: string;
 }
@@ -261,7 +252,7 @@ const sameAccount = (a: string, b: string) => {
   return norm(a) === norm(b);
 };
 
-const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, inShell, onRunChange, picker, autoRun }: Props) => {
+const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, inShell, onRunChange, autoRun }: Props) => {
   const [input, setInput] = useState(initialCompany);
   const [company, setCompany] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -590,7 +581,7 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, in
             <HowItWorks />
           </div>
 
-          {/* With a territory, the saved pills and the radar link stand in for these cards. */}
+          {/* With a territory, the quick picks and the radar link stand in for these cards. */}
           {!seller?.territory && runs.length > 0 && (
             <TerritoryStrip
               runs={runs}
@@ -642,14 +633,11 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, in
                 </div>
               )}
 
-              {picker ? (
-                <div className="mt-3 border-t border-border pt-3">{picker}</div>
-              ) : (
-                runs.length > 0 && (
-                  <div className="mt-3 border-t border-border pt-3">
-                    <TerritoryStrip compact runs={runs} title={pinned.length ? "Saved runs" : "Your recent runs"} activeId={saved?.id} onOpen={openSaved} />
-                  </div>
-                )
+              {/* In the command center, other accounts open from the Run tab, the Radar or a view's picker. */}
+              {!inShell && runs.length > 0 && (
+                <div className="mt-3 border-t border-border pt-3">
+                  <TerritoryStrip compact runs={runs} title={pinned.length ? "Saved runs" : "Your recent runs"} activeId={saved?.id} onOpen={openSaved} />
+                </div>
               )}
             </section>
 
