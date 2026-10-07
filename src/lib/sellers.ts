@@ -49,6 +49,8 @@ export interface CustomerSeed {
 export interface SellerConfig {
   id: string;
   name: string;
+  /** The seller's own site; running it as an account is caught before any call. */
+  domain?: string;
   headline: string;
   intro: string;
   /** One-click example companies. */
@@ -68,6 +70,7 @@ const SELLERS: Record<string, SellerConfig> = {
   omni: {
     id: "omni",
     name: "Omni",
+    domain: "omni.co",
     headline: "Know the account before the first call.",
     intro:
       "Type a company. VibeCo reads its own job posts and product pages, searches the web for its data stack and the last 12 months of news, then writes a first-call plan for an Omni seller: internal or embedded motion, with every claim linked to its source.",

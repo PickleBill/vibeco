@@ -149,7 +149,9 @@ export async function exaCompanies(query: string, numResults = 25, fetchImpl: ty
       category: "company",
       numResults,
       userLocation: "US",
-      contents: { highlights: { query: "what the company sells and to whom, where it is headquartered, how many people it employs", maxCharacters: 1500 } },
+      contents: {
+        highlights: { query: "what the company sells and to whom, where it is headquartered, how many people it employs, its homepage and its tech stack", maxCharacters: 2500 },
+      },
     }),
     signal: AbortSignal.timeout(EXA_TIMEOUT_MS),
   });

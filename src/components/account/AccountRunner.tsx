@@ -15,6 +15,7 @@ import { StatusTag, type AccountAnalysis, type AccountBrief } from "./AccountVie
 import { AccountExplorer } from "./explorer/AccountExplorer";
 import { card, linkBtn, primaryBtn, secondaryBtn, toggle } from "./explorer/look";
 import { QuickPicks } from "./QuickPicks";
+import { resolveCompany } from "./resolveCompany";
 import { RunMode } from "./RunMode";
 import { ResearchFeed } from "./explorer/ResearchFeed";
 import { TerritoryStrip } from "./explorer/TerritoryStrip";
@@ -321,8 +322,14 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, in
   };
 
   const run = async (raw: string) => {
-    const name = cleanCompany(raw);
-    if (!name || status === "running") return;
+    const typed = cleanCompany(raw);
+    if (!typed || status === "running") return;
+    const resolved = resolveCompany(typed, seller);
+    if (resolved.kind === "seller") {
+      toast(`That's ${seller?.name} itself. Try a company ${seller?.name} would sell to.`);
+      return;
+    }
+    const name = resolved.company;
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
