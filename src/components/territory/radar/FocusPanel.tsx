@@ -4,6 +4,7 @@ import { ArrowRight, X } from "lucide-react";
 import { useReducedMotion } from "framer-motion";
 import { AGENTS, relabelSeats, teaserFor } from "@/components/account/explorer/model";
 import { ranAt } from "@/components/account/explorer/savedRuns";
+import { CompanyName } from "../company/CompanyName";
 import { OMNI_TEXT, omniLines } from "../model";
 import { moduleHref } from "../nav";
 import { cx, primaryButton, secondaryButton } from "../style";
@@ -78,7 +79,7 @@ export function FocusPanel({
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 border-b border-border bg-muted px-4 py-4 sm:px-[18px]">
         <h2 id="focus-title" className="font-display text-2xl font-bold tracking-[-0.01em]">
-          {row.name}
+          <CompanyName row={row} seller={seller} />
         </h2>
         {row.domain && <span className="font-mono text-[13px] text-[#4A4F63]">{row.domain}</span>}
         {row.segment && <SegmentTag segment={row.segment} note={segmentNote} />}

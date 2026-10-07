@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { TerritorySegment } from "@/lib/sellers";
+import { CompanyName } from "../company/CompanyName";
 import { fitRank, omniRank } from "../model";
 import { moduleHref } from "../nav";
 import { cx } from "../style";
@@ -18,10 +19,10 @@ const STACK_CAP = 4;
 
 // Widths step up at xl. Next move joins at 1400px and Open (with the row
 // numbers) at 2xl, so the sheet fits a presenter's 125% window without
-// scrolling; below that the name (which opens the account in focus, with its
-// links) stands in for Open.
+// scrolling; below that the account cell (which opens the account in focus,
+// with its links) and the name's brief stand in for Open.
 const COLS: { key: ColKey; label: string; sort?: SortKey; cls?: string }[] = [
-  { key: "name", label: "Account", sort: "name", cls: "w-[132px] xl:w-[150px]" },
+  { key: "name", label: "Account", sort: "name", cls: "w-[160px] xl:w-[176px]" },
   { key: "segment", label: "Segment", sort: "segment", cls: "w-[92px] xl:w-[100px]" },
   { key: "motion", label: "Motion", sort: "motion", cls: "w-[110px] xl:w-[114px]" },
   { key: "fit", label: "Fit", sort: "fit", cls: "w-[48px] xl:w-[56px]" },
@@ -36,9 +37,9 @@ const COLS: { key: ColKey; label: string; sort?: SortKey; cls?: string }[] = [
 /**
  * Every account as a spreadsheet: lettered columns, a frozen account column,
  * sortable headers (Account, Segment, Motion, Fit, Omni, Days since). The
- * name opens the account in focus; Open goes to the full run. On a phone it
- * scrolls sideways in its box. The Segment column shows only when the
- * territory is split into segments.
+ * account cell opens the account in focus and its name a quick brief; Open
+ * goes to the full run. On a phone it scrolls sideways in its box. The
+ * Segment column shows only when the territory is split into segments.
  */
 export function AccountsTable({
   accounts,
@@ -208,18 +209,23 @@ export function AccountsTable({
                 <tr key={row.id} className={cx("border-b border-[#ECE8DE] align-top", bg)}>
                   <td className="sticky left-0 z-10 hidden border-r border-[#ECE8DE] bg-background px-2 py-2.5 font-mono text-xs text-muted-foreground 2xl:table-cell">{i + 1}</td>
                   <td className={cx("sticky left-0 z-10 border-r border-[#ECE8DE] px-2.5 py-2 2xl:left-10", bg)}>
+                    {/* The cell opens the account in focus; the name, above it, opens the brief. */}
                     <button
                       type="button"
                       onClick={() => onFocus(row.id)}
                       aria-pressed={on}
-                      className="flex min-h-11 w-full flex-col items-start justify-center rounded text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <span className="flex items-center gap-1.5 font-bold hover:underline">
-                        <span aria-hidden className={cx("h-2 w-2 shrink-0 rounded-full", a.pulse ? "bg-brand" : "bg-transparent")} />
-                        {row.name}
-                      </span>
-                      {row.domain && <span className="pl-3.5 font-mono text-xs text-muted-foreground">{row.domain}</span>}
-                    </button>
+                      aria-label={`Quick look at ${row.name}`}
+                      className="absolute inset-0 hover:bg-black/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                    />
+                    <span className="pointer-events-none relative flex items-center gap-1.5">
+                      <span aria-hidden className={cx("h-2 w-2 shrink-0 rounded-full", a.pulse ? "bg-brand" : "bg-transparent")} />
+                      <CompanyName
+                        row={row}
+                        seller={seller}
+                        className="pointer-events-auto min-w-0 font-bold"
+                        sub={row.domain && <span className="truncate font-mono text-xs font-normal text-muted-foreground">{row.domain}</span>}
+                      />
+                    </span>
                   </td>
                   {cols.slice(1).map((c) => (
                     <td

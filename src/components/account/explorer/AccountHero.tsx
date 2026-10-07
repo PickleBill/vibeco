@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import type { ResearchSource } from "@/components/simulator/SourcesList";
+import { CompanyLogo } from "@/components/territory/company/CompanyLogo";
 import { ReadMore } from "@/components/territory/Memo";
 import type { ThreeWhys } from "@/components/territory/qualification/model";
 import { cx } from "@/components/territory/style";
@@ -125,11 +126,14 @@ export function AccountHero({
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b border-border bg-muted px-4 py-4 sm:px-6 sm:py-5">
         <div className="min-w-0">
           <Eyebrow>First-call plan{sellerName ? ` · for ${/^[aeiou]/i.test(sellerName) ? "an" : "a"} ${sellerName} seller` : ""}</Eyebrow>
-          <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h2 id="hero-title" className="font-display text-[2rem] font-bold leading-[1.08] tracking-[-0.02em] text-foreground sm:text-[2.5rem]">
-              {company}
-            </h2>
-            {domain && <span className="font-mono text-sm text-[#4A4F63]">{domain}</span>}
+          <div className="mt-1.5 flex items-center gap-3">
+            <CompanyLogo domain={domain} name={company} size={40} />
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h2 id="hero-title" className="font-display text-[2rem] font-bold leading-[1.08] tracking-[-0.02em] text-foreground sm:text-[2.5rem]">
+                {company}
+              </h2>
+              {domain && <span className="font-mono text-sm text-[#4A4F63]">{domain}</span>}
+            </div>
           </div>
           {(motion?.label || (list && sellerName)) && (
             <div className="mt-3 flex flex-wrap items-center gap-2">

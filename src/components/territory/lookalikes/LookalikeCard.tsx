@@ -1,6 +1,8 @@
 import { forwardRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { CompanyName } from "../company/CompanyName";
 import { Fold, FoldButton } from "../Memo";
+import type { TerritoryRow } from "../model";
 import { moduleHref } from "../nav";
 import { cx, secondaryButton } from "../style";
 import { FieldPill, FitBadge } from "../ui";
@@ -36,8 +38,8 @@ export function SimilarityPill({ t }: { t: TraitScore }) {
 }
 
 /** A ranked lookalike: score, the trait pills, the story to tell, where to go next. */
-export const LookalikeCard = forwardRef<HTMLElement, { item: Lookalike; rank: number; seller: string; domain?: string; selected: boolean; onPick: () => void }>(function LookalikeCard(
-  { item, rank, seller, domain, selected, onPick },
+export const LookalikeCard = forwardRef<HTMLElement, { item: Lookalike; rank: number; seller: string; row?: TerritoryRow; selected: boolean; onPick: () => void }>(function LookalikeCard(
+  { item, rank, seller, row, selected, onPick },
   ref,
 ) {
   const { fp } = item;
@@ -52,12 +54,17 @@ export const LookalikeCard = forwardRef<HTMLElement, { item: Lookalike; rank: nu
         <span className="pt-1 font-mono text-[13px] font-semibold text-muted-foreground">{String(rank).padStart(2, "0")}</span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
-            <h3 id={`look-${fp.id}`}>
-              <button type="button" onClick={onPick} className="min-h-8 text-left font-display text-[19px] font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                {fp.name}
-              </button>
+            <h3 id={`look-${fp.id}`} className="font-display text-[19px] font-semibold">
+              {/* The name opens the brief and lights the account's star. */}
+              {row ? (
+                <CompanyName row={row} seller={seller} logo={28} onOpen={onPick} />
+              ) : (
+                <button type="button" onClick={onPick} className="min-h-11 text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  {fp.name}
+                </button>
+              )}
             </h3>
-            {domain && <span className="font-mono text-xs text-muted-foreground">{domain}</span>}
+            {row?.domain && <span className="font-mono text-xs text-muted-foreground">{row.domain}</span>}
             <FieldPill>{fp.motion}</FieldPill>
             <FitBadge grade={fp.fit} />
             {fp.segment && <SegmentTag segment={fp.segment} />}
