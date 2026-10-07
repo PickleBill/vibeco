@@ -1,27 +1,96 @@
-import type { ReactNode } from "react";
-import { Loader2 } from "lucide-react";
+import { useRef, type ReactNode } from "react";
+import { ChevronDown, Loader2 } from "lucide-react";
 import type { ResearchSource } from "@/components/simulator/SourcesList";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CompanyLogo } from "@/components/territory/company/CompanyLogo";
 import { ReadMore } from "@/components/territory/Memo";
+import { plainText } from "@/components/territory/model";
 import type { ThreeWhys } from "@/components/territory/qualification/model";
 import { cx } from "@/components/territory/style";
 import { EvidenceTag, Eyebrow, FieldPill } from "@/components/territory/ui";
 import { Cited, GradeBox, type AccountBrief } from "../AccountViews";
 import { label } from "./look";
 import { monthLabel, stripMarks } from "./model";
+import { fitSignals } from "./signals";
 
-/** The fit grade, the motion it's for, and what it means (evidence and timing, not deal size). */
-function Fit({ fit }: { fit?: AccountBrief["fit"] }) {
+/** Reached or not: a square tag, solid when the sources show it, dotted when they don't. */
+function RungTag({ reached }: { reached: boolean }) {
+  return (
+    <span
+      className={cx(
+        "inline-flex h-[26px] shrink-0 items-center rounded-[4px] px-2 text-xs font-semibold",
+        reached ? "border border-[#16703F] bg-[#16703F] text-white" : "border border-dotted border-[#9097A6] bg-transparent text-[#6B7080]",
+      )}
+    >
+      {reached ? "Reached" : "Not reached"}
+    </span>
+  );
+}
+
+/**
+ * The fit grade, the motion it's for, and what it means (evidence and timing,
+ * not deal size). A button: it opens why, the model's reason and the signals
+ * the saved brief shows, read in code.
+ */
+function Fit({ brief, sources }: { brief: AccountBrief; sources: ResearchSource[] }) {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const fit = brief.fit;
   if (!fit?.grade) return null;
   const forMotion = fit.motion === "Internal" || fit.motion === "Embedded" ? `for the ${fit.motion.toLowerCase()} motion` : "motion unclear";
+  const reason = plainText(fit.reason);
+  // On a phone or a zoomed projector the grade can sit low: when the answer
+  // fits on neither side, bring the grade up so it opens whole below it.
+  const makeRoom = (open: boolean) => {
+    if (!open) return;
+    requestAnimationFrame(() => {
+      const t = triggerRef.current?.getBoundingClientRect();
+      const need = (contentRef.current?.scrollHeight ?? 0) + 24;
+      if (!t || window.innerHeight - t.bottom >= need || t.top >= need) return;
+      const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      window.scrollBy({ top: t.top - 72, behavior: reduce ? "auto" : "smooth" });
+    });
+  };
   return (
-    <div className="flex items-center gap-3" title={`Fit ${fit.grade}, ${forMotion}: how strong the evidence and the timing are. Not deal size.`}>
-      <GradeBox grade={fit.grade} size="lg" />
-      <span className="text-sm leading-snug text-[#4A4F63]">
-        <span className="block text-[15px] font-semibold text-foreground">Fit {forMotion}</span>
-        Evidence and timing, not deal size
-      </span>
-    </div>
+    <Popover onOpenChange={makeRoom}>
+      <PopoverTrigger ref={triggerRef} className="group -m-1.5 flex items-center gap-3 rounded-[10px] p-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <GradeBox grade={fit.grade} size="lg" />
+        <span className="text-sm leading-snug text-[#4A4F63]">
+          <span className="flex items-center gap-1 text-[15px] font-semibold text-foreground underline-offset-4 group-hover:underline">
+            Fit {forMotion}
+            <ChevronDown size={16} aria-hidden className="shrink-0 transition-transform group-data-[state=open]:rotate-180 motion-reduce:transition-none" />
+          </span>
+          Evidence and timing, not deal size
+          <span className="sr-only">. Why this grade?</span>
+        </span>
+      </PopoverTrigger>
+      <PopoverContent
+        ref={contentRef}
+        side="bottom"
+        align="end"
+        collisionPadding={16}
+        aria-label={`Why Fit ${fit.grade}?`}
+        className="max-h-[var(--radix-popover-content-available-height)] w-[min(28rem,calc(100vw-32px))] overflow-y-auto rounded-xl border-border bg-card p-4 shadow-lg motion-reduce:animate-none"
+      >
+        <p className="font-display text-lg font-semibold text-foreground">Why Fit {fit.grade}?</p>
+        {reason && <p className="mt-1 text-[15px] leading-snug text-foreground">{reason}</p>}
+        <ul className="mt-3 divide-y divide-border border-y border-border">
+          {fitSignals(brief).map((s) => (
+            <li key={s.id} className="py-2">
+              <p className="flex items-center justify-between gap-3">
+                <span className="text-[15px] font-semibold text-foreground">{s.label}</span>
+                <RungTag reached={s.reached} />
+              </p>
+              <p className="mt-0.5 text-[15px] leading-snug text-[#4A4F63]">
+                {/* The source chip stays on the line with the last word. */}
+                <Cited text={s.line.replace(/ (\[\d+\])$/, "\u00a0$1")} sources={sources} />
+              </p>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-[15px] text-muted-foreground">Fit grades evidence and timing, not intent or deal size.</p>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -143,7 +212,7 @@ export function AccountHero({
             </div>
           )}
         </div>
-        <Fit fit={brief.fit} />
+        <Fit brief={brief} sources={sources} />
       </div>
 
       <div className="px-4 py-5 sm:px-6 sm:py-6">
