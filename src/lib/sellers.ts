@@ -81,6 +81,7 @@ const SELLERS: Record<string, SellerConfig> = {
         { company: "Agilysys (agilysys.com)", reportId: "faa8b6c5-c166-44ae-b224-8e5284980e2b" },
         { company: "Built (getbuilt.com)", reportId: "ea0c06b8-2817-463e-bc69-b07a305b4290" },
         { company: "M3 (m3as.com)", reportId: "3aeed73e-6f36-4153-8442-d686d475eaba" },
+        { company: "Teamworks (teamworks.com)", reportId: "1c37a8c0-0942-46b8-96bb-bf3d9202e63d" },
       ],
     },
     seeds: [{ name: "Guitar Center", source: "https://omni.co/blog/case-study-guitar-center", reportId: "a9aefb7a-f59f-4324-8d2f-f628d2aa05df" }],
