@@ -38,13 +38,8 @@ const ForSeller = () => {
   if (!seller || !isModule(module)) return <NotFound />;
 
   // The bare URL used to be the radar: a shared /for/omni?segment=… link still opens it.
-  // The presenter walkthrough (?demo) starts on the demo account's saved run.
-  if (!moduleParam) {
-    const q = new URLSearchParams(search);
-    const demoId = seller.territory?.accounts[0]?.reportId;
-    if (q.has("segment")) return <Navigate replace to={{ pathname: moduleHref(seller.id, "radar"), search }} />;
-    if (q.has("demo") && demoId) return <Navigate replace to={{ pathname: moduleHref(seller.id, "account", demoId), search }} />;
-  }
+  // The presenter walkthrough (?demo) starts here, on the empty front door (step 1).
+  if (!moduleParam && new URLSearchParams(search).has("segment")) return <Navigate replace to={{ pathname: moduleHref(seller.id, "radar"), search }} />;
 
   const View = VIEWS[module];
   const label = MODULES.find((m) => m.id === module)?.label;

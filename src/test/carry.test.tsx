@@ -263,15 +263,14 @@ describe("front door", () => {
     expect(current()).toHaveTextContent("Radar");
   });
 
-  it("opens the presenter walkthrough's first step on the empty form, and a bare ?demo on the demo account", async () => {
+  it("opens the presenter walkthrough's first step on the empty form, from ?demo=1 or a bare ?demo", async () => {
     const first = open("/for/omni/account?demo=1");
     expect(await screen.findByRole("textbox", { name: "Which company?" })).toBeInTheDocument();
     expect(screen.getByText("Demo · step 1 of 7 · Any company, live")).toBeInTheDocument();
     first.unmount();
     open("/for/omni?demo");
-    const relay = seller.territory!.accounts[0].reportId;
-    await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent(`/for/omni/account/${relay}?demo`));
-    expect(screen.getByText(/^Demo · step 2 of 7/)).toBeInTheDocument();
+    expect(await screen.findByRole("textbox", { name: "Which company?" })).toBeInTheDocument();
+    expect(screen.getByText(/^Demo · step 1 of 7/)).toBeInTheDocument();
   });
 });
 
