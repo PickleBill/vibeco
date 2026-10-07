@@ -14,13 +14,13 @@ export interface ResearchSource {
   /** Judged not to be about the company (e.g. a different business with the same name); never cited. */
   off_topic?: boolean;
   /** The company's own job post, read from its public job board. */
-  via?: "greenhouse" | "lever" | "ashby" | string;
+  via?: "greenhouse" | "lever" | "ashby" | "workday" | string;
 }
 
 /** What the job-board scan found (account research). */
 export interface JobBoardScan {
   found: boolean;
-  ats?: "greenhouse" | "lever" | "ashby" | string;
+  ats?: "greenhouse" | "lever" | "ashby" | "workday" | string;
   board_url?: string;
   company_name?: string;
   total_jobs: number;

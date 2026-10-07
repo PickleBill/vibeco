@@ -7,15 +7,15 @@
 // These are search APIs, not LLM calls, so they don't go through llm-client.
 //
 // Account research also scans the company's own public job board (Greenhouse,
-// Lever or Ashby; see stack-scan.ts). Those posts lead the source list.
+// Lever, Ashby or a known Workday board; see stack-scan.ts). Those posts lead
+// the source list.
 
 import { isOwnSite, mentionsCompany, squash } from "./match.ts";
-import { emptyScan, scanJobBoards, scanSources, scanSummary, type Ats, type ScanSummary } from "./stack-scan.ts";
+import { ATS_IDS, emptyScan, scanJobBoards, scanSources, scanSummary, type Ats, type ScanSummary } from "./stack-scan.ts";
 import type { StackCategory } from "./stack-tools.ts";
 
 export type SourceKind = "stack" | "jobs" | "news" | "product";
 const KINDS: SourceKind[] = ["stack", "jobs", "news", "product"];
-const ATS_IDS: Ats[] = ["greenhouse", "lever", "ashby"];
 const CATEGORIES: StackCategory[] = ["Warehouse", "Transformation", "BI tools", "AI", "Embedded analytics"];
 
 export interface Source {
