@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, ArrowUpRight, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
+import { linkBtn } from "@/components/account/explorer/look";
 import { CompanyLogo } from "../company/CompanyLogo";
 import type { TerritoryRow } from "../model";
-import { cx, secondaryButton } from "../style";
+import { cx, primaryButton, secondaryButton } from "../style";
 import { EvidenceTag, FieldPill } from "../ui";
 import { asSeed, excludeFrom, fetchSuggestions, researchHref, SuggestError, type BeyondSeed, type Suggestion } from "./beyond";
 
@@ -23,51 +24,37 @@ function Elapsed({ startedAt }: { startedAt: number }) {
   return <span className="font-mono text-sm tabular-nums text-[#4A4F63]">{Math.max(0, Math.round((now - startedAt) / 1000))}s</span>;
 }
 
+/** One suggestion, compact: who, where, why (a hypothesis), the motion guess, and research it live. */
 function SuggestionCard({ s, seller }: { s: Suggestion; seller: string }) {
   return (
-    <li className="flex flex-col gap-2.5 rounded-xl border border-border bg-white p-4">
-      <div>
-        <h3 className="flex items-center gap-2.5 font-display text-[19px] font-semibold leading-tight">
-          <CompanyLogo domain={s.domain} name={s.name} size={28} />
-          {s.name}
-        </h3>
-        <p className="flex flex-wrap items-center gap-x-2 text-[13px] text-[#4A4F63]">
-          <a
-            href={`https://${s.domain}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={`${s.domain} (opens in a new tab)`}
-            className="inline-flex min-h-11 items-center gap-0.5 font-mono text-[13px] font-medium text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {s.domain}
-            <ArrowUpRight size={14} aria-hidden />
-          </a>
-          {s.hq && (
-            <>
-              <span aria-hidden>·</span>
-              <span>{s.hq}</span>
-            </>
-          )}
-        </p>
+    <li className="flex flex-col gap-2 rounded-xl border border-border bg-white p-3.5">
+      <div className="flex items-center gap-2.5">
+        <CompanyLogo domain={s.domain} name={s.name} size={28} />
+        <div className="min-w-0">
+          <h3 className="font-display text-[17px] font-semibold leading-tight">{s.name}</h3>
+          {s.hq && <p className="text-[13px] text-[#4A4F63]">{s.hq}</p>}
+        </div>
       </div>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <EvidenceTag status="Hypothesis" />
+      <p className="text-[15px] leading-snug">
+        <EvidenceTag status="Hypothesis" className="mr-1.5 h-[22px] align-[1px]" />
+        {s.why}
+      </p>
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-x-3">
         <FieldPill>Motion guess: {s.motion_guess}</FieldPill>
+        <Link to={researchHref(seller, s)} className={linkBtn}>
+          Research it live
+          <ArrowRight size={16} aria-hidden />
+        </Link>
       </div>
-      <p className="text-[15px] leading-snug">{s.why}</p>
-      <Link to={researchHref(seller, s)} className={cx(secondaryButton, "mt-auto self-start text-[15px]")}>
-        Research it live
-        <ArrowRight size={16} aria-hidden />
-      </Link>
     </li>
   );
 }
 
 /**
- * Beyond the territory: on request, AI names a handful of real companies that
- * may look like the seed and aren't in the territory. Each is a hypothesis,
- * not researched, with one click to research it live. Nothing is stored; a
- * new seed clears the results.
+ * Beyond the territory, the view's main action: on request, AI names a
+ * handful of real companies that may look like the seed and aren't in the
+ * territory. Each is a hypothesis, not researched, with one click to research
+ * it live. Nothing is stored; a new seed clears the results.
  */
 export function BeyondTerritory({ seller, seed, rows, region }: { seller: string; seed: TerritoryRow | BeyondSeed; rows: Pick<TerritoryRow, "name" | "domain">[]; region?: string }) {
   const s = useMemo(() => asSeed(seed), [seed]);
@@ -104,27 +91,29 @@ export function BeyondTerritory({ seller, seed, rows, region }: { seller: string
   };
 
   return (
-    <section aria-labelledby="beyond-title" className="mt-8 border-t border-border pt-6">
-      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
-        <div className="min-w-0">
-          <h2 id="beyond-title" className="font-display text-[22px] font-semibold tracking-[-0.01em]">
-            Beyond the territory
-          </h2>
-          <p className="mt-1 text-[15px] text-[#4A4F63]">AI suggestions like {s.name}. Not researched yet.</p>
-        </div>
-        {(state.status === "idle" || state.status === "done") && (
-          <button type="button" onClick={run} className={cx(secondaryButton, "text-[15px]")}>
-            {state.status === "done" ? "Suggest again" : `Suggest companies like ${s.name}`}
+    <section aria-labelledby="beyond-title" className="rounded-xl border border-border bg-white px-4 py-3.5 sm:px-[18px]">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5">
+        <h2 id="beyond-title" className="min-w-0 font-display text-lg font-semibold leading-snug sm:text-xl">
+          Companies like {s.name} that aren&rsquo;t in your territory yet
+        </h2>
+        {state.status === "idle" && (
+          <button type="button" onClick={run} className={cx(primaryButton, "w-full text-[15px] sm:w-auto")}>
+            Find new companies like {s.name}
+          </button>
+        )}
+        {state.status === "done" && (
+          <button type="button" onClick={run} className={cx(secondaryButton, "w-full text-[15px] sm:w-auto")}>
+            Find again
           </button>
         )}
       </div>
 
       {state.status === "loading" && (
-        <div role="status" aria-live="polite" className="mt-4 flex items-start gap-3 rounded-xl border border-dotted border-[#9097A6] bg-white px-4 py-3.5">
+        <div role="status" aria-live="polite" className="mt-3 flex items-start gap-3 rounded-xl border border-dotted border-[#9097A6] bg-background px-4 py-3">
           <Loader2 size={18} aria-hidden className="mt-0.5 shrink-0 motion-safe:animate-spin" />
           <div className="min-w-0 flex-1">
             <p className="text-[15px] font-semibold">
-              Asking AI for companies in the {region ?? DEFAULT_REGION} like {s.name}, then checking each website answers…
+              Asking AI for companies like {s.name} in the {region ?? DEFAULT_REGION}, then checking each website answers…
             </p>
             <p className="mt-0.5 text-[15px] text-[#4A4F63]">Usually 10 to 25 seconds.</p>
           </div>
@@ -133,7 +122,7 @@ export function BeyondTerritory({ seller, seed, rows, region }: { seller: string
       )}
 
       {state.status === "error" && (
-        <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[10px] border-2 border-foreground bg-background px-4 py-3">
+        <div role="alert" className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-[10px] border-2 border-foreground bg-background px-4 py-3">
           <div>
             <p className="text-[17px] font-bold">No suggestions this time</p>
             <p className="mt-0.5 text-[15px] text-[#4A4F63]">{state.message}</p>
@@ -147,16 +136,16 @@ export function BeyondTerritory({ seller, seed, rows, region }: { seller: string
       {state.status === "done" &&
         (state.list.length ? (
           <>
-            <ul aria-label={`Suggestions like ${s.name}`} className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <ul aria-label={`Suggestions like ${s.name}`} className="mt-3 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
               {state.list.map((x) => (
                 <SuggestionCard key={x.domain} s={x} seller={seller} />
               ))}
             </ul>
-            <p className="mt-3 text-[15px] text-[#4A4F63]">Each website answered when checked. Nothing else is checked until you research it.</p>
+            <p className="mt-2.5 text-[15px] text-[#4A4F63]">AI suggestions, not researched yet. Each website answered when checked.</p>
           </>
         ) : (
-          <p className="mt-4 rounded-xl border border-dotted border-[#9097A6] bg-white px-4 py-3.5 text-[15px] text-[#4A4F63]">
-            No suggestion passed the checks this time (outside the territory, a website that answers). Suggest again for a new list.
+          <p className="mt-3 rounded-xl border border-dotted border-[#9097A6] bg-background px-4 py-3 text-[15px] text-[#4A4F63]">
+            No suggestion passed the checks this time (outside the territory, a website that answers). Find again for a new list.
           </p>
         ))}
     </section>
