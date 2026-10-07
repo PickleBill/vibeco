@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { getSeller } from "@/lib/sellers";
 import { HowItWorksButton, TourHost } from "@/components/territory/tour/TourHost";
-import { resetTour } from "@/components/territory/tour/store";
+import { markWelcomeSeen, resetTour, welcomeSeen } from "@/components/territory/tour/store";
 
 const seller = getSeller("omni")!;
 const relay = seller.territory!.accounts[0].reportId;
@@ -42,26 +42,22 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("welcome card", () => {
-  it("shows on a first visit and not after it's dismissed", () => {
+  it("never opens by itself, even on a first visit, on any view", () => {
     const first = page();
-    expect(welcome()).toBeInTheDocument();
-    expect(screen.getByText("Unofficial. Not affiliated with Omni.")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Explore on my own" }));
     expect(welcome()).not.toBeInTheDocument();
     first.unmount();
-
-    // A new page load: storage remembers the dismissal.
     resetTour();
     page("/for/omni/committee");
     expect(welcome()).not.toBeInTheDocument();
   });
 
-  it("reopens from How it works, and ?welcome forces it", () => {
-    window.localStorage.setItem("vibeco.territory.welcome.omni", "1");
+  it("opens from How it works, and ?welcome opens it and leaves the URL clean", () => {
     const first = page();
-    expect(welcome()).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "How it works" }));
     expect(welcome()).toBeInTheDocument();
+    expect(screen.getByText("Unofficial. Not affiliated with Omni.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Explore on my own" }));
+    expect(welcome()).not.toBeInTheDocument();
     first.unmount();
 
     resetTour();
@@ -71,26 +67,29 @@ describe("welcome card", () => {
   });
 
   it("stays out of the way of the ?demo presenter bar", () => {
-    page("/for/omni?demo");
+    page("/for/omni?demo&welcome");
     expect(welcome()).not.toBeInTheDocument();
   });
 
-  it("survives storage that throws, showing once per page load", () => {
+  it("remembers it was seen, and survives storage that throws (once per page load)", () => {
+    expect(welcomeSeen("omni")).toBe(false);
+    page();
+    fireEvent.click(screen.getByRole("button", { name: "How it works" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(welcome()).not.toBeInTheDocument();
+    expect(window.localStorage.getItem("vibeco.territory.welcome.omni")).toBe("1");
+
+    resetTour();
+    window.localStorage.clear();
     vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new Error("blocked");
     });
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new Error("blocked");
     });
-    const first = page();
-    expect(welcome()).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
-    expect(welcome()).not.toBeInTheDocument();
-    first.unmount();
-
-    // Same page load, another view: not again.
-    page("/for/omni/deal");
-    expect(welcome()).not.toBeInTheDocument();
+    expect(welcomeSeen("omni")).toBe(false);
+    expect(() => markWelcomeSeen("omni")).not.toThrow();
+    expect(welcomeSeen("omni")).toBe(true);
   });
 });
 
@@ -147,6 +146,7 @@ describe("guided tour", () => {
 
   it("starts from the welcome card", () => {
     page();
+    fireEvent.click(screen.getByRole("button", { name: "How it works" }));
     fireEvent.click(screen.getByRole("button", { name: /Demo in 60 seconds/ }));
     expect(welcome()).not.toBeInTheDocument();
     expect(screen.getByText("1 of 4")).toBeInTheDocument();

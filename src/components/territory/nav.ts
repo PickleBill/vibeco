@@ -21,10 +21,13 @@ export const isModule = (m: string | undefined): m is ModuleId => MODULES.some((
 export const moduleHref = (seller: string, id: ModuleId, reportId?: string) =>
   `/for/${seller}${id === FRONT_DOOR && !reportId ? "" : `/${id}`}${reportId ? `/${reportId}` : ""}`;
 
-/** Where a rail tab goes: one-account views carry the current account; Radar and Lookalikes stay plain. */
-export function railHref(seller: string, id: ModuleId, current: { id?: string; opened?: string } = {}) {
-  const carry = id === "account" ? current.opened : id === "committee" || id === "deal" ? current.id : undefined;
-  return moduleHref(seller, id, carry);
+/**
+ * Where a rail tab goes: the committee and the deal room carry the current
+ * account (they need one); Run an account is always the empty form, and Radar
+ * and Lookalikes stay plain.
+ */
+export function railHref(seller: string, id: ModuleId, current: { id?: string } = {}) {
+  return moduleHref(seller, id, id === "committee" || id === "deal" ? current.id : undefined);
 }
 
 export interface NextStepTarget {

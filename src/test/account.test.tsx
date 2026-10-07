@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import { LENS_IDS, criticFor, distillLabel, featureTitle, getLens, LENSES, sectionLabel } from "@/lib/lenses";
 import { getSeller } from "@/lib/sellers";
 import { MotionPanel, PlanCard, ScanCard, StackTable, type AccountBrief, type MotionRead } from "@/components/account/AccountViews";
+import { RunMode } from "@/components/account/RunMode";
 
 const root = path.resolve(__dirname, "../..");
 const read = (p: string) => readFileSync(path.join(root, p), "utf8");
@@ -198,5 +199,22 @@ ${plan.split("\n").slice(2).join("\n").replace("FIT GRADE: B", "FIT GRADE: A (Em
     const panel = screen.getByRole("region", { name: "Motion" });
     const stack = screen.getByText("STACK READ");
     expect(panel.compareDocumentPosition(stack) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});
+
+describe("run mode tag", () => {
+  it("says saved or live at the top of a result: the saved date, or the live clock and its time once done", () => {
+    const { rerender } = render(<RunMode kind="saved" savedAt="2026-10-06T21:44:00Z" />);
+    expect(screen.getByText(/^Saved run · Oct \d{1,2}, \d{1,2}:44 (AM|PM)$/)).toBeInTheDocument();
+    expect(screen.getByText("opened instantly, no AI calls")).toBeInTheDocument();
+    rerender(<RunMode kind="live" status="running" ms={23_400} />);
+    expect(screen.getByText(/^Live run ·/)).toHaveTextContent("Live run · 0:23");
+    rerender(<RunMode kind="live" status="running" ms={65_000} />);
+    expect(screen.getByText(/^Live run ·/)).toHaveTextContent("Live run · 1:05");
+    rerender(<RunMode kind="live" status="done" ms={61_200} />);
+    expect(screen.getByText("Live run · done in 61s")).toBeInTheDocument();
+    // Tags describe: nothing in them is clickable.
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.queryByRole("link")).toBeNull();
   });
 });

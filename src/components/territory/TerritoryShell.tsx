@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, X } from "lucide-react";
 import type { SellerConfig } from "@/lib/sellers";
@@ -99,28 +99,36 @@ export function TerritoryShell({
           style={rail.mask}
           className="flex shrink-0 gap-0.5 overflow-x-auto overscroll-x-contain border-b border-border bg-muted px-2 pt-2 [scrollbar-width:none] sm:px-3 sm:pt-2.5 lg:w-[248px] lg:flex-col lg:gap-1 lg:overflow-visible lg:border-b-0 lg:border-r lg:py-6 lg:pl-3.5 lg:pr-0 [&::-webkit-scrollbar]:hidden"
         >
-          {MODULES.map((m) => {
+          {MODULES.map((m, i) => {
             const on = m.id === module;
             return (
-              <Link
-                key={m.id}
-                to={railHref(seller.id, m.id, current)}
-                aria-current={on ? "page" : undefined}
-                className={cx(
-                  "flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap px-3 py-2 text-[15px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:gap-3 sm:px-3.5 lg:min-h-[58px] lg:whitespace-normal lg:text-base",
-                  "rounded-t-[10px] lg:rounded-l-[10px] lg:rounded-tr-none",
-                  on
-                    ? "-mb-px border border-border border-b-background bg-background font-bold shadow-[inset_0_3px_0_hsl(var(--primary))] lg:-mr-px lg:mb-0 lg:border-b-border lg:border-r-background lg:shadow-[inset_3px_0_0_hsl(var(--primary))]"
-                    : "border border-transparent font-medium text-[#4A4F63] hover:text-foreground",
+              <Fragment key={m.id}>
+                {/* Run an account stands alone; the rest explore. A label on desktop, a hairline on phones. */}
+                {i === 1 && (
+                  <>
+                    <span aria-hidden className="mx-1.5 my-2.5 w-px shrink-0 self-stretch bg-[#D9D4C7] sm:mx-2 lg:hidden" />
+                    <p className="hidden px-3.5 pb-1 pt-5 font-mono text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground lg:block">Explore</p>
+                  </>
                 )}
-              >
-                <span className="hidden font-mono text-xs font-medium text-muted-foreground sm:inline">{m.idx}</span>
-                <span className="flex min-w-0 flex-col">
-                  <span className="lg:hidden">{m.short}</span>
-                  <span className="hidden lg:inline">{m.label}</span>
-                  <span className="hidden text-[13px] font-normal leading-snug text-muted-foreground lg:block">{m.hint}</span>
-                </span>
-              </Link>
+                <Link
+                  to={railHref(seller.id, m.id, current)}
+                  aria-current={on ? "page" : undefined}
+                  className={cx(
+                    "flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap px-3 py-2 text-[15px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:gap-3 sm:px-3.5 lg:min-h-[58px] lg:whitespace-normal lg:text-base",
+                    "rounded-t-[10px] lg:rounded-l-[10px] lg:rounded-tr-none",
+                    on
+                      ? "-mb-px border border-border border-b-background bg-background font-bold shadow-[inset_0_3px_0_hsl(var(--primary))] lg:-mr-px lg:mb-0 lg:border-b-border lg:border-r-background lg:shadow-[inset_3px_0_0_hsl(var(--primary))]"
+                      : "border border-transparent font-medium text-[#4A4F63] hover:text-foreground",
+                  )}
+                >
+                  <span className="hidden font-mono text-xs font-medium text-muted-foreground sm:inline">{m.idx}</span>
+                  <span className="flex min-w-0 flex-col">
+                    <span className="lg:hidden">{m.short}</span>
+                    <span className="hidden lg:inline">{m.label}</span>
+                    <span className="hidden text-[13px] font-normal leading-snug text-muted-foreground lg:block">{m.hint}</span>
+                  </span>
+                </Link>
+              </Fragment>
             );
           })}
         </nav>

@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, CircleHelp } from "lucide-react";
 import type { SellerConfig } from "@/lib/sellers";
 import { splitCompany } from "../model";
 import { FRONT_DOOR, moduleHref } from "../nav";
-import { closeWelcome, markWelcomeSeen, openWelcome, setStep, useTourState, welcomeSeen } from "./store";
+import { closeWelcome, markWelcomeSeen, openWelcome, setStep, useTourState } from "./store";
 import { tourSteps } from "./steps";
 import { TourButton, TourCard } from "./TourPopover";
 import { WelcomeDialog } from "./WelcomeDialog";
@@ -18,12 +18,11 @@ function without(search: string, ...keys: string[]) {
 }
 
 /**
- * The welcome card and the guided tour for the command center. The card opens
- * on a first visit (any view), and again from "How it works"; ?welcome forces
- * it, ?tour starts the tour (the link to send someone), and ?demo (the
- * presenter bar) keeps both out of the way. The tour ("Demo in 60 seconds")
- * walks four views on the territory's first account, one highlighted element
- * per step.
+ * The welcome card and the guided tour for the command center. Both are opt-in:
+ * nothing pops up on arrival. The card opens from "How it works" or ?welcome,
+ * ?tour starts the tour (the link to send someone), and ?demo (the presenter
+ * bar) keeps both out of the way. The tour ("Demo in 60 seconds") walks four
+ * views on the territory's first account, one highlighted element per step.
  */
 export function TourHost({ seller }: { seller: SellerConfig }) {
   const { welcome, step } = useTourState();
@@ -52,20 +51,12 @@ export function TourHost({ seller }: { seller: SellerConfig }) {
 
   useEffect(() => {
     const q = new URLSearchParams(search);
-    if (q.has("demo")) {
-      // A presenter is driving: no card for the rest of this page load.
-      markWelcomeSeen(seller.id, false);
-      return;
-    }
-    if (q.has("tour")) {
-      markWelcomeSeen(seller.id);
-      go(0, true);
-    } else if (q.has("welcome")) {
+    // A presenter is driving: no card, no tour.
+    if (q.has("demo")) return;
+    if (q.has("tour")) go(0, true);
+    else if (q.has("welcome")) {
       openWelcome();
       navigate({ pathname, search: without(search, "welcome") }, { replace: true });
-    } else if (!welcomeSeen(seller.id)) {
-      markWelcomeSeen(seller.id, false);
-      openWelcome();
     }
     // Only the URL decides; `go` changes with it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
