@@ -2,6 +2,7 @@
 // the prospect's own answers. When the function can't be reached, answers stay
 // on the device and the page says so; nothing is retried in the background.
 import { supabase } from "@/integrations/supabase/client";
+import type { SavedReport } from "@/components/account/explorer/savedRuns";
 import { readDealRoom, readResponses, type DealResponse, type DealRoomData, type Responses } from "./claims";
 
 const FN = "deal-room";
@@ -16,6 +17,27 @@ async function call(body: Record<string, unknown>): Promise<Record<string, unkno
     return data as Record<string, unknown>;
   } catch {
     return null;
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+/**
+ * The run as the prospect may see it (claims material only), from the function.
+ * Undefined when the function can't be reached; null when the brief isn't available.
+ */
+export async function fetchPublicReport(reportId: string): Promise<SavedReport | null | undefined> {
+  const ctrl = new AbortController();
+  const timer = window.setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  try {
+    const { data, error } = await supabase.functions.invoke(FN, { body: { report_id: reportId, brief: true }, signal: ctrl.signal });
+    const report = (data as { report?: SavedReport } | null)?.report;
+    if (report?.brief) return report;
+    // A 404 from the function: the brief exists nowhere it may be shared.
+    const status = (error as { context?: { status?: number } } | null)?.context?.status;
+    return status === 404 ? null : undefined;
+  } catch {
+    return undefined;
   } finally {
     window.clearTimeout(timer);
   }

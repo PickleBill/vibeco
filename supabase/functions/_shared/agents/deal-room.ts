@@ -22,10 +22,13 @@ export interface DealRoom {
 
 export type DealRoomInput =
   | { kind: "read"; report_id: string }
+  | { kind: "brief"; report_id: string }
   | { kind: "answer"; report_id: string; claim_id: string; answer: DealAnswer; text?: string; note?: string };
 
 /** The saved run, as far as the Deal Room reads and writes it. */
 export interface DealRoomRow {
+  idea?: unknown;
+  created_at?: unknown;
   brief: unknown;
   auto_analysis: unknown;
 }
@@ -65,6 +68,7 @@ export function readDealRoomInput(raw: unknown): DealRoomInput {
   const report_id = str(body.report_id, 40);
   if (!UUID.test(report_id)) throw new DealRoomInputError("Unknown brief.");
   if (body.read === true) return { kind: "read", report_id };
+  if (body.brief === true) return { kind: "brief", report_id };
 
   const claim_id = typeof body.claim_id === "string" ? body.claim_id.trim() : "";
   if (!claim_id || claim_id.length > MAX_CLAIM_ID || !CLAIM_ID.test(claim_id)) throw new DealRoomInputError("Unknown claim.");
@@ -111,9 +115,46 @@ export function mergeAnswer(current: unknown, input: Extract<DealRoomInput, { ki
   return { responses: { ...room.responses, [input.claim_id]: response }, updated_at: now };
 }
 
+/**
+ * The part of a run the prospect's page needs to build its claims: sources
+ * (off-topic ones out), stack lines, the motion and its sources, the dated
+ * why-now lines, and the names of people (only so claims naming them are
+ * skipped). Never the fit grade, critics, objections, the plan or questions.
+ */
+export function publicBrief(brief: Record<string, unknown>): Record<string, unknown> {
+  const research = isObject(brief.research) ? brief.research : {};
+  const sources = (Array.isArray(research.sources) ? research.sources : [])
+    .filter((s): s is Record<string, unknown> => isObject(s) && !s.off_topic)
+    .map(({ id, title, url, snippet, kind, date, via }) => ({ id, title, url, snippet, kind, date, via }));
+  const lines = (Array.isArray(brief.core_features) ? brief.core_features : [])
+    .filter(isObject)
+    .map(({ name, tool, status, sources, evidence }) => ({ name, tool, status, sources, evidence, description: "" }));
+  const motion = isObject(brief.motion) ? brief.motion : {};
+  const side = (v: unknown) => ({ sources: isObject(v) && Array.isArray(v.sources) ? v.sources : [] });
+  const people = (Array.isArray(brief.people) ? brief.people : []).filter(isObject).map((p) => ({ name: p.name, role: "", source: 0 }));
+  return {
+    lens: brief.lens,
+    seller: brief.seller,
+    company: brief.company,
+    research: { sources },
+    core_features: lines,
+    motion: { label: motion.label, internal: side(motion.internal), embedded: side(motion.embedded) },
+    revenue_model: brief.revenue_model,
+    people,
+  };
+}
+
+/** The prospect-safe part of a saved run, shaped like a shared report. Only account runs open as a Deal Room. */
+export async function loadPublicReport(reportId: string, store: DealRoomStore): Promise<{ report: Record<string, unknown> }> {
+  const row = await store.load(reportId);
+  const brief = isObject(row?.brief) ? row!.brief : null;
+  if (!row || brief?.lens !== "account") throw new DealRoomInputError("This brief isn't available.", 404);
+  return { report: { id: reportId, idea: row.idea, created_at: row.created_at, brief: publicBrief(brief), lovable_prompt: null, auto_analysis: null } };
+}
+
 /** Read or answer. Only account runs open as a Deal Room. */
 export async function runDealRoom(
-  input: DealRoomInput,
+  input: Exclude<DealRoomInput, { kind: "brief" }>,
   store: DealRoomStore,
   now: Date = new Date(),
 ): Promise<{ ok?: true; deal_room: DealRoom | null }> {

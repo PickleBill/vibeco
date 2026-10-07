@@ -3,6 +3,7 @@ import { assert, assertEquals, assertRejects, assertThrows } from "jsr:@std/asse
 import {
   cleanDealRoom,
   DealRoomInputError,
+  loadPublicReport,
   MAX_CLAIMS,
   mergeAnswer,
   readDealRoomInput,
@@ -130,4 +131,41 @@ Deno.test("runDealRoom reads, and only account runs open", async () => {
   assertEquals(idea.saved.length, 0);
   const missing = memoryStore(null);
   assertEquals((await assertRejects(() => runDealRoom({ kind: "read", report_id: ID }, missing.store), DealRoomInputError)).status, 404);
+});
+
+Deno.test("the prospect's page gets claims material only, never the internal parts of the run", async () => {
+  const store: DealRoomStore = {
+    load: () =>
+      Promise.resolve({
+        idea: "Relay (relaypro.com)",
+        created_at: "2026-10-07T00:00:00Z",
+        brief: {
+          lens: "account",
+          seller: "omni",
+          company: "Relay",
+          research: { sources: [{ id: 1, title: "Job", url: "https://x", kind: "jobs" }, { id: 2, title: "Other", url: "https://y", off_topic: true }], job_board: { posts: [] } },
+          core_features: [{ name: "BI tools", tool: "Metabase", status: "Confirmed", sources: [1], description: "internal note", evidence: "We use Metabase." }],
+          motion: { label: "Both", internal: { sources: [1], clock: "renewal", buyer: "Head of Data", question: "Q?" }, embedded: { sources: [1] } },
+          revenue_model: "2026-09: Raised $36M [1].",
+          fit: { grade: "C", reason: "internal" },
+          discovery_questions: ["internal"],
+          migration_objection: { objection: "internal" },
+          start_with: { role: "Head of Data" },
+          customer_list: { on_list: false },
+          people: [{ name: "A Person", role: "CEO", source: 1 }],
+        },
+        auto_analysis: { perspectives: [{ persona: "skeptic" }] },
+      }),
+    save: () => Promise.reject(new Error("no writes")),
+  };
+  const { report } = await loadPublicReport(ID, store);
+  const brief = report.brief as Record<string, unknown>;
+  assertEquals(Object.keys(brief).sort(), ["company", "core_features", "lens", "motion", "people", "research", "revenue_model", "seller"]);
+  assertEquals((brief.research as { sources: unknown[] }).sources.length, 1);
+  assertEquals(brief.motion, { label: "Both", internal: { sources: [1] }, embedded: { sources: [1] } });
+  assertEquals((brief.core_features as { description: string }[])[0].description, "");
+  assertEquals(brief.people, [{ name: "A Person", role: "", source: 0 }]);
+  assertEquals(report.auto_analysis, null);
+  const json = JSON.stringify(report);
+  for (const word of ["internal note", "fit", "discovery_questions", "migration_objection", "start_with", "skeptic", "renewal"]) assert(!json.includes(word), word);
 });

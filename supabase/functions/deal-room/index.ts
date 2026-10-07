@@ -3,12 +3,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCors, jsonResponse } from "../_shared/cors.ts";
 import { handleFunctionError } from "../_shared/error-handler.ts";
 import { createRateLimiter } from "../_shared/rate-limit.ts";
-import { DealRoomInputError, readDealRoomInput, runDealRoom, type DealRoomStore } from "../_shared/agents/deal-room.ts";
+import { DealRoomInputError, loadPublicReport, readDealRoomInput, runDealRoom, type DealRoomStore } from "../_shared/agents/deal-room.ts";
 
 /**
  * Deal Room: the account answers a shared brief claim by claim (right, fix,
  * not sure); the seller's view reads the answers back. Public, rate-limited, no model.
- * Input: { report_id, claim_id, answer, text?, note? } -> { ok, deal_room }; { report_id, read: true } -> { deal_room }.
+ * Input: { report_id, claim_id, answer, text?, note? } -> { ok, deal_room }; { report_id, read: true } -> { deal_room };
+ * { report_id, brief: true } -> { report } with the prospect-safe part of the brief only.
  * { ping: true } returns 204 (warm-up).
  */
 const limited = createRateLimiter(30);
@@ -21,7 +22,7 @@ function reportsStore(): DealRoomStore {
   const db = createClient(url, key);
   return {
     async load(id) {
-      const { data, error } = await db.from("idea_reports").select("brief, auto_analysis").eq("id", id).maybeSingle();
+      const { data, error } = await db.from("idea_reports").select("idea, created_at, brief, auto_analysis").eq("id", id).maybeSingle();
       if (error) throw new Error(error.message);
       return data;
     },
@@ -39,7 +40,9 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     if (body?.ping === true) return new Response(null, { status: 204, headers: corsHeaders });
     if (limited(req)) return jsonResponse({ error: "Too many answers. Try again in a minute." }, 429);
-    return jsonResponse(await runDealRoom(readDealRoomInput(body), reportsStore()));
+    const input = readDealRoomInput(body);
+    const store = reportsStore();
+    return jsonResponse(input.kind === "brief" ? await loadPublicReport(input.report_id, store) : await runDealRoom(input, store));
   } catch (e) {
     if (e instanceof DealRoomInputError) return jsonResponse({ error: e.message }, e.status);
     return handleFunctionError("deal-room", e);

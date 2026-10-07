@@ -6,6 +6,7 @@ import { loadReport, type SavedReport } from "@/components/account/explorer/save
 import { splitCompany } from "@/components/territory/model";
 import { buildClaims } from "@/components/territory/dealroom/claims";
 import { useProspectAnswers } from "@/components/territory/dealroom/hooks";
+import { fetchPublicReport } from "@/components/territory/dealroom/api";
 import { ProspectBrief } from "@/components/territory/dealroom/ProspectBrief";
 
 const PUBLIC = "Unofficial. Built from public sources.";
@@ -27,9 +28,12 @@ const DealRoom = () => {
       setReport(null);
       return;
     }
-    loadReport(id).then((r) => {
-      if (live) setReport(r);
-    });
+    // The prospect-safe part of the run from the function; the shared run itself only if the function can't be reached.
+    fetchPublicReport(id)
+      .then((r) => (r === undefined ? loadReport(id) : r))
+      .then((r) => {
+        if (live) setReport(r);
+      });
     return () => {
       live = false;
     };
