@@ -68,7 +68,7 @@ export function AccountSwitcher({
 
   if (rows.length > SELECT_AFTER) {
     const row = rows.find((r) => r.id === activeId);
-    const current = row ? { name: row.name, domain: row.domain } : ran?.id === activeId ? { name: ran.name, domain: undefined } : undefined;
+    const current = row ? { name: row.name, domain: row.domain } : ran && ran.id === activeId ? { name: ran.name, domain: undefined } : undefined;
     const pick = (id: string) => {
       setOpen(false);
       if (id !== activeId) navigate(hrefFor(id));
