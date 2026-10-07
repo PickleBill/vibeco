@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, Loader2 } from "lucide-react";
+import { cx } from "@/components/territory/style";
+import { Eyebrow, FitBadge } from "@/components/territory/ui";
 import { MotionBadge } from "../AccountViews";
+import { card } from "./look";
 import { stripMarks } from "./model";
 import { loadReport, ranAt, type RunRef, type SavedReport } from "./savedRuns";
 
@@ -9,19 +12,22 @@ const plain = (t?: string) => stripMarks(t ?? "").replace(/\s*\[[\d,\s]+\]/g, ""
 
 /**
  * Accounts already run, as small cards: motion, fit and the one-line reason
- * to look. Opening one shows the whole run at once, with no AI calls, so it
- * also stands in when a live run is slow.
+ * to look (or, `compact`, one row of pills once a run is open). Opening one
+ * shows the whole run at once, with no AI calls, so it also stands in when a
+ * live run is slow.
  */
 export function TerritoryStrip({
   runs,
   title,
   activeId,
   onOpen,
+  compact,
 }: {
   runs: RunRef[];
   title: string;
   activeId?: string | null;
   onOpen: (report: SavedReport) => void;
+  compact?: boolean;
 }) {
   const [reports, setReports] = useState<Record<string, SavedReport | null | undefined>>({});
   const [opening, setOpening] = useState<string | null>(null);
@@ -51,13 +57,50 @@ export function TerritoryStrip({
     setOpening(null);
     if (rep) onOpen(rep);
   };
+  const name = (r: RunRef) => r.company.replace(/\s*\([^)]*\)\s*$/, "");
+
+  if (compact) {
+    return (
+      <section aria-labelledby="strip-title" className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <p id="strip-title" className="font-mono text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
+          {title}
+        </p>
+        <ul className="flex flex-wrap gap-2">
+          {shown.map((r) => {
+            const rep = reports[r.reportId];
+            const active = activeId === r.reportId;
+            return (
+              <li key={r.reportId}>
+                <button
+                  type="button"
+                  onClick={() => open(r)}
+                  aria-pressed={active}
+                  className={cx(
+                    "inline-flex min-h-11 items-center gap-2 rounded-full pl-4 pr-2 text-[15px] text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    active ? "border-2 border-primary bg-brand-tint font-bold" : "border border-[#9097A6] bg-card font-semibold hover:border-foreground",
+                  )}
+                >
+                  {name(r)}
+                  {rep?.brief?.fit?.grade ? (
+                    <FitBadge grade={rep.brief.fit.grade} label={false} />
+                  ) : opening === r.reportId || rep === undefined ? (
+                    <Loader2 size={14} className="animate-spin text-muted-foreground" aria-label="Loading" />
+                  ) : null}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    );
+  }
 
   return (
-    <section aria-labelledby="strip-title" className="mt-8">
-      <p id="strip-title" className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-        {title}
-      </p>
-      <ul className="mt-2 grid gap-2 sm:grid-cols-3">
+    <section aria-labelledby="strip-title" className="mt-10">
+      <Eyebrow>
+        <span id="strip-title">{title}</span>
+      </Eyebrow>
+      <ul className="mt-3 grid gap-3 sm:grid-cols-3">
         {shown.map((r) => {
           const rep = reports[r.reportId];
           const brief = rep?.brief;
@@ -68,34 +111,33 @@ export function TerritoryStrip({
                 type="button"
                 onClick={() => open(r)}
                 aria-pressed={active}
-                className={`group flex h-full w-full flex-col rounded-lg border bg-card p-3 text-left transition-all hover:border-primary/50 hover:shadow-sm ${
-                  active ? "border-primary/60 ring-1 ring-primary/20" : "border-border"
-                }`}
+                className={cx(
+                  active ? "rounded-xl border-2 border-primary bg-brand-tint" : cx(card, "hover:border-foreground"),
+                  "group flex h-full w-full flex-col p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                )}
               >
                 <span className="flex w-full items-start justify-between gap-2">
-                  <span className="font-display text-base font-bold text-foreground">{r.company.replace(/\s*\([^)]*\)\s*$/, "")}</span>
+                  <span className="font-display text-lg font-semibold leading-tight tracking-[-0.01em] text-foreground">{name(r)}</span>
                   {brief?.fit?.grade ? (
-                    <span className="font-display text-lg font-bold leading-none text-primary" title="Fit: evidence and timing, not deal size">
-                      {brief.fit.grade}
-                    </span>
+                    <FitBadge grade={brief.fit.grade} />
                   ) : opening === r.reportId || rep === undefined ? (
                     <Loader2 size={14} className="animate-spin text-muted-foreground" aria-label="Loading" />
                   ) : null}
                 </span>
                 {brief?.motion?.label && (
-                  <span className="mt-1">
+                  <span className="mt-2">
                     <MotionBadge label={brief.motion.label} />
                   </span>
                 )}
                 {brief?.account_line ? (
-                  <span className="mt-1.5 line-clamp-2 text-sm leading-snug text-muted-foreground">{plain(brief.account_line)}</span>
+                  <span className="mt-2 line-clamp-2 text-[15px] leading-snug text-[#4A4F63]">{plain(brief.account_line)}</span>
                 ) : (
-                  <span className="mt-1.5 h-8 w-full animate-pulse rounded bg-muted" aria-hidden />
+                  <span className="mt-2 h-9 w-full rounded bg-muted" aria-hidden />
                 )}
-                <span className="mt-auto flex items-center justify-between pt-2 text-xs text-muted-foreground">
-                  <span>{rep?.created_at ? `Ran ${ranAt(rep.created_at)}` : ""}</span>
-                  <span className="inline-flex items-center gap-0.5 font-medium text-primary">
-                    Open <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" aria-hidden />
+                <span className="mt-auto flex items-center justify-between pt-3 text-sm">
+                  <span className="font-mono text-xs text-muted-foreground">{rep?.created_at ? `Ran ${ranAt(rep.created_at)}` : ""}</span>
+                  <span className="inline-flex items-center gap-1 font-semibold text-primary">
+                    Open <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none" aria-hidden />
                   </span>
                 </span>
               </button>

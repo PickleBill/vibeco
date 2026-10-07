@@ -137,7 +137,7 @@ describe("account explorer", () => {
 
   it("shows Former and Not found in the stack map, and the full plan in tabs", () => {
     render(<Settled />);
-    fireEvent.mouseDown(screen.getByRole("tab", { name: "Stack" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Stack" }));
     expect(screen.getByRole("button", { name: "Tableau" })).toBeInTheDocument();
     expect(screen.getAllByText("Not found").length).toBeGreaterThan(0);
   });

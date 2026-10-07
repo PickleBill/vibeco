@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, ArrowRight, Check, History, Link2, Loader2, Search } from "lucide-react";
+import { ArrowRight, Check, History, Link2, Loader2, RotateCcw, Search } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
@@ -8,8 +8,11 @@ import { ensureSession } from "@/lib/ensureSession";
 import { copyToClipboard } from "@/lib/copyToClipboard";
 import type { SellerConfig } from "@/lib/sellers";
 import type { BriefResearch } from "@/components/simulator/SourcesList";
+import { cx } from "@/components/territory/style";
+import { Eyebrow, LivePill } from "@/components/territory/ui";
 import { StatusTag, type AccountAnalysis, type AccountBrief } from "./AccountViews";
 import { AccountExplorer } from "./explorer/AccountExplorer";
+import { card, linkBtn, primaryBtn, secondaryBtn, toggle } from "./explorer/look";
 import { ResearchFeed } from "./explorer/ResearchFeed";
 import { TerritoryStrip } from "./explorer/TerritoryStrip";
 import { useAgentBoard } from "./explorer/useAgentBoard";
@@ -113,7 +116,7 @@ function cleanCompany(raw: string): string {
   return raw.replace(/["“”]/g, "").replace(/\s+/g, " ").trim().slice(0, 120);
 }
 
-/** The right-hand panel before a run: what happens, how long, and what "Confirmed" means. */
+/** The panel beside the form before a run: what happens, how long, and what "Confirmed" means. */
 function HowItWorks() {
   const rows = [
     {
@@ -133,29 +136,29 @@ function HowItWorks() {
     },
   ];
   return (
-    <div className="rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">How a run works</p>
+    <div className={cx(card, "p-5 sm:p-6")}>
+      <Eyebrow>How a run works</Eyebrow>
       <ol className="mt-4 space-y-4">
         {rows.map((r, i) => (
           <li key={r.title} className="flex gap-3">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-primary">{i + 1}</span>
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[5px] bg-foreground font-mono text-[13px] font-semibold text-white">{i + 1}</span>
             <div className="min-w-0">
-              <p className="flex items-baseline gap-2 text-sm font-semibold text-foreground">
-                {r.title} <span className="text-xs font-normal tabular-nums text-muted-foreground">{r.time}</span>
+              <p className="flex items-baseline gap-2 text-base font-semibold text-foreground">
+                {r.title} <span className="font-mono text-xs font-medium text-muted-foreground">{r.time}</span>
               </p>
-              <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">{r.body}</p>
+              <p className="mt-0.5 text-[15px] leading-relaxed text-[#4A4F63]">{r.body}</p>
             </div>
           </li>
         ))}
       </ol>
       <div className="mt-5 border-t border-border pt-4">
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           <StatusTag status="Confirmed" />
           <StatusTag status="Inferred" />
           <StatusTag status="Former" />
           <StatusTag status="Not found" />
         </div>
-        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+        <p className="mt-2.5 text-sm leading-relaxed text-[#4A4F63]">
           A tool is Confirmed only when a source names it plainly at this company, checked in code. A job post that lists it as one option among
           several, or as a nice-to-have, doesn&rsquo;t count. Former means a source says the company moved off it.
         </p>
@@ -164,14 +167,81 @@ function HowItWorks() {
   );
 }
 
+/** The three steps of a live run, each with its time: done in ink, the current one live in pink. */
+function RunSteps({
+  marks,
+  step,
+  status,
+  inStep,
+  progress,
+}: {
+  marks: Partial<Record<Step, number>>;
+  step: Step;
+  status: Status;
+  inStep: number;
+  progress: number;
+}) {
+  const running = status === "running";
+  return (
+    <div>
+      <div
+        className="h-1.5 overflow-hidden rounded-full bg-[#E4E0D6]"
+        role="progressbar"
+        aria-label="Run progress"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(progress)}
+      >
+        <div
+          className={cx("h-full rounded-full transition-[width] duration-500 ease-out motion-reduce:transition-none", status === "error" ? "bg-[#9097A6]" : "bg-foreground")}
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+      <ol className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-[15px]">
+        {STEPS.map((s, i) => {
+          const done = marks[s.id] !== undefined;
+          const active = running && step === s.id;
+          const failed = status === "error" && step === s.id;
+          return (
+            <li key={s.id} className="flex items-center gap-2">
+              <span
+                className={cx(
+                  "flex h-6 w-6 items-center justify-center rounded-full font-mono text-xs font-semibold",
+                  done
+                    ? "bg-foreground text-white"
+                    : active
+                    ? "border border-brand bg-brand-tint text-foreground"
+                    : failed
+                    ? "border-2 border-dotted border-foreground text-foreground"
+                    : "border border-[#D9D4C7] text-muted-foreground",
+                )}
+              >
+                {done ? <Check size={13} aria-hidden /> : active ? <Loader2 size={13} className="animate-spin" aria-hidden /> : i + 1}
+              </span>
+              <span className={done || active || failed ? "font-semibold text-foreground" : "text-[#4A4F63]"}>
+                {s.label}
+                {failed && <span className="font-normal text-[#4A4F63]"> · stopped</span>}
+              </span>
+              <span className="font-mono text-xs text-muted-foreground">
+                {done ? secs((marks[s.id] ?? 0) - (i > 0 ? marks[STEPS[i - 1].id] ?? 0 : 0)) : active ? secs(inStep) : ""}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
 
 interface Props {
   seller?: SellerConfig;
   initialCompany?: string;
-  /** Headline and intro, shown beside the "how it works" panel. */
+  /** Headline and intro, shown beside the "how it works" panel before a run. */
   intro?: React.ReactNode;
   /** A saved run to open on arrival (e.g. from the territory radar). */
   initialReportId?: string;
+  /** Inside the territory shell: no fixed site navbar to scroll clear of. */
+  inShell?: boolean;
 }
 
 /** "Relay (relaypro.com)" and "relay" are the same account. */
@@ -180,7 +250,7 @@ const sameAccount = (a: string, b: string) => {
   return norm(a) === norm(b);
 };
 
-const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId }: Props) => {
+const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, inShell }: Props) => {
   const [input, setInput] = useState(initialCompany);
   const [company, setCompany] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -218,7 +288,16 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId }: 
     return out.slice(0, 3);
   }, [pinned, recent]);
 
-  const scrollToResults = () => requestAnimationFrame(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  // Bring the run bar into view after the page collapses into it (an effect, so the new layout is in);
+  // left alone when it's already near the top.
+  const [scrollTick, setScrollTick] = useState(0);
+  const scrollToResults = () => setScrollTick((t) => t + 1);
+  useEffect(() => {
+    const el = resultsRef.current;
+    if (!scrollTick || !el) return;
+    const top = el.getBoundingClientRect().top;
+    if (top < 0 || top > window.innerHeight * 0.4) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [scrollTick]);
 
   /** Seven agents in parallel, then the verdict; the board fills as each finishes. */
   const runAgents = async (name: string, b: AccountBrief, p: string, id: string | null, signal: AbortSignal) => {
@@ -345,11 +424,14 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId }: 
 
   // Arriving with a saved run to open (from the territory): show it at once.
   const openedRef = useRef<string | null>(null);
+  // Until it loads, a placeholder bar stands in for the intro (no flash of the full page).
+  const [arriving, setArriving] = useState(!!initialReportId);
   useEffect(() => {
     if (!initialReportId || openedRef.current === initialReportId) return;
     openedRef.current = initialReportId;
     loadReport(initialReportId).then((rep) => {
       if (rep && openedRef.current === initialReportId) openSaved(rep);
+      setArriving(false);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- open once per id
   }, [initialReportId]);
@@ -382,186 +464,190 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId }: 
     if (rep) openSaved(rep);
   };
 
+  const name = company.replace(/\s*\([^)]*\)\s*$/, "");
+  const fallbackName = fallback?.company.replace(/\s*\([^)]*\)\s*$/, "");
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    run(input);
+  };
+  const field = (
+    <>
+      <Search size={17} className="shrink-0 text-muted-foreground" aria-hidden />
+      <input
+        id="account-company"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder="Company name or domain"
+        autoComplete="off"
+        spellCheck={false}
+        maxLength={120}
+        className="min-h-11 min-w-0 flex-1 bg-transparent text-base text-foreground placeholder:text-[#6B7080] focus:outline-none"
+      />
+    </>
+  );
+  const buildButton = (
+    <button type="submit" disabled={running || !cleanCompany(input)} className={cx(primaryBtn, "shrink-0 disabled:cursor-not-allowed")}>
+      {running ? <Loader2 size={16} className="animate-spin" aria-hidden /> : null}
+      {running ? "Working" : "Build the plan"}
+      {!running && <ArrowRight size={16} aria-hidden />}
+    </button>
+  );
+  const total = marks.critics;
+
   return (
     <div>
-      <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-14">
-        <div>
-          {intro}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              run(input);
-            }}
-            className="mt-8"
-          >
-            <label htmlFor="account-company" className="text-sm font-semibold text-foreground">
-              Which company?
-            </label>
-            <div className="mt-2 flex flex-col gap-2 rounded-xl border border-border bg-surface-elevated p-2 shadow-sm focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/15 sm:flex-row">
-              <div className="flex min-w-0 flex-1 items-center gap-2 px-2">
-                <Search size={17} className="shrink-0 text-muted-foreground" aria-hidden />
-                <input
-                  id="account-company"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Company name or domain"
-                  autoComplete="off"
-                  spellCheck={false}
-                  maxLength={120}
-                  className="min-w-0 flex-1 bg-transparent py-2.5 text-base text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={running || !cleanCompany(input)}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {running ? <Loader2 size={15} className="animate-spin" aria-hidden /> : null}
-                {running ? "Working" : "Build the plan"}
-                {!running && <ArrowRight size={15} aria-hidden />}
-              </button>
+      {!started && arriving && (
+        <div className={cx(card, "p-4 sm:p-5")} aria-busy="true">
+          <LivePill>Opening the saved run</LivePill>
+          <div className="mt-4 space-y-2.5" aria-hidden>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-3.5 rounded bg-muted" style={{ width: `${80 - i * 18}%` }} />
+            ))}
+          </div>
+        </div>
+      )}
+      {!started && !arriving && (
+        <>
+          <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-12">
+            <div>
+              {intro}
+              <form onSubmit={submit} className="mt-8">
+                <label htmlFor="account-company" className="text-[15px] font-bold text-foreground">
+                  Which company?
+                </label>
+                <div className="mt-2 flex flex-col gap-2 rounded-xl border border-[#9097A6] bg-card p-2 focus-within:border-primary focus-within:ring-2 focus-within:ring-ring sm:flex-row sm:items-center">
+                  <div className="flex min-w-0 flex-1 items-center gap-2 px-2">{field}</div>
+                  {buildButton}
+                </div>
+                <p className="mt-2 text-sm text-[#4A4F63]">
+                  Add its domain when the name is a common word: <span className="font-mono">Relay (relaypro.com)</span>.
+                </p>
+                {seller && seller.examples.length > 0 && (
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    <span className="mr-1 font-mono text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">Try</span>
+                    {seller.examples.map((ex) => (
+                      <button key={ex} type="button" disabled={running} onClick={() => run(ex)} className={cx(toggle(false), "disabled:opacity-50")}>
+                        {ex}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </form>
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Add its domain when the name is a common word: <span className="font-mono">Relay (relaypro.com)</span>.
-            </p>
-            {seller && seller.examples.length > 0 && (
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="text-xs text-muted-foreground">Try:</span>
-                {seller.examples.map((ex) => (
-                  <button
-                    key={ex}
-                    type="button"
-                    disabled={running}
-                    onClick={() => run(ex)}
-                    className="rounded-full border border-border bg-surface-elevated px-3.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary/40 hover:text-primary disabled:opacity-50"
-                  >
-                    {ex}
-                  </button>
-                ))}
-              </div>
-            )}
-          </form>
-        </div>
-        <div className={`lg:pt-14 ${started ? "hidden lg:block" : ""}`}>
-          <HowItWorks />
-        </div>
-      </div>
+            <HowItWorks />
+          </div>
 
-      {runs.length > 0 && (
-        <TerritoryStrip
-          runs={runs}
-          title={pinned.length ? "Saved runs · open instantly, no AI calls" : "Your recent runs · open instantly"}
-          activeId={saved?.id}
-          onOpen={openSaved}
-        />
+          {runs.length > 0 && (
+            <TerritoryStrip
+              runs={runs}
+              title={pinned.length ? "Saved runs · open instantly, no AI calls" : "Your recent runs · open instantly"}
+              activeId={saved?.id}
+              onOpen={openSaved}
+            />
+          )}
+        </>
       )}
 
-      <div ref={resultsRef} className="scroll-mt-24">
+      <div ref={resultsRef} className={inShell ? "scroll-mt-4" : "scroll-mt-24"}>
         {started && (
-          <div className="mt-10" aria-live="polite">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              {saved ? (
-                <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <History size={15} className="text-primary" aria-hidden />
-                  Saved run, opened instantly from stored results.
-                  <button type="button" onClick={() => run(saved.idea)} className="font-medium text-primary underline-offset-4 hover:underline">
-                    Run it live
-                  </button>
-                </p>
-              ) : (
-                <h2 className="font-display text-2xl font-bold tracking-tight text-foreground">{plan ? "" : company}</h2>
-              )}
-              {reportId && !running && (
-                <div className="flex items-center gap-3 text-xs">
-                  <Link to={`/report/${reportId}`} className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
-                    Open the shareable report <ArrowRight size={12} aria-hidden />
-                  </Link>
-                  <button type="button" onClick={copyLink} className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground">
-                    <Link2 size={12} aria-hidden /> Copy link
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {!saved && (
-              <div className="mt-4">
-                <div
-                  className="h-1 overflow-hidden rounded-full bg-muted"
-                  role="progressbar"
-                  aria-label="Run progress"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={Math.round(progress)}
-                >
-                  <div
-                    className={`h-full rounded-full transition-[width] duration-500 ease-out ${status === "error" ? "bg-destructive" : "bg-primary"}`}
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-                <ol className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-                  {STEPS.map((s, i) => {
-                    const done = marks[s.id] !== undefined;
-                    const active = running && step === s.id;
-                    const failed = status === "error" && step === s.id;
-                    return (
-                      <li key={s.id} className="flex items-center gap-2">
-                        <span
-                          className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold ${
-                            done ? "bg-primary text-primary-foreground" : failed ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {done ? <Check size={12} aria-hidden /> : active ? <Loader2 size={12} className="animate-spin" aria-hidden /> : i + 1}
-                        </span>
-                        <span className={done || active ? "font-medium text-foreground" : "text-muted-foreground"}>{s.label}</span>
-                        <span className="tabular-nums text-xs text-muted-foreground">
-                          {done ? secs((marks[s.id] ?? 0) - (i > 0 ? marks[STEPS[i - 1].id] ?? 0 : 0)) : active ? secs(inStep) : ""}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ol>
+          <>
+            <h1 className="sr-only">First-call plan: {name}</h1>
+            <section aria-label="Run" className={cx(card, "p-3 sm:p-4")}>
+              <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-6">
+                <form onSubmit={submit} className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+                  <label htmlFor="account-company" className="sr-only">
+                    Which company?
+                  </label>
+                  <div className="flex min-w-0 flex-1 items-center gap-2 rounded-[8px] border border-[#9097A6] bg-card px-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-ring">
+                    {field}
+                  </div>
+                  {buildButton}
+                </form>
+                {reportId && !running && (
+                  <div className="flex flex-wrap items-center gap-x-5">
+                    <Link to={`/report/${reportId}`} className={linkBtn}>
+                      Open the shareable report <ArrowRight size={15} aria-hidden />
+                    </Link>
+                    <button type="button" onClick={copyLink} className={cx(linkBtn, "text-foreground")}>
+                      <Link2 size={15} aria-hidden /> Copy link
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
+
+              <div className="mt-3 border-t border-border pt-3" aria-live="polite">
+                {saved ? (
+                  <p className="flex flex-wrap items-center gap-x-3 text-[15px] text-[#4A4F63]">
+                    <span className="flex items-center gap-2">
+                      <History size={16} className="shrink-0 text-foreground" aria-hidden />
+                      Saved run, opened instantly from stored results.
+                    </span>
+                    <button type="button" onClick={() => run(saved.idea)} className={linkBtn}>
+                      Run it live
+                    </button>
+                  </p>
+                ) : (
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between lg:gap-8">
+                    <div className="min-w-0 flex-1">
+                      <RunSteps marks={marks} step={step} status={status} inStep={inStep} progress={progress} />
+                    </div>
+                    <div className="shrink-0">
+                      {running ? (
+                        <LivePill>
+                          {name} · live <span className="font-mono text-[13px] font-medium">{secs(elapsed)}</span>
+                        </LivePill>
+                      ) : status === "done" ? (
+                        <p className="font-mono text-sm text-[#4A4F63]">
+                          {name} · finished{total !== undefined ? ` in ${secs(total)}` : ""}
+                        </p>
+                      ) : (
+                        <p className="font-mono text-sm font-semibold text-foreground">{name} · stopped</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {runs.length > 0 && (
+                <div className="mt-3 border-t border-border pt-3">
+                  <TerritoryStrip compact runs={runs} title={pinned.length ? "Saved runs" : "Your recent runs"} activeId={saved?.id} onOpen={openSaved} />
+                </div>
+              )}
+            </section>
 
             {status === "error" && error && !(step === "critics" && plan) && (
-              <div className="mt-5 flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">
-                <AlertTriangle size={15} className="mt-0.5 shrink-0 text-destructive" aria-hidden />
-                <div>
-                  <p className="text-foreground">This run stopped. {error}</p>
-                  <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs font-medium">
-                    <button type="button" onClick={() => run(company)} className="text-primary underline-offset-4 hover:underline">
-                      Run {company} again
+              <div role="alert" className="mt-4 rounded-xl border-2 border-foreground bg-card p-4 sm:p-5">
+                <p className="text-base font-bold text-foreground">This run stopped.</p>
+                <p className="mt-1 text-[15px] text-[#4A4F63]">{error}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button type="button" onClick={() => run(company)} className={primaryBtn}>
+                    <RotateCcw size={16} aria-hidden /> Run {company} again
+                  </button>
+                  {fallback && (
+                    <button type="button" onClick={openFallback} className={secondaryBtn}>
+                      <History size={16} aria-hidden /> Open the saved {fallbackName} run
                     </button>
-                    {fallback && (
-                      <button type="button" onClick={openFallback} className="text-primary underline-offset-4 hover:underline">
-                        Open the saved {fallback.company.replace(/\s*\([^)]*\)\s*$/, "")} run
-                      </button>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
             )}
             {slow && fallback && (
-              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/30 bg-accent/50 px-4 py-3 text-sm">
-                <p className="text-foreground">This one is taking longer than usual. The live run keeps going.</p>
-                <button
-                  type="button"
-                  onClick={openFallback}
-                  className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:brightness-110"
-                >
-                  <History size={14} aria-hidden /> Show the saved {fallback.company.replace(/\s*\([^)]*\)\s*$/, "")} run
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand bg-brand-tint px-4 py-3">
+                <p className="text-[15px] text-foreground">This one is taking longer than usual. The live run keeps going.</p>
+                <button type="button" onClick={openFallback} className={primaryBtn}>
+                  <History size={16} aria-hidden /> Show the saved {fallbackName} run
                 </button>
               </div>
             )}
             {saveFailed && (
-              <p className="mt-4 text-xs text-muted-foreground">This run couldn&rsquo;t be saved, so there&rsquo;s no shareable link. Copy the plan instead.</p>
+              <p className="mt-3 text-sm text-[#4A4F63]">This run couldn&rsquo;t be saved, so there&rsquo;s no shareable link. Copy the plan instead.</p>
             )}
 
             <div className="mt-6">
               {plan && brief ? (
                 <AccountExplorer
                   key={reportId ?? company}
-                  company={company.replace(/\s*\([^)]*\)\s*$/, "")}
+                  company={company}
                   brief={brief}
                   plan={plan}
                   analysis={analysis}
@@ -569,26 +655,22 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId }: 
                   sellerName={sellerName}
                   notice={
                     status === "error" && step === "critics" ? (
-                      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">
-                        <p className="text-foreground">The plan is ready, but the agents didn&rsquo;t finish. {error}</p>
-                        <button type="button" onClick={retryAgents} className="font-medium text-primary underline-offset-4 hover:underline">
-                          Run the seven agents again
+                      <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 border-foreground bg-card px-4 py-3">
+                        <p className="text-[15px] text-foreground">
+                          <span className="font-semibold">The plan is ready, but the agents didn&rsquo;t finish.</span> {error}
+                        </p>
+                        <button type="button" onClick={retryAgents} className={secondaryBtn}>
+                          <RotateCcw size={16} aria-hidden /> Run the seven agents again
                         </button>
                       </div>
                     ) : null
                   }
                 />
               ) : (
-                <ResearchFeed
-                  research={research}
-                  company={company.replace(/\s*\([^)]*\)\s*$/, "")}
-                  researchMs={marks.sources}
-                  writingMs={running && step === "plan" ? inStep : undefined}
-                  typicalMs={STEPS[1].typical}
-                />
+                <ResearchFeed research={research} company={name} researchMs={marks.sources} writingMs={running && step === "plan" ? inStep : undefined} typicalMs={STEPS[1].typical} />
               )}
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>
