@@ -39,9 +39,12 @@ export function SourceChip({ source, n, now }: { source?: ResearchSource; n: num
   const body = (
     <span className={cx("inline-flex h-6 items-stretch overflow-hidden rounded-[5px] font-mono text-xs leading-[22px]", CHIP_BOX[tier])}>
       <span className={cx("px-1.5 font-semibold", tier === "fresh" ? "bg-foreground text-white" : "bg-white text-foreground")}>{n}</span>
-      <span className={cx("px-1.5", tier === "fresh" ? "font-semibold text-foreground" : tier === "aging" ? "font-medium text-[#4A4F63]" : "text-[#6B7080]")}>
-        {ageText(days)}
-      </span>
+      {/* Undated sources show the number alone; the dotted border marks them. */}
+      {days != null && (
+        <span className={cx("px-1.5", tier === "fresh" ? "font-semibold text-foreground" : tier === "aging" ? "font-medium text-[#4A4F63]" : "text-[#6B7080]")}>
+          {ageText(days)}
+        </span>
+      )}
     </span>
   );
   const title = `[${n}] ${source?.title ?? "Source"}${source?.date ? ` · ${source.date}` : " · date not captured"}`;
