@@ -1,5 +1,5 @@
 import { act, fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
-import { MemoryRouter, Route, Routes, useLocation, useParams } from "react-router-dom";
+import { Link, MemoryRouter, Route, Routes, useLocation, useParams } from "react-router-dom";
 import type { AccountBrief } from "@/components/account/AccountViews";
 import type { SavedReport } from "@/components/account/explorer/savedRuns";
 
@@ -40,6 +40,16 @@ function Where() {
   const { pathname, search } = useLocation();
   return <p data-testid="where">{pathname + search}</p>;
 }
+
+// The account picker's popover and list measure themselves; jsdom has no layout.
+beforeAll(() => {
+  globalThis.ResizeObserver ??= class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+  Element.prototype.scrollIntoView ??= () => {};
+});
 
 beforeEach(() => {
   window.sessionStorage.clear();
@@ -204,19 +214,23 @@ describe("front door", () => {
     expect(screen.getByTestId("where")).toHaveTextContent(/^\/for\/omni$/);
   });
 
-  it("is the empty form every time: saved and live quick picks and a link to the radar; the Run tab comes back to it", async () => {
+  it("is the empty form every time: saved cards, live pills and a link to the radar; the Run tab comes back to it", async () => {
     const pinName = pin.company.replace(/\s*\([^)]*\)\s*$/, "");
     open("/for/omni");
     const savedRow = await screen.findByRole("group", { name: "Saved · opens instantly" });
-    expect(within(savedRow).getByRole("button", { name: pinName })).toBeInTheDocument();
+    // A small card per saved run: its name, then its motion and fit once the run is read.
+    const card = within(savedRow).getByRole("button", { name: new RegExp(`^${pinName}\\b`) });
+    await waitFor(() => expect(card).toHaveTextContent(`${pinName}Internal · Fit B`));
     const liveRow = screen.getByRole("group", { name: "Live · about a minute" });
     expect(within(liveRow).getAllByRole("button").map((b) => b.textContent)).toEqual(seller.examples);
     expect(screen.getByRole("link", { name: `All ${seller.territory!.accounts.length} territory accounts on the Radar` })).toHaveAttribute("href", "/for/omni/radar");
-    // The big saved-run cards are gone from the front door.
+    // The big saved-run cards and the reading legend are gone from the front door.
     expect(screen.queryByText(/Saved runs · open instantly/)).toBeNull();
+    expect(screen.queryByRole("list", { name: "How to read the page" })).toBeNull();
+    expect(screen.getByText("Confirmed only when a source names it plainly.")).toBeInTheDocument();
 
-    // A saved pill opens the run at once, tagged as saved, with no AI calls.
-    fireEvent.click(within(savedRow).getByRole("button", { name: pinName }));
+    // A saved card opens the run at once, tagged as saved, with no AI calls.
+    fireEvent.click(card);
     expect(await screen.findByText(/^Saved run · /)).toBeInTheDocument();
     expect(screen.getByText("opened instantly, no AI calls")).toBeInTheDocument();
     expect(invoke).not.toHaveBeenCalled();
@@ -331,7 +345,7 @@ const brief: AccountBrief = {
 const saved = (id: string, idea: string): SavedReport => ({ id, idea, brief: { ...brief, company: idea }, lovable_prompt: "FIRST-CALL PLAN", auto_analysis: null, created_at: "2026-10-06T21:00:00Z" });
 
 describe("run an account, saved run open", () => {
-  it("re-runs the saved run as a secondary action, keeps the pink button for a new company, and follows the picker", async () => {
+  it("re-runs the saved run as a secondary action, keeps the pink button for a new company, and follows the URL", async () => {
     runs.band = saved("band", "Bandwidth (bandwidth.com)");
     runs.relay = saved("relay", "Relay (relaypro.com)");
     const rows = accounts.map((a) => toRow(a, runs[a.reportId]));
@@ -343,6 +357,7 @@ describe("run an account, saved run open", () => {
             element={
               <>
                 <Where />
+                <Link to="/for/omni/account/relay">Relay from the radar</Link>
                 <RouteAccount rows={rows} />
               </>
             }
@@ -351,6 +366,11 @@ describe("run an account, saved run open", () => {
       </MemoryRouter>,
     );
     expect(await screen.findByText(/^Saved run · /)).toBeInTheDocument();
+    // The run bar is the mode tag, the box and the share links: no account picker.
+    const bar = screen.getByRole("region", { name: "Run" });
+    expect(within(bar).queryByRole("combobox")).toBeNull();
+    expect(within(bar).queryByRole("radiogroup")).toBeNull();
+    expect(within(bar).getByRole("link", { name: "Open the shareable report" })).toHaveAttribute("href", "/report/band");
     const live = screen.getByRole("button", { name: "Run it live" });
     expect(live.className).not.toMatch(/bg-brand/);
     expect(screen.queryByRole("button", { name: /Build the plan/ })).toBeNull();
@@ -364,9 +384,9 @@ describe("run an account, saved run open", () => {
     expect(screen.getByRole("button", { name: /Build the plan/ }).className).toMatch(/bg-brand/);
     expect(invoke).not.toHaveBeenCalled();
 
-    // The territory picker opens another saved run, and the URL (and so the rail) follows it.
+    // Another saved run's URL (from the radar or a picker elsewhere) opens it here.
     await act(async () => {
-      fireEvent.change(screen.getByRole("combobox", { name: "Saved runs" }), { target: { value: "relay" } });
+      fireEvent.click(screen.getByRole("link", { name: "Relay from the radar" }));
     });
     await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent("/for/omni/account/relay"));
     await waitFor(() => expect(screen.getByRole("textbox", { name: "Which company?" })).toHaveValue("Relay (relaypro.com)"));
@@ -431,7 +451,7 @@ describe("just ran", () => {
     );
   });
 
-  it("comes first in the committee and deal room switcher, as chips or as a select", () => {
+  it("comes first in the committee and deal room switcher, as chips or in the searchable list", () => {
     const rows = accounts.map((a) => toRow(a, saved(a.reportId, a.company)));
     const first = render(
       <MemoryRouter>
@@ -449,15 +469,15 @@ describe("just ran", () => {
         <AccountSwitcher rows={many} activeId="ramp" hrefFor={(id) => `/for/omni/committee/${id}`} justRan={ramp} />
       </MemoryRouter>,
     );
-    const select = screen.getByRole("combobox");
-    expect(select).toHaveValue("ramp");
-    expect(within(select).getAllByRole("option")[0]).toHaveTextContent("Just ran: Ramp");
+    const trigger = screen.getByRole("button", { name: "Account Ramp" });
+    fireEvent.click(trigger);
+    const list = screen.getByRole("listbox");
+    expect(within(list).getAllByRole("option")[0]).toHaveTextContent("Just ran: Ramp");
+    expect(within(list).getAllByRole("option")[0]).toHaveAttribute("aria-selected", "true");
   });
 });
 
 function RouteAccount({ rows }: { rows: ReturnType<typeof toRow>[] }) {
   const { reportId } = useParams<{ reportId?: string }>();
-  // Past eight accounts the picker is a select; pad the territory so the test drives it the same way.
-  const many = [...rows, ...Array.from({ length: 8 }, (_, i) => ({ ...rows[0], id: `pad${i}`, name: `Pad ${i}` }))];
-  return <AccountModule seller={scoped} territory={{ rows: many, loading: false, missing: [] }} reportId={reportId} />;
+  return <AccountModule seller={scoped} territory={{ rows, loading: false, missing: [] }} reportId={reportId} />;
 }
