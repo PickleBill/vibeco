@@ -70,7 +70,7 @@ const SELLERS: Record<string, SellerConfig> = {
         { company: "Bandwidth (bandwidth.com)", reportId: "0a08bed8-e339-45cc-8f60-4e9df60764f3" },
       ],
     },
-    seeds: [{ name: "Guitar Center", source: "https://omni.co/blog/case-study-guitar-center" }],
+    seeds: [{ name: "Guitar Center", source: "https://omni.co/blog/case-study-guitar-center", reportId: "a9aefb7a-f59f-4324-8d2f-f628d2aa05df" }],
     theme: "theme-omni",
     footer: "Unofficial. Built from public sources. Not affiliated with Omni.",
   },
