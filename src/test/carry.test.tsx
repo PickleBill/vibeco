@@ -151,33 +151,35 @@ describe("rail links", () => {
     expect(railLink(/Run an account/)).toHaveAttribute("aria-current", "page");
   });
 
-  it("set Run an account apart; the other four sit under an Explore label that isn't a link", () => {
+  it("are five plain tabs, with no label or divider between them", () => {
     page("/for/omni/radar");
     const nav = screen.getByRole("navigation", { name: "Views" });
-    const label = within(nav).getByText("Explore");
-    expect(label.closest("a")).toBeNull();
-    const links = within(nav).getAllByRole("link");
-    expect(links[0]).toHaveTextContent("Run an account");
-    expect(links[0].compareDocumentPosition(label) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(label.compareDocumentPosition(links[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(nav).queryByText("Explore")).toBeNull();
+    expect([...nav.children].map((c) => c.tagName)).toEqual(["A", "A", "A", "A", "A"]);
+    expect(within(nav).getAllByRole("link")[0]).toHaveTextContent("Run an account");
   });
 
-  it("walk the ?demo presenter bar through four steps on the first account, with the Deal Room off the path", () => {
-    const step = page("/for/omni/account/relay?demo");
-    expect(screen.getByText("Demo · step 1 of 4 · Three whys, seven agents, a verdict")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Open the radar/ })).toHaveAttribute("href", "/for/omni/radar?demo");
-    step.unmount();
-    const radar = page("/for/omni/radar?demo");
-    expect(screen.getByText(/^Demo · step 2 of 4/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Find lookalikes/ })).toHaveAttribute("href", "/for/omni/lookalikes/relay?demo");
-    radar.unmount();
-    const last = page("/for/omni/committee/relay?demo");
-    expect(screen.getByText(/^Demo · step 4 of 4/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Run your own account/ })).toHaveAttribute("href", "/for/omni");
-    last.unmount();
-    page("/for/omni/deal/relay?demo");
-    expect(screen.getByText("Demo · off the path")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Back to step 1/ })).toHaveAttribute("href", "/for/omni/account/relay?demo");
+  it("walk the ?demo presenter bar through the tour's seven steps on the first account, with the Deal Room off the path", () => {
+    const bar = (url: string) => {
+      const view = page(url);
+      const label = screen.getByText(/^Demo · /);
+      const next = within(label.parentElement!).getByRole("link");
+      const out = [label.textContent, next.textContent?.trim(), next.getAttribute("href")];
+      view.unmount();
+      return out;
+    };
+    expect(bar("/for/omni/account?demo=1")).toEqual(["Demo · step 1 of 7 · Any company, live", "Open the saved run", "/for/omni/account/relay?demo=2"]);
+    expect(bar("/for/omni/account/relay?demo=2")).toEqual(["Demo · step 2 of 7 · Who they are", "See the verdict", "/for/omni/account/relay?demo=3"]);
+    expect(bar("/for/omni/account/relay?demo=3")).toEqual(["Demo · step 3 of 7 · Seven readers, one verdict", "Take a seat", "/for/omni/account/relay?demo=4"]);
+    expect(bar("/for/omni/account/relay?demo=4")).toEqual(["Demo · step 4 of 7 · Take a seat", "Open the radar", "/for/omni/radar?demo=5"]);
+    expect(bar("/for/omni/radar?demo=5")).toEqual(["Demo · step 5 of 7 · The territory", "Find lookalikes", "/for/omni/lookalikes/relay?demo=6"]);
+    expect(bar("/for/omni/lookalikes/relay?demo=6")).toEqual(["Demo · step 6 of 7 · More like it", "Simulate its committee", "/for/omni/committee/relay?demo=7"]);
+    expect(bar("/for/omni/committee/relay?demo=7")).toEqual(["Demo · step 7 of 7 · The buying room", "Run your own account", "/for/omni"]);
+    // A bare ?demo, or a step that doesn't match the view, reads the step from the view.
+    expect(bar("/for/omni?demo")[0]).toBe("Demo · step 1 of 7 · Any company, live");
+    expect(bar("/for/omni/account/relay?demo")[0]).toBe("Demo · step 2 of 7 · Who they are");
+    expect(bar("/for/omni/radar?demo=2")[0]).toBe("Demo · step 5 of 7 · The territory");
+    expect(bar("/for/omni/deal/relay?demo")).toEqual(["Demo · off the path", "Back to step 1", "/for/omni/account?demo=1"]);
   });
 });
 
@@ -261,23 +263,33 @@ describe("front door", () => {
     expect(current()).toHaveTextContent("Radar");
   });
 
-  it("starts the presenter walkthrough on the demo account", async () => {
+  it("opens the presenter walkthrough's first step on the empty form, and a bare ?demo on the demo account", async () => {
+    const first = open("/for/omni/account?demo=1");
+    expect(await screen.findByRole("textbox", { name: "Which company?" })).toBeInTheDocument();
+    expect(screen.getByText("Demo · step 1 of 7 · Any company, live")).toBeInTheDocument();
+    first.unmount();
     open("/for/omni?demo");
     const relay = seller.territory!.accounts[0].reportId;
     await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent(`/for/omni/account/${relay}?demo`));
-    expect(screen.getByText(/^Demo · step 1 of 4/)).toBeInTheDocument();
+    expect(screen.getByText(/^Demo · step 2 of 7/)).toBeInTheDocument();
   });
 });
 
-// ─── The 60-second demo ───
+// ─── The two-minute demo ───
 
 describe("tour steps", () => {
-  it("are four, in rail order, short, and skip the Deal Room", () => {
-    const steps = tourSteps("Relay");
-    expect(steps.map((s) => s.module)).toEqual(["account", "radar", "lookalikes", "committee"]);
-    expect(steps.every((s) => s.body.split(/\s+/).length <= 18)).toBe(true);
-    expect(steps[0].body).toMatch(/^Relay’s saved run/);
-    expect(steps[3].title).toBe("Committee for Relay");
+  it("are seven, from the front door to the committee, short, without em dashes, and skip the Deal Room", () => {
+    const steps = tourSteps({ demo: "Relay", seller: "Omni", territory: { name: "Southeast", count: 51 } });
+    expect(steps.map((s) => s.module)).toEqual(["account", "account", "account", "account", "radar", "lookalikes", "committee"]);
+    expect(steps.map((s) => !!s.withAccount)).toEqual([false, true, true, true, false, true, true]);
+    expect(steps.every((s) => s.body.split(/\s+/).length <= 18 && !/—/.test(s.body + s.title))).toBe(true);
+    expect(steps[4].body).toBe("51 Southeast accounts. Pink means a dated trigger in the last 60 days.");
+    // Only the committee plays; the seat step opens the lens fold first, then falls back.
+    expect(steps.map((s) => !!s.play)).toEqual([false, false, false, false, false, false, true]);
+    expect(steps[3].reveal).toEqual(["lens-fold", "lens-stress", "seat-skeptic"]);
+    expect(steps[5].fallback).toEqual(["lookalikes-seed"]);
+    // Another demo account gets a plain line, never Relay's facts.
+    expect(tourSteps({ demo: "Bandwidth", seller: "Omni" })[1].body).toBe("Bandwidth’s saved run. First, why change, why now, why Omni.");
   });
 });
 

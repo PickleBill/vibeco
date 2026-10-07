@@ -550,7 +550,7 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, in
           <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-12">
             <div>
               {intro}
-              <form onSubmit={submit} className="mt-8">
+              <form data-tour="company-box" onSubmit={submit} className="mt-8">
                 <label htmlFor="account-company" className="text-[15px] font-bold text-foreground">
                   Which company?
                 </label>

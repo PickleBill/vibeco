@@ -74,7 +74,7 @@ export function LensExplorer({ analysis, brief, sources, lens, onLens, seat, onS
       level={3}
       defaultOpen="wide"
       eyebrow="Seven agents · one at a time"
-      title="Explore one lens at a time"
+      title={<span data-tour="lens-fold">Explore one lens at a time</span>}
       preview={lensPreview(seats, available.expand, available.distill)}
     >
       <p className="max-w-2xl text-[15px] leading-relaxed text-[#4A4F63]">
@@ -90,6 +90,7 @@ export function LensExplorer({ analysis, brief, sources, lens, onLens, seat, onS
               key={l.id}
               type="button"
               role="tab"
+              data-tour={`lens-${l.id}`}
               aria-selected={on}
               onClick={() => onLens(l.id)}
               className={cx(
@@ -164,6 +165,7 @@ function StressTest({
               key={s}
               type="button"
               onClick={() => onSeat(s)}
+              data-tour={`seat-${s}`}
               aria-pressed={on}
               className={cx(
                 "relative flex min-h-11 items-center gap-2 rounded-full py-1.5 pl-1.5 pr-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:flex-col sm:justify-start sm:gap-1.5 sm:rounded-xl sm:px-2 sm:py-3 sm:text-center",

@@ -165,7 +165,7 @@ export function VerdictCard({ synthesis, state, sources }: { synthesis?: Synthes
               </div>
             )}
             {tensions.length > 0 && (
-              <div>
+              <div data-tour="tensions">
                 <h4 className="flex items-center gap-2 border-b-2 border-dashed border-foreground pb-2 text-[15px] font-bold text-foreground">
                   <Split size={16} aria-hidden /> Where they don&rsquo;t
                 </h4>
