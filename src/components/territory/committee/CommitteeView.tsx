@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { MotionConfig, useReducedMotion } from "framer-motion";
 import { Loader2, Play, RotateCcw, SkipForward } from "lucide-react";
 import type { SavedReport } from "@/components/account/explorer/savedRuns";
 import { qualify } from "../qualification/model";
+import { useMeetingAutoplay } from "../tour/autoplay";
 import { QualificationCard } from "../qualification/QualificationCard";
 import { cx, primaryButton, secondaryButton } from "../style";
 import { LivePill } from "../ui";
@@ -69,6 +70,23 @@ export function CommitteeView({ report, company, accountHref }: { report: SavedR
   const reduced = !!useReducedMotion();
   const player = usePlayback(active, reduced);
   const roleOf = (seat: SeatId) => seatRole(seat, active);
+
+  // The tour's committee step (and the presenter's) plays the saved meeting once, unless it's already
+  // under way; all at once under reduced motion. It never asks for a new meeting.
+  const autoplay = useMeetingAutoplay();
+  const autoplayed = useRef(false);
+  const { play, showAll } = player;
+  const underWay = player.started;
+  useEffect(() => {
+    if (!autoplay) {
+      autoplayed.current = false;
+      return;
+    }
+    if (autoplayed.current || !baseline || sim.whatIf || underWay) return;
+    autoplayed.current = true;
+    if (reduced) showAll(baseline);
+    else play(baseline);
+  }, [autoplay, baseline, sim.whatIf, underWay, reduced, play, showAll]);
 
   const options = useMemo(() => whatIfOptions(brief), [brief]);
   // MEDDPICC reads the meeting of record (saved or just run), never a what-if.

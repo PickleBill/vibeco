@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 import { X } from "lucide-react";
 import { useReducedMotion } from "framer-motion";
 import { cx, primaryButton, secondaryButton } from "../style";
+import { pickTarget, revealFrom } from "./reveal";
 
 type Box = { top: number; left: number; width: number; height: number };
 type Size = { w: number; h: number };
@@ -12,7 +13,9 @@ const MIN_GAP = 4; // ring to card when space is tight
 const EDGE = 16; // card to viewport edge
 const MARGIN = 8; // card to viewport edge when space is tight
 const SETTLE_MS = 2500; // a view's late content can still push the target
+const REVEAL_MS = 4000; // the step's folds open while the view loads
 const CARD_W = 344;
+const NONE: string[] = [];
 const PHONE = 640;
 
 const sameBox = (a: Box | null, b: Box | null) =>
@@ -22,18 +25,27 @@ const viewport = () => ({ w: window.innerWidth, h: window.innerHeight });
 
 /**
  * Find `[data-tour=target]` and follow it: views load their data after the
- * route changes, so the element is looked for until it shows up, scrolled
- * into view once, then tracked through scrolls, resizes and layout shifts.
- * Null while it isn't on the page (the card then sits centered).
+ * route changes, so the element is looked for until it shows up (opening the
+ * folds the step names on the way, and settling for a fallback when it
+ * doesn't come), scrolled into view once, then tracked through scrolls,
+ * resizes and layout shifts. Null while nothing is on the page (the card then
+ * sits centered).
  */
-function useTarget(target: string | undefined, card: { current: Size }) {
+function useTarget(target: string | undefined, fallback: string[], reveal: string[], card: { current: Size }) {
   const reduce = useReducedMotion();
   const [box, setBox] = useState<Box | null>(null);
   const [vp, setVp] = useState(viewport);
+  // The lists by value, so a re-render with a new array doesn't restart the step.
+  const fallbackKey = fallback.join(" ");
+  const revealKey = reveal.join(" ");
 
   useEffect(() => {
     setBox(null);
     if (!target) return;
+    const fallbacks = fallbackKey ? fallbackKey.split(" ") : [];
+    const reveals = revealKey ? revealKey.split(" ") : [];
+    const start = Date.now();
+    let revealed = 0;
     let el: Element | null = null;
     let frame = 0;
     // When the target was found and last scrolled to. While the view is still
@@ -48,13 +60,16 @@ function useTarget(target: string | undefined, card: { current: Size }) {
         const n = viewport();
         return v.w === n.w && v.h === n.h ? v : n;
       });
-      if (!el?.isConnected) {
-        el = document.querySelector(`[data-tour="${target}"]`);
+      const now = Date.now();
+      // Open what hides the target, for a few seconds after the step opens.
+      if (revealed < reveals.length && now - start < REVEAL_MS) revealed = revealFrom(reveals, revealed);
+      const found = pickTarget(target, fallbacks, now - start);
+      if (found !== el) {
+        el = found;
         foundAt = scrolledAt = 0;
       }
       const r = el?.getBoundingClientRect();
       if (!el || !r || (!r.width && !r.height)) return setBox((b) => (b ? null : b));
-      const now = Date.now();
       if (!foundAt) foundAt = now;
       const settling = !userScrolled && now - foundAt < SETTLE_MS && now - scrolledAt > 450;
       if (!scrolledAt || settling) {
@@ -90,7 +105,7 @@ function useTarget(target: string | undefined, card: { current: Size }) {
       window.removeEventListener("touchmove", mine);
       window.removeEventListener("keydown", mine);
     };
-  }, [target, reduce, card]);
+  }, [target, fallbackKey, revealKey, reduce, card]);
 
   return { box, vp };
 }
@@ -128,7 +143,11 @@ function place(box: Box, card: Size, vp: Size) {
 export interface TourCardProps {
   /** The data-tour target; none for the finish card. */
   target?: string;
-  /** "2 of 6"; none for the finish card. */
+  /** Pointed at when the target doesn't show up. */
+  fallback?: string[];
+  /** Folds and choices to open first (see steps.ts). */
+  reveal?: string[];
+  /** "2 of 7"; none for the finish card. */
   count?: string;
   title: string;
   body: ReactNode;
@@ -145,13 +164,13 @@ export interface TourCardProps {
  * stays usable, so the step's button can be pressed for real. Esc ends the
  * tour; focus moves to the card's default button on every step.
  */
-export function TourCard({ target, count, title, body, actions, onEnd, stepKey }: TourCardProps) {
+export function TourCard({ target, fallback = NONE, reveal = NONE, count, title, body, actions, onEnd, stepKey }: TourCardProps) {
   const card = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<Size>({ w: CARD_W, h: 220 });
   // The scroll that brings the target in reads the card's latest size.
   const sizeRef = useRef(size);
   sizeRef.current = size;
-  const { box, vp } = useTarget(target, sizeRef);
+  const { box, vp } = useTarget(target, fallback, reveal, sizeRef);
   const phone = vp.w < PHONE;
 
   useLayoutEffect(() => {

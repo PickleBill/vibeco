@@ -134,7 +134,7 @@ export function CriticChat({
   };
 
   return (
-    <section aria-label={`Answer the ${name}`} className="mt-6 rounded-xl border border-foreground bg-background p-3.5 sm:p-6">
+    <section data-tour="take-seat" aria-label={`Answer the ${name}`} className="mt-6 rounded-xl border border-foreground bg-background p-3.5 sm:p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <div>
           <Eyebrow>Take a seat</Eyebrow>
