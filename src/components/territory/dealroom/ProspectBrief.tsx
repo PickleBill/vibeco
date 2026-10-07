@@ -27,7 +27,7 @@ export interface ProspectBriefProps {
  * The page the account sees at /deal/:id: "here's what we think we know about
  * you, from public sources; correct us". Claims and their sources only.
  */
-export function ProspectBrief({ company, domain, claims, sources, responses, saveState = {}, onAnswer, disclaimer, compact = false }: ProspectBriefProps) {
+export function ProspectBrief({ company, claims, sources, responses, saveState = {}, onAnswer, disclaimer, compact = false }: ProspectBriefProps) {
   const t = tally(claims, responses);
   const done = t.total > 0 && t.answered === t.total;
   const wide = (base: string, more: string) => (compact ? base : `${base} ${more}`);
@@ -43,10 +43,7 @@ export function ProspectBrief({ company, domain, claims, sources, responses, sav
         </div>
 
         <article aria-labelledby="deal-title" className={wide("mt-3 rounded-2xl border border-border bg-white px-4 py-5", "sm:mt-4 sm:px-8 sm:py-8")}>
-          <Eyebrow>
-            Prepared for {company}
-            {domain ? ` · ${domain}` : ""}
-          </Eyebrow>
+          <Eyebrow>Prepared for {company}</Eyebrow>
           <h1 id="deal-title" className={wide("mt-2 font-display text-[25px] font-bold leading-[1.15] tracking-[-0.02em]", "sm:text-[34px] sm:leading-[1.12]")}>
             Here's what we think we know about {company}, from public sources. Correct us.
           </h1>
