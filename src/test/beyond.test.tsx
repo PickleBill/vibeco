@@ -33,6 +33,29 @@ beforeEach(() => {
 });
 
 describe("Beyond the territory", () => {
+  it("shows a web search's funnel, each company's size and the page it was found on", async () => {
+    invoke.mockResolvedValue({
+      data: {
+        suggestions: [{ ...suggestions[0], employees: 520, source: { url: "https://www.cardlytics.com/", title: "Cardlytics" }, listedTools: ["Snowflake", "Tableau"] }],
+        model: "m",
+        latencyMs: 1,
+        grounded: true,
+        funnel: { found: 25, inRegion: 11, kept: 1 },
+      },
+      error: null,
+    });
+    renderIt();
+    fireEvent.click(screen.getByRole("button", { name: "Find new companies like Relay" }));
+    const list = await screen.findByRole("list", { name: "Suggestions like Relay" });
+    const card = within(within(list).getAllByRole("listitem")[0]);
+    expect(card.getByText("Atlanta, GA · about 520 people")).toBeInTheDocument();
+    expect(card.getByRole("link", { name: /Found on the web/ })).toHaveAttribute("href", "https://www.cardlytics.com/");
+    // The tools its company data lists; the one the seed shares stands out.
+    expect(card.getByText(/Its company data lists/)).toHaveTextContent("Its company data lists Snowflake, Tableau");
+    expect(card.getByText("Snowflake")).toHaveClass("font-semibold");
+    expect(screen.getByText(/Exa found 25 companies on the web · 11 in the Southeast US · 1 kept\./)).toBeInTheDocument();
+  });
+
   it("starts idle: one line and one primary button, no call", () => {
     renderIt();
     expect(screen.getByRole("heading", { name: "Companies like Relay that aren’t in your territory yet" })).toBeInTheDocument();

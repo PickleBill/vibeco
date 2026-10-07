@@ -333,12 +333,22 @@ export interface AccountSuggestion {
   /** One short sentence phrased as a hypothesis; no digits. */
   why: string;
   motion_guess: SuggestMotion;
+  /** Headcount from the page's company data, when the web search found it. */
+  employees?: number;
+  /** The page the web search found the company on. */
+  source?: { url: string; title: string };
+  /** Data tools the page's company data lists (third-party, not checked). */
+  listedTools?: string[];
 }
 
 export interface SuggestAccountsResult {
   suggestions: AccountSuggestion[];
   model: string;
   latencyMs: number;
+  /** Found on the web (Exa) and then picked, rather than named by the model alone. */
+  grounded?: boolean;
+  /** For a web search: companies found, how many sit in the region, how many were kept. */
+  funnel?: { found: number; inRegion: number; kept: number };
 }
 
 export interface AltPromptInput {
