@@ -7,18 +7,19 @@ import { Eyebrow } from "../ui";
 
 const Dot = () => <span aria-hidden className="mx-0.5 inline-block h-2.5 w-2.5 rounded-full bg-brand align-[0.05em]" />;
 
-const ROWS: { icon: LucideIcon; name: string; line: ReactNode; tryIt: string }[] = [
-  { icon: Radar, name: "Radar", line: <>The territory, re-checked. <Dot /> Pink marks a fresh trigger.</>, tryIt: "Click a pink dot on the radar" },
-  { icon: Play, name: "Run an account", line: "Type any company: in about 60 seconds, a first-call plan, seven agents and a verdict.", tryIt: "Type a company you know" },
-  { icon: Users, name: "Committee", line: "Simulate the buying room, then take a seat and answer a critic.", tryIt: "Press Run the meeting" },
-  { icon: Handshake, name: "Deal Room", line: "The brief you’d send; the prospect marks claims right, fix or not sure.", tryIt: "Switch to Seller view" },
-  { icon: Orbit, name: "Lookalikes", line: "Start from a customer, find who in the territory looks like them.", tryIt: "Pick a customer" },
+/** The five views in rail order, one short line each. */
+const ROWS: { icon: LucideIcon; name: string; line: ReactNode }[] = [
+  { icon: Play, name: "Run an account", line: "Any company: seven agents and a verdict in a minute." },
+  { icon: Radar, name: "Radar", line: <>The territory at a glance. <span className="whitespace-nowrap"><Dot /> Pink = fresh trigger.</span></> },
+  { icon: Orbit, name: "Lookalikes", line: "Accounts that look like your customers." },
+  { icon: Users, name: "Committee", line: "Simulate the buying room, then take a seat." },
+  { icon: Handshake, name: "Deal Room", line: "A brief the prospect can correct." },
 ];
 
 /**
  * "How this works": what the command center is, the five views in a line
- * each, and the way in (the tour or your own clicks). Built on the shadcn
- * Dialog, with a lighter scrim and a full-size close button.
+ * each, and the way in (the 60-second demo or your own clicks). Built on the
+ * shadcn Dialog, with a lighter scrim and a full-size close button.
  */
 export function WelcomeDialog({ open, sellerName, onClose, onTour }: { open: boolean; sellerName: string; onClose: () => void; onTour: () => void }) {
   return (
@@ -42,21 +43,15 @@ export function WelcomeDialog({ open, sellerName, onClose, onTour }: { open: boo
           </div>
 
           <ul className="mx-5 divide-y divide-border border-y border-border sm:mx-7">
-            {ROWS.map(({ icon: Icon, name, line, tryIt }) => (
-              <li key={name} className="flex gap-3.5 py-2.5">
-                <span aria-hidden className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-foreground">
+            {ROWS.map(({ icon: Icon, name, line }) => (
+              <li key={name} className="flex items-center gap-3.5 py-2.5">
+                <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-foreground">
                   <Icon size={18} strokeWidth={2} />
                 </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[15px] leading-snug">
-                    <b className="font-bold">{name}</b>
-                    <span className="text-[#4A4F63]"> · {line}</span>
-                  </p>
-                  <p className="mt-1 hidden items-baseline gap-2 text-[15px] leading-snug text-foreground sm:flex">
-                    <span className="font-mono text-xs font-semibold uppercase tracking-[0.06em] text-primary">Try</span>
-                    {tryIt}
-                  </p>
-                </div>
+                <p className="min-w-0 flex-1 text-[15px] leading-snug">
+                  <b className="font-bold">{name}</b>
+                  <span className="text-[#4A4F63]"> · {line}</span>
+                </p>
               </li>
             ))}
           </ul>
@@ -64,7 +59,7 @@ export function WelcomeDialog({ open, sellerName, onClose, onTour }: { open: boo
           <div className="flex flex-col gap-3 px-5 pb-5 pt-4 sm:px-7">
             <div className="flex flex-col gap-2 sm:flex-row">
               <button type="button" onClick={onTour} className={cx(primaryButton, "min-h-12 text-base")}>
-                <Play size={16} aria-hidden /> Take the 2-minute tour
+                <Play size={16} aria-hidden /> Demo in 60 seconds
               </button>
               <DialogClose className={cx(secondaryButton, "min-h-12 text-base")}>Explore on my own</DialogClose>
             </div>

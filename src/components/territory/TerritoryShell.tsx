@@ -10,13 +10,16 @@ import { cx } from "./style";
 import { FieldPill, LivePill } from "./ui";
 import { HowItWorksButton, TourHost } from "./tour/TourHost";
 
-/** The account the walkthrough follows: the first saved run (Relay). */
-const DEMO_STEPS: { id: ModuleId; text: string; next: string }[] = [
-  { id: "radar", text: "The territory, re-checked", next: "Run an account live" },
-  { id: "account", text: "One account, researched live", next: "Simulate its committee" },
-  { id: "committee", text: "The buying room, before the meeting", next: "Build the Deal Room brief" },
-  { id: "deal", text: "A brief the account can correct", next: "Find lookalikes" },
-  { id: "lookalikes", text: "More like the customers who said yes", next: "Back to the radar" },
+/**
+ * The presenter walkthrough: the same four steps as the tour, on the first
+ * saved run (Relay) wherever a step needs an account. The Deal Room stays in
+ * the rail but off this path.
+ */
+const DEMO_STEPS: { id: ModuleId; text: string; next: string; withAccount?: boolean }[] = [
+  { id: "account", text: "Seven agents and a verdict", next: "Open the radar", withAccount: true },
+  { id: "radar", text: "The territory at a glance", next: "Find lookalikes" },
+  { id: "lookalikes", text: "More like this account", next: "Simulate its committee", withAccount: true },
+  { id: "committee", text: "The buying room, before the meeting", next: "Run your own account", withAccount: true },
 ];
 
 /**
@@ -174,25 +177,25 @@ function useRailScroll(module: ModuleId) {
 
 /**
  * Presenter walkthrough (?demo): a dark bar naming the step and a Next button
- * that carries the demo account (the first saved run) through every view.
+ * that carries the demo account (the first saved run) along the four steps.
+ * The last Next leaves the walkthrough on the empty run form. A view off the
+ * path (the Deal Room) offers the way back to step 1.
  */
 function DemoBar({ seller, module, demoReportId }: { seller: SellerConfig; module: ModuleId; demoReportId?: string }) {
   const { search, pathname } = useLocation();
   const navigate = useNavigate();
   if (!new URLSearchParams(search).has("demo")) return null;
-  const i = Math.max(0, DEMO_STEPS.findIndex((s) => s.id === module));
-  const step = DEMO_STEPS[i];
-  const next = DEMO_STEPS[(i + 1) % DEMO_STEPS.length];
-  const withAccount = next.id === "committee" || next.id === "deal";
-  const nextHref = `${moduleHref(seller.id, next.id, withAccount ? demoReportId : undefined)}?demo`;
+  const i = DEMO_STEPS.findIndex((s) => s.id === module);
+  const stepHref = (s: (typeof DEMO_STEPS)[number]) => `${moduleHref(seller.id, s.id, s.withAccount ? demoReportId : undefined)}?demo`;
+  const next = i < 0 ? DEMO_STEPS[0] : DEMO_STEPS[i + 1];
+  const nextHref = next ? stepHref(next) : moduleHref(seller.id, "account");
+  const nextLabel = i < 0 ? "Back to step 1" : DEMO_STEPS[i].next;
   return (
     <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-[10px] bg-foreground px-4 py-3 text-white">
-      <span className="font-mono text-sm">
-        Demo · step {i + 1} of {DEMO_STEPS.length} · {step.text}
-      </span>
+      <span className="font-mono text-sm">{i < 0 ? "Demo · off the path" : `Demo · step ${i + 1} of ${DEMO_STEPS.length} · ${DEMO_STEPS[i].text}`}</span>
       <span className="flex items-center gap-2">
         <Link to={nextHref} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-brand bg-brand px-4 text-[15px] font-bold text-brand-foreground">
-          {step.next} <ArrowRight size={16} aria-hidden />
+          {nextLabel} <ArrowRight size={16} aria-hidden />
         </Link>
         <button type="button" aria-label="Leave the walkthrough" onClick={() => navigate(pathname)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-white/80 hover:text-white">
           <X size={18} aria-hidden />

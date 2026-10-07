@@ -7,7 +7,8 @@ export interface SeedOption {
   /** The seed's saved run; customers without one can't seed yet. */
   reportId?: string;
   name: string;
-  kind: "customer" | "territory";
+  /** "recent": a run from outside the territory opened this session ("Just ran"). */
+  kind: "customer" | "territory" | "recent";
   /** Where the seller's public list names a customer. */
   source?: string;
   /** Why a customer seeds: on the public list (Confirmed) or named in its job posts (Likely). */
@@ -19,9 +20,10 @@ export interface SeedOption {
 /**
  * The seller's public customers first, then territory accounts whose run
  * puts Omni there (on the list, then named in job posts: natural seeds),
- * then every other territory account. No repeats.
+ * then every other territory account. No repeats. An extra seed (the run
+ * just made in "Run an account") goes first unless it's already listed.
  */
-export function seedOptions(seller: SellerConfig, rows: TerritoryRow[]): SeedOption[] {
+export function seedOptions(seller: SellerConfig, rows: TerritoryRow[], extra?: { id: string; name: string }): SeedOption[] {
   const customers: SeedOption[] = (seller.seeds ?? []).map((s) => ({ reportId: s.reportId, name: s.name, kind: "customer", source: s.source, omni: "Confirmed" }));
   const taken = new Set(customers.map((c) => c.reportId).filter(Boolean));
   const evidence: SeedOption[] = rows
@@ -32,7 +34,9 @@ export function seedOptions(seller: SellerConfig, rows: TerritoryRow[]): SeedOpt
   const accounts: SeedOption[] = (seller.territory?.accounts ?? [])
     .filter((a) => !taken.has(a.reportId))
     .map((a) => ({ reportId: a.reportId, name: rows.find((r) => r.id === a.reportId)?.name ?? splitCompany(a.company).name, kind: "territory", segment: a.segment }));
-  return [...customers, ...evidence, ...accounts];
+  const listed = [...customers, ...evidence, ...accounts];
+  if (!extra?.id || listed.some((o) => o.reportId === extra.id)) return listed;
+  return [{ reportId: extra.id, name: extra.name, kind: "recent" }, ...listed];
 }
 
 /** First customer with a saved run, else the first territory account. */

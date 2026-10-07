@@ -13,12 +13,12 @@ import { BoundaryCard, DiscoveryNotes, PhoneFrame, PlanDiffCard, QuestionsCard, 
 import type { ModuleProps } from "./types";
 
 /**
- * 04 · Deal Room: a brief the account can correct. The seller shares one link
+ * 05 · Deal Room (off the demo path): a brief the account can correct. The seller shares one link
  * (/deal/<id>); the account marks each public claim right, fixes it or skips
  * it; the answers come back here as discovery notes and a before/after of the
  * plan. A toggle shows exactly what the prospect sees, read-only.
  */
-export function DealRoomModule({ seller, territory, reportId, current }: ModuleProps) {
+export function DealRoomModule({ seller, territory, reportId, current, justRan }: ModuleProps) {
   const activeId = reportId ?? current ?? territory.rows[0]?.id;
   const [report, setReport] = useState<SavedReport | null | undefined>(undefined);
   const [params, setParams] = useSearchParams();
@@ -66,6 +66,7 @@ export function DealRoomModule({ seller, territory, reportId, current }: ModuleP
           hrefFor={(id) => moduleHref(seller.id, "deal", id)}
           loading={territory.loading}
           segments={seller.territory?.segments}
+          justRan={justRan}
         />
       </div>
 
