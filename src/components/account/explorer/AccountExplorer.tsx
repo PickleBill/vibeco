@@ -1,6 +1,7 @@
 import { useRef, useState, type ReactNode } from "react";
 import { MotionConfig } from "framer-motion";
 import { Loader2 } from "lucide-react";
+import { splitCompany } from "@/components/territory/model";
 import type { AccountBrief } from "../AccountViews";
 import { AccountHero } from "./AccountHero";
 import { AgentBoard } from "./AgentBoard";
@@ -12,6 +13,7 @@ import type { AccountAnalysis, AgentId, CriticResult } from "./model";
 import type { AgentBoardState } from "./useAgentBoard";
 
 interface Props {
+  /** As typed ("Relay (relaypro.com)") or just the name. */
   company: string;
   brief: AccountBrief;
   plan: string | null;
@@ -27,8 +29,11 @@ interface Props {
  * verdict, one lens at a time, then the plan as tabs. The same view serves a
  * live run (the board fills as agents finish) and a saved one (it replays).
  */
-export function AccountExplorer({ company, brief, plan, analysis, board, sellerName, notice }: Props) {
+export function AccountExplorer({ company: typed, brief, plan, analysis, board, sellerName, notice }: Props) {
   const sources = Array.isArray(brief.research?.sources) ? brief.research!.sources : [];
+  // "Relay (relaypro.com)": the name heads the page, the domain sits beside it.
+  const { name, domain } = splitCompany(typed);
+  const company = domain ? name : typed.replace(/\s*\([^)]*\)\s*$/, "");
   const [lens, setLens] = useState<LensId>("stress");
   const [seat, setSeat] = useState("champion");
   // One conversation per seat, kept while you switch seats.
@@ -52,7 +57,7 @@ export function AccountExplorer({ company, brief, plan, analysis, board, sellerN
   return (
     <MotionConfig reducedMotion="user">
       <div className="space-y-6">
-        <AccountHero company={company} brief={brief} sources={sources} sellerName={sellerName} />
+        <AccountHero company={company} domain={domain} brief={brief} sources={sources} sellerName={sellerName} />
         <AgentBoard board={board} onOpen={analysis ? openAgent : undefined} />
         <VerdictCard synthesis={analysis?.synthesis} state={board.verdict} sources={sources} />
         <div ref={lensRef} className="scroll-mt-24">
@@ -68,8 +73,8 @@ export function AccountExplorer({ company, brief, plan, analysis, board, sellerN
               answer={answer}
             />
           ) : agentsRunning ? (
-            <p className="flex items-center gap-2 rounded-lg border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
-              <Loader2 size={14} className="animate-spin" aria-hidden />
+            <p className="flex items-center gap-2 rounded-xl border border-dotted border-[#9097A6] px-4 py-3 text-[15px] text-[#4A4F63]">
+              <Loader2 size={15} className="animate-spin text-foreground" aria-hidden />
               Each seat&rsquo;s full take opens here when the agents finish. The plan is ready below.
             </p>
           ) : null}

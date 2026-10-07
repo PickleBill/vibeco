@@ -1,10 +1,14 @@
 import { Fragment, useState } from "react";
-import { ArrowUpRight, Briefcase, Check, Compass, Copy, FileText, Quote, Users } from "lucide-react";
+import { ArrowUpRight, Briefcase, Check, Copy, Quote, Users } from "lucide-react";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/copyToClipboard";
 import { sectionLabel, type StackFeature } from "@/lib/lenses";
 import type { BriefResearch, JobBoardScan, ResearchSource } from "@/components/simulator/SourcesList";
 import { ATS_LABEL } from "@/lib/jobBoards";
+import { ageDays } from "@/components/territory/model";
+import { ageText, cx, freshness, type Freshness } from "@/components/territory/style";
+import { EvidenceTag, Eyebrow, FieldPill } from "@/components/territory/ui";
+import { label as labelCls, secondaryBtn } from "./explorer/look";
 
 // ─── Shapes (set by supabase/functions/_shared/agents/account.ts) ───
 
@@ -62,41 +66,64 @@ const sourcesOf = (research?: BriefResearch | null): ResearchSource[] =>
 
 // ─── Citations ───
 
-/** Text with its [n] citations turned into links to the numbered sources. */
+const AGO_DAYS: Record<string, number> = { hour: 0, day: 1, week: 7, month: 30, year: 365 };
+
+/** A source's age in days: "2026-09-30", "2026-09" or a search engine's "6 days ago". */
+function sourceAge(date?: string): number | null {
+  if (!date) return null;
+  const iso = ageDays(date);
+  if (iso !== null) return iso;
+  const m = /(\d+)\s+(hour|day|week|month|year)s?\s+ago/i.exec(date);
+  return m ? Number(m[1]) * AGO_DAYS[m[2].toLowerCase()] : null;
+}
+
+// The inline twin of the source chip: the number only, ageing the same way.
+const CITE: Record<Freshness, string> = {
+  fresh: "border-foreground bg-foreground text-white",
+  aging: "border-[#9097A6] bg-white text-foreground",
+  stale: "border-dashed border-[#9097A6] bg-white text-foreground",
+  undated: "border-dotted border-[#9097A6] bg-white text-foreground",
+};
+
+function CiteChip({ id, source }: { id: number; source?: ResearchSource }) {
+  const days = sourceAge(source?.date);
+  const cls = cx(
+    "relative -top-px mx-px inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-[4px] border px-1 align-middle font-mono text-xs font-semibold leading-none",
+    CITE[freshness(days)],
+  );
+  if (!source) return <span className={cls}>{id}</span>;
+  return (
+    <a
+      href={source.url}
+      target="_blank"
+      rel="noopener noreferrer nofollow"
+      title={`[${id}] ${source.title}${source.date ? ` · ${source.date} · ${ageText(days)}` : " · date not captured"}`}
+      className={cx(cls, "no-underline transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring")}
+    >
+      {id}
+    </a>
+  );
+}
+
+// "[1] [2, 3]" in a row is one group; the punctuation right after it stays on its line.
+const CITE_RUN = /(\[\d+(?:,\s*\d+)*\](?:\s*\[\d+(?:,\s*\d+)*\])*[.,;:!?)]?)/g;
+
+/** Text with its [n] citations turned into small numbered chips that link to the sources. */
 export function Cited({ text, sources }: { text?: string; sources: ResearchSource[] }) {
   if (!text) return null;
   const byId = new Map(sources.map((s) => [s.id, s]));
   return (
     <>
-      {text.split(/(\[\d+(?:,\s*\d+)*\])/g).map((part, i) => {
-        const m = /^\[(\d+(?:,\s*\d+)*)\]$/.exec(part);
-        if (!m) return <Fragment key={i}>{part}</Fragment>;
-        const ids = m[1].split(/,\s*/).map(Number);
+      {text.split(CITE_RUN).map((part, i) => {
+        if (i % 2 === 0) return part ? <Fragment key={i}>{part}</Fragment> : null;
+        const ids = [...part.matchAll(/\d+/g)].map((m) => Number(m[0]));
+        const tail = /[.,;:!?)]$/.exec(part)?.[0] ?? "";
         return (
           <span key={i} className="whitespace-nowrap">
-            [
-            {ids.map((id, j) => {
-              const s = byId.get(id);
-              return (
-                <Fragment key={id}>
-                  {j > 0 && ", "}
-                  {s ? (
-                    <a
-                      href={s.url}
-                      target="_blank"
-                      rel="noopener noreferrer nofollow"
-                      title={s.title}
-                      className="font-medium text-primary underline-offset-2 hover:underline"
-                    >
-                      {id}
-                    </a>
-                  ) : (
-                    id
-                  )}
-                </Fragment>
-              );
-            })}
-            ]
+            {ids.map((id, j) => (
+              <CiteChip key={`${id}-${j}`} id={id} source={byId.get(id)} />
+            ))}
+            {tail}
           </span>
         );
       })}
@@ -109,16 +136,16 @@ export function Cited({ text, sources }: { text?: string; sources: ResearchSourc
 /** What the company's own job posts say about its stack: plainly named tools, then options-only mentions. */
 export function ScanCard({ scan, company }: { scan?: JobBoardScan | null; company: string }) {
   if (!scan) return null;
-  const label = scan.ats ? ATS_LABEL[scan.ats] ?? scan.ats : "";
+  const ats = scan.ats ? ATS_LABEL[scan.ats] ?? scan.ats : "";
   if (!scan.found) {
     return (
-      <section className="rounded-lg border border-dashed border-border bg-card/40 p-4 text-xs leading-relaxed text-muted-foreground">
-        <p className="flex items-center gap-1.5 font-semibold uppercase tracking-[0.14em] text-[11px] text-muted-foreground">
-          <Briefcase size={13} aria-hidden /> Job-board scan
-        </p>
+      <section className="rounded-xl border border-dotted border-[#9097A6] p-4 text-[15px] leading-relaxed text-[#4A4F63]">
+        <Eyebrow className="flex items-center gap-1.5">
+          <Briefcase size={14} aria-hidden /> Job-board scan
+        </Eyebrow>
         <p className="mt-1.5">
           No public Greenhouse, Lever or Ashby board found for &ldquo;{company}&rdquo;. If it hires on one, try its domain (for example{" "}
-          <span className="font-mono">company.com</span>).
+          <span className="font-mono text-sm">company.com</span>).
         </p>
       </section>
     );
@@ -128,68 +155,62 @@ export function ScanCard({ scan, company }: { scan?: JobBoardScan | null; compan
   const tools = scan.tools.filter((t) => !signals.includes(t));
   const firm = tools.filter((t) => t.firm > 0);
   const options = tools.filter((t) => t.firm === 0);
+  const signalPosts = signals.reduce((n, t) => n + t.posts, 0);
   return (
-    <section aria-label="Job-board scan" className="rounded-lg border border-primary/25 bg-card p-4">
-      <div className="flex items-start justify-between gap-2">
-        <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
-          <Briefcase size={13} aria-hidden /> Job-board scan · {label}
-        </p>
+    <section aria-label="Job-board scan" className="border-t border-border pt-5">
+      <div className="flex flex-wrap items-center justify-between gap-x-3">
+        <Eyebrow className="flex items-center gap-1.5">
+          <Briefcase size={14} aria-hidden /> Job-board scan · {ats}
+        </Eyebrow>
         {scan.board_url && (
           <a
             href={scan.board_url}
             target="_blank"
             rel="noopener noreferrer nofollow"
-            className="inline-flex shrink-0 items-center gap-0.5 text-[11px] text-muted-foreground hover:text-primary"
+            className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-primary underline-offset-4 hover:underline"
           >
-            Board <ArrowUpRight size={11} aria-hidden />
+            Board <ArrowUpRight size={14} aria-hidden />
           </a>
         )}
       </div>
-      <p className="mt-1.5 text-sm text-foreground">
-        Read <span className="font-semibold tabular-nums">{scan.scanned_jobs}</span> open role{scan.scanned_jobs === 1 ? "" : "s"}
+      <p className="text-[15px] text-foreground">
+        Read <span className="font-mono font-semibold">{scan.scanned_jobs}</span> open role{scan.scanned_jobs === 1 ? "" : "s"}
         {scan.company_name ? ` at ${scan.company_name}` : ""}.
       </p>
       {firm.length > 0 && (
         <>
-          <p className="mt-3 text-[11px] font-medium text-muted-foreground">Named plainly in its posts</p>
-          <ul className="mt-1.5 flex flex-wrap gap-1.5">
+          <p className={cx(labelCls, "mt-4")}>Named plainly in its posts</p>
+          <ul className="mt-2 flex flex-wrap gap-2">
             {firm.map((t) => (
               <li
                 key={t.tool}
                 title={`Named plainly in ${t.firm} post${t.firm === 1 ? "" : "s"}; mentioned in ${t.posts}`}
-                className="inline-flex items-center gap-1 rounded-full border border-emerald-600/25 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-900"
+                className="inline-flex h-[30px] items-center gap-2 rounded-[6px] border border-foreground bg-card px-2.5 text-sm font-semibold text-foreground"
               >
                 {t.tool}
-                <span className="tabular-nums text-emerald-700/80">{t.posts}</span>
+                <span className="font-mono text-xs font-medium text-muted-foreground">{t.posts}</span>
               </li>
             ))}
           </ul>
         </>
       )}
       {options.length > 0 && (
-        <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-          <span className="font-medium">Only listed as options:</span> {options.map((t) => t.tool).join(", ")}
+        <p className="mt-3 text-sm leading-relaxed text-[#4A4F63]">
+          <span className="font-semibold text-foreground">Only listed as options:</span> {options.map((t) => t.tool).join(", ")}
         </p>
       )}
       {signals.length > 0 && (
-        <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-          <span className="font-medium">Signal, not a tool:</span> {signals.reduce((n, t) => n + t.posts, 0)} post
-          {signals.reduce((n, t) => n + t.posts, 0) === 1 ? "" : "s"} describe analytics shipped to its customers.
+        <p className="mt-2 text-sm leading-relaxed text-[#4A4F63]">
+          <span className="font-semibold text-foreground">Signal, not a tool:</span> {signalPosts} post{signalPosts === 1 ? "" : "s"} describe analytics shipped
+          to its customers.
         </p>
       )}
-      {!scan.tools.length && <p className="mt-2 text-xs text-muted-foreground">None of its open roles name a data tool.</p>}
+      {!scan.tools.length && <p className="mt-2 text-sm text-[#4A4F63]">None of its open roles name a data tool.</p>}
     </section>
   );
 }
 
 // ─── Badges ───
-
-const TAG_STYLE: Record<string, string> = {
-  Confirmed: "border-emerald-600/30 bg-emerald-50 text-emerald-800",
-  Inferred: "border-amber-500/40 bg-amber-50 text-amber-800",
-  Former: "border-border bg-muted text-muted-foreground line-through decoration-1",
-  "Not found": "border-border bg-muted text-muted-foreground",
-};
 
 const TAG_TITLE: Record<string, string> = {
   Confirmed: "A cited source names this tool at the company, checked in code.",
@@ -198,14 +219,16 @@ const TAG_TITLE: Record<string, string> = {
   "Not found": "Nothing in the sources.",
 };
 
+/** An evidence tag (Confirmed solid, Inferred dashed, Former struck, Not found dotted) with what it means on hover. */
 export function StatusTag({ status }: { status?: string }) {
   if (!status) return null;
   return (
-    <span
-      title={TAG_TITLE[status]}
-      className={`inline-flex shrink-0 items-center rounded border px-1.5 py-px text-xs font-semibold uppercase tracking-wide ${TAG_STYLE[status] ?? TAG_STYLE["Not found"]}`}
-    >
-      {status}
+    <span title={TAG_TITLE[status]} className="inline-flex shrink-0">
+      {status in TAG_TITLE ? (
+        <EvidenceTag status={status} />
+      ) : (
+        <span className="inline-flex h-[26px] items-center rounded-full border border-dotted border-[#9097A6] px-2.5 text-xs font-semibold text-[#6B7080]">{status}</span>
+      )}
     </span>
   );
 }
@@ -213,24 +236,43 @@ export function StatusTag({ status }: { status?: string }) {
 export function CustomerListBadge({ list, sellerName }: { list?: CustomerList; sellerName: string }) {
   if (!list) return null;
   return (
-    <div
-      className={`rounded-md border px-3 py-2 text-xs leading-relaxed ${
-        list.on_list ? "border-primary/30 bg-accent text-foreground" : "border-border bg-muted/50 text-foreground"
-      }`}
+    <p
+      className={cx(
+        "rounded-[8px] border px-3 py-2 text-sm leading-relaxed text-foreground",
+        list.on_list ? "border-foreground bg-card" : "border-[#D9D4C7] bg-muted",
+      )}
     >
       <span className="font-semibold">
         {list.on_list ? `On ${sellerName}'s public customer list` : `Not on ${sellerName}'s public customer list`}
       </span>
-      {list.on_list && list.listed_as && <span className="text-muted-foreground"> · listed as {list.listed_as}</span>}
+      {list.on_list && list.listed_as && <span className="text-[#4A4F63]"> · listed as {list.listed_as}</span>}
       {list.on_list && list.source && (
         <>
           {" · "}
-          <a href={list.source} target="_blank" rel="noopener noreferrer nofollow" className="text-primary underline-offset-2 hover:underline">
+          <a href={list.source} target="_blank" rel="noopener noreferrer nofollow" className="font-semibold text-primary underline-offset-2 hover:underline">
             {list.ambiguous ? "confirm it's the same company" : "source"}
           </a>
         </>
       )}
-    </div>
+    </p>
+  );
+}
+
+/** The fit letter: A filled, B solid, C dashed (evidence and timing, not deal size). */
+export function GradeBox({ grade, size = "sm" }: { grade?: string; size?: "sm" | "lg" }) {
+  const g = (grade ?? "").trim().toUpperCase().slice(0, 1) || "?";
+  const box =
+    g === "A" ? "border-foreground bg-foreground text-white" : g === "B" ? "border-foreground bg-card text-foreground" : "border-dashed border-[#4A4F63] bg-card text-foreground";
+  return (
+    <span
+      className={cx(
+        "inline-flex shrink-0 items-center justify-center font-mono font-semibold",
+        size === "lg" ? "h-12 w-12 rounded-[8px] border-2 text-2xl" : "h-6 w-6 rounded-[5px] border-[1.5px] text-sm",
+        box,
+      )}
+    >
+      {g}
+    </span>
   );
 }
 
@@ -239,24 +281,17 @@ export function FitGrade({ fit }: { fit?: AccountBrief["fit"] }) {
   const graded = fit.motion === "Internal" || fit.motion === "Embedded" ? `${fit.motion} motion` : fit.motion === "Unclear" ? "Motion unclear" : "";
   return (
     <div
-      className="flex items-center gap-2 rounded-md border border-border bg-surface-elevated px-3 py-2"
+      className="flex items-center gap-2 rounded-[8px] border border-[#D9D4C7] bg-card px-2.5 py-1.5"
       title={graded ? `Fit grade for the ${graded.toLowerCase()}` : undefined}
     >
-      <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Fit</span>
-      <span className="font-display text-lg font-bold leading-none text-primary">{fit.grade}</span>
-      {graded && <span className="text-[11px] leading-tight text-muted-foreground">{graded}</span>}
+      <span className="text-[13px] font-medium text-foreground">Fit</span>
+      <GradeBox grade={fit.grade} />
+      {graded && <span className="text-[13px] leading-tight text-muted-foreground">{graded}</span>}
     </div>
   );
 }
 
 // ─── Motion ───
-
-const MOTION_STYLE: Record<MotionLabel, string> = {
-  Internal: "border-primary/40 bg-accent text-primary",
-  Embedded: "border-primary bg-primary text-primary-foreground",
-  Both: "border-primary bg-primary text-primary-foreground",
-  Unclear: "border-dashed border-border bg-muted text-muted-foreground",
-};
 
 const MOTION_SUMMARY: Record<MotionLabel, string> = {
   Internal: "Analytics for its own teams.",
@@ -265,15 +300,10 @@ const MOTION_SUMMARY: Record<MotionLabel, string> = {
   Unclear: "No source shows either motion yet, so test both on the call.",
 };
 
+/** The motion as a field pill: "Aa Both". */
 export function MotionBadge({ label }: { label?: string }) {
-  if (!label || !(label in MOTION_STYLE)) return null;
-  return (
-    <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.1em] ${MOTION_STYLE[label as MotionLabel]}`}
-    >
-      {label}
-    </span>
-  );
+  if (!label || !(label in MOTION_SUMMARY)) return null;
+  return <FieldPill>{label}</FieldPill>;
 }
 
 function MotionSideCard({
@@ -292,10 +322,10 @@ function MotionSideCard({
   // A sentence from a source; role titles and stack lines aren't quotes.
   const quote = side.evidence.find((e) => e.quote && e.quote !== e.signal && !e.signal.endsWith(" role") && !/^[A-Z][\w ]+: /.test(e.quote))?.quote;
   return (
-    <div className="rounded-md border border-border bg-surface-elevated p-3">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">{name}</p>
+    <div className={cx("border-t-2 pt-3", live ? "border-foreground" : "border-dotted border-[#9097A6]")}>
+      <p className="font-mono text-[13px] font-semibold uppercase tracking-[0.06em] text-foreground">{name}</p>
       {live ? (
-        <p className="mt-1 text-sm font-medium text-foreground">
+        <p className="mt-1.5 text-[15px] font-semibold leading-snug text-foreground">
           {signals.map((e, i) => (
             <Fragment key={i}>
               {i > 0 && "; "}
@@ -304,24 +334,24 @@ function MotionSideCard({
           ))}
         </p>
       ) : (
-        <p className="mt-1 text-xs text-muted-foreground">Nothing in the sources yet.</p>
+        <p className="mt-1.5 text-[15px] text-[#6B7080]">Nothing in the sources yet.</p>
       )}
       {quote && (
-        <p className="mt-1.5 flex gap-1.5 text-xs leading-relaxed text-muted-foreground">
-          <Quote size={12} className="mt-0.5 shrink-0 text-primary/60" aria-hidden />
+        <p className="mt-2 flex gap-2 text-sm leading-relaxed text-[#4A4F63]">
+          <Quote size={13} className="mt-1 shrink-0 text-muted-foreground" aria-hidden />
           <span className="italic">{quote}</span>
         </p>
       )}
-      <dl className="mt-2.5 grid gap-2 text-xs leading-relaxed">
+      <dl className="mt-3 grid gap-2.5">
         {(
           [
             ["Clock to test", side.clock],
             ["Buyer to start with", side.buyer],
           ] as const
-        ).map(([label, value]) => (
-          <div key={label}>
-            <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{label}</dt>
-            <dd className="mt-0.5 text-foreground/90">
+        ).map(([term, value]) => (
+          <div key={term}>
+            <dt className={labelCls}>{term}</dt>
+            <dd className="mt-0.5 text-[15px] leading-relaxed text-foreground">
               <Cited text={value} sources={sources} />
             </dd>
           </div>
@@ -333,22 +363,20 @@ function MotionSideCard({
 
 /** The motion: a badge, then each motion the sources show with its clock and buyer. */
 export function MotionPanel({ motion, fit, research }: { motion?: MotionRead; fit?: AccountBrief["fit"]; research?: BriefResearch | null }) {
-  if (!motion?.label || !(motion.label in MOTION_STYLE)) return null;
+  if (!motion?.label || !(motion.label in MOTION_SUMMARY)) return null;
   const sources = sourcesOf(research);
   const live = (["internal", "embedded"] as const).filter((id) => motion[id]?.sources?.length > 0);
   if (live.length === 2 && fit?.motion === "Embedded") live.reverse();
   const shown = motion.label === "Unclear" ? (["internal", "embedded"] as const) : live;
   const missing = motion.label === "Internal" ? "embedded" : motion.label === "Embedded" ? "internal" : null;
   return (
-    <section aria-label="Motion" className="rounded-md border border-primary/20 bg-accent/30 p-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
-          <Compass size={13} aria-hidden /> Motion
-        </p>
+    <section aria-label="Motion">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <Eyebrow>Motion</Eyebrow>
         <MotionBadge label={motion.label} />
-        <p className="text-xs text-muted-foreground">{MOTION_SUMMARY[motion.label]}</p>
+        <p className="text-[15px] text-[#4A4F63]">{MOTION_SUMMARY[motion.label]}</p>
       </div>
-      <div className={`mt-2.5 grid gap-2 ${shown.length === 2 ? "sm:grid-cols-2" : ""}`}>
+      <div className={cx("mt-4 grid gap-5", shown.length === 2 && "sm:grid-cols-2 sm:gap-8")}>
         {shown.map((id) => (
           <MotionSideCard
             key={id}
@@ -360,7 +388,7 @@ export function MotionPanel({ motion, fit, research }: { motion?: MotionRead; fi
         ))}
       </div>
       {missing && (
-        <p className="mt-2 text-xs text-muted-foreground">
+        <p className="mt-3 text-sm text-[#4A4F63]">
           {missing === "embedded"
             ? "Embedded: no source shows analytics inside its product for its customers."
             : "Internal: no source shows the stack its own teams use for analytics."}
@@ -387,16 +415,16 @@ function PlanBody({ plan, sources, skip }: { plan: string; sources: ResearchSour
     return !skipping;
   });
   return (
-    <div className="space-y-1.5 text-sm leading-relaxed text-foreground/90">
+    <div className="space-y-2 text-[15px] leading-relaxed text-foreground">
       {body.map((raw, i) => {
         const line = raw.trimEnd();
         if (!line.trim()) return <div key={i} className="h-2" aria-hidden />;
         const h = HEADING.exec(line);
         if (h && /[A-Z]{3,}/.test(h[1])) {
           return (
-            <h4 key={i} className="pt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
+            <h4 key={i} className="pt-3 font-mono text-[13px] font-medium tracking-[0.06em] text-muted-foreground">
               {h[1]}
-              {h[2] ? <span className="ml-1.5 text-foreground">{h[2]}</span> : null}
+              {h[2] ? <span className="ml-2 font-sans text-[15px] font-semibold tracking-normal text-foreground">{h[2]}</span> : null}
             </h4>
           );
         }
@@ -405,17 +433,18 @@ function PlanBody({ plan, sources, skip }: { plan: string; sources: ResearchSour
         if (stack) {
           const tagged = /^(.*?) \((Confirmed|Inferred|Former)(?:: moved off it)?((?: \[[\d, ]+\])?)\)(.*)$/.exec(stack[2]);
           const notFound = stack[2] === "Not found";
+          const why = tagged?.[4].replace(/^[.\s]+/, "");
           return (
-            <p key={i} className="flex flex-wrap items-baseline gap-x-2 gap-y-1 pl-1">
+            <p key={i} className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="font-semibold text-foreground">{stack[1]}:</span>
               {tagged ? (
                 <>
                   <span>{tagged[1]}</span>
                   {tagged[3] && <Cited text={tagged[3].trim()} sources={sources} />}
                   <StatusTag status={tagged[2]} />
-                  {tagged[4].replace(/^[.\s]+/, "") && (
-                    <span className="basis-full text-xs text-muted-foreground sm:basis-auto">
-                      <Cited text={tagged[4].replace(/^[.\s]+/, "")} sources={sources} />
+                  {why && (
+                    <span className="basis-full text-sm text-[#4A4F63] sm:basis-auto">
+                      <Cited text={why} sources={sources} />
                     </span>
                   )}
                 </>
@@ -431,7 +460,7 @@ function PlanBody({ plan, sources, skip }: { plan: string; sources: ResearchSour
         const perMotion = /^(Internal|Embedded): (.*)$/.exec(line);
         if (perMotion) {
           return (
-            <p key={i} className="pl-1">
+            <p key={i}>
               <span className="font-semibold text-foreground">{perMotion[1]}:</span> <Cited text={perMotion[2]} sources={sources} />
             </p>
           );
@@ -439,8 +468,8 @@ function PlanBody({ plan, sources, skip }: { plan: string; sources: ResearchSour
         const numbered = /^(\d+)\. (.*)$/.exec(line);
         if (numbered) {
           return (
-            <p key={i} className="flex gap-2 pl-1">
-              <span className="w-4 shrink-0 text-right font-semibold text-primary">{numbered[1]}.</span>
+            <p key={i} className="flex gap-3">
+              <span className="w-5 shrink-0 text-right font-mono text-sm font-semibold leading-relaxed text-muted-foreground">{numbered[1]}</span>
               <span className="min-w-0">
                 <Cited text={numbered[2]} sources={sources} />
               </span>
@@ -478,29 +507,23 @@ export function PlanCard({
     } else toast.error("Couldn't copy.");
   };
   return (
-    <section aria-labelledby="plan-title" className="rounded-lg border border-primary/25 bg-card shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-4 py-3 sm:px-5">
+    <section aria-labelledby="plan-title" className="rounded-xl border border-border bg-card">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-4 py-4 sm:px-6">
         <div className="min-w-0">
-          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
-            <FileText size={13} aria-hidden /> First-call plan
-          </p>
-          <h3 id="plan-title" className="mt-1 font-display text-xl font-bold text-foreground">
+          <Eyebrow>First-call plan</Eyebrow>
+          <h3 id="plan-title" className="mt-1 font-display text-2xl font-bold tracking-[-0.01em] text-foreground">
             {company}
           </h3>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <FitGrade fit={brief.fit} />
-          <button
-            type="button"
-            onClick={copy}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-2 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            {copied ? <Check size={13} className="text-primary" aria-hidden /> : <Copy size={13} aria-hidden />}
+          <button type="button" onClick={copy} className={secondaryBtn}>
+            {copied ? <Check size={15} aria-hidden /> : <Copy size={15} aria-hidden />}
             {copied ? "Copied" : "Copy"}
           </button>
         </div>
       </div>
-      <div className="space-y-3 px-4 py-4 sm:px-5">
+      <div className="space-y-5 px-4 py-5 sm:px-6">
         {sellerName && <CustomerListBadge list={brief.customer_list} sellerName={sellerName} />}
         <MotionPanel motion={brief.motion} fit={brief.fit} research={brief.research} />
         <PlanBody plan={plan} sources={sources} skip={brief.motion ? ["MOTION"] : undefined} />
@@ -515,35 +538,29 @@ export function StackTable({ lines, research }: { lines?: StackFeature[]; resear
   if (!Array.isArray(lines) || !lines.length) return null;
   const sources = sourcesOf(research);
   return (
-    <section aria-labelledby="stack-title" className="rounded-lg border border-border bg-card">
+    <section aria-labelledby="stack-title" className="rounded-xl border border-border bg-card">
       <div className="border-b border-border px-4 py-3 sm:px-5">
-        <h3 id="stack-title" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
+        <h3 id="stack-title" className="font-mono text-[13px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
           Stack read
         </h3>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          Confirmed lines are checked in code: the cited source must name the tool and the company.
-        </p>
+        <p className="mt-0.5 text-sm text-[#4A4F63]">Confirmed lines are checked in code: the cited source must name the tool and the company.</p>
       </div>
       <ul className="divide-y divide-border">
         {lines.map((l, i) => (
           <li key={i} className="px-4 py-3 sm:px-5">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <span className="w-full text-[11px] font-semibold uppercase tracking-wide text-muted-foreground sm:w-40">{l.name}</span>
-              <span className="text-sm font-semibold text-foreground">{l.tool || "—"}</span>
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+              <span className={cx(labelCls, "w-full sm:w-40")}>{l.name}</span>
+              <span className="text-[15px] font-semibold text-foreground">{l.tool || "—"}</span>
               <StatusTag status={l.status} />
-              {Array.isArray(l.sources) && l.sources.length > 0 && (
-                <span className="text-xs text-muted-foreground">
-                  <Cited text={`[${l.sources.join(", ")}]`} sources={sources} />
-                </span>
-              )}
+              {Array.isArray(l.sources) && l.sources.length > 0 && <Cited text={`[${l.sources.join(", ")}]`} sources={sources} />}
             </div>
             {l.evidence ? (
-              <p className="mt-1.5 flex gap-1.5 text-xs leading-relaxed text-muted-foreground sm:pl-[10.5rem]">
-                <Quote size={12} className="mt-0.5 shrink-0 text-primary/60" aria-hidden />
+              <p className="mt-1.5 flex gap-2 text-sm leading-relaxed text-[#4A4F63] sm:pl-[10.6rem]">
+                <Quote size={13} className="mt-1 shrink-0 text-muted-foreground" aria-hidden />
                 <span className="italic">{l.evidence}</span>
               </p>
             ) : l.status !== "Not found" && l.description ? (
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:pl-[10.5rem]">
+              <p className="mt-1 text-sm leading-relaxed text-[#4A4F63] sm:pl-[10.6rem]">
                 <Cited text={l.description} sources={sources} />
               </p>
             ) : null}
@@ -562,23 +579,23 @@ export function AccountSections({ brief }: { brief: AccountBrief }) {
   const sources = sourcesOf(brief.research);
   const people = Array.isArray(brief.people) ? brief.people : [];
   return (
-    <section aria-labelledby="research-title" className="rounded-lg border border-border bg-card px-4 py-4 sm:px-5">
-      <h3 id="research-title" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
+    <section aria-labelledby="research-title">
+      <h3 id="research-title" className="font-mono text-[13px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
         The research behind the plan
       </h3>
-      <div className="mt-3 grid gap-5">
+      <div className="mt-4 grid gap-x-10 gap-y-6 lg:grid-cols-2">
         {SECTION_KEYS.map((key) => {
           const value = brief[key];
           if (typeof value !== "string" || !value.trim()) return null;
           return (
-            <div key={key}>
-              <h4 className="font-display text-sm font-bold text-foreground">{sectionLabel("account", key, key)}</h4>
-              <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-foreground/85">
+            <div key={key} className="border-t border-border pt-3">
+              <h4 className="font-display text-[17px] font-semibold text-foreground">{sectionLabel("account", key, key)}</h4>
+              <p className="mt-1.5 whitespace-pre-line text-[15px] leading-relaxed text-foreground">
                 <Cited text={value} sources={sources} />
               </p>
               {key === "target_customer" && people.length > 0 && (
-                <p className="mt-2 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
-                  <Users size={12} className="text-primary" aria-hidden />
+                <p className="mt-2 flex flex-wrap items-center gap-x-1.5 text-sm text-[#4A4F63]">
+                  <Users size={13} aria-hidden />
                   <span className="font-semibold text-foreground">Named in the sources:</span>
                   {people.map((p, i) => (
                     <span key={i}>
