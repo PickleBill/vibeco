@@ -197,8 +197,10 @@ const SEAT_ROLES: Partial<Record<string, RegExp>> = {
 export function seatPeople(people: Person[] = []): Record<string, Person> {
   const out: Record<string, Person> = {};
   const used = new Set<Person>();
+  // Someone quoted as the account's customer or partner (a bank's CDO in a vendor case study) sits at another company.
+  const elsewhere = /\bcustomers?\b|\bquot(?:e|ed)\b|\bpartner\b/i;
   for (const seat of ["champion", "skeptic", "builder"]) {
-    const p = people.find((x) => !used.has(x) && SEAT_ROLES[seat]?.test(x.role));
+    const p = people.find((x) => !used.has(x) && !elsewhere.test(x.role) && SEAT_ROLES[seat]?.test(x.role));
     if (p) {
       out[seat] = p;
       used.add(p);
