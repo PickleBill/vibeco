@@ -1,7 +1,8 @@
 // Data-stack products the account lens looks for in a company's own job posts,
 // by stack category. Patterns are word-bounded; tools whose names are also
-// everyday words (Spark, Sigma, Mode, Hex, Bedrock) need the product's casing
-// or a nearby BI tool, so "spark curiosity" or "Six Sigma" don't count.
+// everyday words (Spark, Sigma, Omni, Mode, Hex, Bedrock) need the product's
+// casing or a nearby BI tool, so "spark curiosity", "Lean Six Sigma" and
+// "omni-channel" don't count.
 
 export type StackCategory = "Warehouse" | "Transformation" | "BI tools" | "AI" | "Embedded analytics";
 
@@ -13,9 +14,18 @@ export interface StackTool {
   signal?: true;
 }
 
+/**
+ * "Sigma" the BI tool, never "Six Sigma", "Lean Six Sigma", "6 Sigma", "Lean
+ * Sigma", "Sigma-Aldrich" or a Greek-letter society ("Sigma Xi").
+ */
+export const SIGMA_WORD =
+  "(?<!\\b(?:[Ss]ix|SIX|6|Lean|LEAN)[\\s\\u2011-]*)\\bSigma\\b(?![\\s\\u2011-]*(?:Xi|Chi|Delta|Phi|Kappa|Nu|Pi|Aldrich|(?:Green|Black|Yellow|White) Belt)\\b)";
+/** "Omni" the BI tool, never "Omni-channel" or "Omni Channel" ("omnichannel" never has a word break). */
+export const OMNI_WORD = "Omni(?![\\s\\u2011-]?[Cc]hannel)";
+
 // Names that are also everyday words count only next to another data tool in a list.
 const NEIGHBOR =
-  "(?:Looker|Tableau|Power ?BI|Mode|Hex|Sigma|Omni|Metabase|ThoughtSpot|Periscope|Superset|Jupyter|dbt|Snowflake|BigQuery|Databricks|Redshift|Fivetran|Airflow|ClickHouse|Postgres(?:QL)?)";
+  `(?:Looker|Tableau|Power ?BI|Mode|Hex|${SIGMA_WORD}|${OMNI_WORD}|Metabase|ThoughtSpot|Periscope|Superset|Jupyter|dbt|Snowflake|BigQuery|Databricks|Redshift|Fivetran|Airflow|ClickHouse|Postgres(?:QL)?)`;
 const LIST = "\\s*(?:,|/|\\bor\\b|\\band\\b)\\s*";
 const listed = (word: string, extra = "") =>
   new RegExp(`${extra}\\b${word}\\b(?=${LIST}${NEIGHBOR}\\b)|\\b${NEIGHBOR}${LIST}${word}\\b`);
@@ -63,7 +73,7 @@ export const STACK_TOOLS: StackTool[] = [
   tool("Power BI", "BI tools", /\bPower\s?BI\b/i),
   tool("Looker", "BI tools", /\bLooker\b(?!\s*Studio)/),
   tool("Looker Studio", "BI tools", /\bLooker Studio\b|\bData Studio\b/),
-  tool("Sigma Computing", "BI tools", /\bSigma Computing\b|(?<![Ss]ix[\s-])\bSigma\b(?!\s*(?:Xi|Chi|Delta|Phi|Kappa|Nu|Pi))/),
+  tool("Sigma Computing", "BI tools", new RegExp(`\\bSigma Computing\\b|${SIGMA_WORD}`)),
   tool("Mode", "BI tools", listed("Mode", "\\bMode Analytics\\b|")),
   tool("Hex", "BI tools", listed("Hex", "\\bhex\\.tech\\b|")),
   tool("ThoughtSpot", "BI tools", /\bThoughtSpot\b/i),
@@ -72,7 +82,7 @@ export const STACK_TOOLS: StackTool[] = [
   tool("MicroStrategy", "BI tools", /\bMicroStrategy\b/i),
   tool("Domo", "BI tools", /\bDomo\b/),
   tool("Apache Superset", "BI tools", /\bSuperset\b/),
-  tool("Omni", "BI tools", listed("Omni", "\\bOmni Analytics\\b|\\bomni\\.co\\b|")),
+  tool("Omni", "BI tools", listed(OMNI_WORD, "\\bOmni Analytics\\b|\\bomni\\.co\\b|")),
 
   // AI and ML platforms
   tool("OpenAI", "AI", /(?<!Azure\s)\bOpenAI\b|\bChatGPT\b/),

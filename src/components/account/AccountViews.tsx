@@ -144,7 +144,7 @@ export function ScanCard({ scan, company }: { scan?: JobBoardScan | null; compan
           <Briefcase size={14} aria-hidden /> Job-board scan
         </Eyebrow>
         <p className="mt-1.5">
-          No public Greenhouse, Lever or Ashby board found for &ldquo;{company}&rdquo;. If it hires on one, try its domain (for example{" "}
+          No public Greenhouse, Lever, Ashby or known Workday board found for &ldquo;{company}&rdquo;. If it hires on one, try its domain (for example{" "}
           <span className="font-mono text-sm">company.com</span>).
         </p>
       </section>

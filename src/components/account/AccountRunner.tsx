@@ -122,7 +122,7 @@ function HowItWorks() {
     {
       title: "Live sources",
       time: "~5s",
-      body: "Its own job posts on Greenhouse, Lever or Ashby, its product pages, the web and the last 12 months of news.",
+      body: "Its own job posts on Greenhouse, Lever, Ashby or Workday, its product pages, the web and the last 12 months of news.",
     },
     {
       title: "First-call plan",

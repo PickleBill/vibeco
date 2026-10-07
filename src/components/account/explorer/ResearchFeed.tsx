@@ -128,7 +128,7 @@ export function ResearchFeed({
               <Briefcase size={14} aria-hidden /> Its own job posts
             </Eyebrow>
             {!scan.found ? (
-              <p className="mt-2 text-[15px] text-[#4A4F63]">No public Greenhouse, Lever or Ashby board found.</p>
+              <p className="mt-2 text-[15px] text-[#4A4F63]">No public Greenhouse, Lever, Ashby or known Workday board found.</p>
             ) : tools.length || signals.length ? (
               <>
                 {firm.length > 0 && (

@@ -8,8 +8,10 @@ import { companyHits, escapeRe, fold, isAggregator, looseWord, mentionsCompany, 
 import { ATS_LABEL, type ScanSummary } from "../stack-scan.ts";
 import {
   mentionKind,
+  OMNI_WORD,
   SENTENCE_END,
   SENTENCE_STOP,
+  SIGMA_WORD,
   STACK_TOOLS,
   toolMentions,
   type Mention,
@@ -244,7 +246,7 @@ Rules:
    - Not found: nothing in the sources. Leave "tool" empty.
    Code checks every Confirmed line against the cited source and downgrades it if the source doesn't name the tool and the company.
    Only data products count: warehouses and lakehouses, transformation, ingestion and orchestration, BI, AI and ML platforms, embedded analytics. General developer tools (Git, Jira, Python, Kubernetes) don't.
-   Sources tagged as a greenhouse, lever or ashby job post are ${company}'s own job posts from its public job board: the strongest evidence of what it runs. A tool a post lists only as one option among several ("Snowflake, BigQuery, or Redshift", "e.g. Looker or similar", "platforms (Airflow, Dagster, Prefect)") or as a nice-to-have ("Bonus experience: Looker") is Inferred, not Confirmed.
+   Sources tagged as a greenhouse, lever, ashby or workday job post are ${company}'s own job posts from its public job board: the strongest evidence of what it runs. A tool a post lists only as one option among several ("Snowflake, BigQuery, or Redshift", "e.g. Looker or similar", "platforms (Airflow, Dagster, Prefect)") or as a nice-to-have ("Bonus experience: Looker") is Inferred, not Confirmed.
    A tool a source says ${company} moved off, replaced or shut down still gets its line (code marks it Former). Streaming tools (Kafka, Flink, Kinesis) aren't stack lines. Embedded analytics lines name a vendor (Looker embedded, Sisense, GoodData…), never a product feature or an API; analytics features in its own product go in motion.embedded_sources.
    First list in off_topic_sources any source about a different company with a similar name (for example another business called "${company}"), about someone's personal use of a product, or naming ${company} only in passing, and don't use those sources.
 3. People: use roles everywhere. If a source names a person at ${company}, list them in "people" with that source's number; code drops any name the source doesn't show. Never put a person's name in any other field.
@@ -275,7 +277,9 @@ export { isAggregator, mentionsCompany };
 // Tool names that are also everyday words need a stricter pattern.
 const STRICT_TOOL_PATTERNS: Record<string, RegExp[]> = {
   strategy: [/microstrategy/i, /\bstrategy (one|mosaic)\b/i],
-  sigma: [/sigma computing/i, /(?<![Ss]ix )\bSigma\b/],
+  // Not "Lean Six Sigma"; not "omni-channel".
+  sigma: [/sigma computing/i, new RegExp(SIGMA_WORD)],
+  omni: [/omni analytics/i, /\bomni\.co\b/i, new RegExp(`\\b${OMNI_WORD}\\b`, "i")],
   hex: [/\bHex\b/, /hex\.tech/i],
   mode: [/mode analytics/i],
   fabric: [/microsoft fabric/i],
@@ -645,12 +649,14 @@ export function jobBoardLines(boards: { id: number; text: string }[], scan?: Sca
     lines.set(key, f.line);
   }
   const label = scan?.ats ? ATS_LABEL[scan.ats] : "job board";
+  // Greenhouse, Lever and Ashby list every open role; on Workday the scan reads the roles its searches surface.
+  const roles = scan?.ats === "workday" ? "data and engineering roles read" : "open roles";
   for (const l of lines.values()) {
     const c = scan?.tools.find((t) => toolKey(t.tool) === toolKey(l.tool));
     l.description =
       l.status === "Confirmed"
         ? c && scan?.scanned_jobs
-          ? `Named in ${c.posts} of the ${scan.scanned_jobs} open roles on its ${label} board.`
+          ? `Named in ${c.posts} of the ${scan.scanned_jobs} ${roles} on its ${label} board.`
           : `Named in its own job post on ${label}.`
         : l.status === "Former"
         ? `Its own ${label} job post describes moving off it.`
