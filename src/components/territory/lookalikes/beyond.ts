@@ -25,6 +25,20 @@ export interface Suggestion {
   hq?: string;
   why: string;
   motion_guess: MotionGuess;
+  /** Headcount from the page's company data (web search only). */
+  employees?: number;
+  /** The page the web search found it on. */
+  source?: { url: string; title: string };
+  /** Data tools the page's company data lists (third-party, not checked). */
+  listedTools?: string[];
+}
+
+/** What one search returned: the list, and for a web search what each step kept. */
+export interface SuggestResult {
+  list: Suggestion[];
+  /** Found on the web, then picked; otherwise named by the model alone. */
+  grounded: boolean;
+  funnel?: { found: number; inRegion: number; kept: number };
 }
 
 /** A saved run as a seed: its confirmed tools only, each once. */
@@ -67,7 +81,13 @@ export function readSuggestions(data: unknown): Suggestion[] {
     const motion_guess = GUESSES.includes(s.motion_guess as MotionGuess) ? (s.motion_guess as MotionGuess) : undefined;
     if (!motion_guess) return [];
     const hq = str(s.hq);
-    return [{ name, domain, why, motion_guess, ...(hq ? { hq } : {}) }];
+    const employees = typeof s.employees === "number" && s.employees > 0 ? Math.round(s.employees) : undefined;
+    const src = (s.source ?? {}) as Record<string, unknown>;
+    const source = /^https:\/\//.test(str(src.url)) ? { url: str(src.url), title: str(src.title) || name } : undefined;
+    const listedTools = Array.isArray(s.listedTools) ? s.listedTools.map(str).filter(Boolean).slice(0, 4) : [];
+    return [
+      { name, domain, why, motion_guess, ...(hq ? { hq } : {}), ...(employees ? { employees } : {}), ...(source ? { source } : {}), ...(listedTools.length ? { listedTools } : {}) },
+    ];
   });
 }
 
@@ -80,8 +100,17 @@ export class SuggestError extends Error {
   }
 }
 
+/** The search's own counts, when it was a web search. */
+export function readFunnel(data: unknown): SuggestResult["funnel"] {
+  const f = (data as { funnel?: Record<string, unknown> } | null)?.funnel;
+  const n = (v: unknown) => (typeof v === "number" && v >= 0 ? Math.round(v) : NaN);
+  if (!f) return undefined;
+  const funnel = { found: n(f.found), inRegion: n(f.inRegion), kept: n(f.kept) };
+  return Object.values(funnel).every(Number.isFinite) ? funnel : undefined;
+}
+
 /** Ask for companies like the seed. Resolves to the checked list (possibly empty); throws SuggestError. */
-export async function fetchSuggestions(body: { seed: BeyondSeed; exclude: string[]; region?: string; count?: number }, signal: AbortSignal): Promise<Suggestion[]> {
+export async function fetchSuggestions(body: { seed: BeyondSeed; exclude: string[]; region?: string; count?: number }, signal: AbortSignal): Promise<SuggestResult> {
   const { data, error } = await supabase.functions.invoke("suggest-accounts", { body, signal });
   if (error) {
     const ctx = (error as { context?: Response }).context;
@@ -100,5 +129,6 @@ export async function fetchSuggestions(body: { seed: BeyondSeed; exclude: string
     throw new SuggestError(status >= 500 ? "The suggestions didn’t finish on our side." : "Suggestions aren’t available right now.");
   }
   if ((data as { error?: string } | null)?.error) throw new SuggestError(String((data as { error: string }).error));
-  return readSuggestions(data);
+  const grounded = (data as { grounded?: unknown } | null)?.grounded === true;
+  return { list: readSuggestions(data), grounded, funnel: grounded ? readFunnel(data) : undefined };
 }

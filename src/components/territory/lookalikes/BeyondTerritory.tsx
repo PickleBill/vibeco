@@ -1,18 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Loader2 } from "lucide-react";
 import { linkBtn } from "@/components/account/explorer/look";
 import { CompanyLogo } from "../company/CompanyLogo";
 import type { TerritoryRow } from "../model";
 import { cx, primaryButton, secondaryButton } from "../style";
 import { EvidenceTag, FieldPill } from "../ui";
-import { asSeed, excludeFrom, fetchSuggestions, researchHref, SuggestError, type BeyondSeed, type Suggestion } from "./beyond";
+import { asSeed, excludeFrom, fetchSuggestions, researchHref, SuggestError, type BeyondSeed, type Suggestion, type SuggestResult } from "./beyond";
 
 /** The function takes 10–25 seconds; give up after a minute. */
 const TIMEOUT_MS = 60_000;
 const DEFAULT_REGION = "Southeast US";
 
-type State = { status: "idle" } | { status: "loading"; startedAt: number } | { status: "error"; message: string } | { status: "done"; list: Suggestion[] };
+type State =
+  | { status: "idle" }
+  | { status: "loading"; startedAt: number }
+  | { status: "error"; message: string }
+  | { status: "done"; list: Suggestion[]; grounded: boolean; funnel?: SuggestResult["funnel"] };
 
 /** Seconds since `startedAt`, ticking once a second. */
 function Elapsed({ startedAt }: { startedAt: number }) {
@@ -25,20 +29,41 @@ function Elapsed({ startedAt }: { startedAt: number }) {
 }
 
 /** One suggestion, compact: who, where, why (a hypothesis), the motion guess, and research it live. */
-function SuggestionCard({ s, seller }: { s: Suggestion; seller: string }) {
+function SuggestionCard({ s, seller, seedTools }: { s: Suggestion; seller: string; seedTools: string[] }) {
   return (
     <li className="flex flex-col gap-2 rounded-xl border border-border bg-white p-3.5">
       <div className="flex items-center gap-2.5">
         <CompanyLogo domain={s.domain} name={s.name} size={28} />
         <div className="min-w-0">
           <h3 className="font-display text-[17px] font-semibold leading-tight">{s.name}</h3>
-          {s.hq && <p className="text-[13px] text-[#4A4F63]">{s.hq}</p>}
+          {(s.hq || s.employees) && (
+            <p className="text-[13px] text-[#4A4F63]" title={s.employees ? "Headcount from the page's company data" : undefined}>
+              {[s.hq, s.employees ? `about ${s.employees.toLocaleString("en-US")} people` : ""].filter(Boolean).join(" · ")}
+            </p>
+          )}
         </div>
       </div>
       <p className="text-[15px] leading-snug">
         <EvidenceTag status="Hypothesis" className="mr-1.5 h-[22px] align-[1px]" />
         {s.why}
       </p>
+      {s.listedTools && (
+        <p className="text-[13px] text-[#4A4F63]" title="From Exa's company data, a third-party list. Not checked yet: research it live to confirm.">
+          Its company data lists{" "}
+          {s.listedTools.map((t, i) => (
+            <span key={t}>
+              {i > 0 && ", "}
+              <span className={seedTools.includes(t) ? "font-semibold text-foreground" : undefined}>{t}</span>
+            </span>
+          ))}
+        </p>
+      )}
+      {s.source && (
+        <a href={s.source.url} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1 self-start rounded text-[13px] text-[#4A4F63] underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          Found on the web
+          <ArrowUpRight size={13} aria-hidden />
+        </a>
+      )}
       <div className="mt-auto flex flex-wrap items-center justify-between gap-x-3">
         <FieldPill>Motion guess: {s.motion_guess}</FieldPill>
         <Link to={researchHref(seller, s)} className={linkBtn}>
@@ -78,8 +103,8 @@ export function BeyondTerritory({ seller, seed, rows, region }: { seller: string
     const timer = window.setTimeout(() => ctrl.abort(), TIMEOUT_MS);
     setState({ status: "loading", startedAt: Date.now() });
     try {
-      const list = await fetchSuggestions({ seed: s, exclude: excludeFrom(rows, s), ...(region ? { region } : {}) }, ctrl.signal);
-      if (call.current === ctrl) setState({ status: "done", list });
+      const found = await fetchSuggestions({ seed: s, exclude: excludeFrom(rows, s), ...(region ? { region } : {}) }, ctrl.signal);
+      if (call.current === ctrl) setState({ status: "done", ...found });
     } catch (e) {
       if (call.current !== ctrl) return;
       const message = e instanceof SuggestError ? e.message : ctrl.signal.aborted ? "No answer after a minute." : "Suggestions aren’t available right now.";
@@ -91,7 +116,7 @@ export function BeyondTerritory({ seller, seed, rows, region }: { seller: string
   };
 
   return (
-    <section aria-labelledby="beyond-title" className="rounded-xl border border-border bg-white px-4 py-3.5 sm:px-[18px]">
+    <section data-tour="lookalikes-find" aria-labelledby="beyond-title" className="rounded-xl border border-border bg-white px-4 py-3.5 sm:px-[18px]">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5">
         <h2 id="beyond-title" className="min-w-0 font-display text-lg font-semibold leading-snug sm:text-xl">
           Companies like {s.name} that aren&rsquo;t in your territory yet
@@ -113,7 +138,7 @@ export function BeyondTerritory({ seller, seed, rows, region }: { seller: string
           <Loader2 size={18} aria-hidden className="mt-0.5 shrink-0 motion-safe:animate-spin" />
           <div className="min-w-0 flex-1">
             <p className="text-[15px] font-semibold">
-              Asking AI for companies like {s.name} in the {region ?? DEFAULT_REGION}, then checking each website answers…
+              Searching the web for companies like {s.name} in the {region ?? DEFAULT_REGION}, then checking each one…
             </p>
             <p className="mt-0.5 text-[15px] text-[#4A4F63]">Usually 10 to 25 seconds.</p>
           </div>
@@ -138,10 +163,14 @@ export function BeyondTerritory({ seller, seed, rows, region }: { seller: string
           <>
             <ul aria-label={`Suggestions like ${s.name}`} className="mt-3 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
               {state.list.map((x) => (
-                <SuggestionCard key={x.domain} s={x} seller={seller} />
+                <SuggestionCard key={x.domain} s={x} seller={seller} seedTools={s.tools} />
               ))}
             </ul>
-            <p className="mt-2.5 text-[15px] text-[#4A4F63]">AI suggestions, not researched yet. Each website answered when checked.</p>
+            <p className="mt-2.5 text-[15px] text-[#4A4F63]">
+              {state.grounded
+                ? `${state.funnel ? `Exa found ${state.funnel.found} companies on the web · ${state.funnel.inRegion} in the ${region ?? DEFAULT_REGION} · ${state.funnel.kept} kept. ` : "Found on the web with Exa. "}AI picked and phrased them; code checked the place and the website. Not researched yet.`
+                : "AI suggestions, not researched yet. Each website answered when checked."}
+            </p>
           </>
         ) : (
           <p className="mt-3 rounded-xl border border-dotted border-[#9097A6] bg-background px-4 py-3 text-[15px] text-[#4A4F63]">

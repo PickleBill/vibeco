@@ -9,6 +9,10 @@ import {
   cleanSuggestions,
   excludeKeys,
   inRegion,
+  readPicks,
+  shortlist,
+  suggestFromWeb,
+  webQuery,
   readSuggestInput,
   suggestAccounts,
   SuggestInputError,
@@ -202,6 +206,80 @@ Deno.test({
         const err = await suggestAccounts(input, always).catch((e) => e);
         assert(err instanceof LLMError);
         assertEquals(err.status, 429);
+      },
+    ),
+});
+
+// ─── From the web ───
+
+const page = (name: string, domain: string, hq?: string, employees?: number) => ({ name, url: `https://${domain}/`, domain, hq, employees, about: `${name} ships reporting to its customers.`, tools: [] as string[] });
+
+Deno.test("shortlist: territory and seed out, repeats out, outside the region out, too small out", () => {
+  const { pool, inRegion: placed, fit } = shortlist(
+    [
+      page("Equifax", "equifax.com", "Atlanta, GA", 20000), // in the exclude list
+      page("Relay", "relaypro.com", "Raleigh, NC", 300), // the seed
+      page("Glew", "glew.io", "Charlotte, NC", 98), // too small
+      page("Cardlytics", "cardlytics.com", "Atlanta, GA", 500),
+      page("Cardlytics", "cardlytics.com", "Atlanta, GA", 500), // repeat
+      page("Out West", "outwest.com", "Boise, ID", 900), // outside the region
+      page("Unplaced", "unplaced.com", undefined, 900), // no headquarters
+      page("Directory", "crunchbase.com", "Atlanta, GA", 900),
+    ],
+    input,
+  );
+  assertEquals(pool.map((c) => c.name), ["Glew", "Cardlytics", "Out West", "Unplaced"]);
+  assertEquals(placed.map((c) => c.name), ["Glew", "Cardlytics"]);
+  assertEquals(fit.map((c) => c.name), ["Cardlytics"]);
+});
+
+Deno.test("readPicks: only listed numbers, once each; name, domain, place and size come from the page", () => {
+  const fit = [page("Cardlytics", "cardlytics.com", "Atlanta, GA", 500), { ...page("Stord", "stord.com", "Atlanta, GA", 700), tools: ["Snowflake", "dbt", "Looker", "Tableau", "Power BI"] }];
+  const out = readPicks(
+    {
+      picks: [
+        { index: 1, why: "May ship supply chain analytics to the brands it serves.", motion_guess: "Embedded" },
+        { index: 1, why: "A repeat.", motion_guess: "Embedded" },
+        { index: 7, why: "Not in the list.", motion_guess: "Embedded" },
+        { index: 0, why: "May have added reporting in 2025.", motion_guess: "Embedded" }, // a digit
+      ],
+    },
+    fit,
+    "Embedded",
+  );
+  assertEquals(out.length, 1);
+  assertEquals(out[0], {
+    name: "Stord",
+    domain: "stord.com",
+    hq: "Atlanta, GA",
+    why: "May ship supply chain analytics to the brands it serves.",
+    motion_guess: "Embedded",
+    employees: 700,
+    source: { url: "https://stord.com/", title: "Stord" },
+    listedTools: ["Snowflake", "dbt", "Looker", "Tableau"],
+  });
+});
+
+Deno.test("webQuery: the motion, the region and the seed", () => {
+  const q = webQuery(input);
+  assertStringIncludes(q, "customers dashboards, reporting or analytics");
+  assertStringIncludes(q, "Southeast United States");
+  assertStringIncludes(q, "Relay");
+});
+
+Deno.test({
+  name: "suggestFromWeb: the model picks among found pages; the funnel counts what each step kept",
+  ...sanitize,
+  fn: () =>
+    withGateway(
+      () => json({ content: [{ type: "tool_use", name: "pick_accounts", input: { picks: [{ index: 0, why: "May ship advertiser dashboards in its commerce media platform.", motion_guess: "Embedded" }] } }] }),
+      async () => {
+        const search = () => Promise.resolve([page("Cardlytics", "cardlytics.com", "Atlanta, GA", 500), page("Out West", "outwest.com", "Boise, ID", 900)]);
+        const out = await suggestFromWeb(input, always, search);
+        assertEquals(out.grounded, true);
+        assertEquals(out.funnel, { found: 2, inRegion: 1, kept: 1 });
+        assertEquals(out.suggestions.map((x) => x.name), ["Cardlytics"]);
+        assertEquals(out.suggestions[0].source?.url, "https://cardlytics.com/");
       },
     ),
 });
