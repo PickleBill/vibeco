@@ -339,7 +339,7 @@ describe("RadarModule", () => {
       </MemoryRouter>,
     );
     expect(screen.getByRole("alert")).toHaveTextContent("Bandwidth is left off the radar");
-    expect(screen.getByRole("link", { name: "Run an account" })).toHaveAttribute("href", "/for/omni/account");
+    expect(screen.getByRole("link", { name: "Run an account" })).toHaveAttribute("href", "/for/omni");
   });
 });
 

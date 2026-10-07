@@ -95,41 +95,44 @@ describe("welcome card", () => {
 });
 
 describe("guided tour", () => {
-  it("?tour starts at step 1 on the radar", () => {
+  it("?tour starts at step 1 on the demo account's run", () => {
     page("/for/omni/lookalikes?tour");
     expect(welcome()).not.toBeInTheDocument();
-    expect(screen.getByText("1 of 6")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "The territory, re-checked" })).toBeInTheDocument();
-    expect(screen.getByTestId("where")).toHaveTextContent(/^\/for\/omni$/);
+    expect(screen.getByText("1 of 4")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Run an account" })).toBeInTheDocument();
+    expect(screen.getByText(/^Relay’s saved run: seven agents/)).toBeInTheDocument();
+    expect(screen.getByTestId("where")).toHaveTextContent(new RegExp(`^/for/omni/account/${relay}$`));
     // Focus lands on the default button.
     expect(screen.getByRole("button", { name: /^Next/ })).toHaveFocus();
   });
 
-  it("Next walks the views on the territory's first account", () => {
+  it("Next walks run, radar, lookalikes and committee on the territory's first account, never the Deal Room", () => {
     page("/for/omni?tour");
-    fireEvent.click(screen.getByRole("button", { name: /^Next/ }));
-    expect(screen.getByText("2 of 6")).toBeInTheDocument();
-    expect(screen.getByTestId("where")).toHaveTextContent(/^\/for\/omni$/);
-
-    fireEvent.click(screen.getByRole("button", { name: /^Next/ }));
-    expect(screen.getByText("3 of 6")).toBeInTheDocument();
     expect(screen.getByTestId("where")).toHaveTextContent(`/for/omni/account/${relay}`);
+    fireEvent.click(screen.getByRole("button", { name: /^Next/ }));
+    expect(screen.getByText("2 of 4")).toBeInTheDocument();
+    expect(screen.getByTestId("where")).toHaveTextContent(/^\/for\/omni\/radar$/);
 
     fireEvent.click(screen.getByRole("button", { name: /^Next/ }));
+    expect(screen.getByText("3 of 4")).toBeInTheDocument();
+    expect(screen.getByTestId("where")).toHaveTextContent(`/for/omni/lookalikes/${relay}`);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Next/ }));
+    expect(screen.getByRole("heading", { name: "Committee for Relay" })).toBeInTheDocument();
     expect(screen.getByTestId("where")).toHaveTextContent(`/for/omni/committee/${relay}`);
 
     fireEvent.click(screen.getByRole("button", { name: /Back/ }));
-    expect(screen.getByText("3 of 6")).toBeInTheDocument();
-    expect(screen.getByTestId("where")).toHaveTextContent(`/for/omni/account/${relay}`);
+    expect(screen.getByText("3 of 4")).toBeInTheDocument();
+    expect(screen.getByTestId("where")).toHaveTextContent(`/for/omni/lookalikes/${relay}`);
   });
 
   it("ends with a card that sends you to run your own account", () => {
     page("/for/omni?tour");
-    for (let i = 0; i < 6; i++) fireEvent.click(screen.getByRole("button", { name: /^Next/ }));
+    for (let i = 0; i < 4; i++) fireEvent.click(screen.getByRole("button", { name: /^Next/ }));
     expect(screen.getByRole("heading", { name: "Now try your own account" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Run an account/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Run your own account/ }));
     expect(screen.queryByRole("heading", { name: "Now try your own account" })).not.toBeInTheDocument();
-    expect(screen.getByTestId("where")).toHaveTextContent(/^\/for\/omni\/account$/);
+    expect(screen.getByTestId("where")).toHaveTextContent(/^\/for\/omni$/);
   });
 
   it("Esc ends the tour", () => {
@@ -138,14 +141,14 @@ describe("guided tour", () => {
     act(() => {
       fireEvent.keyDown(document, { key: "Escape" });
     });
-    expect(screen.queryByText("1 of 6")).not.toBeInTheDocument();
+    expect(screen.queryByText("1 of 4")).not.toBeInTheDocument();
     expect(tourCard()).not.toBeInTheDocument();
   });
 
   it("starts from the welcome card", () => {
     page();
-    fireEvent.click(screen.getByRole("button", { name: /Take the 2-minute tour/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Demo in 60 seconds/ }));
     expect(welcome()).not.toBeInTheDocument();
-    expect(screen.getByText("1 of 6")).toBeInTheDocument();
+    expect(screen.getByText("1 of 4")).toBeInTheDocument();
   });
 });
