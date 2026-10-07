@@ -3,6 +3,7 @@
 // (solid on the list, dashed when named in a stack line): navy, never an
 // evidence color and never the accent, so it reads as a note, not a signal.
 import { useId } from "react";
+import { toggle } from "@/components/account/explorer/look";
 import type { Segment, TerritorySegment } from "@/lib/sellers";
 import { OMNI_TEXT, type OmniStatus } from "../model";
 import { cx } from "../style";
@@ -94,7 +95,7 @@ export function SegmentFilter({
       <div
         role="radiogroup"
         aria-labelledby={labelId}
-        className="inline-flex flex-wrap gap-1 rounded-[10px] border border-border bg-white p-1"
+        className="inline-flex flex-wrap gap-2"
         onKeyDown={(e) => {
           const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
           const jump = { Home: 0, End: options.length - 1 }[e.key];
@@ -116,10 +117,7 @@ export function SegmentFilter({
               tabIndex={on ? 0 : -1}
               title={o.note ? `${o.label}: ${o.note}` : undefined}
               onClick={() => onChange(o.id)}
-              className={cx(
-                "inline-flex min-h-11 items-baseline gap-1.5 rounded-lg border px-3 py-2 text-[15px] leading-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                on ? "border-primary bg-brand-tint font-bold text-foreground" : "border-transparent font-medium text-[#4A4F63] hover:text-foreground",
-              )}
+              className={cx(toggle(on), "gap-1.5")}
             >
               {o.label}
               <span className="font-mono text-xs font-semibold text-[#4A4F63]">{o.count}</span>

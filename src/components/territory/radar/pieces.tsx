@@ -23,7 +23,7 @@ export function Chips({ ids, sources, className }: { ids: number[]; sources: Res
 
 /** Pink fill, readable pink text: "Fresh trigger · 6d", "Changed since last run". */
 export function FreshPill({ children }: { children: ReactNode }) {
-  return <span className="inline-flex h-[26px] shrink-0 items-center rounded-full border border-brand bg-brand-tint px-2.5 text-xs font-bold text-primary">{children}</span>;
+  return <span className="inline-flex h-[26px] shrink-0 items-center rounded-[4px] border border-brand bg-brand-tint px-2 text-xs font-bold text-primary">{children}</span>;
 }
 
 export function StatTile({ value, label, hot, children }: { value?: ReactNode; label: string; hot?: boolean; children?: ReactNode }) {

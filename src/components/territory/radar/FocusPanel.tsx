@@ -109,7 +109,7 @@ export function FocusPanel({
               {c.status ? (
                 <EvidenceTag status={c.status} />
               ) : (
-                <span className="inline-flex h-[26px] items-center rounded-full border border-foreground px-2.5 font-mono text-xs font-semibold">{c.date}</span>
+                <span className="inline-flex h-[26px] items-center rounded-[4px] border border-foreground px-2 font-mono text-xs font-semibold">{c.date}</span>
               )}
               <span className="min-w-0 flex-[1_1_220px] text-[15px]">{c.text}</span>
               <Chips ids={c.sources.slice(0, 3)} sources={account.sources} />

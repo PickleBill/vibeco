@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, ArrowUpRight, Loader2 } from "lucide-react";
+import { CompanyLogo } from "../company/CompanyLogo";
 import type { TerritoryRow } from "../model";
 import { cx, secondaryButton } from "../style";
 import { EvidenceTag, FieldPill } from "../ui";
@@ -26,7 +27,10 @@ function SuggestionCard({ s, seller }: { s: Suggestion; seller: string }) {
   return (
     <li className="flex flex-col gap-2.5 rounded-xl border border-border bg-white p-4">
       <div>
-        <h3 className="font-display text-[19px] font-semibold leading-tight">{s.name}</h3>
+        <h3 className="flex items-center gap-2.5 font-display text-[19px] font-semibold leading-tight">
+          <CompanyLogo domain={s.domain} name={s.name} size={28} />
+          {s.name}
+        </h3>
         <p className="flex flex-wrap items-center gap-x-2 text-[13px] text-[#4A4F63]">
           <a
             href={`https://${s.domain}`}
