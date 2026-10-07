@@ -278,7 +278,16 @@ export interface CommitteeResult {
   path_to_yes: { step: string; seat: PersonaType; why: string }[];
   main_blocker: { seat: PersonaType; why: string; what_would_flip_it: string };
   /** A synthetic estimate: a percent band in steps of 5, 10 to 30 wide. */
-  outcome: { label: CommitteeOutcomeLabel; low: number; high: number; summary: string };
+  outcome: {
+    label: CommitteeOutcomeLabel;
+    low: number;
+    high: number;
+    summary: string;
+    /** The model's own call, before the band was weighted by the account's evidence. */
+    model_label?: CommitteeOutcomeLabel;
+    model_low?: number;
+    model_high?: number;
+  };
   /** The hypotheticals applied to this run (never stored). */
   what_if?: string[];
   model: string;

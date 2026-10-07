@@ -10,7 +10,7 @@ import {
   assertThrows,
 } from "https://deno.land/std@0.168.0/testing/asserts.ts";
 import { LLMError } from "../error-handler.ts";
-import type { CommitteeResult, CommitteeSimInput } from "../types.ts";
+import type { CommitteeResult, CommitteeSeat, CommitteeSimInput } from "../types.ts";
 import {
   bandForLabel,
   COMMITTEE_SEATS,
@@ -239,7 +239,7 @@ Deno.test("normalize: a grounded answer passes through intact", () => {
   assertEquals(out.seats.map((s) => [s.stance_start, s.stance_end]), [[1, 2], [-1, 0], [-2, -2], [0, 1], [-1, 0]]);
   assertEquals(out.path_to_yes.length, 3);
   assertEquals(out.main_blocker.seat, "skeptic");
-  assertEquals(out.outcome, { ...CLEAN.outcome, label: "Coin flip" });
+  assertEquals(out.outcome, { ...CLEAN.outcome, label: "Coin flip", model_label: "Coin flip", model_low: 35, model_high: 55 });
   assertEquals(out.what_if, undefined);
 });
 
@@ -377,9 +377,9 @@ Deno.test("normalize: path, blocker and outcome fallbacks", () => {
   // the CFO and the analytics engineer both end at 0; the CFO has more influence.
   assertEquals(out.main_blocker.seat, "skeptic");
   assertStringIncludes(out.main_blocker.what_would_flip_it, "A clear answer to:");
-  assertEquals(out.outcome.label, "Likely yes"); // from the band's midpoint
-  assertEquals([out.outcome.low, out.outcome.high], [70, 95]);
-  assert(out.outcome.summary.startsWith("Likely yes."));
+  assertEquals(out.outcome.model_label, "Likely yes"); // from the band's midpoint, before the evidence weighs in
+  assertEquals([out.outcome.model_low, out.outcome.model_high], [70, 95]);
+  assert(out.outcome.summary.startsWith(`${out.outcome.label}.`));
 });
 
 Deno.test("normalize: nested arrays sent as JSON strings are read", () => {
@@ -666,4 +666,68 @@ Deno.test({
       await assertRejects(() => runCommittee(input()), Error, "The committee didn't finish");
     });
   },
+});
+
+// ─── Evidence-weighted outcome ───
+
+import { evidenceRead, weighOutcome } from "./committee.ts";
+
+const seatsAt = (end: number): CommitteeSeat[] =>
+  (["champion", "skeptic", "competitor", "customer", "builder"] as const).map((seat) => ({
+    seat,
+    role: seat,
+    stance_start: 0,
+    stance_end: (seat === "competitor" ? 0 : end) as CommitteeSeat["stance_end"],
+    influence: 2,
+    top_concern: "",
+  }) as CommitteeSeat);
+
+Deno.test("weighOutcome: the account's evidence spreads meetings the model scored alike", () => {
+  const now = new Date("2026-10-07T00:00:00Z");
+  const coin = { label: "Coin flip" as const, low: 35, high: 55, summary: "A coin flip: the CFO wants proof." };
+  const strong = weighOutcome(coin, seatsAt(1), evidenceRead({ fit: { grade: "A" }, revenue_model: "2026-08: Agreed to buy a lender [2]." }, now));
+  const weak = weighOutcome(coin, seatsAt(0), evidenceRead({ fit: { grade: "C" }, revenue_model: "Date not found: Hiring." }, now));
+  assertEquals(strong.label, "Likely yes");
+  assertEquals(weak.label, "Uphill");
+  // The model's call is kept, and a summary naming the old label is rewritten.
+  assertEquals([strong.model_label, strong.model_low, strong.model_high], ["Coin flip", 35, 55]);
+  assert(!/coin flip/i.test(weak.summary));
+  assertEquals(strong.high - strong.low, 20);
+});
+
+Deno.test("weighOutcome: Too early stays the model's call; the list and an unclear motion count", () => {
+  const early = { label: "Too early" as const, low: 20, high: 40, summary: "Too thin to call." };
+  assertEquals(weighOutcome(early, seatsAt(2), evidenceRead({ fit: { grade: "A" } })).label, "Too early");
+  const mid = { label: "Coin flip" as const, low: 40, high: 55, summary: "" };
+  const listed = weighOutcome(mid, seatsAt(0), evidenceRead({ fit: { grade: "B" }, customer_list: { on_list: true } }));
+  const unclear = weighOutcome(mid, seatsAt(0), evidenceRead({ fit: { grade: "B" }, motion: { label: "Unclear" } }));
+  assert(listed.low > unclear.low);
+});
+
+Deno.test("simulateCommittee: rescore re-weighs a stored meeting without a model call, the same every time", async () => {
+  let saved: CommitteeResult | undefined;
+  const brief = { lens: "account", company: "Acme", fit: { grade: "A" }, revenue_model: `${new Date().toISOString().slice(0, 7)}: Raised a round [1].` };
+  const stored = {
+    seats: seatsAt(1),
+    rounds: [{ title: "Open", turns: [{ seat: "champion", says: "Yes.", stance_after: 1 }] }],
+    path_to_yes: [],
+    main_blocker: { seat: "skeptic", why: "Budget timing.", what_would_flip_it: "" },
+    outcome: { label: "Coin flip", low: 35, high: 55, summary: "Coin flip." },
+    model: "m",
+    latencyMs: 1,
+  };
+  const store = {
+    load: () => Promise.resolve({ brief, auto_analysis: { perspectives: [{ persona: "champion", headline: "h", perspective: "p", challenge_questions: [] }], committee: saved ?? stored } }),
+    saveCommittee: (_id: string, c: CommitteeResult) => {
+      saved = c;
+      return Promise.resolve();
+    },
+  };
+  const never = () => Promise.reject(new Error("no model call"));
+  const id = "9c769b0b-8282-4c6d-91d7-c59b1bae8ca5";
+  const first = await simulateCommittee({ report_id: id, rescore: true }, store as never, never);
+  const second = await simulateCommittee({ report_id: id, rescore: true }, store as never, never);
+  assertEquals(first.outcome.label, "Likely yes");
+  assertEquals(second.outcome, first.outcome);
+  assertEquals(saved?.outcome.model_label, "Coin flip");
 });

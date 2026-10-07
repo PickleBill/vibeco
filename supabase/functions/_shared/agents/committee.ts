@@ -145,6 +145,8 @@ export interface CommitteeRequest {
   what_if: string[];
   /** Set for an inline request. */
   input?: CommitteeSimInput;
+  /** Re-weigh a stored meeting's outcome against its brief; no model call. */
+  rescore?: true;
 }
 
 /** Check a request body: { report_id, what_if? } or { brief, perspectives, what_if? }. Throws CommitteeInputError. */
@@ -154,7 +156,7 @@ export function readCommitteeRequest(raw: unknown): CommitteeRequest {
   if (body.report_id !== undefined && body.report_id !== null) {
     const id = typeof body.report_id === "string" ? body.report_id.trim() : "";
     if (!UUID.test(id)) throw new CommitteeInputError("report_id must be a saved run's id.");
-    return { report_id: id.toLowerCase(), what_if };
+    return { report_id: id.toLowerCase(), what_if, ...(body.rescore === true && !what_if.length ? { rescore: true as const } : {}) };
   }
   if (body.brief === undefined) throw new CommitteeInputError("Send a report_id, or a brief and its perspectives.");
   const input = readCommitteeInput(body.brief, body.perspectives, what_if);
@@ -352,6 +354,69 @@ export function bandForLabel(label: CommitteeOutcomeLabel, band: { low: number; 
   return inside(band.low + shift, band.high + shift);
 }
 
+// ─── Evidence weighting ───
+
+/** What the account's own evidence says before anyone argues. */
+export interface EvidenceRead {
+  /** "A" | "B" | "C" or "" when there's no grade. */
+  fit: string;
+  /** Age of the newest dated why-now item, in days; null when nothing is dated. */
+  triggerAgeDays: number | null;
+  onList: boolean;
+  unclear: boolean;
+}
+
+/** The fit grade, the newest dated trigger, the customer list and the motion, from a brief. */
+export function evidenceRead(brief: Record<string, unknown>, now: Date = new Date()): EvidenceRead {
+  const fit = String(record(brief.fit).grade ?? "").trim().toUpperCase().slice(0, 1);
+  const ages = String(brief.revenue_model ?? "")
+    .split(/\n+/)
+    .map((l) => /^\s*[-•*]?\s*(\d{4})-(\d{2})(?:-(\d{2}))?/.exec(l))
+    .filter((m): m is RegExpExecArray => !!m)
+    .map((m) => Math.round((now.getTime() - Date.UTC(+m[1], +m[2] - 1, m[3] ? +m[3] : 15)) / 86_400_000));
+  return {
+    fit: ["A", "B", "C"].includes(fit) ? fit : "",
+    triggerAgeDays: ages.length ? Math.max(0, Math.min(...ages)) : null,
+    onList: record(brief.customer_list).on_list === true,
+    unclear: record(brief.motion).label === "Unclear",
+  };
+}
+
+const FIT_PRIOR: Record<string, number> = { A: 62, B: 45, C: 28 };
+
+/**
+ * The outcome band, weighted by evidence: the fit grade, a dated trigger in the
+ * last 90 days (or none at all), the customer list (expansion is easier) and an
+ * unclear motion set where the odds start; where the buyers end the meeting,
+ * weighted by influence, moves that by up to 10 points. The model's own band
+ * counts for a quarter, so meetings at different accounts don't all land on the
+ * same number. "Too early" stays the model's call.
+ */
+export function weighOutcome(
+  outcome: { label: CommitteeOutcomeLabel; low: number; high: number; summary: string },
+  seats: CommitteeSeat[],
+  ev: EvidenceRead,
+  blockerWhy = "",
+): CommitteeResult["outcome"] {
+  const model = { model_label: outcome.label, model_low: outcome.low, model_high: outcome.high };
+  if (outcome.label === "Too early") return { ...outcome, ...model };
+  let prior = FIT_PRIOR[ev.fit] ?? 40;
+  if (ev.triggerAgeDays !== null && ev.triggerAgeDays <= 90) prior += 10;
+  else if (ev.triggerAgeDays === null) prior -= 8;
+  if (ev.onList) prior += 10;
+  if (ev.unclear) prior -= 10;
+  const end = seats.filter((s) => s.seat !== "competitor").reduce((n, s) => n + s.influence * s.stance_end, 0);
+  const evidence = prior + Math.max(-10, Math.min(10, end * 1.5));
+  const mid = 0.25 * ((outcome.low + outcome.high) / 2) + 0.75 * evidence;
+  const width = Math.max(10, Math.min(30, outcome.high - outcome.low));
+  const band = percentBand(mid - width / 2, mid + width / 2);
+  const label = labelForBand(band);
+  // A summary that names the model's label would contradict the new one.
+  const stale = label !== outcome.label && new RegExp(outcome.label.replace(/\s+/g, "\\s+"), "i").test(outcome.summary);
+  const summary = stale || !outcome.summary ? fitWords(`${label}. ${blockerWhy || "That's where the evidence and the meeting land."}`, 40) : outcome.summary;
+  return { label, low: band.low, high: band.high, summary, ...model };
+}
+
 // ─── Normalizing the model's answer ───
 
 export interface CommitteeContext {
@@ -361,6 +426,8 @@ export interface CommitteeContext {
   sellerName?: string;
   grounding: Grounding;
   whatIf: string[];
+  /** The account's evidence, for weighting the outcome band. */
+  evidence?: EvidenceRead;
 }
 
 export type CommitteeBody = Omit<CommitteeResult, "model" | "latencyMs" | "generated_at" | "cached">;
@@ -443,13 +510,14 @@ export function normalizeCommittee(raw: unknown, ctx: CommitteeContext): Committ
   const band = named ? bandForLabel(named, percentBand(o.low, o.high)) : percentBand(o.low, o.high);
   const label = named ?? labelForBand(band);
   const summary = tidy(o.summary, 40, [String(band.low), String(band.high)]) || fitWords(`${label}. ${main_blocker.why}`, 40);
+  const scored = { label, low: band.low, high: band.high, summary };
 
   return {
     seats,
     rounds,
     path_to_yes,
     main_blocker,
-    outcome: { label, low: band.low, high: band.high, summary },
+    outcome: ctx.evidence ? weighOutcome(scored, seats, ctx.evidence, main_blocker.why) : scored,
     ...(ctx.whatIf.length ? { what_if: [...ctx.whatIf] } : {}),
   };
 }
@@ -609,6 +677,7 @@ Run the meeting with run_committee.`;
       // The baseline's band may be quoted ("up from 35-55%"); its stance numbers aren't facts, so only the outcome line counts.
       grounding: groundingFrom([facts, critics, ...whatIf, baselineText.split("\n")[0]]),
       whatIf,
+      evidence: evidenceRead(brief),
     },
   };
 }
@@ -780,6 +849,19 @@ export async function simulateCommittee(
   const analysis = record(row.auto_analysis);
   const input = readCommitteeInput(row.brief, analysis.perspectives, request.what_if, 404);
   const stored = isStoredCommittee(analysis.committee) ? analysis.committee : undefined;
+  if (request.rescore) {
+    if (!stored) throw new CommitteeInputError("This run has no stored meeting to re-weigh.", 404);
+    const o = stored.outcome;
+    // Weigh the model's own band (kept on the first re-weigh), so doing it twice changes nothing.
+    const fromModel = { label: o.model_label ?? o.label, low: o.model_low ?? o.low, high: o.model_high ?? o.high, summary: o.summary };
+    const rescored = { ...stored, outcome: weighOutcome(fromModel, stored.seats, evidenceRead(input.brief), stored.main_blocker?.why) };
+    try {
+      await store.saveCommittee(request.report_id!, rescored);
+    } catch (e) {
+      console.error("[committee-sim] saving the re-weighed committee failed:", e instanceof Error ? e.message : e);
+    }
+    return { ...rescored, cached: true };
+  }
   if (!input.what_if.length && stored) return { ...stored, cached: true };
   if (input.what_if.length) {
     // Start from the stored plain run, when there is one, so the moves show the what-ifs' effect.
