@@ -1,4 +1,6 @@
+import { useId, useState, type ReactNode } from "react";
 import type { ResearchSource } from "@/components/simulator/SourcesList";
+import { Fold, FoldButton, ReadMore } from "../Memo";
 import { cx } from "../style";
 import type { CommitteeResult, SeatId } from "./model";
 import { CitedLine, SeatToken } from "./parts";
@@ -37,12 +39,36 @@ function OutcomeBand({ outcome, was }: { outcome: CommitteeResult["outcome"]; wa
         <span>50%</span>
         <span>100%</span>
       </div>
-      <p className="mt-2 text-[13px] text-muted-foreground">Synthetic estimate: where the accountSynthetic estimate from the simulated meeting, not a forecast.rsquo;s evidence (fit, a dated trigger, the customer list) starts the odds, moved by where the seats end the meeting. Not a forecast.</p>
+      <p className="mt-2 text-[13px] text-muted-foreground">
+        Synthetic estimate from the simulated meeting, not a forecast. The account&rsquo;s evidence (fit, a dated trigger, the customer list) starts the odds; where the seats end
+        the meeting moves them.
+      </p>
     </div>
   );
 }
 
 const H3 = "text-[13px] font-bold uppercase tracking-[0.04em] text-muted-foreground";
+
+/** A step's seat, with the step's "why" folded under a small toggle beside it. */
+function Step({ role, children }: { role: string; children?: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const id = `why-${useId().replace(/:/g, "")}`;
+  const pill = <span className="inline-flex items-center rounded-md border border-[#D9D4C7] bg-white px-1.5 text-[13px] font-semibold leading-5 text-foreground">{role}</span>;
+  if (!children) return <p className="mt-1.5">{pill}</p>;
+  return (
+    <div>
+      <div className="flex flex-wrap items-center gap-x-2.5">
+        {pill}
+        <FoldButton open={open} controls={id} onClick={() => setOpen((v) => !v)} className="text-sm">
+          Why<span className="sr-only"> this step</span>
+        </FoldButton>
+      </div>
+      <Fold open={open} id={id}>
+        <p className="pb-1 text-[15px] leading-relaxed text-[#4A4F63]">{children}</p>
+      </Fold>
+    </div>
+  );
+}
 
 /**
  * After the last round: the path to yes as a stepper, the main blocker and
@@ -76,9 +102,11 @@ export function OutcomePanel({
           <OutcomeBand outcome={committee.outcome} was={was?.outcome} />
         </div>
         {committee.outcome.summary && (
-          <p className="min-w-0 self-center text-[17px] leading-relaxed text-foreground">
-            <CitedLine text={committee.outcome.summary} sources={sources} />
-          </p>
+          <div className="min-w-0 self-center">
+            <ReadMore lines={3} className="text-[17px] leading-relaxed text-foreground">
+              <CitedLine text={committee.outcome.summary} sources={sources} />
+            </ReadMore>
+          </div>
         )}
 
         <div className="min-w-0 lg:col-start-1">
@@ -96,10 +124,7 @@ export function OutcomePanel({
                         <span className="sr-only">Step {i + 1}: </span>
                         <CitedLine text={p.step} sources={sources} />
                       </p>
-                      <p className="mt-1 text-[15px] leading-relaxed text-[#4A4F63]">
-                        <span className="mr-2 inline-flex items-center rounded-md border border-[#D9D4C7] bg-white px-1.5 align-[1px] text-[13px] font-semibold leading-5 text-foreground">{roleOf(p.seat)}</span>
-                        {p.why && <CitedLine text={p.why} sources={sources} />}
-                      </p>
+                      <Step role={roleOf(p.seat)}>{p.why && <CitedLine text={p.why} sources={sources} />}</Step>
                     </div>
                   </li>
                 ))}

@@ -1,9 +1,9 @@
+import { Memo } from "../Memo";
 import { ageDays } from "../model";
 import { cx, freshness } from "../style";
 import { SourceChip } from "../ui";
 import { dayLabel, startOfDay } from "./evidence";
 import type { RadarAccount } from "./model";
-import { SectionTitle } from "./pieces";
 
 /** Past this, a source asks to be re-checked before anyone repeats it on a call. */
 const RECHECK_DAYS = 180;
@@ -35,11 +35,18 @@ export function HalfLife({ accounts }: { accounts: RadarAccount[] }) {
     .filter((x): x is typeof x & { days: number } => x.days !== null)
     .sort((p, q) => p.days - q.days);
 
+  const recheck = dated.filter((x) => x.days > RECHECK_DAYS).length;
+
+  // Shut on phones (a title and a line), open from 1024px.
   return (
-    <section aria-labelledby="halflife-title" className="mt-8 border-t border-[#ECE8DE] pt-6">
-      <SectionTitle id="halflife-title" aside="half-life 120d · re-check past 6mo">
-        Evidence half-life
-      </SectionTitle>
+    <Memo
+      className="mt-8"
+      defaultOpen="wide"
+      title="Evidence half-life"
+      count={`${dated.length} dated source${dated.length === 1 ? "" : "s"}${recheck ? ` · ${recheck} to re-check` : ""}`}
+      preview="Claims fade as their source ages. Fresh sources read bold; anything past six months asks to be re-checked before it goes on a call."
+    >
+      <p className="mb-1 font-mono text-[13px] text-muted-foreground">half-life 120d · re-check past 6mo</p>
       <p className="mb-4 max-w-[760px] text-base text-[#4A4F63]">
         Claims fade as their source ages. Fresh sources read bold; anything past six months asks to be re-checked before it goes on a call.{" "}
         {dated.length} of {all.length} sources carry a publish date; job posts and product pages rarely do.
@@ -77,6 +84,6 @@ export function HalfLife({ accounts }: { accounts: RadarAccount[] }) {
       ) : (
         <p className="rounded-lg border border-dotted border-[#9097A6] px-4 py-3 text-[15px] text-[#4A4F63]">No source in this territory carries a publish date yet.</p>
       )}
-    </section>
+    </Memo>
   );
 }

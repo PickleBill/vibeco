@@ -1,6 +1,8 @@
+import { useId, useState } from "react";
 import { motion } from "framer-motion";
 import { Check, ListOrdered, Split } from "lucide-react";
 import type { ResearchSource } from "@/components/simulator/SourcesList";
+import { Fold, FoldButton, ReadMore } from "@/components/territory/Memo";
 import { cx } from "@/components/territory/style";
 import { Eyebrow } from "@/components/territory/ui";
 import { Cited } from "../AccountViews";
@@ -47,6 +49,10 @@ function confidence(score: number) {
  * ("The Skeptic" -> "The CFO").
  */
 export function VerdictCard({ synthesis, state, sources }: { synthesis?: Synthesis | null; state: VerdictState; sources: ResearchSource[] }) {
+  // Shut, it reads in a glance: the answer's first lines and the top item of
+  // each list. One button opens the rest.
+  const [full, setFull] = useState(false);
+  const id = `verdict-${useId().replace(/:/g, "")}`;
   if (state === "waiting") return null;
   if (state === "writing") {
     return (
@@ -75,6 +81,38 @@ export function VerdictCard({ synthesis, state, sources }: { synthesis?: Synthes
   const consensus = (synthesis.consensus ?? []).filter(Boolean).slice(0, 4);
   const tensions = (synthesis.tensions ?? []).map((t) => t?.topic).filter((t): t is string => !!t).slice(0, 4);
   const moves = (synthesis.ranked_recommendations ?? []).filter((r) => r?.action).slice(0, 3);
+  const more = Math.max(0, consensus.length - 1) + Math.max(0, tensions.length - 1) + Math.max(0, moves.length - 1);
+  // The top items clamp while the rest is folded, and open in full with it.
+  const top = !full && more > 0 ? "line-clamp-3" : undefined;
+  const folds = [consensus.length > 1 && `${id}-agree`, tensions.length > 1 && `${id}-split`, moves.length > 1 && `${id}-moves`].filter(Boolean).join(" ");
+  const agree = (c: string, i: number) => (
+    <li key={i} className="py-3 text-[15px] leading-relaxed text-foreground">
+      <div className={i === 0 ? top : undefined}>
+        <Lead text={relabelSeats(c)} sources={sources} />
+      </div>
+    </li>
+  );
+  const split = (t: string, i: number) => (
+    <li key={i} className="py-3 text-[15px] leading-relaxed text-foreground">
+      <Lead text={relabelSeats(t)} sources={sources} />
+    </li>
+  );
+  const move = (r: (typeof moves)[number], i: number) => (
+    <li key={i} className="flex gap-3 text-[15px]">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[5px] bg-foreground font-mono text-[13px] font-semibold text-white">{i + 1}</span>
+      <span className={cx("leading-relaxed text-foreground", i === 0 && top)}>
+        <span className="font-semibold">
+          <Lead text={relabelSeats(r.action)} sources={sources} />
+        </span>
+        {r.rationale ? (
+          <span className="text-[#4A4F63]">
+            {" "}
+            &mdash; <Lead text={relabelSeats(r.rationale)} sources={sources} />
+          </span>
+        ) : null}
+      </span>
+    </li>
+  );
   return (
     <motion.section
       initial={{ opacity: 0, y: 10 }}
@@ -109,24 +147,21 @@ export function VerdictCard({ synthesis, state, sources }: { synthesis?: Synthes
       </div>
 
       <div className="px-4 py-5 sm:px-6 sm:py-6">
-        <p className="max-w-4xl text-[17px] leading-relaxed text-foreground">
+        <ReadMore lines={3} className="max-w-4xl text-[17px] leading-relaxed text-foreground">
           <Lead text={relabelSeats(synthesis.executive_summary)} sources={sources} first />
-        </p>
+        </ReadMore>
 
         {(consensus.length > 0 || tensions.length > 0) && (
-          <div className={cx("mt-6 grid gap-x-10 gap-y-6", consensus.length > 0 && tensions.length > 0 && "md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]")}>
+          <div className={cx("mt-5 grid gap-x-10 gap-y-6", consensus.length > 0 && tensions.length > 0 && "md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]")}>
             {consensus.length > 0 && (
               <div>
                 <h4 className="flex items-center gap-2 border-b-2 border-foreground pb-2 text-[15px] font-bold text-foreground">
                   <Check size={16} aria-hidden /> Where they agree
                 </h4>
-                <ul className="divide-y divide-border">
-                  {consensus.map((c, i) => (
-                    <li key={i} className="py-3 text-[15px] leading-relaxed text-foreground">
-                      <Lead text={relabelSeats(c)} sources={sources} />
-                    </li>
-                  ))}
-                </ul>
+                <ul className="divide-y divide-border">{consensus.slice(0, 1).map(agree)}</ul>
+                <Fold open={full} id={`${id}-agree`}>
+                  <ul className="divide-y divide-border border-t border-border">{consensus.slice(1).map((c, i) => agree(c, i + 1))}</ul>
+                </Fold>
               </div>
             )}
             {tensions.length > 0 && (
@@ -134,42 +169,31 @@ export function VerdictCard({ synthesis, state, sources }: { synthesis?: Synthes
                 <h4 className="flex items-center gap-2 border-b-2 border-dashed border-foreground pb-2 text-[15px] font-bold text-foreground">
                   <Split size={16} aria-hidden /> Where they don&rsquo;t
                 </h4>
-                <ul className="divide-y divide-border">
-                  {tensions.map((t, i) => (
-                    <li key={i} className="py-3 text-[15px] leading-relaxed text-foreground">
-                      <Lead text={relabelSeats(t)} sources={sources} />
-                    </li>
-                  ))}
-                </ul>
+                <ul className="divide-y divide-border">{tensions.slice(0, 1).map(split)}</ul>
+                <Fold open={full} id={`${id}-split`}>
+                  <ul className="divide-y divide-border border-t border-border">{tensions.slice(1).map((t, i) => split(t, i + 1))}</ul>
+                </Fold>
               </div>
             )}
           </div>
         )}
 
         {moves.length > 0 && (
-          <div className="mt-6 rounded-xl border border-border bg-background p-4 sm:p-5">
+          <div className="mt-5 rounded-xl border border-border bg-background p-4 sm:p-5">
             <p className={cx(label, "flex items-center gap-1.5")}>
               <ListOrdered size={14} aria-hidden /> Next moves
             </p>
-            <ol className="mt-3 space-y-3">
-              {moves.map((r, i) => (
-                <li key={i} className="flex gap-3 text-[15px]">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[5px] bg-foreground font-mono text-[13px] font-semibold text-white">{i + 1}</span>
-                  <span className="leading-relaxed text-foreground">
-                    <span className="font-semibold">
-                      <Lead text={relabelSeats(r.action)} sources={sources} />
-                    </span>
-                    {r.rationale ? (
-                      <span className="text-[#4A4F63]">
-                        {" "}
-                        &mdash; <Lead text={relabelSeats(r.rationale)} sources={sources} />
-                      </span>
-                    ) : null}
-                  </span>
-                </li>
-              ))}
-            </ol>
+            <ol className="mt-3 space-y-3">{moves.slice(0, 1).map(move)}</ol>
+            <Fold open={full} id={`${id}-moves`}>
+              <ol className="space-y-3 pt-3">{moves.slice(1).map((r, i) => move(r, i + 1))}</ol>
+            </Fold>
           </div>
+        )}
+
+        {more > 0 && (
+          <FoldButton open={full} controls={folds} onClick={() => setFull((v) => !v)} className="mt-3">
+            {full ? "Show less" : `Show the full verdict · ${more} more`}
+          </FoldButton>
         )}
       </div>
     </motion.section>

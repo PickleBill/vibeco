@@ -1,12 +1,13 @@
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Maximize2, MessageSquareQuote, Minimize2, Scissors, Target, Users, Zap } from "lucide-react";
 import type { ResearchSource } from "@/components/simulator/SourcesList";
+import { MoreFold, ReadMore } from "@/components/territory/Memo";
 import { cx } from "@/components/territory/style";
 import { Eyebrow, FieldPill } from "@/components/territory/ui";
 import { SEATS, criticFor, distillLabel } from "@/lib/lenses";
 import { Cited, type AccountBrief } from "../AccountViews";
-import { card, label, linkBtn, title } from "./look";
+import { card, label, title } from "./look";
 import { POTENTIAL_LABEL, asList, criticParagraphs, seatPeople, stripMarks, type AccountAnalysis, type CriticResult, type Person } from "./model";
 import { SEAT_STYLE } from "./seatStyle";
 
@@ -187,12 +188,16 @@ function StressTest({
 }
 
 function SeatTake({ critic, person, sources }: { critic: CriticResult; person?: Person; sources: ResearchSource[] }) {
-  const [open, setOpen] = useState(false);
   const meta = criticFor("account", critic.persona);
   const style = SEAT_STYLE[critic.persona] ?? SEAT_STYLE.builder;
   const Icon = style.icon;
   const paragraphs = criticParagraphs(critic.perspective);
-  const shown = open ? paragraphs : paragraphs.slice(0, 2);
+  // The first paragraph shows; the rest of the take folds under it.
+  const para = (p: string, i: number) => (
+    <p key={i} className="whitespace-pre-line">
+      <Cited text={p} sources={sources} />
+    </p>
+  );
   const questions = (critic.challenge_questions ?? []).filter((q) => q?.question);
   return (
     <article>
@@ -216,18 +221,14 @@ function SeatTake({ critic, person, sources }: { critic: CriticResult; person?: 
           {stripMarks(critic.headline)}
         </h4>
       )}
-      <div className="mt-3 max-w-4xl space-y-3 text-base leading-relaxed text-foreground">
-        {shown.map((p, i) => (
-          <p key={i} className="whitespace-pre-line">
-            <Cited text={p} sources={sources} />
-          </p>
-        ))}
+      <div className="mt-3 max-w-4xl text-base leading-relaxed text-foreground">
+        {paragraphs.slice(0, 1).map(para)}
+        {paragraphs.length > 1 && (
+          <MoreFold more="Read the full take">
+            <div className="space-y-3 pt-3">{paragraphs.slice(1).map((p, i) => para(p, i + 1))}</div>
+          </MoreFold>
+        )}
       </div>
-      {paragraphs.length > 2 && (
-        <button type="button" onClick={() => setOpen((v) => !v)} className={linkBtn} aria-expanded={open}>
-          {open ? "Show less" : "Read the full take"}
-        </button>
-      )}
       {questions.length > 0 && (
         <div className="mt-4 border-t border-border pt-4">
           <p className={cx(label, "flex items-center gap-1.5")}>
@@ -278,15 +279,28 @@ function Expand({ analysis, sources }: { analysis: AccountAnalysis | null; sourc
               {p.potential && POTENTIAL_LABEL[p.potential] && <FieldPill glyph="+">{POTENTIAL_LABEL[p.potential]}</FieldPill>}
             </div>
             {p.title && <h4 className="mt-2 font-display text-lg font-semibold leading-snug text-foreground">{stripMarks(p.title)}</h4>}
-            {p.pitch && (
-              <p className="mt-1.5 text-[15px] leading-relaxed text-foreground">
-                <Cited text={p.pitch} sources={sources} />
-              </p>
-            )}
-            {p.how_its_different && (
-              <p className="mt-auto pt-3 text-[15px] leading-relaxed text-[#4A4F63]">
-                <Cited text={p.how_its_different} sources={sources} />
-              </p>
+            {/* The pitch's first lines show; the rest and how it's different open on a tap. */}
+            {p.pitch ? (
+              <div className="mt-1.5">
+                <ReadMore
+                  className="text-[15px] leading-relaxed text-foreground"
+                  more={
+                    p.how_its_different && (
+                      <p className="pt-3 text-[15px] leading-relaxed text-[#4A4F63]">
+                        <Cited text={p.how_its_different} sources={sources} />
+                      </p>
+                    )
+                  }
+                >
+                  <Cited text={p.pitch} sources={sources} />
+                </ReadMore>
+              </div>
+            ) : (
+              p.how_its_different && (
+                <p className="mt-1.5 text-[15px] leading-relaxed text-[#4A4F63]">
+                  <Cited text={p.how_its_different} sources={sources} />
+                </p>
+              )
             )}
           </article>
         ))}
@@ -304,13 +318,9 @@ function Distill({ distillation, sources }: { distillation: Record<string, unkno
   const text = (k: string) => (typeof d[k] === "string" ? (d[k] as string) : "");
   const cards = (["one_feature", "one_customer", "one_revenue"] as const).map((k) => ({ k, name: distillLabel("account", k, k), value: text(k) })).filter((c) => c.value);
   const cut = asList(d.what_to_cut).slice(0, 5);
-  return (
+  const thesis = text("thesis_statement");
+  const breakdown = (
     <div className="space-y-6">
-      {text("thesis_statement") && (
-        <p className="max-w-4xl rounded-xl border border-border bg-background p-4 font-display text-lg font-semibold leading-snug text-foreground sm:p-5 sm:text-xl">
-          <Cited text={stripMarks(text("thesis_statement"))} sources={sources} />
-        </p>
-      )}
       <div className="grid gap-x-8 gap-y-6 md:grid-cols-3">
         {cards.map(({ k, name, value }) => {
           const Icon = DISTILL_ICON[k];
@@ -356,6 +366,20 @@ function Distill({ distillation, sources }: { distillation: Record<string, unkno
             </div>
           )}
         </div>
+      )}
+    </div>
+  );
+  // The thesis shows; the call plan behind it folds under it.
+  if (!thesis) return breakdown;
+  return (
+    <div>
+      <p className="max-w-4xl rounded-xl border border-border bg-background p-4 font-display text-lg font-semibold leading-snug text-foreground sm:p-5 sm:text-xl">
+        <Cited text={stripMarks(thesis)} sources={sources} />
+      </p>
+      {(cards.length > 0 || text("mvp_scope") || cut.length > 0) && (
+        <MoreFold more="The reason, the person, the question" buttonClassName="mt-2">
+          <div className="pt-4">{breakdown}</div>
+        </MoreFold>
       )}
     </div>
   );

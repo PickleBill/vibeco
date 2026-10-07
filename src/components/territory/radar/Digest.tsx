@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/copyToClipboard";
+import { Memo } from "../Memo";
 import { cx, secondaryButton } from "../style";
 import { dayLabel } from "./evidence";
 import { digestText, type RadarAccount } from "./model";
@@ -24,16 +25,12 @@ export function Digest({ accounts, territory, subject }: { accounts: RadarAccoun
     } else toast.error("Couldn't copy. Select the text instead.");
   };
 
+  // Shut on phones (a title and the subject line), open from 1024px.
   return (
-    <section aria-labelledby="digest-title" className="mt-8 border-t border-[#ECE8DE] pt-6">
-      <div className="mb-3.5 flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
-        <h2 id="digest-title" className="font-display text-[22px] font-semibold tracking-[-0.01em]">
-          Morning digest · preview
-        </h2>
-        <span className="inline-flex min-h-[26px] items-center rounded-md border border-dashed border-foreground px-2.5 text-xs font-bold">
-          Internal · for the seller only · never sent to prospects
-        </span>
-      </div>
+    <Memo className="mt-4" defaultOpen="wide" title="Morning digest" count={`preview · top ${top.length}`} preview={subject}>
+      <span className="mb-3.5 flex min-h-[26px] w-fit items-center rounded-md border border-dashed border-foreground px-2.5 text-xs font-bold">
+        Internal · for the seller only · never sent to prospects
+      </span>
       <div className="max-w-[780px] overflow-hidden rounded-xl border border-border bg-white">
         <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border bg-muted px-4 py-3">
           <div className="flex min-w-0 flex-col gap-0.5 font-mono text-[13px] text-[#4A4F63]">
@@ -62,6 +59,6 @@ export function Digest({ accounts, territory, subject }: { accounts: RadarAccoun
           ))}
         </ol>
       </div>
-    </section>
+    </Memo>
   );
 }
