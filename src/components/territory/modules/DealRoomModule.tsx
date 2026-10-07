@@ -84,7 +84,7 @@ export function DealRoomModule({ seller, territory, reportId }: ModuleProps) {
         <Empty>{report ? "Deal Rooms work on account runs only. This run is a different kind of question." : "This run couldn't be read. Pick another account above."}</Empty>
       ) : (
         <>
-          <div className="mt-6 flex flex-col gap-3">
+          <div data-tour="deal-view" className="mt-6 flex flex-col gap-3">
             <SellerControl company={name} view={view} onView={setView} />
             <SharePanel company={name} url={url} />
           </div>

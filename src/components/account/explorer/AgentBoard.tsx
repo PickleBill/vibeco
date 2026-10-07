@@ -37,7 +37,7 @@ export function AgentBoard({ board, onOpen }: { board: AgentBoardState; onOpen?:
   if (AGENTS.every((a) => board.tiles[a.id].status === "waiting")) return null;
 
   return (
-    <section aria-labelledby="agents-title" className={cx(card, "p-4 sm:p-6")}>
+    <section data-tour="agents" aria-labelledby="agents-title" className={cx(card, "p-4 sm:p-6")}>
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="min-w-0">
           <Eyebrow>Account lens · 7 agents + Verdict</Eyebrow>

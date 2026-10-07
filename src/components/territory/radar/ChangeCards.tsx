@@ -44,7 +44,7 @@ export function ChangeCard({ account, seller, onFocus }: { account: RadarAccount
   const { row, trigger, changes } = account;
   const headline = changes.length ? changeHeadline(changes.find((c) => c.kind === "trigger") ?? changes[0]) : trigger?.text;
   return (
-    <article aria-labelledby={`card-${row.id}`} className="flex flex-col gap-3.5 rounded-xl border border-border bg-white p-4 sm:px-5 sm:py-[18px]">
+    <article data-tour="change-card" aria-labelledby={`card-${row.id}`} className="flex flex-col gap-3.5 rounded-xl border border-border bg-white p-4 sm:px-5 sm:py-[18px]">
       <div className="flex flex-wrap items-center gap-2">
         <h3 id={`card-${row.id}`} className="mr-0.5 font-display text-xl font-semibold tracking-[-0.01em]">
           {row.name}

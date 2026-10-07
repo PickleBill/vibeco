@@ -93,7 +93,7 @@ export function LookalikesModule({ seller, territory, reportId }: ModuleProps) {
         trait by trait.
       </p>
 
-      <div className="mt-5 flex flex-wrap items-end gap-x-4 gap-y-3">
+      <div data-tour="lookalikes-seed" className="mt-5 flex flex-wrap items-end gap-x-4 gap-y-3">
         <div role="group" aria-label="Start from a customer" className="flex flex-wrap items-center gap-2">
           {options
             .filter((o) => o.kind === "customer")
