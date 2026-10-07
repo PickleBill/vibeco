@@ -50,7 +50,7 @@ All agents follow the same pattern: receive JSON → construct system prompt →
 | `critic-chat` | Answer the critic: one of an account run's five critics replies to the seller in character from the brief and its sources only, grades the reply (strong, partial, misses) and asks one follow-up. Public, rate-limited | Gemini 3-flash, Claude Sonnet 5 fallback | `respond_as_critic` |
 | `committee-sim` | Simulate the buying committee: the five critics of an account run argue in three rounds; stances (−2..2) and influence, path to yes, main blocker, a synthetic outcome band, what-if re-runs. Numbers and dates not in the brief are dropped in code. A saved run's meeting is stored once at `auto_analysis.committee`; what-ifs are never stored. Public, rate-limited | Claude Sonnet 5, Gemini 3-flash fallback | `run_committee` |
 | `deal-room` | The prospect corrects the brief claim by claim (right, fix, not sure), saved at `auto_analysis.deal_room`; also serves the prospect-safe part of a run (no fit, critics, objections or plan). Public, rate-limited | None (no LLM) | N/A |
-| `suggest-accounts` | Lookalikes, beyond the territory: suggests real companies in the region like a seed account that aren't in the territory yet. Code drops excluded, duplicate and directory domains, any reason with a number or a funding/headcount claim, and any domain that doesn't answer over HTTPS. Shown as unresearched hypotheses with a "Research it live" link; nothing stored. Public, rate-limited | Claude Sonnet 5, Gemini 3-flash fallback | `suggest_accounts` |
+| `suggest-accounts` | Lookalikes, beyond the territory: suggests real companies in the region like a seed account that aren't in the territory yet. With `EXA_API_KEY`, an Exa company search finds the pages first (headquarters, size and listed tools from the page's company data) and the model only picks among them by number; without it, or when the search keeps nothing, the model names them. Code drops excluded, duplicate and directory domains, any reason with a number or a funding/headcount claim, and any domain that doesn't answer over HTTPS. Shown as unresearched hypotheses with a "Research it live" link; nothing stored. Public, rate-limited | Claude Sonnet 5, Gemini 3-flash fallback | `suggest_accounts` |
 | `stack-scan` | **P1**: reads a company's public Greenhouse, Lever, Ashby or Workday job board (Workday via a registry of verified boards in `_shared/workday-boards.ts`) and lists the data tools its posts name, plainly or as one option among several. The same scan runs inside `simulate-idea`'s account research | None (no LLM) | N/A |
 | `ask-bill` | **bricker-os**: corpus-grounded Q&A for Bill's dynamic résumé terminal (corpus fetched from the Brick repo's GitHub Pages; public endpoint, rate-limited) | Claude 3.5 Sonnet / 3 Haiku | None (plain text answer) |
 
@@ -72,6 +72,7 @@ Shared code lives here. Supabase convention: `_shared/` prefix means it's not de
 | `stack-scan.ts` / `stack-tools.ts` | Job-board scan and the data-tool catalog; a tool listed only as an option ("Snowflake, BigQuery, or Redshift", a parenthetical list, a "Bonus" or "Preferred" line) is never Confirmed, and one the company moved off is Former |
 | `match.ts` | Company and word matching shared by the evidence checks ("Chime" counts, "chime in" doesn't); `parseCompany` splits "Bandwidth (bandwidth.com)" into a name and a domain |
 | `sellers/` | Seller profiles for the account lens (`omni.ts`: public facts with source URLs, plus the two motions as generic seller config) |
+| `exa.ts` | Exa company search: real company pages read into name, own domain, headquarters, headcount and the data tools the page's company data lists |
 | `rate-limit.ts` | Per-IP limits for public endpoints that pay for searches or long model calls |
 
 ### Database (Supabase PostgreSQL)
@@ -101,6 +102,7 @@ All tables use UUID primary keys, `now()` timestamps, and row-level security (RL
 
 - `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` — Frontend Supabase connection
 - `LOVABLE_API_KEY` — Supabase Edge Function secret for Lovable Gateway
+- `EXA_API_KEY` — Optional, grounds `suggest-accounts` in an Exa web search
 - `ANTHROPIC_API_KEY` — Optional, enables direct Claude API calls as fallback (Claude also runs through the Lovable gateway without it)
 
 ## Design System
