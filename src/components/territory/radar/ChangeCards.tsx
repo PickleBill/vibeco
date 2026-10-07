@@ -131,7 +131,7 @@ export function FreshList({ accounts, seller, onFocus }: { accounts: RadarAccoun
         <h3 className="font-display text-2xl font-semibold">Nothing moved in the last 60 days</h3>
         <p className="mt-1.5 text-base text-[#4A4F63]">
           No account has a dated trigger this recent{accounts.some((a) => a.row.previousId) ? ", and no re-run changed anything a source backs" : ""}. A quiet territory is a good time to re-check
-          old evidence. The freshest three:
+          old evidence. {top.length === 1 ? "The one account here:" : `The freshest ${top.length === 2 ? "two" : "three"}:`}
         </p>
       </div>
       <ul className="divide-y divide-border rounded-lg border border-border">

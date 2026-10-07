@@ -61,7 +61,13 @@ export function DealRoomModule({ seller, territory, reportId }: ModuleProps) {
         Share one link. The account sees only the public claims and their sources, marks each one right, fixes it or skips it, and the answers land here as discovery notes.
       </p>
       <div className="mt-4">
-        <AccountSwitcher rows={territory.rows} activeId={activeId} hrefFor={(id) => moduleHref(seller.id, "deal", id)} loading={territory.loading} />
+        <AccountSwitcher
+          rows={territory.rows}
+          activeId={activeId}
+          hrefFor={(id) => moduleHref(seller.id, "deal", id)}
+          loading={territory.loading}
+          segments={seller.territory?.segments}
+        />
       </div>
 
       {!activeId ? (

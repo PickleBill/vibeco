@@ -41,7 +41,12 @@ export function TerritoryShell({
     return () => root.classList.remove(theme);
   }, [theme]);
 
-  const total = seller.territory?.accounts.length ?? 0;
+  const accounts = seller.territory?.accounts ?? [];
+  const total = accounts.length;
+  // "Southeast · 1 Strategic · 12 Enterprise" when the territory is split by segment.
+  const split = (seller.territory?.segments ?? []).map((s) => ({ ...s, count: accounts.filter((a) => a.segment === s.id).length }));
+  const chip = split.length ? split.map((s) => `${s.count} ${s.label}`).join(" · ") : `${total} accounts`;
+  const chipTitle = split.length ? `${total} accounts: ${split.map((s) => `${s.count} ${s.label} (${s.note})`).join(", ")}` : undefined;
   const latest = territory.rows.reduce<string | null>((a, r) => (!a || r.ranAt > a ? r.ranAt : a), null);
 
   return (
@@ -58,9 +63,11 @@ export function TerritoryShell({
             Seller profile: {seller.name} <span className="text-xs font-normal text-muted-foreground">unofficial</span>
           </FieldPill>
           {seller.territory && (
-            <FieldPill glyph="#" className="h-8 text-sm">
-              {seller.territory.name} · {total} accounts
-            </FieldPill>
+            <span title={chipTitle} className="inline-flex">
+              <FieldPill glyph="#" className="h-8 text-sm">
+                {seller.territory.name} · {chip}
+              </FieldPill>
+            </span>
           )}
           {latest && <LivePill className="hidden sm:inline-flex">Latest run {ranAt(latest)}</LivePill>}
         </div>

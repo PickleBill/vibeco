@@ -10,15 +10,30 @@ export interface SavedRun {
   reportId: string;
 }
 
+/** How a territory splits its accounts by size. */
+export type Segment = "Strategic" | "Enterprise";
+
 /** One account in the territory: its latest saved run, and the one before it when there is one. */
 export interface TerritoryAccount extends SavedRun {
   /** An earlier run of the same account; the radar diffs the two. */
   previousReportId?: string;
+  /** Which segment the account belongs to (by employee count). */
+  segment?: Segment;
+}
+
+export interface TerritorySegment {
+  id: Segment;
+  /** "Strategic" */
+  label: string;
+  /** "5,000+ employees" */
+  note: string;
 }
 
 export interface Territory {
   /** "Southeast" */
   name: string;
+  /** The segments, largest accounts first; the radar filters by them. */
+  segments?: TerritorySegment[];
   accounts: TerritoryAccount[];
 }
 
@@ -64,24 +79,28 @@ const SELLERS: Record<string, SellerConfig> = {
     ],
     territory: {
       name: "Southeast",
+      segments: [
+        { id: "Strategic", label: "Strategic", note: "5,000+ employees" },
+        { id: "Enterprise", label: "Enterprise", note: "Under 5,000" },
+      ],
       accounts: [
-        { company: "Relay (relaypro.com)", reportId: "9c769b0b-8282-4c6d-91d7-c59b1bae8ca5" },
-        { company: "AvidXchange (avidxchange.com)", reportId: "cf425cad-5b53-4401-b4e2-3bbf1bd4d9ef" },
-        { company: "Bandwidth (bandwidth.com)", reportId: "0a08bed8-e339-45cc-8f60-4e9df60764f3" },
-        { company: "Red Ventures (redventures.com)", reportId: "45fe7c89-fce0-450f-9a1c-ca91838cb64e" },
-        { company: "LendingTree (lendingtree.com)", reportId: "1061f011-9edc-494d-806b-e3d8877d689d" },
-        { company: "Perry Ellis International (perryellis.com)", reportId: "e7a4b6ea-d199-48bf-b8f8-9919cd6ec25e" },
-        { company: "OneTrust (onetrust.com)", reportId: "ef273638-6aa0-4f11-9efa-b55a0eceb16a" },
-        { company: "Kaseya (kaseya.com)", reportId: "1809479a-9c21-4633-9701-304064837aa2" },
-        { company: "CallRail (callrail.com)", reportId: "d837a7fb-87bb-4607-8bcb-21a5615518f5" },
-        { company: "nCino (ncino.com)", reportId: "9539bd3c-295a-43ed-a351-a0d66be50205" },
-        { company: "Calendly (calendly.com)", reportId: "11ea8bb1-954c-4338-92ac-7cdb328818d8" },
-        { company: "Salesloft (salesloft.com)", reportId: "36b13077-1ff3-466e-9788-acab46433d33" },
-        { company: "Fleetio (fleetio.com)", reportId: "af51c894-dfd0-4496-88fa-4480373ebeaa" },
-        { company: "Agilysys (agilysys.com)", reportId: "faa8b6c5-c166-44ae-b224-8e5284980e2b" },
-        { company: "Built (getbuilt.com)", reportId: "ea0c06b8-2817-463e-bc69-b07a305b4290" },
-        { company: "M3 (m3as.com)", reportId: "3aeed73e-6f36-4153-8442-d686d475eaba" },
-        { company: "Teamworks (teamworks.com)", reportId: "1c37a8c0-0942-46b8-96bb-bf3d9202e63d" },
+        { company: "Relay (relaypro.com)", reportId: "9c769b0b-8282-4c6d-91d7-c59b1bae8ca5", segment: "Enterprise" },
+        { company: "AvidXchange (avidxchange.com)", reportId: "cf425cad-5b53-4401-b4e2-3bbf1bd4d9ef", segment: "Enterprise" },
+        { company: "Bandwidth (bandwidth.com)", reportId: "0a08bed8-e339-45cc-8f60-4e9df60764f3", segment: "Enterprise" },
+        { company: "Red Ventures (redventures.com)", reportId: "45fe7c89-fce0-450f-9a1c-ca91838cb64e", segment: "Enterprise" },
+        { company: "LendingTree (lendingtree.com)", reportId: "1061f011-9edc-494d-806b-e3d8877d689d", segment: "Enterprise" },
+        { company: "Perry Ellis International (perryellis.com)", reportId: "e7a4b6ea-d199-48bf-b8f8-9919cd6ec25e", segment: "Enterprise" },
+        { company: "OneTrust (onetrust.com)", reportId: "ef273638-6aa0-4f11-9efa-b55a0eceb16a", segment: "Enterprise" },
+        { company: "Kaseya (kaseya.com)", reportId: "1809479a-9c21-4633-9701-304064837aa2", segment: "Strategic" },
+        { company: "CallRail (callrail.com)", reportId: "d837a7fb-87bb-4607-8bcb-21a5615518f5", segment: "Enterprise" },
+        { company: "nCino (ncino.com)", reportId: "9539bd3c-295a-43ed-a351-a0d66be50205", segment: "Enterprise" },
+        { company: "Calendly (calendly.com)", reportId: "11ea8bb1-954c-4338-92ac-7cdb328818d8", segment: "Enterprise" },
+        { company: "Salesloft (salesloft.com)", reportId: "36b13077-1ff3-466e-9788-acab46433d33", segment: "Enterprise" },
+        { company: "Fleetio (fleetio.com)", reportId: "af51c894-dfd0-4496-88fa-4480373ebeaa", segment: "Enterprise" },
+        { company: "Agilysys (agilysys.com)", reportId: "faa8b6c5-c166-44ae-b224-8e5284980e2b", segment: "Enterprise" },
+        { company: "Built (getbuilt.com)", reportId: "ea0c06b8-2817-463e-bc69-b07a305b4290", segment: "Enterprise" },
+        { company: "M3 (m3as.com)", reportId: "3aeed73e-6f36-4153-8442-d686d475eaba", segment: "Enterprise" },
+        { company: "Teamworks (teamworks.com)", reportId: "1c37a8c0-0942-46b8-96bb-bf3d9202e63d", segment: "Enterprise" },
       ],
     },
     seeds: [{ name: "Guitar Center", source: "https://omni.co/blog/case-study-guitar-center", reportId: "a9aefb7a-f59f-4324-8d2f-f628d2aa05df" }],
