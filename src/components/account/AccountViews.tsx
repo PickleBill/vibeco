@@ -300,7 +300,7 @@ const MOTION_SUMMARY: Record<MotionLabel, string> = {
   Unclear: "No source shows either motion yet, so test both on the call.",
 };
 
-/** The motion as a field pill: "Aa Both". */
+/** The motion as a field pill: "Both". */
 export function MotionBadge({ label }: { label?: string }) {
   if (!label || !(label in MOTION_SUMMARY)) return null;
   return <FieldPill>{label}</FieldPill>;

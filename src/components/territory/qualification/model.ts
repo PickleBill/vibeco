@@ -172,8 +172,8 @@ export function qualify(brief: AccountBrief | null | undefined, analysis?: Accou
   // C: someone who sells for you. The meeting finds a candidate seat; the brief names where to start.
   const backer = [...seats].filter((s) => s.stance_end >= 1).sort((x, y) => y.stance_end - x.stance_end || y.influence - x.influence)[0];
   const start = roleName(b.start_with?.role);
-  const named = Array.isArray(b.people) ? b.people.find((p) => p?.name && p?.role) : undefined;
-  const lead = named ? `${named.name}, ${named.role} [${named.source}]` : start;
+  // A role, not a person: the views name roles and leave people to the sources.
+  const lead = start;
   rows.champion = {
     status: backer || lead ? "Inferred" : "Gap",
     evidence: [backer ? `The ${mid(backer.role)} ${stanceWord(backer.stance_end).toLowerCase()} in the meeting.` : "", lead ? `Start with: ${lead}.` : ""].filter(Boolean).join(" ") || "No candidate yet.",

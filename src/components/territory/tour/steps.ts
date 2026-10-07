@@ -36,7 +36,7 @@ export function tourSteps(demo: string): TourStep[] {
       withAccount: true,
       target: "lookalikes-seed",
       title: "Lookalikes",
-      body: `Seeded with ${demo}: every territory account is scored against it, trait by trait. Try another seed.`,
+      body: `Seeded with ${demo}: find new companies like it, or see how the territory ranks against it.`,
     },
     {
       module: "committee",
