@@ -21,6 +21,7 @@ import {
   fitMotion,
   internalEvidence,
   signalLine,
+  type MotionEvidence,
   type MotionRead,
 } from "../motion.ts";
 import {
@@ -47,6 +48,29 @@ export interface StackLine {
   evidence?: string;
   /** True when the model said Confirmed but no cited source named the tool at this company. */
   downgraded?: boolean;
+}
+
+/**
+ * A tool named after the account ("Agilysys Analyze" at Agilysys) is its own
+ * product: analytics it sells to its customers, never its internal stack. Moves
+ * those lines to Embedded analytics (dropping that category's "Not found") and
+ * returns them as embedded evidence.
+ */
+export function ownProductLines(lines: StackLine[], company: string): MotionEvidence[] {
+  const out: MotionEvidence[] = [];
+  for (const l of lines) {
+    if (!l.tool || l.status === "Not found" || !companyHits(l.tool, company).length) continue;
+    if (l.name !== "Embedded analytics") {
+      l.name = "Embedded analytics";
+      l.description = `${company}'s own analytics product, sold to its customers.`;
+    }
+    if (l.sources.length) out.push({ source: l.sources[0], signal: `${l.tool} (own product)`, quote: l.evidence || l.tool });
+  }
+  if (out.length) {
+    const keep = lines.filter((l) => !(l.name === "Embedded analytics" && l.status === "Not found"));
+    lines.splice(0, lines.length, ...keep);
+  }
+  return out;
 }
 
 // ─── Tool schema ───
@@ -789,6 +813,7 @@ export function finalizeAccount(
         boardText: new Map(boards.map((b) => [b.id, b.text])),
         cited: (Array.isArray(rawMotion.embedded_sources) ? rawMotion.embedded_sources : []).map(Number),
       });
+  embedded.push(...ownProductLines(brief.core_features, company));
   const internal = noSources ? [] : internalEvidence({ company, research, sourceText, stack: brief.core_features });
   const postings = research.sources.filter((s) => s.kind === "jobs").map((s) => s.title);
   brief.motion = buildMotion(rawBrief.motion, internal, embedded, tidy, seller, postings);

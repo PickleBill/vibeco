@@ -211,6 +211,84 @@ export interface CriticChatResult {
   latencyMs: number;
 }
 
+// ─── committee-sim (simulate an account's buying committee) ───
+
+/** One account critic's earlier take, as the committee reads it. */
+export interface CommitteeCritic {
+  persona: PersonaType;
+  headline: string;
+  perspective: string;
+  challenge_questions: string[];
+}
+
+/** Checked input for one simulated meeting. */
+export interface CommitteeSimInput {
+  /** The account brief (lens "account"). */
+  brief: Record<string, unknown>;
+  /** The critics' takes; at least one, one per seat. */
+  perspectives: CommitteeCritic[];
+  /** Hypotheticals the seller toggles, true for this run only (3 at most, 120 characters each). */
+  what_if: string[];
+  /** Where the plain run left each seat; a what-if run starts from it so the moves show the what-if's effect. */
+  baseline?: CommitteeBaseline;
+}
+
+/** What the endpoint accepts: a saved run by id, or the brief and critics inline. */
+export type CommitteeSimRequest =
+  | { report_id: string; what_if?: string[] }
+  | { brief: Record<string, unknown>; perspectives: unknown[]; what_if?: string[]; baseline?: unknown };
+
+/** -2 blocks, -1 leans no, 0 neutral, 1 leans yes, 2 sponsors. */
+export type CommitteeStance = -2 | -1 | 0 | 1 | 2;
+
+/** The parts of a plain (no what-if) run a what-if run is compared with. */
+export interface CommitteeBaseline {
+  seats: { seat: PersonaType; stance_start: CommitteeStance; stance_end: CommitteeStance }[];
+  outcome: { label: CommitteeOutcomeLabel; low: number; high: number };
+}
+
+export interface CommitteeSeat {
+  seat: PersonaType;
+  /** The account-lens role name ("Head of Data"), set in code. */
+  role: string;
+  stance_start: CommitteeStance;
+  /** Always the seat's last stance_after (stance_start if it never spoke). */
+  stance_end: CommitteeStance;
+  influence: 1 | 2 | 3;
+  top_concern: string;
+}
+
+export interface CommitteeTurn {
+  seat: PersonaType;
+  says: string;
+  stance_after: CommitteeStance;
+}
+
+export interface CommitteeRound {
+  title: string;
+  turns: CommitteeTurn[];
+}
+
+export type CommitteeOutcomeLabel = "Likely yes" | "Coin flip" | "Uphill" | "Too early";
+
+export interface CommitteeResult {
+  /** Five seats, in the order champion, skeptic, competitor, customer, builder. */
+  seats: CommitteeSeat[];
+  rounds: CommitteeRound[];
+  path_to_yes: { step: string; seat: PersonaType; why: string }[];
+  main_blocker: { seat: PersonaType; why: string; what_would_flip_it: string };
+  /** A synthetic estimate: a percent band in steps of 5, 10 to 30 wide. */
+  outcome: { label: CommitteeOutcomeLabel; low: number; high: number; summary: string };
+  /** The hypotheticals applied to this run (never stored). */
+  what_if?: string[];
+  model: string;
+  latencyMs: number;
+  /** Set on the copy saved to auto_analysis.committee. */
+  generated_at?: string;
+  /** True when served from auto_analysis.committee without a model call. */
+  cached?: boolean;
+}
+
 export interface AltPromptInput {
   brief: BriefData;
   idea: string;

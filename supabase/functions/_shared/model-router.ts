@@ -21,7 +21,8 @@ export type TaskType =
   | "feedback-synthesis"    // Signal Mine: cluster → feature candidate synthesis
   | "bill-qa"               // bricker-os: corpus-grounded Q&A in Bill's voice
   | "account-brief"         // Target-account lens: brief + first-call plan in one express call
-  | "critic-chat";          // Target-account lens: a critic answers the seller, live
+  | "critic-chat"           // Target-account lens: a critic answers the seller, live
+  | "committee-sim";        // Target-account lens: the five critics run one buying meeting
 
 // ─── Model Selection ───
 
@@ -135,6 +136,13 @@ const ROUTING_TABLE: Record<TaskType, ModelCandidate[]> = {
   "critic-chat": [
     { model: "google/gemini-3-flash-preview", rationale: "Fast, grounded replies for a live conversation", cost: "low", speed: "fast" },
     { model: "anthropic/claude-sonnet-5", rationale: "Fallback that sticks to the facts", cost: "high", speed: "medium" },
+  ],
+  // One structured call that keeps five voices, stance moves and grounding
+  // rules consistent across three rounds: the same strengths as the account
+  // brief, so Claude leads (committee-sim gives it 45s) and Flash is the fallback.
+  "committee-sim": [
+    { model: "anthropic/claude-sonnet-5", rationale: "Keeps every seat to the brief and its sources across a long, structured answer", cost: "high", speed: "medium" },
+    { model: "google/gemini-3-flash-preview", rationale: "Fast fallback if Claude is slow or unavailable", cost: "low", speed: "fast" },
   ],
   // Gateway-served models only. The retired ids this used to name
   // (anthropic/claude-3.5-sonnet, claude-3-haiku) are why the résumé terminal
