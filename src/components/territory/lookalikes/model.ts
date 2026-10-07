@@ -7,7 +7,7 @@ import type { MotionLabel } from "@/components/account/AccountViews";
 import { monthLabel } from "@/components/account/explorer/model";
 import type { Segment } from "@/lib/sellers";
 import type { OmniStatus, TerritoryRow } from "../model";
-import { freshestTrigger, isBI, isWarehouse, stackByTool, startOfDay, toolKey, TRIGGER_LABEL, type FreshTrigger, type TriggerKind } from "../radar/evidence";
+import { dayLabel, freshestTrigger, isBI, isWarehouse, stackByTool, startOfDay, toolKey, TRIGGER_LABEL, type FreshTrigger, type TriggerKind } from "../radar/evidence";
 
 export interface Tool {
   name: string;
@@ -73,6 +73,18 @@ export function fingerprintOf(row: TerritoryRow, sellerName: string, now: Date =
     segment: row.segment,
     fit: row.fit,
   };
+}
+
+/** The seed's traits as plain words: "Warehouse: Snowflake". */
+export function matchTraits(fp: Fingerprint, sellerName: string): { k: string; v: string }[] {
+  return [
+    { k: "Motion", v: fp.motion },
+    { k: "Warehouse", v: fp.warehouse.length ? names(fp.warehouse) : "none confirmed" },
+    { k: "BI", v: fp.bi.length ? names(fp.bi) : fp.sellerTool ? `none besides ${sellerName}` : "none confirmed" },
+    ...(fp.movedOff.length ? [{ k: "Moved off", v: names(fp.movedOff) }] : []),
+    { k: "Trigger", v: fp.trigger ? `${TRIGGER_LABEL[fp.triggerKind]} · ${dayLabel(fp.trigger.date)}` : "none dated" },
+    { k: "Embedded", v: fp.embedded ? "yes" : "no signal" },
+  ];
 }
 
 // ─── Scoring ───

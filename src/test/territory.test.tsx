@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation, useParams } from "react-router-dom";
 import type { AccountBrief, MotionLabel } from "@/components/account/AccountViews";
 import type { SavedReport } from "@/components/account/explorer/savedRuns";
 import type { Segment, SellerConfig, TerritorySegment } from "@/lib/sellers";
@@ -7,15 +7,19 @@ import type { Segment, SellerConfig, TerritorySegment } from "@/lib/sellers";
 // Saved runs resolve through the shared-report RPC; the tests answer it from `runs`.
 const runs: Record<string, SavedReport> = {};
 const rpc = vi.fn(async (_fn: string, args: { _report_id: string }) => ({ data: runs[args._report_id] ?? null, error: null }));
-vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: (fn: string, args: { _report_id: string }) => rpc(fn, args) } }));
+// Lookalikes beyond the territory: the suggestions call, answered per test.
+const invoke = vi.fn();
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: { rpc: (fn: string, args: { _report_id: string }) => rpc(fn, args), functions: { invoke: (...args: unknown[]) => invoke(...args) } },
+}));
 
 import { omniStatus, toRow, type TerritoryRow } from "@/components/territory/model";
 import { AccountSwitcher, SELECT_AFTER } from "@/components/territory/AccountSwitcher";
 import { accountMeta } from "@/components/territory/accountMeta";
 import { diffRuns } from "@/components/territory/radar/diff";
-import { classifyTrigger, freshestTrigger, redactPeople, sourceDay } from "@/components/territory/radar/evidence";
+import { classifyTrigger, dayLabel, freshestTrigger, redactPeople, sourceDay } from "@/components/territory/radar/evidence";
 import { BLIP_GAP, placeBlips, radiusFor, toRadarAccount } from "@/components/territory/radar/model";
-import { fingerprintOf, rankLookalikes, scoreLookalike, storyLine } from "@/components/territory/lookalikes/model";
+import { fingerprintOf, matchTraits, rankLookalikes, scoreLookalike, storyLine } from "@/components/territory/lookalikes/model";
 import { RadarModule } from "@/components/territory/modules/RadarModule";
 import { LookalikesModule } from "@/components/territory/modules/LookalikesModule";
 
@@ -242,6 +246,19 @@ describe("lookalike scoring", () => {
     expect(ranked.map((l) => l.fp.name)).toEqual(["AvidXchange", "Bandwidth", "Already On Omni"]);
   });
 
+  it("names what lookalikes match on in plain words, the seller's own tool aside", () => {
+    expect(matchTraits(seed, "Omni").map((t) => `${t.k}: ${t.v}`)).toEqual([
+      "Motion: Internal",
+      "Warehouse: Snowflake",
+      "BI: none besides Omni",
+      "Moved off: Tableau, Power BI",
+      `Trigger: Hiring · ${seed.trigger ? dayLabel(seed.trigger.date) : ""}`,
+      "Embedded: no signal",
+    ]);
+    const bare = fingerprintOf(rowOf(run("bare", "Bare Co", { motion: "Unclear" })), "Omni", NOW);
+    expect(matchTraits(bare, "Omni").map((t) => t.v)).toEqual(["Unclear", "none confirmed", "none confirmed", "none dated", "no signal"]);
+  });
+
   it("writes a partial story when only partial traits match", () => {
     const relay = fingerprintOf(rowOf(run("relay", "Relay", { motion: "Both", stack: [["BI tools", "Metabase", "Confirmed"]], whyNow: "2026-09-30: Raised $36M [1]." })), "Omni", NOW);
     const s = scoreLookalike(seed, relay);
@@ -344,27 +361,53 @@ describe("RadarModule", () => {
   });
 });
 
+/** The module as the shell mounts it: the seed comes from the URL. */
+function Lookalikes(props: Omit<Parameters<typeof LookalikesModule>[0], "reportId">) {
+  const { reportId } = useParams();
+  return <LookalikesModule {...props} reportId={reportId} />;
+}
+
+const lookalikesAt = (path: string, props: Omit<Parameters<typeof LookalikesModule>[0], "reportId">) =>
+  render(
+    <MemoryRouter initialEntries={[path]}>
+      <Routes>
+        <Route path="/for/:seller/:module?/:reportId?" element={<Lookalikes {...props} />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
 describe("LookalikesModule", () => {
   beforeEach(() => {
     runs.gc = gc;
+    invoke.mockReset();
   });
 
   it("starts from the first customer with a saved run, ranks the territory, and filters", async () => {
     const { seller: s, territory } = territoryOf([avid, band]);
-    render(
-      <MemoryRouter initialEntries={["/for/omni/lookalikes"]}>
-        <Routes>
-          <Route path="/for/:seller/:module?/:reportId?" element={<LookalikesModule seller={s} territory={territory} />} />
-        </Routes>
-      </MemoryRouter>,
-    );
+    lookalikesAt("/for/omni/lookalikes", { seller: s, territory });
     expect(await screen.findByRole("heading", { level: 1, name: "Accounts that look like Guitar Center" })).toBeInTheDocument();
     expect(within(screen.getByRole("group", { name: "Start from a customer" })).getByRole("button", { name: /^Guitar Center/ })).toHaveAttribute("aria-pressed", "true");
-    const ranked = screen.getByRole("region", { name: "Ranked lookalikes · 2" });
+
+    // The main action sits above the ranked territory list.
+    const find = screen.getByRole("button", { name: "Find new companies like Guitar Center" });
+    const ranked = screen.getByRole("region", { name: "In your territory · 2" });
+    expect(find.compareDocumentPosition(ranked) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    // What we match on: plain traits, a link to the seed's run, no domains anywhere.
+    const traits = screen.getByRole("list", { name: "Guitar Center's traits" });
+    expect(within(traits).getByText("Snowflake")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /See Guitar Center’s run/ })).toHaveAttribute("href", "/for/omni/account/gc");
+    expect(screen.queryByText(/\.com\b/)).toBeNull();
+    expect(screen.queryByRole("group", { name: "Minimum score" })).toBeNull();
+
     const cards = within(ranked).getAllByRole("article");
     expect(within(cards[0]).getByText("60")).toBeInTheDocument();
     expect(within(cards[0]).getByText(/which AvidXchange still runs/)).toBeInTheDocument();
-    expect(screen.getByText(/use Beyond the territory below/)).toBeInTheDocument();
+    // The score opens the trait-by-trait breakdown.
+    const score = within(cards[0]).getByRole("button", { name: /^60 similarity: how it matches, 3 of 5 traits$/ });
+    fireEvent.click(score);
+    expect(score).toHaveAttribute("aria-expanded", "true");
+    expect(within(cards[0]).getByRole("list", { name: "How it matches" })).toBeInTheDocument();
 
     fireEvent.click(within(screen.getByRole("group", { name: "Motion" })).getByRole("button", { name: "Embedded" }));
     expect(screen.getByText("No lookalikes match these filters")).toBeInTheDocument();
@@ -374,15 +417,42 @@ describe("LookalikesModule", () => {
 
   it("selects a territory account as the seed from the URL", async () => {
     const { seller: s, territory } = territoryOf([avid, band]);
-    render(
-      <MemoryRouter initialEntries={["/for/omni/lookalikes/band"]}>
-        <Routes>
-          <Route path="/for/:seller/:module?/:reportId?" element={<LookalikesModule seller={s} territory={territory} reportId="band" />} />
-        </Routes>
-      </MemoryRouter>,
-    );
+    lookalikesAt("/for/omni/lookalikes/band", { seller: s, territory });
     await waitFor(() => expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Accounts that look like Bandwidth"));
+    expect(screen.getByText("or a territory account")).toBeInTheDocument();
     expect(screen.getAllByRole("article")).toHaveLength(1);
+  });
+
+  it("finds new companies like the seed above the list, and a new seed clears them", async () => {
+    invoke.mockResolvedValue({
+      data: { suggestions: [{ name: "Cardlytics", domain: "cardlytics.com", hq: "Atlanta, GA", why: "May run a data team on a warehouse.", motion_guess: "Internal" }] },
+      error: null,
+    });
+    const named = run("named", "Named Co (named.example)", { motion: "Internal", stack: [["BI tools", "Omni", "Confirmed"]] });
+    const { seller: s, territory } = territoryOf([avid, band, named]);
+    lookalikesAt("/for/omni/lookalikes", { seller: s, territory });
+    fireEvent.click(await screen.findByRole("button", { name: "Find new companies like Guitar Center" }));
+    const list = await screen.findByRole("list", { name: "Suggestions like Guitar Center" });
+    expect(within(list).getByText("Hypothesis")).toBeInTheDocument();
+    expect(list.compareDocumentPosition(screen.getByRole("region", { name: /^In your territory/ })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect((invoke.mock.calls[0] as [string, { body: { exclude: string[] } }])[1].body.exclude).toEqual(
+      expect.arrayContaining(["AvidXchange", "avidxchange.com", "Bandwidth", "Guitar Center"]),
+    );
+
+    fireEvent.click(within(screen.getByRole("group", { name: "Start from a customer" })).getByRole("button", { name: /^Named Co/ }));
+    await waitFor(() => expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Accounts that look like Named Co"));
+    expect(screen.queryByRole("list", { name: /Suggestions like/ })).toBeNull();
+    expect(screen.getByRole("button", { name: "Find new companies like Named Co" })).toBeInTheDocument();
+  });
+
+  it("shows the top ten, then the rest on request", async () => {
+    const many = Array.from({ length: 12 }, (_, i) => run(`m${i}`, `Account ${String.fromCharCode(65 + i)}`, { motion: "Internal" }));
+    const { seller: s, territory } = territoryOf(many);
+    lookalikesAt("/for/omni/lookalikes", { seller: s, territory });
+    await screen.findByRole("region", { name: "In your territory · 12" });
+    expect(screen.getAllByRole("article")).toHaveLength(10);
+    fireEvent.click(screen.getByRole("button", { name: "Show all 12" }));
+    expect(screen.getAllByRole("article")).toHaveLength(12);
   });
 });
 
@@ -592,13 +662,13 @@ describe("LookalikesModule seeds and segments", () => {
     );
     expect(await screen.findByRole("heading", { level: 1, name: "Accounts that look like Guitar Center" })).toBeInTheDocument();
     const seeds = screen.getByRole("group", { name: "Start from a customer" });
-    expect(within(seeds).getByRole("button", { name: /^Named Co\s*Omni named in its job posts$/ })).toBeInTheDocument();
+    expect(within(seeds).getByRole("button", { name: /^Named Co\s*Named in job posts$/ })).toBeInTheDocument();
     expect(screen.getAllByRole("article")).toHaveLength(3);
 
     const seg = screen.getByRole("group", { name: "Segment" });
     fireEvent.click(within(seg).getByRole("button", { name: /Strategic/ }));
     expect(screen.getAllByRole("article")).toHaveLength(1);
-    expect(screen.getByRole("region", { name: "Ranked lookalikes · 1" })).toHaveTextContent("AvidXchange");
+    expect(screen.getByRole("region", { name: "In your territory · 1" })).toHaveTextContent("AvidXchange");
     fireEvent.click(within(seg).getByRole("button", { name: /Enterprise/ }));
     expect(screen.getAllByRole("article")).toHaveLength(2);
   });

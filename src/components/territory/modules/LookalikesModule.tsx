@@ -3,18 +3,20 @@ import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { MotionConfig, useReducedMotion } from "framer-motion";
 import type { MotionLabel } from "@/components/account/AccountViews";
+import { toggle } from "@/components/account/explorer/look";
 import type { Segment } from "@/lib/sellers";
+import { AccountSwitcher } from "../AccountSwitcher";
+import { CompanyLogo } from "../company/CompanyLogo";
 import { BeyondTerritory } from "../lookalikes/BeyondTerritory";
 import { Constellation } from "../lookalikes/Constellation";
 import { FingerprintCard } from "../lookalikes/FingerprintCard";
 import { LookalikeCard } from "../lookalikes/LookalikeCard";
 import { fingerprintOf, rankLookalikes, TRAIT_LABEL, WEIGHTS, type TraitId } from "../lookalikes/model";
-import { defaultSeed, seedOptions, useSeedRow } from "../lookalikes/useSeed";
-import { datedSources, startOfDay } from "../radar/evidence";
-import { OmniRing } from "../radar/segments";
+import { defaultSeed, seedOptions, useSeedRow, type SeedOption } from "../lookalikes/useSeed";
+import { startOfDay } from "../radar/evidence";
 import { MissingNote } from "../radar/States";
 import { Memo } from "../Memo";
-import { OMNI_TEXT, segmentsOf } from "../model";
+import { segmentsOf } from "../model";
 import { moduleHref } from "../nav";
 import { NextStep } from "../NextStep";
 import { PageHeader } from "../PageHeader";
@@ -22,7 +24,8 @@ import { cx, primaryButton, secondaryButton } from "../style";
 import type { ModuleProps } from "./types";
 
 type MotionFilter = "Any" | MotionLabel;
-const MIN_SCORES = [0, 25, 50, 75];
+/** Ranked cards shown before "Show all". */
+const TOP = 10;
 
 const RULES: Record<TraitId, string> = {
   motion: "Same motion. Half when one side is Both and the other Internal or Embedded.",
@@ -48,12 +51,15 @@ function Toggle({ on, onClick, children }: { on: boolean; onClick: () => void; c
   );
 }
 
+/** A seed card's one short status line. */
+const seedStatus = (o: SeedOption) => (o.kind === "recent" ? "Just ran" : !o.reportId ? "No saved run yet" : o.omni === "Likely" ? "Named in job posts" : "On the public list");
+
 /**
  * 03 · Lookalikes: start from a customer on the seller's public list, an
- * account whose own run names Omni (or any territory account), read its
- * fingerprint from its saved run, and rank the rest of the territory by the
- * traits that matter, points shown per trait. Results filter by motion,
- * score and segment.
+ * account whose own run names Omni, or any territory account. The main
+ * action finds new companies like it beyond the territory; below, the rest
+ * of the territory is ranked against the seed's traits, points per trait
+ * behind each score. Results filter by motion and segment.
  */
 export function LookalikesModule({ seller, territory, reportId, justRan }: ModuleProps) {
   const navigate = useNavigate();
@@ -62,13 +68,16 @@ export function LookalikesModule({ seller, territory, reportId, justRan }: Modul
   const seedId = reportId ?? defaultSeed(options);
   const seed = useSeedRow(seedId, territory.rows, options);
   const [motion, setMotion] = useState<MotionFilter>("Any");
-  const [minScore, setMinScore] = useState(0);
   const [segment, setSegment] = useState<Segment | undefined>(undefined);
   const [selected, setSelected] = useState<string | null>(null);
+  const [all, setAll] = useState(false);
   const cards = useRef<Record<string, HTMLElement | null>>({});
+  // A star picked past the top ten opens the full list, then scrolls to its card.
+  const scrollTo = useRef<string | null>(null);
 
   useEffect(() => {
     setSelected(null);
+    setAll(false);
   }, [seedId]);
 
   const seedFp = useMemo(() => (seed.row ? fingerprintOf(seed.row, seller.name, startOfDay()) : undefined), [seed.row, seller.name]);
@@ -82,33 +91,35 @@ export function LookalikesModule({ seller, territory, reportId, justRan }: Modul
   }, [seedFp, territory.rows, seller.name]);
   const rowsById = useMemo(() => Object.fromEntries(territory.rows.map((r) => [r.id, r])), [territory.rows]);
 
-  const keep = (m: MotionFilter, min: number, seg = segment) => ranked.filter((l) => (m === "Any" || l.fp.motion === m) && l.score >= min && (!seg || l.fp.segment === seg));
-  const shown = keep(motion, minScore);
+  const keep = (m: MotionFilter, seg = segment) => ranked.filter((l) => (m === "Any" || l.fp.motion === m) && (!seg || l.fp.segment === seg));
+  const shown = keep(motion);
+  const visible = all ? shown : shown.slice(0, TOP);
   const segments = segmentsOf(seller.territory).filter((sg) => ranked.some((l) => l.fp.segment === sg.id));
   const motions: MotionFilter[] = ["Any", "Internal", "Embedded", "Both", ...(ranked.some((l) => l.fp.motion === "Unclear") ? (["Unclear"] as const) : [])];
-  const pickStar = (id: string) => {
-    setSelected(id);
+
+  useEffect(() => {
+    const id = scrollTo.current;
+    if (!id || !cards.current[id]) return;
+    scrollTo.current = null;
     cards.current[id]?.scrollIntoView?.({ behavior: reduce ? "auto" : "smooth", block: "nearest" });
+  }, [selected, all, reduce]);
+  const pickStar = (id: string) => {
+    scrollTo.current = id;
+    setSelected(id);
+    if (shown.findIndex((l) => l.fp.id === id) >= TOP) setAll(true);
   };
+
   const seedOpt = options.find((o) => o.reportId === seedId);
-  // The territory picker, grouped by segment (A to Z within each) when the territory has them.
-  const picks = options.filter((o) => o.kind === "territory" && o.reportId).sort((a, b) => a.name.localeCompare(b.name));
-  const allSegments = segmentsOf(seller.territory);
-  const pickerGroups = picks.some((o) => o.segment)
-    ? [
-        ...allSegments.map((sg) => ({ key: sg.id as string, label: `${sg.label} · ${sg.note}`, options: picks.filter((o) => o.segment === sg.id) })),
-        { key: "other", label: "Other accounts", options: picks.filter((o) => !allSegments.some((sg) => sg.id === o.segment)) },
-      ].filter((g) => g.options.length)
-    : [{ key: "all", label: "", options: picks }];
+  const pickIds = new Set(options.filter((o) => o.kind === "territory" && o.reportId).map((o) => o.reportId));
+  const pickRows = territory.rows.filter((r) => pickIds.has(r.id));
 
   return (
     <MotionConfig reducedMotion="user">
-      <PageHeader eyebrow="Lookalikes · scored trait by trait" title={seed.row ? `Accounts that look like ${seed.row.name}` : "More like your customers"}>
-        Start from a customer on {seller.name}&rsquo;s public list, an account whose job posts name {seller.name}, or any account in the territory. Its saved run gives a
-        fingerprint; every other account is scored against it, trait by trait.
+      <PageHeader eyebrow="Lookalikes" title={seed.row ? `Accounts that look like ${seed.row.name}` : "More like your customers"}>
+        Pick an account to start from, then find more like it.
       </PageHeader>
 
-      <div data-tour="lookalikes-seed" className="mt-5 flex flex-wrap items-end gap-x-4 gap-y-3">
+      <div data-tour="lookalikes-seed" className="mt-5 flex flex-col gap-3">
         <div role="group" aria-label="Start from a customer" className="flex flex-wrap items-center gap-2">
           {options
             .filter((o) => o.kind === "customer" || o.kind === "recent")
@@ -121,55 +132,26 @@ export function LookalikesModule({ seller, territory, reportId, justRan }: Modul
                   aria-pressed={on}
                   disabled={!o.reportId}
                   onClick={() => o.reportId && navigate(moduleHref(seller.id, "lookalikes", o.reportId))}
-                  className={cx(
-                    "inline-flex min-h-[46px] flex-wrap items-center gap-x-2 gap-y-0.5 rounded-[10px] bg-white px-4 py-1.5 text-left text-[15px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60",
-                    on ? "border-2 border-primary font-bold" : "border border-[#D9D4C7] font-semibold hover:border-foreground/40",
-                  )}
+                  className={cx(toggle(on), "pl-2.5 disabled:cursor-not-allowed disabled:opacity-60")}
                 >
-                  <span className="inline-flex items-center gap-2">
-                    {o.omni && o.reportId && <OmniRing status={o.omni} />}
-                    {o.name}
-                  </span>
-                  <span className="text-[13px] font-medium text-[#4A4F63]">
-                    {o.kind === "recent" ? "Just ran" : !o.reportId ? "no saved run yet" : o.omni === "Likely" ? OMNI_TEXT.Likely.full : `On ${seller.name}'s public customer list`}
-                  </span>
+                  <CompanyLogo domain={o.domain ?? (o.reportId ? seed.domains[o.reportId] : undefined)} name={o.name} />
+                  {o.name}
+                  <span className="text-[13px] font-medium text-[#4A4F63]">{seedStatus(o)}</span>
                 </button>
               );
             })}
         </div>
-        {options.some((o) => o.kind === "territory") && (
-          <label className="flex w-full flex-col gap-1 sm:w-auto">
-            <span className="font-mono text-xs font-semibold text-[#4A4F63]">or a territory account</span>
-            <select
-              value={seedOpt?.kind === "territory" ? seedId : ""}
-              onChange={(e) => e.target.value && navigate(moduleHref(seller.id, "lookalikes", e.target.value))}
-              className={cx(
-                "min-h-[46px] rounded-[10px] bg-white px-3 text-[15px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                seedOpt?.kind === "territory" ? "border-2 border-primary font-bold" : "border border-[#D9D4C7] font-semibold",
-              )}
-            >
-              <option value="">Choose an account…</option>
-              {pickerGroups.map((g) =>
-                g.label ? (
-                  <optgroup key={g.key} label={g.label}>
-                    {g.options.map((o) => (
-                      <option key={o.reportId} value={o.reportId}>
-                        {o.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                ) : (
-                  g.options.map((o) => (
-                    <option key={o.reportId} value={o.reportId}>
-                      {o.name}
-                    </option>
-                  ))
-                ),
-              )}
-            </select>
-          </label>
+        {pickRows.length > 0 && (
+          <AccountSwitcher
+            rows={pickRows}
+            activeId={seedOpt?.kind === "territory" ? seedId : undefined}
+            hrefFor={(id) => moduleHref(seller.id, "lookalikes", id)}
+            loading={territory.loading}
+            label="or a territory account"
+            segments={segmentsOf(seller.territory)}
+          />
         )}
-        {territory.loading && <Loader2 size={16} className="mb-3.5 animate-spin text-muted-foreground" aria-label="Loading accounts" />}
+        {territory.loading && !pickRows.length && <Loader2 size={16} className="animate-spin text-muted-foreground" aria-label="Loading accounts" />}
       </div>
 
       <MissingNote missing={territory.missing} shown={territory.rows.length} className="mt-5" />
@@ -192,7 +174,11 @@ export function LookalikesModule({ seller, territory, reportId, justRan }: Modul
       {seed.row && seedFp && (
         <>
           <div className="mt-5">
-            <FingerprintCard fp={seedFp} row={seed.row} seller={seller.id} sources={datedSources(seed.row)} sellerName={seller.name} />
+            <BeyondTerritory seller={seller.id} seed={seed.row} rows={territory.rows} />
+          </div>
+
+          <div className="mt-8">
+            <FingerprintCard fp={seedFp} row={seed.row} seller={seller.id} sellerName={seller.name} />
           </div>
 
           <Memo className="mt-3" title="How the score works" count="five traits, out of 100">
@@ -223,21 +209,13 @@ export function LookalikesModule({ seller, territory, reportId, justRan }: Modul
                 </Toggle>
               ))}
             </div>
-            <div role="group" aria-label="Minimum score" className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-0.5 font-mono text-xs font-semibold text-[#4A4F63]">Min score</span>
-              {MIN_SCORES.map((s) => (
-                <Toggle key={s} on={minScore === s} onClick={() => setMinScore(s)}>
-                  {s ? `${s}+` : "Any"}
-                </Toggle>
-              ))}
-            </div>
             {segments.length > 0 && (
               <div role="group" aria-label="Segment" className="flex flex-wrap items-center gap-1.5">
                 <span className="mr-0.5 font-mono text-xs font-semibold text-[#4A4F63]">Segment</span>
                 {[undefined, ...segments.map((sg) => sg.id)].map((id) => (
                   <Toggle key={id ?? "all"} on={segment === id} onClick={() => setSegment(id)}>
                     {id ?? "All"}
-                    <span className="ml-1.5 font-mono text-xs font-normal text-[#4A4F63]">{keep(motion, minScore, id).length}</span>
+                    <span className="ml-1.5 font-mono text-xs font-normal text-[#4A4F63]">{keep(motion, id).length}</span>
                   </Toggle>
                 ))}
               </div>
@@ -255,45 +233,46 @@ export function LookalikesModule({ seller, territory, reportId, justRan }: Modul
                 <div className="mx-auto max-w-[440px]">
                   <Constellation seed={seedFp} items={shown} selected={selected} onPick={pickStar} />
                   <p className="mt-3 text-[15px] text-[#4A4F63]">Closer to the center = more alike. Size = fit.</p>
-                  <p className="mt-2 rounded-[10px] border border-dotted border-[#9097A6] px-3 py-2.5 text-[15px] text-[#4A4F63]">
-                    Ranked from this territory&rsquo;s saved runs. For companies outside it, use Beyond the territory below.
-                  </p>
                 </div>
               </section>
 
-              <section aria-labelledby="ranked-title" className="flex min-w-0 flex-col gap-3">
+              <section aria-labelledby="ranked-title" className="flex min-w-0 flex-col gap-2.5">
                 <h2 id="ranked-title" className="font-display text-[22px] font-semibold tracking-[-0.01em]">
-                  {shown.length ? `Ranked lookalikes · ${shown.length}` : "No matches"}
+                  {shown.length ? `In your territory · ${shown.length}` : "No matches"}
                 </h2>
                 {shown.length ? (
-                  shown.map((l, i) => (
-                    <LookalikeCard
-                      key={l.fp.id}
-                      ref={(el) => {
-                        cards.current[l.fp.id] = el;
-                      }}
-                      item={l}
-                      rank={i + 1}
-                      seller={seller.id}
-                      row={rowsById[l.fp.id]}
-                      selected={selected === l.fp.id}
-                      onPick={() => setSelected(l.fp.id)}
-                    />
-                  ))
+                  <>
+                    {visible.map((l, i) => (
+                      <LookalikeCard
+                        key={l.fp.id}
+                        ref={(el) => {
+                          cards.current[l.fp.id] = el;
+                        }}
+                        item={l}
+                        rank={i + 1}
+                        seller={seller.id}
+                        row={rowsById[l.fp.id]}
+                        selected={selected === l.fp.id}
+                        onPick={() => setSelected(l.fp.id)}
+                      />
+                    ))}
+                    {shown.length > TOP && (
+                      <button type="button" aria-expanded={all} onClick={() => setAll((v) => !v)} className={cx(secondaryButton, "self-start text-[15px]")}>
+                        {all ? `Show the top ${TOP}` : `Show all ${shown.length}`}
+                      </button>
+                    )}
+                  </>
                 ) : (
                   <EmptyFilters
                     seedName={seedFp.name}
                     seedMotion={seedFp.motion}
                     motion={motion}
-                    minScore={minScore}
                     segment={segment}
-                    countWithout={{ motion: keep("Any", minScore).length, score: keep(motion, 0).length, segment: keep(motion, minScore, undefined).length }}
+                    countWithout={{ motion: keep("Any").length, segment: keep(motion, undefined).length }}
                     onDropMotion={() => setMotion("Any")}
-                    onDropScore={() => setMinScore(0)}
                     onDropSegment={() => setSegment(undefined)}
                     onReset={() => {
                       setMotion("Any");
-                      setMinScore(0);
                       setSegment(undefined);
                     }}
                   />
@@ -301,7 +280,6 @@ export function LookalikesModule({ seller, territory, reportId, justRan }: Modul
               </section>
             </div>
           )}
-          <BeyondTerritory seller={seller.id} seed={seed.row} rows={territory.rows} />
         </>
       )}
       <NextStep seller={seller.id} from="lookalikes" account={shown[0] ? { id: shown[0].fp.id, name: shown[0].fp.name } : seed.row && { id: seed.row.id, name: seed.row.name }} />
@@ -314,36 +292,29 @@ function EmptyFilters({
   seedName,
   seedMotion,
   motion,
-  minScore,
   segment,
   countWithout,
   onDropMotion,
-  onDropScore,
   onDropSegment,
   onReset,
 }: {
   seedName: string;
   seedMotion: MotionLabel;
   motion: MotionFilter;
-  minScore: number;
   segment?: Segment;
-  countWithout: { motion: number; score: number; segment: number };
+  countWithout: { motion: number; segment: number };
   onDropMotion: () => void;
-  onDropScore: () => void;
   onDropSegment: () => void;
   onReset: () => void;
 }) {
   const kind = segment ? `${segment} account` : "account";
   const why =
     motion !== "Any" && motion !== seedMotion
-      ? `${seedName}'s fingerprint is ${seedMotion.toLowerCase()}, and no ${motion.toLowerCase()} ${kind} clears the bar.`
-      : minScore
-        ? `No ${kind} scores ${minScore} or more against ${seedName}.`
-        : segment
-          ? `No ${kind} in the territory matches these filters.`
-          : "No account matches these filters.";
+      ? `${seedName} is ${seedMotion.toLowerCase()}, and no ${motion.toLowerCase()} ${kind} is in the saved runs.`
+      : segment
+        ? `No ${kind} in the territory matches these filters.`
+        : "No account matches these filters.";
   const dropMotion = motion !== "Any" && countWithout.motion > 0;
-  const dropScore = minScore > 0 && countWithout.score > 0 && !dropMotion;
   return (
     <div className="flex flex-col items-center gap-3.5 rounded-xl border border-dotted border-[#9097A6] bg-white p-6 text-center">
       <h3 className="font-display text-[22px] font-semibold">No lookalikes match these filters</h3>
@@ -354,12 +325,7 @@ function EmptyFilters({
             Drop &ldquo;{motion}&rdquo;: {countWithout.motion} match{countWithout.motion === 1 ? "" : "es"}
           </button>
         )}
-        {dropScore && (
-          <button type="button" onClick={onDropScore} className={cx(primaryButton, "text-[15px]")}>
-            Any score: {countWithout.score} match{countWithout.score === 1 ? "" : "es"}
-          </button>
-        )}
-        {segment && countWithout.segment > 0 && !dropMotion && !dropScore && (
+        {segment && countWithout.segment > 0 && !dropMotion && (
           <button type="button" onClick={onDropSegment} className={cx(primaryButton, "text-[15px]")}>
             All segments: {countWithout.segment} match{countWithout.segment === 1 ? "" : "es"}
           </button>
