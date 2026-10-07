@@ -44,7 +44,8 @@ export function AgentBoard({ board, onOpen }: { board: AgentBoardState; onOpen?:
           <h3 id="agents-title" className={cx(title, "mt-1")}>
             Seven agents, in parallel
           </h3>
-          <p className="mt-1 max-w-2xl text-[15px] leading-relaxed text-[#4A4F63]">
+          {/* The title says it on a phone; the line that explains it shows from 640px. */}
+          <p className="mt-1 hidden max-w-2xl text-[15px] leading-relaxed text-[#4A4F63] sm:block">
             Five critics and two strategists read the plan at the same time. Then one writes the verdict.
           </p>
         </div>
@@ -93,7 +94,8 @@ export function AgentBoard({ board, onOpen }: { board: AgentBoardState; onOpen?:
                   initial={{ opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.25 }}
-                  className="mt-1 line-clamp-2 pl-[18px] text-sm leading-snug text-foreground sm:line-clamp-3"
+                  // One line on phones, so the board stays a glance; the full take opens on a tap.
+                  className="mt-1 line-clamp-1 pl-[18px] text-sm leading-snug text-foreground sm:line-clamp-3"
                 >
                   {tile.teaser.replace(/\s*\[[\d,\s]+\]/g, "")}
                 </motion.span>

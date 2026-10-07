@@ -3,7 +3,7 @@ import { MotionConfig } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { readCommittee, type AnalysisWithCommittee } from "@/components/territory/committee/model";
 import { splitCompany } from "@/components/territory/model";
-import { qualify, threeWhys } from "@/components/territory/qualification/model";
+import { threeWhys } from "@/components/territory/qualification/model";
 import type { AccountBrief } from "../AccountViews";
 import { AccountHero } from "./AccountHero";
 import { AgentBoard } from "./AgentBoard";
@@ -28,7 +28,8 @@ interface Props {
 
 /**
  * One account run, answer first: the hero, the seven agents and their
- * verdict, one lens at a time, then the plan as tabs. The same view serves a
+ * verdict, then two folds (one lens at a time, the plan as tabs), open on a
+ * desktop and shut to a line each on a phone. The same view serves a
  * live run (the board fills as agents finish) and a saved one (it replays).
  */
 export function AccountExplorer({ company: typed, brief, plan, analysis, board, sellerName, notice }: Props) {
@@ -51,18 +52,29 @@ export function AccountExplorer({ company: typed, brief, plan, analysis, board, 
       setLens("stress");
       setSeat(id.replace("persona-", ""));
     }
-    requestAnimationFrame(() => lensRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    // The lens explorer folds on phones: open it first (its header is the first button in it), then scroll.
+    const header = lensRef.current?.querySelector("button");
+    const opening = header?.getAttribute("aria-expanded") === "false";
+    if (opening) header!.click();
+    const scroll = () => lensRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    // A fold or a clamp that measures its height puts the page's scroll back, which stops a smooth scroll midway:
+    // an opening fold measures on the next frame, so scroll a frame later, and finish the scroll once the lens has
+    // swapped in and its clamps have measured.
+    requestAnimationFrame(() => (opening ? requestAnimationFrame(scroll) : scroll()));
+    window.setTimeout(() => {
+      const el = lensRef.current;
+      if (el && Math.abs(el.getBoundingClientRect().top - (parseFloat(getComputedStyle(el).scrollMarginTop) || 0)) > 4) scroll();
+    }, 450);
   };
 
   const agentsRunning = Object.values(board.tiles).some((t) => t.status === "running");
-  // A saved run may carry its simulated meeting; the three whys and MEDDPICC read it when it's there.
+  // A saved run may carry its simulated meeting; the three whys read it when it's there.
   const meeting = useMemo(() => readCommittee((analysis as AnalysisWithCommittee | null)?.committee), [analysis]);
   const whys = useMemo(() => threeWhys(brief, analysis, meeting), [brief, analysis, meeting]);
-  const qualification = useMemo(() => qualify({ ...brief, company }, analysis, meeting), [brief, company, analysis, meeting]);
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="space-y-6">
+      <div className="space-y-5 sm:space-y-6">
         <AccountHero company={company} domain={domain} brief={brief} sources={sources} sellerName={sellerName} whys={whys} whysPending={!analysis && agentsRunning} />
         <AgentBoard board={board} onOpen={analysis ? openAgent : undefined} />
         <VerdictCard synthesis={analysis?.synthesis} state={board.verdict} sources={sources} />
@@ -86,7 +98,7 @@ export function AccountExplorer({ company: typed, brief, plan, analysis, board, 
           ) : null}
         </div>
         {notice}
-        <PlanTabs company={company} plan={plan} brief={brief} sources={sources} qualification={qualification} />
+        <PlanTabs company={company} plan={plan} brief={brief} sources={sources} />
       </div>
     </MotionConfig>
   );

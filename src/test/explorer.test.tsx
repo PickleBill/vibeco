@@ -1,4 +1,4 @@
-import { act, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import type { AccountBrief } from "@/components/account/AccountViews";
 import type { AccountAnalysis } from "@/components/account/explorer/model";
 
@@ -89,7 +89,20 @@ beforeEach(() => {
   onEvent = undefined;
 });
 
+/** A desktop-wide screen: the folds marked "wide" start open. */
+function wideScreen() {
+  const original = window.matchMedia;
+  beforeEach(() => {
+    window.matchMedia = ((q: string) => ({ ...original(q), matches: q.includes("min-width: 1024px") })) as typeof window.matchMedia;
+  });
+  afterEach(() => {
+    window.matchMedia = original;
+  });
+}
+
 describe("account explorer", () => {
+  wideScreen();
+
   it("renders a saved run from stored data, with no agent calls", async () => {
     render(<Settled />);
     act(() => screen.getByText("settle").click());
@@ -137,9 +150,45 @@ describe("account explorer", () => {
 
   it("shows Former and Not found in the stack map, and the full plan in tabs", () => {
     render(<Settled />);
+    // MEDDPICC lives in the Committee now, not in the plan.
+    const planTabs = within(screen.getByRole("tablist", { name: "The first-call plan" })).getAllByRole("tab");
+    expect(planTabs.map((t) => t.textContent)).toEqual(["First call", "Stack", "Why now", "Objection", "Research", "Sources2"]);
+    expect(screen.getByRole("button", { name: "Copy plan" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "Stack" }));
     expect(screen.getByRole("button", { name: "Tableau" })).toBeInTheDocument();
     expect(screen.getAllByText("Not found").length).toBeGreaterThan(0);
+  });
+});
+
+describe("account explorer on a phone", () => {
+  it("folds the lens explorer and the plan to a line each, and a tapped agent opens its seat", async () => {
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    // The folds measure heights as they open; jsdom has no layout to scroll.
+    const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+    render(<Settled />);
+    const lens = screen.getByRole("button", { name: /Explore one lens at a time/ });
+    const plan = screen.getByRole("button", { name: /The first-call plan/ });
+    expect(lens).toHaveAttribute("aria-expanded", "false");
+    expect(plan).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByText("Two critic seats, Expand and Distill")).toBeInTheDocument();
+    expect(screen.getByText("First call · Stack · Why now · Objection · Research · 2 sources")).toBeInTheDocument();
+    expect(screen.queryByText("Worth 30 minutes")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Stack" })).not.toBeInTheDocument();
+
+    // A finished agent's tile opens the fold first, then scrolls to it.
+    act(() => screen.getByText("settle").click());
+    fireEvent.click(await screen.findByRole("button", { name: "CFO: open" }));
+    expect(lens).toHaveAttribute("aria-expanded", "true");
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Not this year" })).toBeInTheDocument());
+    await waitFor(() => expect(scroll).toHaveBeenCalled());
+    delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+
+    // The plan opens on a tap, with Copy plan in its tab row.
+    fireEvent.click(plan);
+    expect(screen.getByRole("tab", { name: "Stack" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Copy plan" })).toBeInTheDocument();
+    scrollTo.mockRestore();
   });
 });
 
