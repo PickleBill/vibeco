@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { MotionConfig, useReducedMotion } from "framer-motion";
 import type { MotionLabel } from "@/components/account/AccountViews";
 import type { Segment } from "@/lib/sellers";
@@ -12,6 +12,7 @@ import { defaultSeed, seedOptions, useSeedRow } from "../lookalikes/useSeed";
 import { datedSources, startOfDay } from "../radar/evidence";
 import { OmniRing } from "../radar/segments";
 import { MissingNote } from "../radar/States";
+import { Memo } from "../Memo";
 import { OMNI_TEXT, segmentsOf } from "../model";
 import { moduleHref } from "../nav";
 import { NextStep } from "../NextStep";
@@ -193,12 +194,8 @@ export function LookalikesModule({ seller, territory, reportId }: ModuleProps) {
             <FingerprintCard fp={seedFp} sources={datedSources(seed.row)} sellerName={seller.name} domain={seed.row.domain} />
           </div>
 
-          <details className="group mt-3 rounded-lg border border-border bg-white px-4 py-1">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-[15px] font-semibold [&::-webkit-details-marker]:hidden">
-              <ChevronDown size={16} aria-hidden className="transition-transform group-open:rotate-180 motion-reduce:transition-none" />
-              How the score works
-            </summary>
-            <div className="pb-3 text-[15px] text-[#4A4F63]">
+          <Memo className="mt-3" title="How the score works" count="five traits, out of 100">
+            <div className="text-[15px] text-[#4A4F63]">
               <p>
                 Each trait adds its points when it matches (✓), half when it partly matches (½), nothing otherwise (–). A trait the seed has no evidence for (?) adds nothing for
                 anyone. Out of 100:
@@ -214,7 +211,7 @@ export function LookalikesModule({ seller, territory, reportId }: ModuleProps) {
                 ))}
               </ul>
             </div>
-          </details>
+          </Memo>
 
           <section aria-label="Filters" className="mt-4 flex flex-wrap items-start gap-x-5 gap-y-3">
             <div role="group" aria-label="Motion" className="flex flex-wrap items-center gap-1.5">

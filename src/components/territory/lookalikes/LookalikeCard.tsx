@@ -1,5 +1,6 @@
-import { forwardRef } from "react";
+import { forwardRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { Fold, FoldButton } from "../Memo";
 import { moduleHref } from "../nav";
 import { cx, secondaryButton } from "../style";
 import { FieldPill, FitBadge } from "../ui";
@@ -40,6 +41,11 @@ export const LookalikeCard = forwardRef<HTMLElement, { item: Lookalike; rank: nu
   ref,
 ) {
   const { fp } = item;
+  // Shut, a card is its name, score and a two-line story; the trait-by-trait
+  // breakdown and the rest of the story open together.
+  const [open, setOpen] = useState(false);
+  const id = `look-why-${fp.id}`;
+  const matched = item.traits.filter((t) => t.match === "full" || t.match === "partial").length;
   return (
     <article ref={ref} aria-labelledby={`look-${fp.id}`} className={cx("rounded-xl bg-white p-4 transition-colors", selected ? "border-2 border-primary" : "border border-border")}>
       <div className="flex items-start gap-3.5">
@@ -63,16 +69,26 @@ export const LookalikeCard = forwardRef<HTMLElement, { item: Lookalike; rank: nu
           <div className="text-xs text-muted-foreground">similarity</div>
         </div>
       </div>
-      <ul aria-label="How it matches" className="mt-3 flex flex-wrap gap-1.5">
-        {item.traits.map((t) => (
-          <SimilarityPill key={t.id} t={t} />
-        ))}
-      </ul>
       <div className="mt-3 rounded-lg border border-border bg-background px-3 py-2.5">
         <p className="text-xs font-bold uppercase tracking-[0.04em] text-muted-foreground">The story they&rsquo;ll relate to</p>
-        <p className="mt-0.5 text-[15px]">{item.story}</p>
+        <p id={`${id}-story`} className={cx("mt-0.5 text-[15px]", !open && "line-clamp-2")}>
+          {item.story}
+        </p>
       </div>
+      <Fold open={open} id={id}>
+        <ul aria-label="How it matches" className="flex flex-wrap gap-1.5 pt-3">
+          {item.traits.map((t) => (
+            <SimilarityPill key={t.id} t={t} />
+          ))}
+        </ul>
+      </Fold>
       <div className="mt-3 flex flex-wrap items-center gap-2.5">
+        <FoldButton open={open} controls={`${id}-story ${id}`} onClick={() => setOpen((v) => !v)} className="basis-full sm:mr-auto sm:basis-auto">
+          How it matches
+          <span className="font-mono text-xs font-medium text-muted-foreground">
+            {matched} of {item.traits.length}
+          </span>
+        </FoldButton>
         <Link to={moduleHref(seller, "account", fp.id)} className={cx(secondaryButton, "text-[15px]")}>
           Open account
         </Link>

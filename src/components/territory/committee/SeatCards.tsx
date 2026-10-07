@@ -1,6 +1,7 @@
 import type { ResearchSource } from "@/components/simulator/SourcesList";
 import type { CriticResult } from "@/components/account/explorer/model";
 import { criticFor } from "@/lib/lenses";
+import { ReadMore } from "../Memo";
 import { SEAT_IDS, stanceWord, type CommitteeResult, type SeatId, type Stance } from "./model";
 import { CitedLine, Delta, SeatToken } from "./parts";
 
@@ -91,7 +92,13 @@ export function SeatCards({
               )}
               <div className="border-t border-[#ECE8DE] pt-2.5">
                 <p className="text-xs font-bold uppercase tracking-[0.04em] text-muted-foreground">{seat?.top_concern ? "Top concern" : "Saved take"}</p>
-                <p className="mt-1 text-[15px] leading-snug text-foreground">{line ? <CitedLine text={line} sources={sources} /> : "No saved take for this seat."}</p>
+                {line ? (
+                  <ReadMore className="mt-1 text-[15px] leading-snug text-foreground">
+                    <CitedLine text={line} sources={sources} />
+                  </ReadMore>
+                ) : (
+                  <p className="mt-1 text-[15px] leading-snug text-foreground">No saved take for this seat.</p>
+                )}
               </div>
             </li>
           );

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import { ReadMore } from "../Memo";
 import { moduleHref } from "../nav";
 import { ageText, cx, primaryButton, secondaryButton } from "../style";
 import { EvidenceTag, FieldPill, FitBadge } from "../ui";
@@ -81,8 +82,9 @@ export function ChangeCard({ account, seller, onFocus }: { account: RadarAccount
       {account.why && (
         <div>
           <p className="mb-1 text-[13px] font-bold uppercase tracking-[0.04em] text-muted-foreground">Why it matters</p>
-          <p className="text-base text-foreground">{account.why}</p>
-          <Chips ids={account.fitSources} sources={account.sources} className="mt-2" />
+          <ReadMore className="text-base text-foreground" aside={<Chips ids={account.fitSources} sources={account.sources} className="py-2" />}>
+            {account.why}
+          </ReadMore>
         </div>
       )}
 
