@@ -304,7 +304,7 @@ export function SourceLinks({ ids, sources }: { ids: number[]; sources: Research
             href={s.url}
             target="_blank"
             rel="noopener noreferrer nofollow"
-            className="group flex min-h-9 min-w-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="group flex min-h-11 min-w-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <SourceChip source={{ ...s, url: "" }} n={Number(s.id)} />
             <span className="min-w-0 truncate text-sm text-[#4A4F63] group-hover:text-foreground group-hover:underline">{s.title}</span>

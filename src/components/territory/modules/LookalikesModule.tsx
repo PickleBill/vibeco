@@ -14,8 +14,9 @@ import { OmniRing } from "../radar/segments";
 import { MissingNote } from "../radar/States";
 import { OMNI_TEXT, segmentsOf } from "../model";
 import { moduleHref } from "../nav";
+import { NextStep } from "../NextStep";
+import { PageHeader } from "../PageHeader";
 import { cx, primaryButton, secondaryButton } from "../style";
-import { Eyebrow } from "../ui";
 import type { ModuleProps } from "./types";
 
 type MotionFilter = "Any" | MotionLabel;
@@ -100,14 +101,10 @@ export function LookalikesModule({ seller, territory, reportId }: ModuleProps) {
 
   return (
     <MotionConfig reducedMotion="user">
-      <Eyebrow>Lookalikes · find more like your customers</Eyebrow>
-      <h1 className="mt-2 font-display text-[2.1rem] font-bold leading-[1.08] tracking-[-0.02em] sm:text-[2.75rem]">
-        {seed.row ? `Accounts that look like ${seed.row.name}` : "More like your customers"}
-      </h1>
-      <p className="mt-3 max-w-[720px] text-base text-[#4A4F63] sm:text-[17px]">
+      <PageHeader eyebrow="Lookalikes · scored trait by trait" title={seed.row ? `Accounts that look like ${seed.row.name}` : "More like your customers"}>
         Start from a customer on {seller.name}&rsquo;s public list, an account whose job posts name {seller.name}, or any account in the territory. Its saved run gives a
         fingerprint; every other account is scored against it, trait by trait.
-      </p>
+      </PageHeader>
 
       <div data-tour="lookalikes-seed" className="mt-5 flex flex-wrap items-end gap-x-4 gap-y-3">
         <div role="group" aria-label="Start from a customer" className="flex flex-wrap items-center gap-2">
@@ -139,7 +136,7 @@ export function LookalikesModule({ seller, territory, reportId }: ModuleProps) {
             })}
         </div>
         {options.some((o) => o.kind === "territory") && (
-          <label className="flex flex-col gap-1">
+          <label className="flex w-full flex-col gap-1 sm:w-auto">
             <span className="font-mono text-xs font-semibold text-[#4A4F63]">or a territory account</span>
             <select
               value={seedOpt?.kind === "territory" ? seedId : ""}
@@ -259,8 +256,8 @@ export function LookalikesModule({ seller, territory, reportId }: ModuleProps) {
               <section aria-label="Constellation" className="lg:sticky lg:top-4">
                 <div className="mx-auto max-w-[440px]">
                   <Constellation seed={seedFp} items={shown} selected={selected} onPick={pickStar} />
-                  <p className="mt-3 text-sm text-[#4A4F63]">Closer to the center = more alike. Size = fit.</p>
-                  <p className="mt-2 rounded-[10px] border border-dotted border-[#9097A6] px-3 py-2.5 text-sm text-[#4A4F63]">
+                  <p className="mt-3 text-[15px] text-[#4A4F63]">Closer to the center = more alike. Size = fit.</p>
+                  <p className="mt-2 rounded-[10px] border border-dotted border-[#9097A6] px-3 py-2.5 text-[15px] text-[#4A4F63]">
                     Ranked from this territory&rsquo;s saved runs. A live version would search the web for new companies like this one.
                   </p>
                 </div>
@@ -308,6 +305,7 @@ export function LookalikesModule({ seller, territory, reportId }: ModuleProps) {
           )}
         </>
       )}
+      <NextStep seller={seller.id} from="lookalikes" />
     </MotionConfig>
   );
 }

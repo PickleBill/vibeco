@@ -61,7 +61,7 @@ export function WhatIfPanel({
           </button>
         )}
       </div>
-      <p role="status" className="mt-2 text-sm text-[#4A4F63]">
+      <p role="status" className="mt-2 text-[15px] text-[#4A4F63]">
         {!ready
           ? "Run the meeting first; what-ifs are compared with it."
           : loading
