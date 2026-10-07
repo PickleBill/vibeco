@@ -15,7 +15,7 @@ const DEFAULT_REGION = "Southeast US";
 const DEFAULT_COUNT = 6;
 const MAX_COUNT = 8;
 /** The model is asked for a few extra, since some won't survive the checks. */
-const EXTRA = 4;
+const EXTRA = 6;
 const MAX_EXCLUDE = 200;
 const MAX_TOOLS = 12;
 const MAX_WHY = 160;
@@ -105,7 +105,7 @@ export const suggestToolSchema = {
             properties: {
               name: { type: "string", description: "The company's usual name." },
               domain: { type: "string", description: "Its own main website as a bare domain, like example.com. No protocol, no path." },
-              hq: { type: "string", description: "City and state of its headquarters or its office in the region, like \"Atlanta, GA\". Empty if unsure." },
+              hq: { type: "string", description: "City and state of its headquarters or its office in the region, like \"Atlanta, GA\"." },
               why: {
                 type: "string",
                 description: "One short sentence, at most 20 words, phrased as a hypothesis to check (\"May ship customer-facing reporting in its fleet software.\"). No numbers, dates, funding or headcount.",
@@ -144,7 +144,7 @@ Rules:
 4. domain: the company's own main website as a bare domain (example.com). Not a LinkedIn, Crunchbase, directory or news page.
 5. why: one short sentence, at most 20 words, phrased as a hypothesis to check, starting with "May" or "Might". Example: "May ship customer-facing reporting in its property management software."
 6. In why: no numbers, no dates, no funding, revenue, valuation or headcount claims, no customer names. You haven't researched these companies; don't write as if you had.
-7. hq: "City, ST" when you know it, else "".
+7. hq: "City, ST" of its headquarters or its office in the region. If you don't know where it is, leave the company out.
 8. motion_guess: Internal, Embedded or Both.
 9. Name up to ${ask} companies, the closest matches first.`;
 
@@ -201,7 +201,7 @@ export function excludeKeys(exclude: string[], seed?: Pick<SuggestSeed, "name" |
  * territory and the seed, no repeats, reasons without digits or funding or
  * headcount claims. Not capped; the HTTPS check comes next.
  */
-export function cleanSuggestions(raw: unknown, input: Pick<SuggestAccountsInput, "exclude" | "seed">): AccountSuggestion[] {
+export function cleanSuggestions(raw: unknown, input: Pick<SuggestAccountsInput, "exclude" | "seed"> & { region?: string }): AccountSuggestion[] {
   const { names, domains } = excludeKeys(input.exclude, input.seed);
   const seenNames = new Set<string>();
   const seenDomains = new Set<string>();
@@ -223,10 +223,31 @@ export function cleanSuggestions(raw: unknown, input: Pick<SuggestAccountsInput,
     seenNames.add(key);
     seenDomains.add(domain);
     const hq = plain(s.hq, 60);
+    if (inRegion(hq, input.region) === false) continue;
     const motion_guess = MOTIONS.includes(s.motion_guess as SuggestMotion) ? (s.motion_guess as SuggestMotion) : fallback;
     out.push({ name, domain, ...(hq && !/\d/.test(hq) ? { hq } : {}), why, motion_guess });
   }
   return out;
+}
+
+// The regions a seller works, as states, so a suggestion placed outside the
+// region (or nowhere) is dropped. Other regions aren't checked.
+const REGION_STATES: Record<string, string[]> = {
+  "southeast us": ["AL", "AR", "FL", "GA", "KY", "LA", "MS", "NC", "SC", "TN", "VA", "WV"],
+};
+const STATE_CODES: Record<string, string> = {
+  alabama: "AL", arkansas: "AR", florida: "FL", georgia: "GA", kentucky: "KY", louisiana: "LA", mississippi: "MS",
+  "north carolina": "NC", "south carolina": "SC", tennessee: "TN", virginia: "VA", "west virginia": "WV",
+};
+
+/** "Atlanta, GA" in the Southeast: true; "Boise, ID" or no city: false; a region with no state list: undefined. */
+export function inRegion(hq: string, region: string | undefined): boolean | undefined {
+  const states = REGION_STATES[(region ?? DEFAULT_REGION).trim().toLowerCase()];
+  if (!states) return undefined;
+  const last = hq.split(",").pop()?.trim() ?? "";
+  if (!hq.includes(",") || !last) return false;
+  const code = /^[A-Za-z]{2}$/.test(last) ? last.toUpperCase() : STATE_CODES[last.toLowerCase()];
+  return !!code && states.includes(code);
 }
 
 export type DomainCheck = (domain: string) => Promise<boolean>;

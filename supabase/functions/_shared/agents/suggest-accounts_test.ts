@@ -8,6 +8,7 @@ import {
   bareDomain,
   cleanSuggestions,
   excludeKeys,
+  inRegion,
   readSuggestInput,
   suggestAccounts,
   SuggestInputError,
@@ -74,7 +75,9 @@ Deno.test("cleanSuggestions: drops the territory, the seed, repeats, bad domains
         s("Dated", "dated.com", "May have added reporting in 2025."),
         s("Funded", "funded.com", "May be building reporting after it raised a big round."),
         s("Empty Why", "emptywhy.com", "  "),
-        s("Greenlight", "greenlight.com", "Might run a data team on a warehouse.", { motion_guess: "Sideways", hq: "Suite 400, Atlanta" }),
+        s("Greenlight", "greenlight.com", "Might run a data team on a warehouse.", { motion_guess: "Sideways", hq: "Suite 400, Atlanta, GA" }),
+        s("Out West", "outwest.com", "May ship reporting to its customers.", { hq: "Boise, ID" }), // outside the region
+        s("Somewhere", "somewhere.com", "May ship reporting to its customers.", { hq: "" }), // no location
       ],
     },
     input,
@@ -87,6 +90,15 @@ Deno.test("cleanSuggestions: drops the territory, the seed, repeats, bad domains
   // An unknown motion falls back to the seed's; an address-like hq is dropped.
   assertEquals(out[1].motion_guess, "Embedded");
   assertEquals(out[1].hq, undefined);
+});
+
+Deno.test("inRegion: Southeast states by code or name; anything else, or no place, is out", () => {
+  assertEquals(inRegion("Atlanta, GA", "Southeast US"), true);
+  assertEquals(inRegion("Raleigh, North Carolina", undefined), true);
+  assertEquals(inRegion("Boise, ID", "Southeast US"), false);
+  assertEquals(inRegion("", "Southeast US"), false);
+  assertEquals(inRegion("Atlanta", "Southeast US"), false);
+  assertEquals(inRegion("Boise, ID", "Mountain West"), undefined);
 });
 
 Deno.test("cleanSuggestions: a list sent as a JSON string, and junk", () => {
@@ -117,7 +129,7 @@ Deno.test("suggestPrompt: region, motion, exclude and the hypothesis rule", () =
   assertStringIncludes(system, "Southeast US");
   assertStringIncludes(system, "customer-facing dashboards");
   assertStringIncludes(system, "hypothesis");
-  assertStringIncludes(system, "up to 7 companies");
+  assertStringIncludes(system, "up to 9 companies");
   assertStringIncludes(user, "Agilysys (agilysys.com)");
   assertStringIncludes(user, "Snowflake, dbt");
 });
