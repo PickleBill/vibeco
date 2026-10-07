@@ -7,6 +7,7 @@ import type { TerritoryState } from "./useTerritory";
 import { MODULES, moduleHref, type ModuleId } from "./nav";
 import { cx } from "./style";
 import { FieldPill, LivePill } from "./ui";
+import { HowItWorksButton, TourHost } from "./tour/TourHost";
 
 /** The account the walkthrough follows: the first saved run (Relay). */
 const DEMO_STEPS: { id: ModuleId; text: string; next: string }[] = [
@@ -57,6 +58,7 @@ export function TerritoryShell({
             VibeCo
           </Link>
           <span className="truncate text-[15px] text-[#4A4F63]">Territory Command Center</span>
+          <HowItWorksButton />
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <FieldPill className="h-8 text-sm">
@@ -119,6 +121,7 @@ export function TerritoryShell({
           </Link>
         </div>
       </footer>
+      <TourHost seller={seller} />
     </div>
   );
 }

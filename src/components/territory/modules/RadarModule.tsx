@@ -179,7 +179,7 @@ export function RadarModule({ seller, territory }: ModuleProps) {
               {tab === "fresh" ? (
                 <>
                   <div className="grid items-start gap-7 lg:grid-cols-[minmax(280px,340px)_minmax(0,1fr)] xl:grid-cols-[minmax(300px,400px)_minmax(0,1fr)]">
-                    <div className="lg:sticky lg:top-4">
+                    <div data-tour="radar" className="lg:sticky lg:top-4">
                       <RadarChart accounts={accounts} focusId={focusId} onFocus={setFocusId} />
                     </div>
                     <FreshList accounts={accounts} seller={seller.id} onFocus={setFocusId} />

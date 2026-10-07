@@ -1,0 +1,151 @@
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import { getSeller } from "@/lib/sellers";
+import { HowItWorksButton, TourHost } from "@/components/territory/tour/TourHost";
+import { resetTour } from "@/components/territory/tour/store";
+
+const seller = getSeller("omni")!;
+const relay = seller.territory!.accounts[0].reportId;
+
+function Where() {
+  const { pathname, search } = useLocation();
+  return <p data-testid="where">{pathname + search}</p>;
+}
+
+/** The shell's tour pieces on the command center's route, without the views. */
+function page(url = "/for/omni") {
+  return render(
+    <MemoryRouter initialEntries={[url]}>
+      <Routes>
+        <Route
+          path="/for/:seller/:module?/:reportId?"
+          element={
+            <>
+              <HowItWorksButton />
+              <Where />
+              <TourHost seller={seller} />
+            </>
+          }
+        />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
+const welcome = () => screen.queryByRole("dialog", { name: /territory command center/i });
+const tourCard = () => screen.queryByRole("dialog");
+
+beforeEach(() => {
+  resetTour();
+  window.localStorage.clear();
+});
+afterEach(() => vi.restoreAllMocks());
+
+describe("welcome card", () => {
+  it("shows on a first visit and not after it's dismissed", () => {
+    const first = page();
+    expect(welcome()).toBeInTheDocument();
+    expect(screen.getByText("Unofficial. Not affiliated with Omni.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Explore on my own" }));
+    expect(welcome()).not.toBeInTheDocument();
+    first.unmount();
+
+    // A new page load: storage remembers the dismissal.
+    resetTour();
+    page("/for/omni/committee");
+    expect(welcome()).not.toBeInTheDocument();
+  });
+
+  it("reopens from How it works, and ?welcome forces it", () => {
+    window.localStorage.setItem("vibeco.territory.welcome.omni", "1");
+    const first = page();
+    expect(welcome()).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "How it works" }));
+    expect(welcome()).toBeInTheDocument();
+    first.unmount();
+
+    resetTour();
+    page("/for/omni?welcome");
+    expect(welcome()).toBeInTheDocument();
+    expect(screen.getByTestId("where")).toHaveTextContent(/^\/for\/omni$/);
+  });
+
+  it("stays out of the way of the ?demo presenter bar", () => {
+    page("/for/omni?demo");
+    expect(welcome()).not.toBeInTheDocument();
+  });
+
+  it("survives storage that throws, showing once per page load", () => {
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    const first = page();
+    expect(welcome()).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(welcome()).not.toBeInTheDocument();
+    first.unmount();
+
+    // Same page load, another view: not again.
+    page("/for/omni/deal");
+    expect(welcome()).not.toBeInTheDocument();
+  });
+});
+
+describe("guided tour", () => {
+  it("?tour starts at step 1 on the radar", () => {
+    page("/for/omni/lookalikes?tour");
+    expect(welcome()).not.toBeInTheDocument();
+    expect(screen.getByText("1 of 6")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "The territory, re-checked" })).toBeInTheDocument();
+    expect(screen.getByTestId("where")).toHaveTextContent(/^\/for\/omni$/);
+    // Focus lands on the default button.
+    expect(screen.getByRole("button", { name: /^Next/ })).toHaveFocus();
+  });
+
+  it("Next walks the views on the territory's first account", () => {
+    page("/for/omni?tour");
+    fireEvent.click(screen.getByRole("button", { name: /^Next/ }));
+    expect(screen.getByText("2 of 6")).toBeInTheDocument();
+    expect(screen.getByTestId("where")).toHaveTextContent(/^\/for\/omni$/);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Next/ }));
+    expect(screen.getByText("3 of 6")).toBeInTheDocument();
+    expect(screen.getByTestId("where")).toHaveTextContent(`/for/omni/account/${relay}`);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Next/ }));
+    expect(screen.getByTestId("where")).toHaveTextContent(`/for/omni/committee/${relay}`);
+
+    fireEvent.click(screen.getByRole("button", { name: /Back/ }));
+    expect(screen.getByText("3 of 6")).toBeInTheDocument();
+    expect(screen.getByTestId("where")).toHaveTextContent(`/for/omni/account/${relay}`);
+  });
+
+  it("ends with a card that sends you to run your own account", () => {
+    page("/for/omni?tour");
+    for (let i = 0; i < 6; i++) fireEvent.click(screen.getByRole("button", { name: /^Next/ }));
+    expect(screen.getByRole("heading", { name: "Now try your own account" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Run an account/ }));
+    expect(screen.queryByRole("heading", { name: "Now try your own account" })).not.toBeInTheDocument();
+    expect(screen.getByTestId("where")).toHaveTextContent(/^\/for\/omni\/account$/);
+  });
+
+  it("Esc ends the tour", () => {
+    page("/for/omni?tour");
+    expect(tourCard()).toBeInTheDocument();
+    act(() => {
+      fireEvent.keyDown(document, { key: "Escape" });
+    });
+    expect(screen.queryByText("1 of 6")).not.toBeInTheDocument();
+    expect(tourCard()).not.toBeInTheDocument();
+  });
+
+  it("starts from the welcome card", () => {
+    page();
+    fireEvent.click(screen.getByRole("button", { name: /Take the 2-minute tour/ }));
+    expect(welcome()).not.toBeInTheDocument();
+    expect(screen.getByText("1 of 6")).toBeInTheDocument();
+  });
+});

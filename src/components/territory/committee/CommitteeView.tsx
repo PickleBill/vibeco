@@ -138,7 +138,7 @@ export function CommitteeView({ report, company, accountHref }: { report: SavedR
 
         <div className="grid gap-7 min-[1100px]:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] min-[1100px]:grid-rows-[auto_1fr]">
           {/* The table and its controls */}
-          <section aria-label="Round table" className="min-w-0 min-[1100px]:col-start-1 min-[1100px]:row-start-1">
+          <section data-tour="committee" aria-label="Round table" className="min-w-0 min-[1100px]:col-start-1 min-[1100px]:row-start-1">
             <RoundTable
               seats={SEAT_IDS.map((s) => ({
                 seat: s,
