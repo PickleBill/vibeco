@@ -114,7 +114,21 @@ export function WorkbookTabs<T extends string>({
   label: string;
 }) {
   return (
-    <div role="tablist" aria-label={label} className="flex gap-1 overflow-x-auto border-b border-border">
+    <div
+      role="tablist"
+      aria-label={label}
+      className="flex gap-1 overflow-x-auto border-b border-border"
+      onKeyDown={(e) => {
+        // Arrow keys move between tabs, Home/End jump to the ends (WAI-ARIA tabs).
+        const i = tabs.findIndex((t) => t.id === value);
+        const next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
+        if (next === undefined || !tabs.length) return;
+        e.preventDefault();
+        const t = tabs[(next + tabs.length) % tabs.length];
+        onChange(t.id);
+        (e.currentTarget.querySelector(`[data-tab="${t.id}"]`) as HTMLElement | null)?.focus();
+      }}
+    >
       {tabs.map((t) => {
         const on = t.id === value;
         return (
@@ -122,7 +136,9 @@ export function WorkbookTabs<T extends string>({
             key={t.id}
             type="button"
             role="tab"
+            data-tab={t.id}
             aria-selected={on}
+            tabIndex={on ? 0 : -1}
             onClick={() => onChange(t.id)}
             className={cx(
               "-mb-px inline-flex min-h-[46px] shrink-0 items-center whitespace-nowrap rounded-t-lg px-4 text-[15px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
