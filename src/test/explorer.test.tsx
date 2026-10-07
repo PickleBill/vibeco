@@ -28,7 +28,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 import { AccountExplorer } from "@/components/account/explorer/AccountExplorer";
 import { TerritoryStrip } from "@/components/account/explorer/TerritoryStrip";
 import { useAgentBoard } from "@/components/account/explorer/useAgentBoard";
-import { asList, criticParagraphs, relabelSeats, whyNowItems } from "@/components/account/explorer/model";
+import { asList, criticParagraphs, relabelSeats, seatPeople, whyNowItems } from "@/components/account/explorer/model";
 
 const brief: AccountBrief = {
   lens: "account",
@@ -197,5 +197,8 @@ describe("explorer text helpers", () => {
     ]);
     expect(criticParagraphs("## Take\n\n**Bold** point.\n\n## Challenge Questions\n1. q")).toEqual(["Bold point."]);
     expect(relabelSeats("The Skeptic argues X while the Builder counters")).toBe("The CFO argues X while the Analytics engineer counters");
+    // A customer quoted in the account's marketing doesn't sit in its seats.
+    expect(seatPeople([{ name: "A", role: "Chief Data Officer, Northern Bank (nCino customer, quoted in nCino marketing)", source: 1 }])).toEqual({});
+    expect(seatPeople([{ name: "B", role: "VP of Data", source: 2 }]).champion?.name).toBe("B");
   });
 });
