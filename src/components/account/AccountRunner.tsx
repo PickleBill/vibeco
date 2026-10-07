@@ -9,6 +9,7 @@ import { copyToClipboard } from "@/lib/copyToClipboard";
 import type { SellerConfig } from "@/lib/sellers";
 import type { BriefResearch } from "@/components/simulator/SourcesList";
 import { moduleHref } from "@/components/territory/nav";
+import { ReadingKey } from "@/components/territory/ReadingKey";
 import { cx } from "@/components/territory/style";
 import { Eyebrow, LivePill } from "@/components/territory/ui";
 import { StatusTag, type AccountAnalysis, type AccountBrief } from "./AccountViews";
@@ -166,6 +167,7 @@ function HowItWorks() {
           several, or as a nice-to-have, doesn&rsquo;t count. Former means a source says the company moved off it.
         </p>
       </div>
+      <ReadingKey className="mt-4 border-t border-border pt-4" />
     </div>
   );
 }
