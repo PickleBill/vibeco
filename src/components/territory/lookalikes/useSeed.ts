@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadReport, type SavedReport } from "@/components/account/explorer/savedRuns";
-import type { SellerConfig } from "@/lib/sellers";
-import { splitCompany, toRow, type TerritoryRow } from "../model";
+import type { Segment, SellerConfig } from "@/lib/sellers";
+import { omniRank, splitCompany, toRow, type OmniStatus, type TerritoryRow } from "../model";
 
 export interface SeedOption {
   /** The seed's saved run; customers without one can't seed yet. */
@@ -10,16 +10,29 @@ export interface SeedOption {
   kind: "customer" | "territory";
   /** Where the seller's public list names a customer. */
   source?: string;
+  /** Why a customer seeds: on the public list (Confirmed) or named in its job posts (Likely). */
+  omni?: OmniStatus;
+  /** A territory account's segment, to group the picker. */
+  segment?: Segment;
 }
 
-/** The seller's public customers first, then every territory account (no repeats). */
+/**
+ * The seller's public customers first, then territory accounts whose run
+ * puts Omni there (on the list, then named in job posts: natural seeds),
+ * then every other territory account. No repeats.
+ */
 export function seedOptions(seller: SellerConfig, rows: TerritoryRow[]): SeedOption[] {
-  const customers: SeedOption[] = (seller.seeds ?? []).map((s) => ({ reportId: s.reportId, name: s.name, kind: "customer", source: s.source }));
+  const customers: SeedOption[] = (seller.seeds ?? []).map((s) => ({ reportId: s.reportId, name: s.name, kind: "customer", source: s.source, omni: "Confirmed" }));
   const taken = new Set(customers.map((c) => c.reportId).filter(Boolean));
+  const evidence: SeedOption[] = rows
+    .filter((r) => r.omni !== "None found" && !taken.has(r.id))
+    .sort((a, b) => omniRank(a.omni) - omniRank(b.omni) || a.name.localeCompare(b.name))
+    .map((r) => ({ reportId: r.id, name: r.name, kind: "customer", source: r.report.brief?.customer_list?.source, omni: r.omni }));
+  for (const e of evidence) taken.add(e.reportId);
   const accounts: SeedOption[] = (seller.territory?.accounts ?? [])
     .filter((a) => !taken.has(a.reportId))
-    .map((a) => ({ reportId: a.reportId, name: rows.find((r) => r.id === a.reportId)?.name ?? splitCompany(a.company).name, kind: "territory" }));
-  return [...customers, ...accounts];
+    .map((a) => ({ reportId: a.reportId, name: rows.find((r) => r.id === a.reportId)?.name ?? splitCompany(a.company).name, kind: "territory", segment: a.segment }));
+  return [...customers, ...evidence, ...accounts];
 }
 
 /** First customer with a saved run, else the first territory account. */

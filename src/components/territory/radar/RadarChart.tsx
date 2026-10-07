@@ -1,12 +1,20 @@
 import { useReducedMotion } from "framer-motion";
+import { OMNI_TEXT } from "../model";
 import { cx } from "../style";
 import { agoText } from "./evidence";
 import { LABEL_SIDE, shortName } from "./labels";
 import { useWidth } from "./useWidth";
+import { OmniRing } from "./segments";
 import { C, EMPTY_NOTE, RING_LABELS, RINGS, emptyNoteAt, placeBlips, placeLabels, polar, reservedBoxes, sectors, wedge, type RadarAccount } from "./model";
 
 const FIT_SIZE: Record<string, number> = { A: 22, B: 16, C: 12 };
-const sizeOf = (fit?: string) => FIT_SIZE[(fit ?? "").trim().toUpperCase().slice(0, 1)] ?? 12;
+/** A big territory draws every dot smaller, and the outer band (no dated trigger) smaller still. */
+const DENSE_AT = 20;
+const DENSE_SIZE: Record<string, number> = { A: 18, B: 14, C: 10 };
+const OUTER_SCALE = 0.75;
+/** The Omni ring sits this far outside the dot (clear of the pulse's 2px navy edge). */
+const RING_GAP = 6;
+const sizeOf = (fit: string | undefined, sizes: Record<string, number>) => sizes[(fit ?? "").trim().toUpperCase().slice(0, 1)] ?? sizes.C;
 const pct = (v: number) => `${(v / 4).toFixed(2)}%`;
 
 const CORNER: Record<string, string> = {
@@ -20,7 +28,9 @@ const CORNER: Record<string, string> = {
  * The territory as a radar: distance from the centre is how fresh the
  * account's newest dated trigger is, the three sectors are the motions, blip
  * size is fit. Fresh or changed accounts pulse pink; the sweep runs once on
- * load. Each blip is a button that opens the account in focus.
+ * load. A navy ring marks Omni at the account (solid: on the public list;
+ * dashed: named in a stack line). Each blip is a button that opens the
+ * account in focus.
  */
 export function RadarChart({
   accounts,
@@ -37,6 +47,9 @@ export function RadarChart({
   const secs = sectors(accounts.some((a) => a.row.motion === "Unclear"));
   const empty = secs.filter((s) => !accounts.some((a) => a.row.motion === s.motion));
   const scale = 400 / Math.max(200, width);
+  const dense = accounts.length > DENSE_AT;
+  const sizes = dense ? DENSE_SIZE : FIT_SIZE;
+  const omni = (["Confirmed", "Likely"] as const).filter((s) => accounts.some((a) => a.row.omni === s));
   const labels = placeLabels(
     blips,
     focusId,
@@ -120,10 +133,14 @@ export function RadarChart({
 
         {blips.map((b) => {
           const { row, trigger, changes, pulse } = b.account;
-          const size = sizeOf(row.fit);
+          const size = Math.round(sizeOf(row.fit, sizes) * (dense && !trigger ? OUTER_SCALE : 1));
           const on = focusId === row.id;
+          const marked = row.omni !== "None found";
           const age = trigger ? `trigger ${agoText(trigger.days)}` : "no dated trigger";
-          const label = [row.name, row.motion, `Fit ${row.fit ?? "unknown"}`, age, changes.length ? "changed since the last run" : ""].filter(Boolean).join(" · ");
+          const label = [row.name, row.segment, row.motion, `Fit ${row.fit ?? "unknown"}`, age, changes.length ? "changed since the last run" : "", marked ? OMNI_TEXT[row.omni].full : ""]
+            .filter(Boolean)
+            .join(" · ");
+          const focusRing = marked ? "0 0 0 2px #FFFFFF, 0 0 0 4px hsl(var(--primary))" : "0 0 0 3px #FFFFFF, 0 0 0 5px hsl(var(--primary))";
           const named = labels.some((l) => l.id === row.id);
           return (
             <button
@@ -145,9 +162,12 @@ export function RadarChart({
                 </span>
               )}
               <span
-                className={cx("block rounded-full", pulse ? "bg-brand shadow-[0_0_0_2px_hsl(var(--foreground))]" : "bg-foreground")}
-                style={{ width: size, height: size, ...(on ? { boxShadow: "0 0 0 3px #FFFFFF, 0 0 0 5px hsl(var(--primary))" } : {}) }}
-              />
+                className={cx("relative block rounded-full", pulse ? "bg-brand shadow-[0_0_0_2px_hsl(var(--foreground))]" : "bg-foreground")}
+                style={{ width: size, height: size, ...(on && !marked ? { boxShadow: focusRing } : {}) }}
+              >
+                {marked && <OmniRing status={row.omni} around={RING_GAP} />}
+                {marked && on && <span aria-hidden className="absolute rounded-full" style={{ inset: -RING_GAP, boxShadow: focusRing }} />}
+              </span>
             </button>
           );
         })}
@@ -172,16 +192,25 @@ export function RadarChart({
       </div>
       <div className="mt-3.5 flex flex-wrap gap-x-[18px] gap-y-2 text-sm text-[#4A4F63]">
         <span>Distance from center = trigger freshness</span>
-        <span>Outer band = no dated trigger</span>
+        <span>Outer band = no dated trigger{dense ? ", drawn smaller" : ""}</span>
         <span className="inline-flex items-center gap-1.5">
           Size = fit
           {(["A", "B", "C"] as const).map((g) => (
             <span key={g} className="inline-flex items-center gap-1">
-              <span aria-hidden className="inline-block rounded-full bg-foreground" style={{ width: FIT_SIZE[g], height: FIT_SIZE[g] }} />
+              <span aria-hidden className="inline-block rounded-full bg-foreground" style={{ width: sizes[g], height: sizes[g] }} />
               {g}
             </span>
           ))}
         </span>
+        {omni.map((s) => (
+          <span key={s} className="inline-flex items-center gap-1.5">
+            <span aria-hidden className="relative inline-flex h-[22px] w-[22px] items-center justify-center">
+              <span className="block h-2.5 w-2.5 rounded-full bg-foreground" />
+              <OmniRing status={s} around={0} />
+            </span>
+            {OMNI_TEXT[s].full}
+          </span>
+        ))}
         <span className="inline-flex items-center gap-1.5">
           <span aria-hidden className="inline-block h-3.5 w-3.5 rounded-full bg-brand shadow-[0_0_0_2px_hsl(var(--foreground))]" />
           Trigger in the last 30 days{accounts.some((a) => a.changes.length) ? " or changed" : ""}

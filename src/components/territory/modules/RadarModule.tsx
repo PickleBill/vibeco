@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { MotionConfig } from "framer-motion";
 import type { MotionLabel } from "@/components/account/AccountViews";
 import { ranAt } from "@/components/account/explorer/savedRuns";
+import type { Segment } from "@/lib/sellers";
+import { segmentFromParam, segmentsOf } from "../model";
 import { AccountsTable } from "../radar/AccountsTable";
 import { FreshList } from "../radar/ChangeCards";
 import { useRunDiffs } from "../radar/diff";
@@ -13,8 +15,9 @@ import { HalfLife } from "../radar/HalfLife";
 import { byFreshness, FRESH_DAYS, toRadarAccount } from "../radar/model";
 import { StatTile } from "../radar/pieces";
 import { RadarChart } from "../radar/RadarChart";
+import { SegmentFilter } from "../radar/segments";
 import { MissingNote, RadarEmpty, RadarLoading } from "../radar/States";
-import { cx } from "../style";
+import { cx, secondaryButton } from "../style";
 import { Eyebrow, Sheet, WorkbookTabs } from "../ui";
 import type { ModuleProps } from "./types";
 
@@ -27,19 +30,34 @@ const MOTIONS: MotionLabel[] = ["Internal", "Embedded", "Both"];
  * is dated and fresh. Rings are trigger age, sectors are motions. "What's
  * fresh" holds a card per account worth a call this week; "All accounts" is
  * the whole territory as a sortable sheet. When an account has an earlier run,
- * the evidence-backed changes between the two lead.
+ * the evidence-backed changes between the two lead. A segment filter
+ * (?segment=strategic) narrows everything on the page to one segment.
  */
 export function RadarModule({ seller, territory }: ModuleProps) {
-  const { search } = useLocation();
-  const demo = new URLSearchParams(search).has("demo");
+  const [params, setParams] = useSearchParams();
+  const demo = params.has("demo");
+  const segments = segmentsOf(seller.territory);
+  const segment = segmentFromParam(params.get("segment"), segments);
   const [tab, setTab] = useState<Tab>("fresh");
   const [focusId, setFocusId] = useState<string | null>(null);
   const diffs = useRunDiffs(territory.rows);
 
-  const accounts = useMemo(() => {
+  const everyone = useMemo(() => {
     const now = startOfDay();
     return territory.rows.map((r) => toRadarAccount(r, diffs[r.id] ?? [], now)).sort(byFreshness);
   }, [territory.rows, diffs]);
+  const accounts = useMemo(() => (segment ? everyone.filter((a) => a.row.segment === segment) : everyone), [everyone, segment]);
+
+  const setSegment = (s?: Segment) =>
+    setParams(
+      (p) => {
+        const next = new URLSearchParams(p);
+        if (s) next.set("segment", s.toLowerCase());
+        else next.delete("segment");
+        return next;
+      },
+      { replace: true },
+    );
 
   const name = seller.territory?.name ?? "Territory";
   const total = seller.territory?.accounts.length ?? 0;
@@ -49,8 +67,10 @@ export function RadarModule({ seller, territory }: ModuleProps) {
   const comparable = accounts.some((a) => a.row.previousId);
   const latest = territory.rows.reduce<string | null>((a, r) => (!a || r.ranAt > a ? r.ranAt : a), null);
   const focus = accounts.find((a) => a.row.id === focusId);
+  const where = segment ? `${name} · ${segment}` : name;
+  const segmentNote = segments.find((s) => s.id === segment)?.note;
 
-  if (!n && territory.loading) {
+  if (!everyone.length && territory.loading) {
     return (
       <div>
         <Eyebrow>Radar · {name}</Eyebrow>
@@ -59,7 +79,7 @@ export function RadarModule({ seller, territory }: ModuleProps) {
       </div>
     );
   }
-  if (!n) {
+  if (!everyone.length) {
     return (
       <div>
         <Eyebrow>Radar · {name}</Eyebrow>
@@ -70,11 +90,15 @@ export function RadarModule({ seller, territory }: ModuleProps) {
     );
   }
 
-  const headline = moved
-    ? `${moved} account${moved === 1 ? "" : "s"} moved since the last run`
-    : fresh
-      ? `${fresh} of ${n} accounts ${fresh === 1 ? "has" : "have"} a trigger in the last ${FRESH_DAYS} days`
-      : `${n} accounts, none with a trigger in the last ${FRESH_DAYS} days`;
+  /** "accounts", "Strategic accounts". */
+  const noun = (k: number) => `${segment ? `${segment} ` : ""}account${k === 1 ? "" : "s"}`;
+  const headline = !n
+    ? `No ${noun(2)} on the radar yet`
+    : moved
+      ? `${moved} ${noun(moved)} moved since the last run`
+      : fresh
+        ? `${fresh} of ${n} ${noun(n)} ${fresh === 1 ? "has" : "have"} a trigger in the last ${FRESH_DAYS} days`
+        : `${n} ${noun(n)}, none with a trigger in the last ${FRESH_DAYS} days`;
   const subline = comparable
     ? "Each account's latest run, compared with the run before it. Only changes a source backs count."
     : "Each account's latest saved run, read for what is dated and fresh. No account has an earlier run to compare yet, so nothing is marked as changed.";
@@ -85,13 +109,14 @@ export function RadarModule({ seller, territory }: ModuleProps) {
     .slice(0, 3)
     .map((a) => a.row.name)
     .join(", ")}`.replace(/ · $/, "");
+  const counts = Object.fromEntries(segments.map((s) => [s.id, everyone.filter((a) => a.row.segment === s.id).length])) as Partial<Record<Segment, number>>;
 
   return (
     <MotionConfig reducedMotion="user">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0 flex-[1_1_440px]">
           <Eyebrow>
-            Radar · {name}
+            Radar · {where}
             {latest ? ` · latest run ${ranAt(latest)}` : ""}
           </Eyebrow>
           <h1 className="mt-2 font-display text-[2.1rem] font-bold leading-[1.08] tracking-[-0.02em] sm:text-[2.75rem]">{headline}</h1>
@@ -119,47 +144,61 @@ export function RadarModule({ seller, territory }: ModuleProps) {
         </div>
       </div>
 
-      <MissingNote missing={territory.missing} shown={n} className="mt-5" />
+      {segments.length > 0 && <SegmentFilter className="mt-5" segments={segments} counts={counts} total={everyone.length} value={segment} onChange={setSegment} />}
 
-      <div className="mt-6">
-        <WorkbookTabs<Tab>
-          label="Radar views"
-          value={tab}
-          onChange={setTab}
-          tabs={[
-            { id: "fresh", label: "What's fresh", count: accounts.filter((a) => a.fresh).length },
-            { id: "accounts", label: "All accounts", count: n },
-          ]}
-        />
-        <Sheet className={cx(tab === "accounts" && "!p-0")}>
-          <div role="tabpanel" aria-label={tab === "fresh" ? "What's fresh" : "All accounts"}>
-            {focus && (
-              <div className={cx(tab === "accounts" && "px-4 pt-4 sm:px-6 sm:pt-5")}>
-                <FocusPanel account={focus} seller={seller.id} sellerName={seller.name} onClose={() => setFocusId(null)} />
-              </div>
-            )}
-            {tab === "fresh" ? (
-              <>
-                <div className="grid items-start gap-7 lg:grid-cols-[minmax(280px,340px)_minmax(0,1fr)] xl:grid-cols-[minmax(300px,400px)_minmax(0,1fr)]">
-                  <div className="lg:sticky lg:top-4">
-                    <RadarChart accounts={accounts} focusId={focusId} onFocus={setFocusId} />
-                  </div>
-                  <FreshList accounts={accounts} seller={seller.id} onFocus={setFocusId} />
+      <MissingNote missing={territory.missing} shown={everyone.length} className="mt-5" />
+
+      {!n ? (
+        <div className="mt-6 flex flex-col items-start gap-3 rounded-xl border border-dotted border-[#9097A6] bg-white p-5 sm:p-6">
+          <h2 className="font-display text-[22px] font-semibold">No {segment} accounts have a saved run yet</h2>
+          <p className="max-w-[620px] text-base text-[#4A4F63]">
+            {segment} accounts{segmentNote ? ` (${segmentNote.toLowerCase()})` : ""} show here once they&rsquo;re run.
+          </p>
+          <button type="button" onClick={() => setSegment(undefined)} className={cx(secondaryButton, "text-[15px]")}>
+            Show all {everyone.length} accounts
+          </button>
+        </div>
+      ) : (
+        <div className="mt-6">
+          <WorkbookTabs<Tab>
+            label="Radar views"
+            value={tab}
+            onChange={setTab}
+            tabs={[
+              { id: "fresh", label: "What's fresh", count: accounts.filter((a) => a.fresh).length },
+              { id: "accounts", label: "All accounts", count: n },
+            ]}
+          />
+          <Sheet className={cx(tab === "accounts" && "!p-0")}>
+            <div role="tabpanel" aria-label={tab === "fresh" ? "What's fresh" : "All accounts"}>
+              {focus && (
+                <div className={cx(tab === "accounts" && "px-4 pt-4 sm:px-6 sm:pt-5")}>
+                  <FocusPanel account={focus} seller={seller.id} segmentNote={segments.find((s) => s.id === focus.row.segment)?.note} onClose={() => setFocusId(null)} />
                 </div>
-                {!demo && (
-                  <>
-                    <HalfLife accounts={accounts} />
-                    <Digest accounts={accounts} territory={name} subject={subject} />
-                  </>
-                )}
-              </>
-            ) : (
-              <AccountsTable accounts={accounts} seller={seller.id} focusId={focusId} onFocus={setFocusId} />
-            )}
-          </div>
-        </Sheet>
-        {territory.loading && <p className="mt-3 text-sm text-muted-foreground">Still reading {total - n - territory.missing.length} more saved run(s)…</p>}
-      </div>
+              )}
+              {tab === "fresh" ? (
+                <>
+                  <div className="grid items-start gap-7 lg:grid-cols-[minmax(280px,340px)_minmax(0,1fr)] xl:grid-cols-[minmax(300px,400px)_minmax(0,1fr)]">
+                    <div data-tour="radar" className="lg:sticky lg:top-4">
+                      <RadarChart accounts={accounts} focusId={focusId} onFocus={setFocusId} />
+                    </div>
+                    <FreshList accounts={accounts} seller={seller.id} onFocus={setFocusId} />
+                  </div>
+                  {!demo && (
+                    <>
+                      <HalfLife accounts={accounts} />
+                      <Digest accounts={accounts} territory={where} subject={subject} />
+                    </>
+                  )}
+                </>
+              ) : (
+                <AccountsTable accounts={accounts} seller={seller.id} segments={segments} focusId={focusId} onFocus={setFocusId} />
+              )}
+            </div>
+          </Sheet>
+        </div>
+      )}
+      {territory.loading && <p className="mt-3 text-sm text-muted-foreground">Still reading {total - everyone.length - territory.missing.length} more saved run(s)…</p>}
     </MotionConfig>
   );
 }

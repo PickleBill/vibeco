@@ -61,7 +61,13 @@ export function DealRoomModule({ seller, territory, reportId }: ModuleProps) {
         Share one link. The account sees only the public claims and their sources, marks each one right, fixes it or skips it, and the answers land here as discovery notes.
       </p>
       <div className="mt-4">
-        <AccountSwitcher rows={territory.rows} activeId={activeId} hrefFor={(id) => moduleHref(seller.id, "deal", id)} loading={territory.loading} />
+        <AccountSwitcher
+          rows={territory.rows}
+          activeId={activeId}
+          hrefFor={(id) => moduleHref(seller.id, "deal", id)}
+          loading={territory.loading}
+          segments={seller.territory?.segments}
+        />
       </div>
 
       {!activeId ? (
@@ -84,7 +90,7 @@ export function DealRoomModule({ seller, territory, reportId }: ModuleProps) {
         <Empty>{report ? "Deal Rooms work on account runs only. This run is a different kind of question." : "This run couldn't be read. Pick another account above."}</Empty>
       ) : (
         <>
-          <div className="mt-6 flex flex-col gap-3">
+          <div data-tour="deal-view" className="mt-6 flex flex-col gap-3">
             <SellerControl company={name} view={view} onView={setView} />
             <SharePanel company={name} url={url} />
           </div>

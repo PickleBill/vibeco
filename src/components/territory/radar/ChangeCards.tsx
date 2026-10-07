@@ -44,7 +44,7 @@ export function ChangeCard({ account, seller, onFocus }: { account: RadarAccount
   const { row, trigger, changes } = account;
   const headline = changes.length ? changeHeadline(changes.find((c) => c.kind === "trigger") ?? changes[0]) : trigger?.text;
   return (
-    <article aria-labelledby={`card-${row.id}`} className="flex flex-col gap-3.5 rounded-xl border border-border bg-white p-4 sm:px-5 sm:py-[18px]">
+    <article data-tour="change-card" aria-labelledby={`card-${row.id}`} className="flex flex-col gap-3.5 rounded-xl border border-border bg-white p-4 sm:px-5 sm:py-[18px]">
       <div className="flex flex-wrap items-center gap-2">
         <h3 id={`card-${row.id}`} className="mr-0.5 font-display text-xl font-semibold tracking-[-0.01em]">
           {row.name}
@@ -131,7 +131,7 @@ export function FreshList({ accounts, seller, onFocus }: { accounts: RadarAccoun
         <h3 className="font-display text-2xl font-semibold">Nothing moved in the last 60 days</h3>
         <p className="mt-1.5 text-base text-[#4A4F63]">
           No account has a dated trigger this recent{accounts.some((a) => a.row.previousId) ? ", and no re-run changed anything a source backs" : ""}. A quiet territory is a good time to re-check
-          old evidence. The freshest three:
+          old evidence. {top.length === 1 ? "The one account here:" : `The freshest ${top.length === 2 ? "two" : "three"}:`}
         </p>
       </div>
       <ul className="divide-y divide-border rounded-lg border border-border">

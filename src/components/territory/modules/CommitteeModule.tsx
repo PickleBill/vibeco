@@ -55,7 +55,13 @@ export function CommitteeModule({ seller, territory, reportId }: ModuleProps) {
       </p>
 
       <div className="mt-4">
-        <AccountSwitcher rows={territory.rows} activeId={activeId} hrefFor={(id) => moduleHref(seller.id, "committee", id)} loading={territory.loading} />
+        <AccountSwitcher
+          rows={territory.rows}
+          activeId={activeId}
+          hrefFor={(id) => moduleHref(seller.id, "committee", id)}
+          loading={territory.loading}
+          segments={seller.territory?.segments}
+        />
       </div>
 
       {brief && (
