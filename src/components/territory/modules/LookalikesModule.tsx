@@ -80,7 +80,7 @@ export function LookalikesModule({ seller, territory, reportId, justRan }: Modul
       territory.rows.map((r) => fingerprintOf(r, seller.name, now)),
     );
   }, [seedFp, territory.rows, seller.name]);
-  const domains = useMemo(() => Object.fromEntries(territory.rows.map((r) => [r.id, r.domain])), [territory.rows]);
+  const rowsById = useMemo(() => Object.fromEntries(territory.rows.map((r) => [r.id, r])), [territory.rows]);
 
   const keep = (m: MotionFilter, min: number, seg = segment) => ranked.filter((l) => (m === "Any" || l.fp.motion === m) && l.score >= min && (!seg || l.fp.segment === seg));
   const shown = keep(motion, minScore);
@@ -192,7 +192,7 @@ export function LookalikesModule({ seller, territory, reportId, justRan }: Modul
       {seed.row && seedFp && (
         <>
           <div className="mt-5">
-            <FingerprintCard fp={seedFp} sources={datedSources(seed.row)} sellerName={seller.name} domain={seed.row.domain} />
+            <FingerprintCard fp={seedFp} row={seed.row} seller={seller.id} sources={datedSources(seed.row)} sellerName={seller.name} />
           </div>
 
           <Memo className="mt-3" title="How the score works" count="five traits, out of 100">
@@ -256,7 +256,7 @@ export function LookalikesModule({ seller, territory, reportId, justRan }: Modul
                   <Constellation seed={seedFp} items={shown} selected={selected} onPick={pickStar} />
                   <p className="mt-3 text-[15px] text-[#4A4F63]">Closer to the center = more alike. Size = fit.</p>
                   <p className="mt-2 rounded-[10px] border border-dotted border-[#9097A6] px-3 py-2.5 text-[15px] text-[#4A4F63]">
-                    Ranked from this territory&rsquo;s saved runs. A live version would search the web for new companies like this one.
+                    Ranked from this territory&rsquo;s saved runs. For companies outside it, use Beyond the territory below.
                   </p>
                 </div>
               </section>
@@ -275,7 +275,7 @@ export function LookalikesModule({ seller, territory, reportId, justRan }: Modul
                       item={l}
                       rank={i + 1}
                       seller={seller.id}
-                      domain={domains[l.fp.id]}
+                      row={rowsById[l.fp.id]}
                       selected={selected === l.fp.id}
                       onPick={() => setSelected(l.fp.id)}
                     />

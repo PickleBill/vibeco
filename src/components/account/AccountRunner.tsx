@@ -8,15 +8,19 @@ import { ensureSession } from "@/lib/ensureSession";
 import { copyToClipboard } from "@/lib/copyToClipboard";
 import type { SellerConfig } from "@/lib/sellers";
 import type { BriefResearch } from "@/components/simulator/SourcesList";
+import { moduleHref } from "@/components/territory/nav";
+import { ReadingKey } from "@/components/territory/ReadingKey";
 import { cx } from "@/components/territory/style";
 import { Eyebrow, LivePill } from "@/components/territory/ui";
 import { StatusTag, type AccountAnalysis, type AccountBrief } from "./AccountViews";
 import { AccountExplorer } from "./explorer/AccountExplorer";
 import { card, linkBtn, primaryBtn, secondaryBtn, toggle } from "./explorer/look";
+import { QuickPicks } from "./QuickPicks";
+import { RunMode } from "./RunMode";
 import { ResearchFeed } from "./explorer/ResearchFeed";
 import { TerritoryStrip } from "./explorer/TerritoryStrip";
 import { useAgentBoard } from "./explorer/useAgentBoard";
-import { loadReport, ranAt, recentRuns, rememberReport, rememberRun, type RunRef, type SavedReport } from "./explorer/savedRuns";
+import { loadReport, recentRuns, rememberReport, rememberRun, type RunRef, type SavedReport } from "./explorer/savedRuns";
 
 /**
  * Target-account express run: sources first, then the First-call plan, then
@@ -163,6 +167,7 @@ function HowItWorks() {
           several, or as a nice-to-have, doesn&rsquo;t count. Former means a source says the company moved off it.
         </p>
       </div>
+      <ReadingKey className="mt-4 border-t border-border pt-4" />
     </div>
   );
 }
@@ -246,6 +251,8 @@ interface Props {
   onRunChange?: (run: { id: string; company: string } | null) => void;
   /** Stands in for the saved-run pills in the run bar (the territory's account picker). */
   picker?: React.ReactNode;
+  /** A company to run live once, on arrival (a "research it live" link); the box shows it. */
+  autoRun?: string;
 }
 
 /** "Relay (relaypro.com)" and "relay" are the same account. */
@@ -254,7 +261,7 @@ const sameAccount = (a: string, b: string) => {
   return norm(a) === norm(b);
 };
 
-const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, inShell, onRunChange, picker }: Props) => {
+const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, inShell, onRunChange, picker, autoRun }: Props) => {
   const [input, setInput] = useState(initialCompany);
   const [company, setCompany] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -449,6 +456,15 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, in
     // eslint-disable-next-line react-hooks/exhaustive-deps -- open once per id
   }, [initialReportId]);
 
+  // Arriving with a company to research live: run it once.
+  const autoRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!autoRun || autoRef.current === autoRun) return;
+    autoRef.current = autoRun;
+    run(autoRun);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per company
+  }, [autoRun]);
+
   const copyLink = async () => {
     if (!reportId) return;
     const ok = await copyToClipboard(`${window.location.origin}/report/${reportId}`);
@@ -512,7 +528,6 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, in
       {!running && <ArrowRight size={16} aria-hidden />}
     </button>
   );
-  const total = marks.critics;
 
   return (
     <div>
@@ -548,22 +563,35 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, in
                 <p className="mt-2 text-[15px] text-[#4A4F63]">
                   Add its domain when the name is a common word: <span className="font-mono">Relay (relaypro.com)</span>.
                 </p>
-                {seller && seller.examples.length > 0 && (
-                  <div className="mt-4 flex flex-wrap items-center gap-2">
-                    <span className="mr-1 font-mono text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">Try</span>
-                    {seller.examples.map((ex) => (
-                      <button key={ex} type="button" disabled={running} onClick={() => run(ex)} className={cx(toggle(false), "disabled:opacity-50")}>
-                        {ex}
-                      </button>
-                    ))}
-                  </div>
+                {seller?.territory ? (
+                  <QuickPicks
+                    saved={pinned}
+                    live={seller.examples}
+                    disabled={running}
+                    onOpen={openSaved}
+                    onRun={run}
+                    radar={{ href: moduleHref(seller.id, "radar"), count: seller.territory.accounts.length }}
+                  />
+                ) : (
+                  seller &&
+                  seller.examples.length > 0 && (
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <span className="mr-1 font-mono text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">Try</span>
+                      {seller.examples.map((ex) => (
+                        <button key={ex} type="button" disabled={running} onClick={() => run(ex)} className={cx(toggle(false), "disabled:opacity-50")}>
+                          {ex}
+                        </button>
+                      ))}
+                    </div>
+                  )
                 )}
               </form>
             </div>
             <HowItWorks />
           </div>
 
-          {runs.length > 0 && (
+          {/* With a territory, the saved pills and the radar link stand in for these cards. */}
+          {!seller?.territory && runs.length > 0 && (
             <TerritoryStrip
               runs={runs}
               title={pinned.length ? "Saved runs · open instantly, no AI calls" : "Your recent runs · open instantly"}
@@ -579,16 +607,13 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, in
           <>
             <h1 className="sr-only">First-call plan: {name}</h1>
             <section aria-label="Run" className={cx(card, "p-3 sm:p-4")}>
-              <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-6">
-                <form onSubmit={submit} className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-                  <label htmlFor="account-company" className="sr-only">
-                    Which company?
-                  </label>
-                  <div className="flex min-w-0 flex-1 items-center gap-2 rounded-[8px] border border-[#9097A6] bg-card px-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-ring">
-                    {field}
-                  </div>
-                  {buildButton}
-                </form>
+              {/* Which kind of run this is, first; the report links on the same line. */}
+              <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-1">
+                {saved ? (
+                  <RunMode kind="saved" savedAt={saved.created_at} />
+                ) : (
+                  <RunMode kind="live" status={running ? "running" : status === "done" ? "done" : "error"} ms={status === "done" ? marks.critics ?? elapsed : elapsed} />
+                )}
                 {reportId && !running && (
                   <div className="flex flex-wrap items-center gap-x-5">
                     <Link to={`/report/${reportId}`} className={linkBtn}>
@@ -601,36 +626,21 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, in
                 )}
               </div>
 
-              <div className="mt-3 border-t border-border pt-3" aria-live="polite">
-                {saved ? (
-                  <p className="flex items-start gap-2 text-[15px] text-[#4A4F63]">
-                    <History size={16} className="mt-[3px] shrink-0 text-foreground" aria-hidden />
-                    <span>
-                      <span className="font-semibold text-foreground">Saved run{saved.created_at ? ` from ${ranAt(saved.created_at)}` : ""}.</span> Opened instantly from stored
-                      results, no AI calls. Type another company above to build a new plan.
-                    </span>
-                  </p>
-                ) : (
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between lg:gap-8">
-                    <div className="min-w-0 flex-1">
-                      <RunSteps marks={marks} step={step} status={status} inStep={inStep} progress={progress} />
-                    </div>
-                    <div className="shrink-0">
-                      {running ? (
-                        <LivePill>
-                          {name} · live <span className="font-mono text-[13px] font-medium">{secs(elapsed)}</span>
-                        </LivePill>
-                      ) : status === "done" ? (
-                        <p className="font-mono text-sm text-[#4A4F63]">
-                          {name} · finished{total !== undefined ? ` in ${secs(total)}` : ""}
-                        </p>
-                      ) : (
-                        <p className="font-mono text-sm font-semibold text-foreground">{name} · stopped</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <form onSubmit={submit} className="mt-2.5 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+                <label htmlFor="account-company" className="sr-only">
+                  Which company?
+                </label>
+                <div className="flex min-w-0 flex-1 items-center gap-2 rounded-[8px] border border-[#9097A6] bg-card px-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-ring">
+                  {field}
+                </div>
+                {buildButton}
+              </form>
+
+              {!saved && (
+                <div className="mt-3 border-t border-border pt-3" aria-live="polite">
+                  <RunSteps marks={marks} step={step} status={status} inStep={inStep} progress={progress} />
+                </div>
+              )}
 
               {picker ? (
                 <div className="mt-3 border-t border-border pt-3">{picker}</div>

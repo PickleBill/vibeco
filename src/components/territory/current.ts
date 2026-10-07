@@ -1,6 +1,7 @@
 // The account the command center is about, carried from view to view: the
 // one in the URL, else the last one opened this session, else the territory's
-// first. One-account views (run, committee, deal room) open on it. A run
+// first. The committee and the deal room open on it; Run an account always
+// opens on the empty form. A run
 // from outside the territory (a company just run live) is also kept as "just
 // ran", so the pickers in the other views can offer it.
 import { useEffect, useState } from "react";
@@ -61,16 +62,13 @@ export function rememberRan(seller: string, ran: JustRan) {
 export interface CurrentAccount {
   /** The account one-account views open on: URL, then session, then the territory's first. */
   id?: string;
-  /** Only an account someone opened (URL or session); "Run an account" carries this one. */
-  opened?: string;
   /** The last run outside the territory opened this session ("Just ran" in the pickers). */
   ran?: JustRan;
 }
 
 /** URL id wins, then the session's, then the first territory account. */
 export function pickCurrent({ urlId, sessionId, accounts }: { urlId?: string; sessionId?: string; accounts: { reportId: string }[] }): CurrentAccount {
-  const opened = urlId || sessionId || undefined;
-  return { id: opened ?? accounts[0]?.reportId, opened };
+  return { id: urlId || sessionId || accounts[0]?.reportId };
 }
 
 /** The current account for this page; an id in the URL becomes the session's. */

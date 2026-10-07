@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import { CompanyName } from "../company/CompanyName";
 import { ReadMore } from "../Memo";
 import { moduleHref } from "../nav";
 import { ageText, cx, primaryButton, secondaryButton } from "../style";
@@ -48,7 +49,7 @@ export function ChangeCard({ account, seller, onFocus }: { account: RadarAccount
     <article data-tour="change-card" aria-labelledby={`card-${row.id}`} className="flex flex-col gap-3.5 rounded-xl border border-border bg-white p-4 sm:px-5 sm:py-[18px]">
       <div className="flex flex-wrap items-center gap-2">
         <h3 id={`card-${row.id}`} className="mr-0.5 font-display text-xl font-semibold tracking-[-0.01em]">
-          {row.name}
+          <CompanyName row={row} seller={seller} />
         </h3>
         {row.domain && <span className="font-mono text-[13px] text-muted-foreground">{row.domain}</span>}
         <FieldPill>{row.motion}</FieldPill>
@@ -138,12 +139,17 @@ export function FreshList({ accounts, seller, onFocus }: { accounts: RadarAccoun
       </div>
       <ul className="divide-y divide-border rounded-lg border border-border">
         {top.map((a) => (
-          <li key={a.row.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3.5 py-2.5">
-            <button type="button" onClick={() => onFocus(a.row.id)} className="min-h-11 text-left font-display text-[17px] font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              {a.row.name}
-            </button>
-            <span className="min-w-0 flex-1 text-[15px] text-[#4A4F63]">{a.trigger ? `${a.trigger.text} · ${dayLabel(a.trigger.date)}` : "No dated trigger found"}</span>
-            <Link to={moduleHref(seller, "account", a.row.id)} className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-primary hover:underline">
+          // The row opens the account in focus; the name (above it) opens the brief.
+          <li key={a.row.id} className="relative flex flex-wrap items-center gap-x-3 gap-y-1 px-3.5 py-2.5">
+            <button
+              type="button"
+              onClick={() => onFocus(a.row.id)}
+              aria-label={`Quick look at ${a.row.name}`}
+              className="absolute inset-0 hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+            />
+            <CompanyName row={a.row} seller={seller} className="relative font-display text-[17px] font-semibold" />
+            <span className="pointer-events-none relative min-w-0 flex-1 text-[15px] text-[#4A4F63]">{a.trigger ? `${a.trigger.text} · ${dayLabel(a.trigger.date)}` : "No dated trigger found"}</span>
+            <Link to={moduleHref(seller, "account", a.row.id)} className="relative inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-primary hover:underline">
               Open <ArrowRight size={14} aria-hidden />
             </Link>
           </li>

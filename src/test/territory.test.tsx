@@ -358,12 +358,12 @@ describe("LookalikesModule", () => {
       </MemoryRouter>,
     );
     expect(await screen.findByRole("heading", { level: 1, name: "Accounts that look like Guitar Center" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Guitar Center/ })).toHaveAttribute("aria-pressed", "true");
+    expect(within(screen.getByRole("group", { name: "Start from a customer" })).getByRole("button", { name: /^Guitar Center/ })).toHaveAttribute("aria-pressed", "true");
     const ranked = screen.getByRole("region", { name: "Ranked lookalikes · 2" });
     const cards = within(ranked).getAllByRole("article");
     expect(within(cards[0]).getByText("60")).toBeInTheDocument();
     expect(within(cards[0]).getByText(/which AvidXchange still runs/)).toBeInTheDocument();
-    expect(screen.getByText(/A live version would search the web/)).toBeInTheDocument();
+    expect(screen.getByText(/use Beyond the territory below/)).toBeInTheDocument();
 
     fireEvent.click(within(screen.getByRole("group", { name: "Motion" })).getByRole("button", { name: "Embedded" }));
     expect(screen.getByText("No lookalikes match these filters")).toBeInTheDocument();

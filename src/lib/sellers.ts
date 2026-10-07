@@ -102,6 +102,12 @@ const SELLERS: Record<string, SellerConfig> = {
         { company: "Built (getbuilt.com)", reportId: "ea0c06b8-2817-463e-bc69-b07a305b4290", segment: "Enterprise" },
         { company: "M3 (m3as.com)", reportId: "3aeed73e-6f36-4153-8442-d686d475eaba", segment: "Enterprise" },
         { company: "Teamworks (teamworks.com)", reportId: "1c37a8c0-0942-46b8-96bb-bf3d9202e63d", segment: "Enterprise" },
+        // Software companies that ship analytics to their own customers (the embedded motion).
+        { company: "Cardlytics (cardlytics.com)", reportId: "be488ecd-bd75-48cb-b6a2-7326dfde6fdb", segment: "Enterprise" },
+        { company: "ConnectWise (connectwise.com)", reportId: "215a23ef-66f4-4542-bd63-e875ffe2ef48", segment: "Enterprise" },
+        { company: "Blackbaud (blackbaud.com)", reportId: "424e0e4a-d8dc-4079-a87f-28b097b42721", segment: "Enterprise" },
+        { company: "Spreedly (spreedly.com)", reportId: "16abd51e-f0f5-40ae-8eff-7304cdaafcc3", segment: "Enterprise" },
+        { company: "Daxko (daxko.com)", reportId: "82722926-9624-472d-ae70-00d53d391442", segment: "Enterprise" },
         { company: "Equifax (equifax.com)", reportId: "e71ea1b4-c34b-4dc4-8124-428a16264a93", segment: "Strategic" },
         { company: "Labcorp (labcorp.com)", reportId: "1cdb80a1-5f0e-4a10-a1fb-60ca498d2fbd", segment: "Strategic" },
         { company: "The Home Depot (homedepot.com)", reportId: "749f739d-aff4-4dcb-894f-93fae967d567", segment: "Strategic" },

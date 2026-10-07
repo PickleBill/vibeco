@@ -31,6 +31,7 @@ export const closeWelcome = () => set({ welcome: false });
 export const setStep = (step: number | null) => set({ welcome: false, step });
 
 // ─── "Seen it": localStorage when it works, else once per page load ───
+// The card never opens by itself; this only records that someone saw it.
 
 const KEY = (seller: string) => `vibeco.territory.welcome.${seller}`;
 /** Sellers whose card already showed (or was skipped) in this page load. */
