@@ -9,10 +9,10 @@ const Dot = () => <span aria-hidden className="mx-0.5 inline-block h-2.5 w-2.5 r
 
 /** The five views in rail order, one short line each. */
 const ROWS: { icon: LucideIcon; name: string; line: ReactNode }[] = [
-  { icon: Play, name: "Run an account", line: "Any company: seven agents and a verdict in a minute." },
+  { icon: Play, name: "Run an account", line: "Any company: three whys, seven agents and a verdict in a minute." },
   { icon: Radar, name: "Radar", line: <>The territory at a glance. <span className="whitespace-nowrap"><Dot /> Pink = fresh trigger.</span></> },
   { icon: Orbit, name: "Lookalikes", line: "Accounts that look like your customers." },
-  { icon: Users, name: "Committee", line: "Simulate the buying room, then take a seat." },
+  { icon: Users, name: "Committee", line: "Simulate the buying room, take a seat, see the MEDDPICC gaps." },
   { icon: Handshake, name: "Deal Room", line: "A brief the prospect can correct." },
 ];
 

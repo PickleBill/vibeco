@@ -100,7 +100,7 @@ describe("guided tour", () => {
     expect(welcome()).not.toBeInTheDocument();
     expect(screen.getByText("1 of 4")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Run an account" })).toBeInTheDocument();
-    expect(screen.getByText(/^Relay’s saved run: seven agents/)).toBeInTheDocument();
+    expect(screen.getByText(/^Relay’s saved run: the three whys, seven agents/)).toBeInTheDocument();
     expect(screen.getByTestId("where")).toHaveTextContent(new RegExp(`^/for/omni/account/${relay}$`));
     // Focus lands on the default button.
     expect(screen.getByRole("button", { name: /^Next/ })).toHaveFocus();

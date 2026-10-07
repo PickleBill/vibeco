@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { MotionConfig, useReducedMotion } from "framer-motion";
 import { Loader2, Play, RotateCcw, SkipForward } from "lucide-react";
 import type { SavedReport } from "@/components/account/explorer/savedRuns";
+import { qualify } from "../qualification/model";
+import { QualificationCard } from "../qualification/QualificationCard";
 import { cx, primaryButton, secondaryButton } from "../style";
 import { LivePill } from "../ui";
 import {
@@ -69,6 +71,8 @@ export function CommitteeView({ report, company, accountHref }: { report: SavedR
   const roleOf = (seat: SeatId) => seatRole(seat, active);
 
   const options = useMemo(() => whatIfOptions(brief), [brief]);
+  // MEDDPICC reads the meeting of record (saved or just run), never a what-if.
+  const qualification = useMemo(() => (baseline ? qualify({ ...brief, company }, analysis, baseline) : null), [brief, company, analysis, baseline]);
   const [checked, setChecked] = useState<string[]>([]);
 
   const loading = sim.call.status === "loading";
@@ -198,6 +202,8 @@ export function CommitteeView({ report, company, accountHref }: { report: SavedR
         </div>
 
         {active && done && <OutcomePanel committee={active} sources={sources} roleOf={roleOf} was={whatIfOn ? baseline ?? undefined : undefined} whatIf={whatIfOn} />}
+
+        {qualification && !playing && !loading && <QualificationCard qualification={qualification} sources={sources} />}
 
         {active && <SeatCards committee={active} stances={stances} deltas={deltas} critics={critics} sources={sources} />}
 

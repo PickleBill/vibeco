@@ -3,6 +3,8 @@ import { Check, Copy, Quote, Users } from "lucide-react";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/copyToClipboard";
 import SourcesList, { type ResearchSource } from "@/components/simulator/SourcesList";
+import type { Qualification } from "@/components/territory/qualification/model";
+import { QualificationCard } from "@/components/territory/qualification/QualificationCard";
 import { cx } from "@/components/territory/style";
 import { Eyebrow, Sheet, WorkbookTabs } from "@/components/territory/ui";
 import { AccountSections, Cited, MotionPanel, ScanCard, type AccountBrief } from "../AccountViews";
@@ -10,7 +12,7 @@ import { label, secondaryBtn, title } from "./look";
 import { StackMap } from "./StackMap";
 import { monthLabel, stripMarks, whyNowItems } from "./model";
 
-type Tab = "call" | "stack" | "now" | "objection" | "research" | "sources";
+type Tab = "call" | "meddpicc" | "stack" | "now" | "objection" | "research" | "sources";
 
 /** A numbered square, as the plan's lists use it. */
 const Num = ({ n }: { n: number }) => (
@@ -21,7 +23,19 @@ const Num = ({ n }: { n: number }) => (
  * The First-call plan as workbook tabs, drawn from the brief's fields (so
  * nothing is cut mid-sentence). "Copy plan" copies the plan text.
  */
-export function PlanTabs({ company, plan, brief, sources }: { company: string; plan: string | null; brief: AccountBrief; sources: ResearchSource[] }) {
+export function PlanTabs({
+  company,
+  plan,
+  brief,
+  sources,
+  qualification,
+}: {
+  company: string;
+  plan: string | null;
+  brief: AccountBrief;
+  sources: ResearchSource[];
+  qualification?: Qualification;
+}) {
   const [copied, setCopied] = useState(false);
   const [tab, setTab] = useState<Tab>("call");
   const onList = !!brief.customer_list?.on_list;
@@ -42,6 +56,7 @@ export function PlanTabs({ company, plan, brief, sources }: { company: string; p
   const live = sources.filter((s) => !s.off_topic).length;
   const tabs: { id: Tab; label: string; count?: number }[] = [
     { id: "call", label: "First call" },
+    ...(qualification ? [{ id: "meddpicc" as Tab, label: "MEDDPICC" }] : []),
     { id: "stack", label: "Stack" },
     { id: "now", label: "Why now" },
     { id: "objection", label: onList ? "Expansion risk" : "Objection" },
@@ -120,6 +135,15 @@ export function PlanTabs({ company, plan, brief, sources }: { company: string; p
                       ))}
                     </ul>
                   </div>
+                )}
+              </div>
+            )}
+
+            {tab === "meddpicc" && qualification && (
+              <div className="space-y-3">
+                <QualificationCard qualification={qualification} sources={sources} defaultOpen />
+                {!qualification.fromMeeting && (
+                  <p className="text-[15px] text-[#4A4F63]">Run the buying committee for this account and its hints fill in here too.</p>
                 )}
               </div>
             )}

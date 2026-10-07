@@ -14,6 +14,10 @@ const TAG: Record<string, { label: string; cls: string }> = {
   Inferred: { label: "Inferred", cls: "bg-[#FFF4E0] text-foreground border border-dashed border-[#B45309]" },
   Former: { label: "Former", cls: "bg-white text-[#5C6175] border border-[#9097A6] line-through" },
   "Not found": { label: "Not found", cls: "bg-transparent text-[#6B7080] border border-dotted border-[#9097A6]" },
+  // Qualification and the three whys.
+  Gap: { label: "Gap", cls: "bg-transparent text-[#6B7080] border border-dotted border-[#9097A6]" },
+  Hypothesis: { label: "Hypothesis", cls: "bg-[#FFF4E0] text-foreground border border-dashed border-[#B45309]" },
+  Verified: { label: "Verified", cls: "bg-[#16703F] text-white border border-[#16703F]" },
   Account: { label: "Confirmed by the account", cls: "bg-[#16703F] text-white border border-[#16703F] shadow-[inset_0_0_0_2px_#fff]" },
 };
 

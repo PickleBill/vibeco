@@ -1,7 +1,9 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { MotionConfig } from "framer-motion";
 import { Loader2 } from "lucide-react";
+import { readCommittee, type AnalysisWithCommittee } from "@/components/territory/committee/model";
 import { splitCompany } from "@/components/territory/model";
+import { qualify, threeWhys } from "@/components/territory/qualification/model";
 import type { AccountBrief } from "../AccountViews";
 import { AccountHero } from "./AccountHero";
 import { AgentBoard } from "./AgentBoard";
@@ -53,11 +55,15 @@ export function AccountExplorer({ company: typed, brief, plan, analysis, board, 
   };
 
   const agentsRunning = Object.values(board.tiles).some((t) => t.status === "running");
+  // A saved run may carry its simulated meeting; the three whys and MEDDPICC read it when it's there.
+  const meeting = useMemo(() => readCommittee((analysis as AnalysisWithCommittee | null)?.committee), [analysis]);
+  const whys = useMemo(() => threeWhys(brief, analysis, meeting), [brief, analysis, meeting]);
+  const qualification = useMemo(() => qualify({ ...brief, company }, analysis, meeting), [brief, company, analysis, meeting]);
 
   return (
     <MotionConfig reducedMotion="user">
       <div className="space-y-6">
-        <AccountHero company={company} domain={domain} brief={brief} sources={sources} sellerName={sellerName} />
+        <AccountHero company={company} domain={domain} brief={brief} sources={sources} sellerName={sellerName} whys={whys} whysPending={!analysis && agentsRunning} />
         <AgentBoard board={board} onOpen={analysis ? openAgent : undefined} />
         <VerdictCard synthesis={analysis?.synthesis} state={board.verdict} sources={sources} />
         <div ref={lensRef} className="scroll-mt-24">
@@ -80,7 +86,7 @@ export function AccountExplorer({ company: typed, brief, plan, analysis, board, 
           ) : null}
         </div>
         {notice}
-        <PlanTabs company={company} plan={plan} brief={brief} sources={sources} />
+        <PlanTabs company={company} plan={plan} brief={brief} sources={sources} qualification={qualification} />
       </div>
     </MotionConfig>
   );

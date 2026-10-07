@@ -1,0 +1,414 @@
+{
+ "brief": {
+  "fit": {
+   "grade": "C",
+   "motion": "Embedded",
+   "reason": "Relay clearly ships customer-facing analytics (Operational Insights, Dashboard) [2] [6] fitting an embedded motion, but no named warehouse, transformation tool, or embedded analytics vendor is confirmed, and no dated customer-facing launch or stack signal supports urgency \u2014 this is mostly inference until verified."
+  },
+  "lens": "account",
+  "motion": {
+   "label": "Both",
+   "embedded": {
+    "buyer": "Head of Product or CTO overseeing Operational Insights and Dashboard [2] [6]",
+    "clock": "No specific customer-facing launch date found; the Dashboard blog post was last updated October 2025 [6], suggesting ongoing feature work worth probing for a next release.",
+    "sources": [
+     2
+    ],
+    "evidence": [
+     {
+      "quote": "Operational Insights, Continuous Monitoring & Performance Trends",
+      "signal": "Operational Insights (product page)",
+      "source": 2
+     }
+    ],
+    "question": "Are there plans to expand self-serve analytics or embed a more flexible data layer into Operational Insights or the Dashboard?"
+   },
+   "internal": {
+    "buyer": "Director, Customer Success Enablement or equivalent data/ops lead [1]",
+    "clock": "No renewal date found for Metabase; ask whether the recent $36M raise [3] triggers new investment in internal reporting tools.",
+    "sources": [
+     1
+    ],
+    "evidence": [
+     {
+      "quote": "BI tools: Metabase",
+      "signal": "Metabase",
+      "source": 1
+     }
+    ],
+    "question": "Is Metabase meeting the CS and ops teams' needs as Relay scales post-funding, or are there known gaps?"
+   }
+  },
+  "people": [],
+  "seller": "omni",
+  "company": "Relay",
+  "problem": "Relay is a frontline operations platform (\"system of action for physical operations\") that captures spoken operational knowledge from frontline workers and turns it into structured signals, dashboards and automated decision support [4] [9]. It ships an \"Operational Insights\" product with continuous monitoring and performance trend dashboards to its own customers [2] [6], and processes over 1 billion data points weekly across 35+ languages [8]. Internally, its Customer Success org appears to use Metabase alongside HubSpot and Claude for activity/behavior analysis [1]. With a fresh $36M raise (Sept 2026) aimed at scaling frontline safety and operational intelligence [3], the pressure is on both to harden its customer-facing analytics (Operational Insights, Dashboard) and to scale internal reporting as the company grows headcount fast (Inc. 5000, Deloitte Fast 500 recognition) [9] [5].",
+  "research": {
+   "sources": [
+    {
+     "id": 1,
+     "title": "Director, Customer Success Enablement at Relay (Greenhouse job post)",
+     "url": "https://job-boards.greenhouse.io/relaypro/jobs/8127852",
+     "date": null
+    },
+    {
+     "id": 2,
+     "title": "Operational Insights, Continuous Monitoring & Performance Trends",
+     "url": "https://relaypro.com/products/operational-insights/",
+     "date": null
+    },
+    {
+     "id": 3,
+     "title": "Relay Raises $36 Million in New Funding from Industry Leaders to Drive Frontline Safety, Productivity, and Operational Intelligence",
+     "url": "https://www.prnewswire.com/news-releases/relay-raises-36-million-in-new-funding-from-industry-leaders-to-drive-frontline-safety-productivity-and-operational-intelligence-302893591.html",
+     "date": "6 days ago"
+    },
+    {
+     "id": 4,
+     "title": "Relay | Frontline Communication & Operational Intelligence Platform",
+     "url": "https://relaypro.com/",
+     "date": null
+    },
+    {
+     "id": 5,
+     "title": "Careers At Relay",
+     "url": "https://relaypro.com/careers/",
+     "date": null
+    },
+    {
+     "id": 6,
+     "title": "The 5 Most Powerful Capabilities of Relay's Dashboard",
+     "url": "https://relaypro.com/blog/the-5-most-powerful-capabilities-of-relays-dashboard/",
+     "date": null
+    },
+    {
+     "id": 7,
+     "title": "Terumo initiates voluntary thoracic stent graft recall after 3 deaths",
+     "url": "https://www.massdevice.com/terumo-thoracic-stent-graft-recall-deaths/",
+     "date": "3 months ago"
+    },
+    {
+     "id": 8,
+     "title": "Relay - LinkedIn",
+     "url": "https://www.linkedin.com/company/relaypro",
+     "date": null
+    },
+    {
+     "id": 9,
+     "title": "Jobs at Relay - Greenhouse",
+     "url": "https://job-boards.greenhouse.io/relaypro/jobs/8074764",
+     "date": null
+    },
+    {
+     "id": 10,
+     "title": "Developer Policy - Relay",
+     "url": "https://relaypro.com/legal/relay-app-developer-policy/",
+     "date": null
+    }
+   ]
+  },
+  "start_with": {
+   "why": "This role explicitly owns the CS tech stack including Metabase and is tasked with distinguishing activity from real behavior change [1], making them the clearest entry point into internal analytics needs.",
+   "role": "Director, Customer Success Enablement (or equivalent data/analytics lead in CS)"
+  },
+  "account_line": "Relay is a well-funded ($36M raise, Sept 2026) frontline operations platform shipping customer-facing Operational Insights dashboards, with Metabase and Claude in its internal CS stack [1] [2] [3].",
+  "core_features": [
+   {
+    "name": "Warehouse",
+    "tool": "",
+    "status": "Not found",
+    "sources": [],
+    "description": "No warehouse named in sources; large data volumes (1B+ points/week) imply one exists [8]."
+   },
+   {
+    "name": "Transformation",
+    "tool": "",
+    "status": "Not found",
+    "sources": [],
+    "description": "No transformation/dbt tool named in any source."
+   },
+   {
+    "name": "BI tools",
+    "tool": "Metabase",
+    "status": "Confirmed",
+    "sources": [
+     1
+    ],
+    "evidence": "Director, Customer Success Enablement at Relay Use Metabase and CRM data to tell activity apart from behavior change.",
+    "description": "CS Enablement job post lists Metabase as part of the CS tech stack."
+   },
+   {
+    "name": "AI",
+    "tool": "Claude",
+    "status": "Inferred",
+    "sources": [
+     1
+    ],
+    "downgraded": true,
+    "description": "Job post names Claude as part of CS systems alongside HubSpot and Metabase. (No cited source names Claude plainly at Relay, so this is marked Inferred.)"
+   },
+   {
+    "name": "Embedded analytics",
+    "tool": "",
+    "status": "Inferred",
+    "sources": [],
+    "description": "Operational Insights/Dashboard are customer-facing analytics features, but no named embedded BI vendor [2] [6]."
+   }
+  ],
+  "customer_list": {
+   "on_list": false,
+   "sentence": "Relay is not on Omni's public customer list."
+  },
+  "revenue_model": "2026-09: Relay raised $36 million led by International Paper, total raised over $90 million, to drive frontline safety, productivity and operational intelligence [3].\n2026-10 (page last updated): Blog on Relay's Dashboard capabilities last updated October 15, 2025, indicating active product iteration on customer-facing analytics [6].",
+  "industry_trends": "Relay's own analytics today center on an internally-built \"Operational Insights\" product and web-based \"Dashboard\" for its customers [2] [6], not a third-party BI vendor \u2014 no incumbent embedded BI vendor is named in sources (Inferred: custom-built). Internally, Customer Success appears to run on Metabase plus HubSpot and Claude [1] \u2014 Metabase would be the incumbent BI tool in any internal-analytics conversation. Given the data volume and AI-native framing [8] [9], likely other evaluation candidates include modern warehouses/AI platforms, though none are named in sources (Inferred).",
+  "target_customer": "Head of Product/Engineering for the Operational Insights and Dashboard product lines (embedded analytics owner); Director/VP of Customer Success and CS Enablement for internal reporting on customer behavior and adoption [1]; CTO or data/platform lead responsible for the pipeline turning unstructured frontline signals into dashboards and alerts [2] [4].",
+  "discovery_questions": [
+   "What warehouse or database backs the 1 billion+ weekly data points Relay processes [8]?",
+   "Is Metabase used only by Customer Success, or across other teams at Relay [1]?",
+   "How is the Operational Insights dashboard built \u2014 custom, or on a third-party analytics layer [2]?",
+   "With the new $36M raise, are there plans to invest in a more governed internal analytics/semantic layer [3]?",
+   "Who owns the roadmap for customer-facing Dashboard and Operational Insights features [2] [6]?",
+   "Does Relay plan to let customers self-serve deeper analytics, beyond the current dashboard views [6]?",
+   "How does Claude fit into analytics workflows today \u2014 ad hoc, or integrated into a BI tool [1]?"
+  ],
+  "migration_objection": {
+   "objection": "Relay's data team would likely say Metabase already works fine for CS reporting and a governed semantic layer swap is unnecessary overhead for a team this size.",
+   "honest_answer": "That's fair if Metabase's current scope stays limited to CS reporting \u2014 the switching cost there is real but small. The harder, genuine issue is on the customer-facing side: if Operational Insights and Dashboard are custom-built [2] [6], replacing or augmenting them with an embedded semantic layer is a deeper product and engineering commitment, not just a BI swap, and sources don't show whether that's even on Relay's roadmap."
+  },
+  "customer_perspective": "Synthetic: As a frontline ops leader using Relay, I can see trend dashboards and alerts on my floor's performance, but I don't know how our CS and product teams stitch together the underlying usage and behavior data internally \u2014 or whether what I see in the Dashboard is as trustworthy and real-time as what our reps say out loud.",
+  "investor_perspective": "Could not confirm: what warehouse or data infrastructure underlies Relay's 1B+ weekly data points [8]; whether Metabase is used beyond Customer Success or company-wide; whether Operational Insights/Dashboard use any third-party embedded analytics vendor or are fully custom-built; headcount or team size for data/analytics engineering; any renewal timeline for Metabase."
+ },
+ "analysis": {
+  "perspectives": [
+   {
+    "persona": "skeptic",
+    "headline": "Scaling frontline intelligence requires governance, but Metabase is currently 'good enough.'",
+    "perspective": "",
+    "challenge_questions": [
+     {
+      "context": "Replacing a custom-built front-end and a free/low-cost internal BI tool like Metabase represents a high engineering and migration cost for a company scaling rapidly post-$36M raise.",
+      "question": "What is the specific 'day two' pain in Relay's current Operational Insights dashboard that justifies ripping out their custom build for Omni's governed layer?"
+     },
+     {
+      "context": "Relay processes 1 billion data points weekly and utilizes AI tools like Claude for behavioral analysis, yet their underlying warehouse is unknown.",
+      "question": "If Relay is running a specialized time-series or high-scale NoSQL database for their 'Physical AI' signals, how does Omni's semantic model handle those sources without a massive ETL project?"
+     }
+    ]
+   },
+   {
+    "persona": "champion",
+    "headline": "Bridging the gap between frontline AI and governed customer insights.",
+    "perspective": "",
+    "challenge_questions": [
+     {
+      "context": "Relay handles 1 billion+ weekly data points and already uses Claude; a governed semantic layer must be the bridge for AI to be useful, not just a dashboard replacement.",
+      "question": "How does your semantic model ensure that Claude\u2019s internal analysis of 'behavior change' remains consistent with the structured KPIs seen by your customers in Operational Insights?"
+     },
+     {
+      "context": "The move from a custom-built dashboard to an embedded platform is a major engineering pivot.",
+      "question": "If your customers demand deeper self-serve exploration beyond your 5 current dashboard capabilities, will you build that logic again in code, or move to a governed layer like Omni?"
+     }
+    ]
+   },
+   {
+    "persona": "competitor",
+    "headline": "Stick with the familiar: Metabase is enough, Omni is overkill.",
+    "perspective": "",
+    "challenge_questions": [
+     {
+      "context": "Relay captures voice-driven data that requires significant transformation to become 'structured signals' for their Dashboard.",
+      "question": "If Omni\u2019s value proposition relies on a governed semantic layer, how do you prevent the customer from viewing Omni as 'just another layer of complexity' on top of an already heavy data engineering pipeline?"
+     },
+     {
+      "context": "The Customer Success team is currently using Metabase and Claude to analyze behavior change, not just activity.",
+      "question": "How does Omni enable a non-technical CS Lead to perform complex behavioral cohorting better than their existing Metabase+Claude setup without requiring them to learn SQL?"
+     }
+    ]
+   },
+   {
+    "persona": "customer",
+    "headline": "Closing the gap between frontline signals and governed customer insights.",
+    "perspective": "",
+    "challenge_questions": [
+     {
+      "context": "You process over 1 billion data points weekly [8], yet your internal CS team is currently relying on Metabase to distinguish 'activity' from 'behavior change' [1].",
+      "question": "How much manual SQL or data modeling is required to ensure that the metrics seen in Metabase for CS actually match the 'Operational Intelligence' metrics shipped to customers in their Dashboards?"
+     },
+     {
+      "context": "With $36M in fresh funding aimed at scaling 'Physical AI' and 'Operational Intelligence' [3] [9], your customers will likely demand the ability to query their frontline data using natural language or custom filters beyond fixed dashboards [6].",
+      "question": "Is your current 'Operational Insights' architecture flexible enough to allow customers to build their own governed reports, or would that require a massive engineering lift to avoid breaking your underlying data logic?"
+     }
+    ]
+   },
+   {
+    "persona": "builder",
+    "headline": "Governance-first migration for a high-scale, AI-native frontline platform.",
+    "perspective": "",
+    "challenge_questions": [
+     {
+      "context": "Relay's internal CS team uses Metabase to 'tell activity apart from behavior change,' which requires complex joining of event data and CRM records.",
+      "question": "If we migrate your Metabase models to Omni, how much of that 'behavior change' logic is currently hard-coded in SQL versus defined in a reusable semantic layer?"
+     },
+     {
+      "context": "Relay processes 1 billion data points weekly into a custom-built 'Operational Insights' product for customers.",
+      "question": "What is the engineering opportunity cost of maintaining your custom dashboard frontend versus shifting that governed data layer into an embedded solution like Omni?"
+     }
+    ]
+   }
+  ],
+  "distillation": {
+   "mvp_scope": "Build a governed semantic layer for the \"Operational Insights\" product to replace custom-coded charts with flexible, white-labeled dashboards. This allows Relay's customers to explore 1B+ data points without engineering intervention.",
+   "one_feature": "Embedded analytics for the \"Operational Insights\" product line (cited as a core customer-offering that processes 1B+ data points weekly [2] [8]).",
+   "one_revenue": "\"With the recent $36M raise to scale operational intelligence, are you planning to evolve your custom-built dashboards into a full self-serve analytics experience for your customers?\"",
+   "what_to_cut": [
+    "Metabase internal usage in Customer Success",
+    "Claude AI integration in CS workflows",
+    "General headcount growth/Inc. 5000 status",
+    "HubSpot CRM data syncing"
+   ],
+   "one_customer": "Head of Product for Operational Insights (because they own the customer-facing dashboard roadmap and the technical debt of custom-built analytics).",
+   "thesis_statement": "Relay needs to transition from static, custom-built customer dashboards to a scalable embedded analytics platform to capitalize on their recent $36M raise and 1B+ weekly data points."
+  },
+  "expansion": {
+   "expansions": [
+    {
+     "pitch": "We can help your engineering team ship more complex performance trends faster by providing a governed data layer for your 'Operational Insights' product. Instead of hard-coding new dashboard features, your team can use Omni to deliver trusted, real-time signals to your customers at scale [2] [8].",
+     "title": "Scaling Frontline Operational Insights Product",
+     "idea_text": "Relay Embedded Analytics Play: Replace or augment the custom-built 'Operational Insights' and 'Dashboard' features with Omni's embedded semantic layer to accelerate the roadmap for frontline intelligence [2] [6].",
+     "potential": "bigger-market",
+     "how_its_different": "Shifts the focus from the Customer Success team's internal reporting to the Product and Engineering teams building the customer-facing dashboard."
+    },
+    {
+     "pitch": "Your CS Enablement team is currently using Metabase and Claude separately to understand customer behavior [1]. We can unify that workflow, allowing your team to query their activity data using AI while maintaining the strict governance needed for 1 billion+ weekly data points [8].",
+     "title": "Unified AI Analytics for Customer Success",
+     "idea_text": "Relay AI-Powered CS Analytics: Use Omni's AI features to bridge the gap between activity data and behavior change for the CS Enablement team, replacing the disconnected Metabase/Claude workflow [1].",
+     "potential": "less-competition",
+     "how_its_different": "Focuses on integrating AI capabilities (like Claude) directly into the BI layer rather than as a separate tool in the CS stack."
+    },
+    {
+     "pitch": "As Relay scales post-funding, maintaining consistent metrics across Metabase and HubSpot becomes a major risk [1] [3]. We provide a governed semantic model with Git version control that ensures your CS leadership is always looking at the same 'behavior change' metrics, regardless of who builds the report [1].",
+     "title": "Governed Metrics for Scaling Teams",
+     "idea_text": "Relay Internal Governance Wedge: Introduce Omni's semantic layer and Git integration to stabilize internal reporting for the CS team, ensuring metrics remain consistent as headcount grows [1] [5].",
+     "potential": "faster-revenue",
+     "how_its_different": "Starts with a narrow focus on governance and Git-versioning for the existing Metabase internal users before expanding company-wide."
+    }
+   ],
+   "core_insight": "Relay processes over 1 billion weekly data points into customer-facing 'Operational Insights' and internal CS Metabase reports, creating a massive governance and scaling challenge following their $36M raise [1] [3] [8]."
+  }
+ },
+ "committee": {
+  "model": "anthropic/claude-sonnet-5",
+  "seats": [
+   {
+    "role": "Head of Data",
+    "seat": "champion",
+    "influence": 2,
+    "stance_end": 2,
+    "top_concern": "Metric mismatch between internal Metabase/HubSpot view and customer-facing Operational Insights dashboard as scale grows [1] [2] [8].",
+    "stance_start": 1
+   },
+   {
+    "role": "CFO",
+    "seat": "skeptic",
+    "influence": 3,
+    "stance_end": 0,
+    "top_concern": "No proof Metabase is failing or that current custom build is slowing revenue; switching cost unjustified this fiscal year.",
+    "stance_start": -1
+   },
+   {
+    "role": "Incumbent BI vendor",
+    "seat": "competitor",
+    "influence": 1,
+    "stance_end": 0,
+    "top_concern": "Metabase already integrated with HubSpot and fits CS workflow; a semantic-layer project adds complexity, not speed [1].",
+    "stance_start": 0
+   },
+   {
+    "role": "Business user",
+    "seat": "customer",
+    "influence": 1,
+    "stance_end": 1,
+    "top_concern": "Wants internal CS metrics and customer-facing dashboard metrics to agree without manual SQL reconciliation.",
+    "stance_start": 0
+   },
+   {
+    "role": "Analytics engineer",
+    "seat": "builder",
+    "influence": 2,
+    "stance_end": 1,
+    "top_concern": "No confirmed warehouse underlying the 1B+ weekly data points, so scope of migration and effort is unknown [8].",
+    "stance_start": -1
+   }
+  ],
+  "rounds": [
+   {
+    "title": "Opening positions",
+    "turns": [
+     {
+      "says": "We have a real metric mismatch: Metabase shows one version of behavior change, the customer-facing Operational Insights dashboard shows another [1] [2]. As we scale past the $36M raise [3], that gap gets expensive to maintain by hand.",
+      "seat": "champion",
+      "stance_after": 1
+     },
+     {
+      "says": "I hear the pain, but I need evidence Metabase itself is breaking, not just that two systems disagree. We already pay for Metabase; switching cost has to be justified by something more than inconvenience.",
+      "seat": "skeptic",
+      "stance_after": -1
+     },
+     {
+      "says": "Metabase is already wired into HubSpot and the CS workflow [1]. A semantic-layer migration right after a funding raise is a distraction from scaling frontline safety, not a speed-up.",
+      "seat": "competitor",
+      "stance_after": 0
+     },
+     {
+      "says": "I spend real time manually reconciling what I see in Metabase against what customers see in their Dashboard. If Omni can close that gap, my day-to-day gets easier.",
+      "seat": "customer",
+      "stance_after": 1
+     },
+     {
+      "says": "Before I can size this, I need to know what's underneath the 1 billion weekly data points [8]. No warehouse is confirmed, so I can't tell you if this is a BI swap or a platform re-architecture.",
+      "seat": "builder",
+      "stance_after": -1
+     }
+    ]
+   }
+  ],
+  "outcome": {
+   "low": 40,
+   "high": 55,
+   "label": "Coin flip",
+   "summary": "A narrow, CS-scoped pilot on metric consistency is plausible; the Head of Data and customer want it, but the CFO and unresolved warehouse/architecture unknowns keep it from being more than a coin flip.",
+   "model_low": 40,
+   "model_high": 55,
+   "model_label": "Coin flip"
+  },
+  "latencyMs": 24809,
+  "path_to_yes": [
+   {
+    "why": "Gives a specific day-two pain instead of a general consistency argument, meeting the bar for switching cost.",
+    "seat": "skeptic",
+    "step": "Bring a concrete before/after showing Metabase vs. Operational Insights metric mismatch on one KPI."
+   },
+   {
+    "why": "Removes the unconfirmed-warehouse unknown and makes the effort estimable without a re-architecture.",
+    "seat": "builder",
+    "step": "Scope first pilot to Metabase/HubSpot CS data only, excluding the customer-facing Dashboard."
+   },
+   {
+    "why": "Directly answers the Head of Data's stated need to keep AI-native speed while gaining governance.",
+    "seat": "champion",
+    "step": "Show how Omni's semantic layer would feed Claude's ad-hoc analysis without slowing current workflows."
+   },
+   {
+    "why": "Addresses the incumbent's core objection that a semantic layer adds friction for non-technical users.",
+    "seat": "competitor",
+    "step": "Demonstrate a non-technical CS lead doing cohort analysis in Omni without writing SQL."
+   }
+  ],
+  "generated_at": "2026-10-07T14:03:49.592Z",
+  "main_blocker": {
+   "why": "Controls budget timing and has stated no justification yet beyond inconvenience; wants proof current stack is actually failing, not just inconsistent.",
+   "seat": "skeptic",
+   "what_would_flip_it": "A documented, specific instance where the Metabase/Dashboard mismatch caused a wrong customer-facing claim or missed revenue signal."
+  }
+ }
+}
