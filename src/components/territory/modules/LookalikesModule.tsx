@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { MotionConfig, useReducedMotion } from "framer-motion";
 import type { MotionLabel } from "@/components/account/AccountViews";
 import type { Segment } from "@/lib/sellers";
+import { BeyondTerritory } from "../lookalikes/BeyondTerritory";
 import { Constellation } from "../lookalikes/Constellation";
 import { FingerprintCard } from "../lookalikes/FingerprintCard";
 import { LookalikeCard } from "../lookalikes/LookalikeCard";
@@ -300,6 +301,7 @@ export function LookalikesModule({ seller, territory, reportId, justRan }: Modul
               </section>
             </div>
           )}
+          <BeyondTerritory seller={seller.id} seed={seed.row} rows={territory.rows} />
         </>
       )}
       <NextStep seller={seller.id} from="lookalikes" account={shown[0] ? { id: shown[0].fp.id, name: shown[0].fp.name } : seed.row && { id: seed.row.id, name: seed.row.name }} />

@@ -358,7 +358,7 @@ describe("LookalikesModule", () => {
       </MemoryRouter>,
     );
     expect(await screen.findByRole("heading", { level: 1, name: "Accounts that look like Guitar Center" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Guitar Center/ })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /^Guitar Center/ })).toHaveAttribute("aria-pressed", "true");
     const ranked = screen.getByRole("region", { name: "Ranked lookalikes · 2" });
     const cards = within(ranked).getAllByRole("article");
     expect(within(cards[0]).getByText("60")).toBeInTheDocument();
