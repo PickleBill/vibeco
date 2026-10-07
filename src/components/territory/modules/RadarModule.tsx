@@ -28,7 +28,7 @@ type Tab = "fresh" | "accounts";
 const MOTIONS: MotionLabel[] = ["Internal", "Embedded", "Both"];
 
 /**
- * 01 · Radar, the front door: every account's latest saved run, read for what
+ * 02 · Radar (/for/omni/radar): every account's latest saved run, read for what
  * is dated and fresh. Rings are trigger age, sectors are motions. "What's
  * fresh" holds a card per account worth a call this week; "All accounts" is
  * the whole territory as a sortable sheet. When an account has an earlier run,

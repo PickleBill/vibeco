@@ -16,13 +16,18 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 
-import { pickCurrent, readCurrent, rememberCurrent, useCurrentAccount } from "@/components/territory/current";
-import { nextStep, railHref, type ModuleId } from "@/components/territory/nav";
+import { pickCurrent, readCurrent, readRan, rememberCurrent, rememberRan, useCurrentAccount } from "@/components/territory/current";
+import { MODULES, nextStep, railHref, type ModuleId } from "@/components/territory/nav";
 import { NextStep } from "@/components/territory/NextStep";
 import { TerritoryShell } from "@/components/territory/TerritoryShell";
+import { AccountSwitcher } from "@/components/territory/AccountSwitcher";
 import { AccountModule } from "@/components/territory/modules/AccountModule";
+import { LookalikesModule } from "@/components/territory/modules/LookalikesModule";
+import { seedOptions } from "@/components/territory/lookalikes/useSeed";
+import { tourSteps } from "@/components/territory/tour/steps";
 import { toRow } from "@/components/territory/model";
 import { getSeller } from "@/lib/sellers";
+import ForSeller from "@/pages/ForSeller";
 
 const seller = getSeller("omni")!;
 const accounts = [
@@ -79,21 +84,25 @@ describe("current account", () => {
 // ─── The rail ───
 
 describe("rail links", () => {
+  it("run in the order run, radar, lookalikes, committee, deal room", () => {
+    expect(MODULES.map((m) => `${m.idx} ${m.label}`)).toEqual(["01 Run an account", "02 Radar", "03 Lookalikes", "04 Committee", "05 Deal Room"]);
+  });
+
   it("carry the account into run, committee and deal room; radar and lookalikes stay plain", () => {
     const current = { id: "band", opened: "band" };
-    expect(railHref("omni", "radar", current)).toBe("/for/omni");
+    expect(railHref("omni", "radar", current)).toBe("/for/omni/radar");
     expect(railHref("omni", "account", current)).toBe("/for/omni/account/band");
     expect(railHref("omni", "committee", current)).toBe("/for/omni/committee/band");
     expect(railHref("omni", "deal", current)).toBe("/for/omni/deal/band");
     expect(railHref("omni", "lookalikes", current)).toBe("/for/omni/lookalikes");
-    // Nothing opened yet: run an account is the empty form; the others open on the first account.
-    expect(railHref("omni", "account", { id: "relay" })).toBe("/for/omni/account");
+    // Nothing opened yet: run an account is the empty form at the front door; the others open on the first account.
+    expect(railHref("omni", "account", { id: "relay" })).toBe("/for/omni");
     expect(railHref("omni", "committee", { id: "relay" })).toBe("/for/omni/committee/relay");
   });
 
   /** The shell on the command center's route, the way the page wires it. */
   function Page() {
-    const { module = "radar", reportId } = useParams<{ module?: string; reportId?: string }>();
+    const { module = "account", reportId } = useParams<{ module?: string; reportId?: string }>();
     const current = useCurrentAccount(scoped.id, reportId, accounts);
     return (
       <TerritoryShell seller={scoped} module={module as ModuleId} territory={{ rows: [], loading: false, missing: [] }} current={current}>
@@ -116,7 +125,7 @@ describe("rail links", () => {
     const first = page("/for/omni/committee/band");
     expect(railLink(/Deal Room/)).toHaveAttribute("href", "/for/omni/deal/band");
     expect(railLink(/Run an account/)).toHaveAttribute("href", "/for/omni/account/band");
-    expect(railLink(/Radar/)).toHaveAttribute("href", "/for/omni");
+    expect(railLink(/Radar/)).toHaveAttribute("href", "/for/omni/radar");
     expect(railLink(/Lookalikes/)).toHaveAttribute("href", "/for/omni/lookalikes");
     first.unmount();
 
@@ -127,12 +136,84 @@ describe("rail links", () => {
     expect(screen.getByTestId("where")).toHaveTextContent("/for/omni/deal/band");
     second.unmount();
 
-    // A new session: the first account, and an empty run form.
+    // A new session: the first account, and an empty run form at the front door.
     window.sessionStorage.clear();
     page("/for/omni");
     expect(railLink(/Committee/)).toHaveAttribute("href", "/for/omni/committee/relay");
-    expect(railLink(/Run an account/)).toHaveAttribute("href", "/for/omni/account");
-    expect(railLink(/Radar/)).toHaveAttribute("aria-current", "page");
+    expect(railLink(/Run an account/)).toHaveAttribute("href", "/for/omni");
+    expect(railLink(/Run an account/)).toHaveAttribute("aria-current", "page");
+  });
+
+  it("walk the ?demo presenter bar through four steps on the first account, with the Deal Room off the path", () => {
+    const step = page("/for/omni/account/relay?demo");
+    expect(screen.getByText("Demo · step 1 of 4 · Seven agents and a verdict")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Open the radar/ })).toHaveAttribute("href", "/for/omni/radar?demo");
+    step.unmount();
+    const radar = page("/for/omni/radar?demo");
+    expect(screen.getByText(/^Demo · step 2 of 4/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Find lookalikes/ })).toHaveAttribute("href", "/for/omni/lookalikes/relay?demo");
+    radar.unmount();
+    const last = page("/for/omni/committee/relay?demo");
+    expect(screen.getByText(/^Demo · step 4 of 4/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Run your own account/ })).toHaveAttribute("href", "/for/omni");
+    last.unmount();
+    page("/for/omni/deal/relay?demo");
+    expect(screen.getByText("Demo · off the path")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Back to step 1/ })).toHaveAttribute("href", "/for/omni/account/relay?demo");
+  });
+});
+
+// ─── The front door ───
+
+describe("front door", () => {
+  const open = (url: string) =>
+    render(
+      <MemoryRouter initialEntries={[url]}>
+        <Routes>
+          <Route
+            path="/for/:seller/:module?/:reportId?"
+            element={
+              <>
+                <Where />
+                <ForSeller />
+              </>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+  const current = () => within(screen.getByRole("navigation", { name: "Views" })).getByRole("link", { current: "page" });
+
+  it("is Run an account", async () => {
+    open("/for/omni");
+    expect(current()).toHaveTextContent("Run an account");
+    expect(await screen.findByRole("textbox", { name: "Which company?" })).toBeInTheDocument();
+    expect(screen.getByTestId("where")).toHaveTextContent(/^\/for\/omni$/);
+  });
+
+  it("keeps an old radar link with a segment on the radar", async () => {
+    open("/for/omni?segment=strategic");
+    await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent("/for/omni/radar?segment=strategic"));
+    expect(current()).toHaveTextContent("Radar");
+  });
+
+  it("starts the presenter walkthrough on the demo account", async () => {
+    open("/for/omni?demo");
+    const relay = seller.territory!.accounts[0].reportId;
+    await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent(`/for/omni/account/${relay}?demo`));
+    expect(screen.getByText(/^Demo · step 1 of 4/)).toBeInTheDocument();
+  });
+});
+
+// ─── The 60-second demo ───
+
+describe("tour steps", () => {
+  it("are four, in rail order, short, and skip the Deal Room", () => {
+    const steps = tourSteps("Relay");
+    expect(steps.map((s) => s.module)).toEqual(["account", "radar", "lookalikes", "committee"]);
+    expect(steps.every((s) => s.body.split(/\s+/).length <= 18)).toBe(true);
+    expect(steps[0].body).toMatch(/^Relay’s saved run/);
+    expect(steps[3].title).toBe("Committee for Relay");
   });
 });
 
@@ -142,29 +223,31 @@ describe("next step", () => {
   const band = { id: "band", name: "Bandwidth" };
 
   it("follows the story from each view, for the account in hand", () => {
+    expect(nextStep("omni", "account", band)).toEqual({ to: "lookalikes", label: "Find accounts like Bandwidth", href: "/for/omni/lookalikes/band" });
     expect(nextStep("omni", "radar", band)).toEqual({ to: "account", label: "Open Bandwidth", href: "/for/omni/account/band" });
-    expect(nextStep("omni", "account", band)).toEqual({ to: "committee", label: "Simulate Bandwidth’s committee", href: "/for/omni/committee/band" });
-    expect(nextStep("omni", "committee", band)).toEqual({ to: "deal", label: "Build Bandwidth’s Deal Room brief", href: "/for/omni/deal/band" });
-    expect(nextStep("omni", "deal", band)).toEqual({ to: "lookalikes", label: "Find accounts like Bandwidth", href: "/for/omni/lookalikes/band" });
-    expect(nextStep("omni", "lookalikes")).toEqual({ to: "radar", label: "Back to the radar", href: "/for/omni" });
-    expect(nextStep("omni", "committee", { id: "x", name: "Acme Outfitters" })?.label).toBe("Build Acme Outfitters’ Deal Room brief");
-    // No account in hand: no step that needs one.
-    expect(nextStep("omni", "committee")).toBeNull();
+    expect(nextStep("omni", "lookalikes", band)).toEqual({ to: "committee", label: "Simulate Bandwidth’s committee", href: "/for/omni/committee/band" });
+    expect(nextStep("omni", "lookalikes", { id: "x", name: "Acme Outfitters" })?.label).toBe("Simulate Acme Outfitters’ committee");
+    expect(nextStep("omni", "committee", band)).toEqual({ to: "account", label: "Run another account", href: "/for/omni" });
+    expect(nextStep("omni", "deal", band)).toEqual({ to: "radar", label: "Back to the radar", href: "/for/omni/radar" });
+    // No account in hand: no step that needs one; the committee and deal room never need one.
+    expect(nextStep("omni", "account")).toBeNull();
+    expect(nextStep("omni", "lookalikes")).toBeNull();
+    expect(nextStep("omni", "committee")?.href).toBe("/for/omni");
   });
 
   it("is one quiet row, and stays out of the presenter walkthrough", () => {
     const { unmount } = render(
-      <MemoryRouter initialEntries={["/for/omni/deal/band"]}>
-        <NextStep seller="omni" from="deal" account={band} />
+      <MemoryRouter initialEntries={["/for/omni/account/band"]}>
+        <NextStep seller="omni" from="account" account={band} />
       </MemoryRouter>,
     );
     const nav = screen.getByRole("navigation", { name: "Next step" });
-    expect(nav).toHaveTextContent("Next · 05 Lookalikes");
+    expect(nav).toHaveTextContent("Next · 03 Lookalikes");
     expect(within(nav).getByRole("link", { name: "Find accounts like Bandwidth" })).toHaveAttribute("href", "/for/omni/lookalikes/band");
     unmount();
     render(
-      <MemoryRouter initialEntries={["/for/omni/deal/band?demo"]}>
-        <NextStep seller="omni" from="deal" account={band} />
+      <MemoryRouter initialEntries={["/for/omni/account/band?demo"]}>
+        <NextStep seller="omni" from="account" account={band} />
       </MemoryRouter>,
     );
     expect(screen.queryByRole("navigation", { name: "Next step" })).toBeNull();
@@ -221,8 +304,10 @@ describe("run an account, saved run open", () => {
     const live = screen.getByRole("button", { name: "Run it live" });
     expect(live.className).not.toMatch(/bg-brand/);
     expect(screen.queryByRole("button", { name: /Build the plan/ })).toBeNull();
-    // Next: this account's committee.
-    expect(within(screen.getByRole("navigation", { name: "Next step" })).getByRole("link")).toHaveAttribute("href", "/for/omni/committee/band");
+    // Next: accounts like this one.
+    expect(within(screen.getByRole("navigation", { name: "Next step" })).getByRole("link")).toHaveAttribute("href", "/for/omni/lookalikes/band");
+    // A territory account isn't "just ran".
+    expect(readRan("omni")).toBeUndefined();
 
     // A different company in the box: the pink primary builds a new plan.
     fireEvent.change(screen.getByRole("textbox", { name: "Which company?" }), { target: { value: "Ramp" } });
@@ -235,10 +320,88 @@ describe("run an account, saved run open", () => {
     });
     await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent("/for/omni/account/relay"));
     await waitFor(() => expect(screen.getByRole("textbox", { name: "Which company?" })).toHaveValue("Relay (relaypro.com)"));
-    expect(within(screen.getByRole("navigation", { name: "Next step" })).getByRole("link", { name: "Simulate Relay’s committee" })).toHaveAttribute(
+    expect(within(screen.getByRole("navigation", { name: "Next step" })).getByRole("link", { name: "Find accounts like Relay" })).toHaveAttribute(
       "href",
-      "/for/omni/committee/relay",
+      "/for/omni/lookalikes/relay",
     );
+  });
+});
+
+// ─── A run from outside the territory flows through the other views ───
+
+describe("just ran", () => {
+  const ramp = { id: "ramp", name: "Ramp" };
+
+  it("is recorded when Run an account opens a run outside the territory, and becomes the current account's companion", async () => {
+    runs.ramp = saved("ramp", "Ramp (ramp.com)");
+    runs.band = saved("band", "Bandwidth (bandwidth.com)");
+    runs.relay = saved("relay", "Relay (relaypro.com)");
+    const rows = accounts.map((a) => toRow(a, runs[a.reportId]));
+    render(
+      <MemoryRouter initialEntries={["/for/omni/account/ramp"]}>
+        <Routes>
+          <Route path="/for/:seller/:module?/:reportId?" element={<RouteAccount rows={rows} />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText(/Saved run from/)).toBeInTheDocument();
+    expect(readRan("omni")).toEqual(ramp);
+    expect(within(screen.getByRole("navigation", { name: "Next step" })).getByRole("link", { name: "Find accounts like Ramp" })).toHaveAttribute(
+      "href",
+      "/for/omni/lookalikes/ramp",
+    );
+
+    // Every view gets it from the current account; a territory account never shows as "just ran".
+    const { result } = renderHook(() => useCurrentAccount("omni", undefined, accounts));
+    expect(result.current.ran).toEqual(ramp);
+    rememberRan("omni", { id: "band", name: "Bandwidth" });
+    expect(renderHook(() => useCurrentAccount("omni", undefined, accounts)).result.current.ran).toBeUndefined();
+  });
+
+  it("is a Lookalikes seed, selected when the run view's next step opens it", async () => {
+    runs.ramp = saved("ramp", "Ramp (ramp.com)");
+    const rows = accounts.map((a) => toRow(a, saved(a.reportId, a.company)));
+    const options = seedOptions(scoped, rows, ramp);
+    expect(options[0]).toEqual({ reportId: "ramp", name: "Ramp", kind: "recent" });
+    // Already listed (a territory account): no second entry.
+    expect(seedOptions(scoped, rows, { id: "band", name: "Bandwidth" }).filter((o) => o.reportId === "band")).toHaveLength(1);
+
+    render(
+      <MemoryRouter initialEntries={["/for/omni/lookalikes/ramp"]}>
+        <LookalikesModule seller={scoped} territory={{ rows, loading: false, missing: [] }} reportId="ramp" justRan={ramp} />
+      </MemoryRouter>,
+    );
+    const chip = screen.getByRole("button", { name: /Ramp.*Just ran/ });
+    expect(chip).toHaveAttribute("aria-pressed", "true");
+    expect(await screen.findByRole("heading", { level: 1, name: "Accounts that look like Ramp" })).toBeInTheDocument();
+    // Next: the top match's committee.
+    expect(within(screen.getByRole("navigation", { name: "Next step" })).getByRole("link", { name: /^Simulate .+ committee$/ })).toHaveAttribute(
+      "href",
+      expect.stringMatching(/^\/for\/omni\/committee\/(relay|band)$/),
+    );
+  });
+
+  it("comes first in the committee and deal room switcher, as chips or as a select", () => {
+    const rows = accounts.map((a) => toRow(a, saved(a.reportId, a.company)));
+    const first = render(
+      <MemoryRouter>
+        <AccountSwitcher rows={rows} activeId="ramp" hrefFor={(id) => `/for/omni/committee/${id}`} justRan={ramp} />
+      </MemoryRouter>,
+    );
+    const chips = screen.getAllByRole("radio");
+    expect(chips[0]).toHaveTextContent("Just ran: Ramp");
+    expect(chips[0]).toHaveAttribute("aria-checked", "true");
+    first.unmount();
+
+    const many = [...rows, ...Array.from({ length: 8 }, (_, i) => ({ ...rows[0], id: `pad${i}`, name: `Pad ${i}` }))];
+    render(
+      <MemoryRouter>
+        <AccountSwitcher rows={many} activeId="ramp" hrefFor={(id) => `/for/omni/committee/${id}`} justRan={ramp} />
+      </MemoryRouter>,
+    );
+    const select = screen.getByRole("combobox");
+    expect(select).toHaveValue("ramp");
+    expect(within(select).getAllByRole("option")[0]).toHaveTextContent("Just ran: Ramp");
   });
 });
 
