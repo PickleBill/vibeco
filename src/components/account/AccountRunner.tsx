@@ -170,6 +170,8 @@ interface Props {
   initialCompany?: string;
   /** Headline and intro, shown beside the "how it works" panel. */
   intro?: React.ReactNode;
+  /** A saved run to open on arrival (e.g. from the territory radar). */
+  initialReportId?: string;
 }
 
 /** "Relay (relaypro.com)" and "relay" are the same account. */
@@ -178,7 +180,7 @@ const sameAccount = (a: string, b: string) => {
   return norm(a) === norm(b);
 };
 
-const AccountRunner = ({ seller, initialCompany = "", intro }: Props) => {
+const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId }: Props) => {
   const [input, setInput] = useState(initialCompany);
   const [company, setCompany] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -340,6 +342,17 @@ const AccountRunner = ({ seller, initialCompany = "", intro }: Props) => {
     else reset();
     scrollToResults();
   };
+
+  // Arriving with a saved run to open (from the territory): show it at once.
+  const openedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!initialReportId || openedRef.current === initialReportId) return;
+    openedRef.current = initialReportId;
+    loadReport(initialReportId).then((rep) => {
+      if (rep && openedRef.current === initialReportId) openSaved(rep);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- open once per id
+  }, [initialReportId]);
 
   const copyLink = async () => {
     if (!reportId) return;

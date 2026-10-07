@@ -56,6 +56,47 @@
     --text-muted: 228 10% 55%;
     --accent-glow: 182 66% 30%;
     --divider: 40 24% 89%;
+
+    /* Brand fill for "live / just finished" moments; teal on VibeCo, pink under .theme-omni */
+    --brand: 182 66% 30%;
+    --brand-foreground: 0 0% 100%;
+    --brand-tint: 180 37% 94%;
+  }
+
+  /*
+   * Seller theme for the account pages (/for/omni, account reports): navy ink,
+   * an accent pink sampled from omni.co. Pink fills (--brand) carry navy text and
+   * mark live moments only; pink that must be read uses --primary (AA on white
+   * and on the canvas). Evidence colors never turn pink. Set on <html> so
+   * portals (tooltips, popovers) get it too.
+   */
+  .theme-omni {
+    --background: 45 44% 96.5%;
+    --foreground: 231 28% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 231 28% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 231 28% 14%;
+    --primary: 333 93% 42%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 231 28% 14%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 44 30% 93%;
+    --muted-foreground: 228 12% 41%;
+    --accent: 329 100% 96%;
+    --accent-foreground: 333 93% 42%;
+    --border: 43 21% 87%;
+    --input: 43 21% 87%;
+    --ring: 333 93% 42%;
+    --radius: 0.75rem;
+    --surface: 0 0% 100%;
+    --surface-elevated: 0 0% 100%;
+    --text-secondary: 228 14% 34%;
+    --accent-glow: 335 100% 69%;
+    --divider: 43 21% 87%;
+    --brand: 335 100% 69%;
+    --brand-foreground: 231 28% 14%;
+    --brand-tint: 329 100% 96%;
   }
 }
 
