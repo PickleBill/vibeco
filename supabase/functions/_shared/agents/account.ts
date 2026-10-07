@@ -338,6 +338,12 @@ const BOILERPLATE = new RegExp(
   "i",
 );
 
+// A product page naming a tool as something it connects to ("push your data to
+// Snowflake", "integrates with Looker") describes a connector the company sells,
+// not its own stack.
+const INTEGRATION =
+  /\b(?:integrat(?:e|es|ed|ion|ions)\s+with|(?:native|built-in|out-of-the-box|pre-built)\s+(?:integrations?|connectors?)|connectors?\s+(?:for|to)|(?:push|send|sync|export|stream|pipe)\s+(?:your|their|all)\b[^.]{0,60}?\b(?:to|into)\b|(?:connect|sync)\s+(?:your|their)\b)/i;
+
 /**
  * A run of menu or footer links ("Amazon QuickSight Amazon Redshift AWS Glue
  * Follow Twitter"), not a sentence: nearly every word around the tool is
@@ -361,7 +367,9 @@ function evidenceHits(text: string, tool: string, menus = true): { at: number; l
     const span = sentenceSpan(text, h.at, h.len);
     const sentence = text.slice(span.start, span.end);
     if (BOILERPLATE.test(sentence) || (menus && inMenuRun(text, h.at, h.len))) return [];
-    return [{ ...h, kind: mentionKind(sentence, h.at - span.start, h.len) }];
+    const kind = mentionKind(sentence, h.at - span.start, h.len);
+    // Job posts describe the team's own work; elsewhere an integration is the product's, not the stack.
+    return [{ ...h, kind: menus && kind === "firm" && INTEGRATION.test(sentence) ? ("option" as MentionKind) : kind }];
   });
 }
 
