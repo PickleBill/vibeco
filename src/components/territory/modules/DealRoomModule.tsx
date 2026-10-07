@@ -9,9 +9,6 @@ import { PageHeader } from "../PageHeader";
 import { buildClaims, claimQuestions, planDiff, tally } from "../dealroom/claims";
 import { useDealRoom } from "../dealroom/hooks";
 import { ProspectBrief } from "../dealroom/ProspectBrief";
-import { readCommittee, type AnalysisWithCommittee } from "../committee/model";
-import { qualify } from "../qualification/model";
-import { QualificationCard } from "../qualification/QualificationCard";
 import { BoundaryCard, DiscoveryNotes, PhoneFrame, PlanDiffCard, QuestionsCard, SellerControl, SharePanel, type DealView } from "../dealroom/SellerCards";
 import type { ModuleProps } from "./types";
 
@@ -55,12 +52,6 @@ export function DealRoomModule({ seller, territory, reportId, current, justRan }
   const domain = row?.domain ?? (report ? splitCompany(report.idea || "").domain : undefined);
   const url = activeId ? `${window.location.origin}/deal/${activeId}` : "";
   const sources = Array.isArray(brief?.research?.sources) ? brief!.research!.sources : [];
-  // Seller only: MEDDPICC from the run and its simulated meeting, never on the prospect's page.
-  const qualification = useMemo(() => {
-    if (!brief || !report) return null;
-    const analysis = report.auto_analysis as AnalysisWithCommittee | null;
-    return qualify({ ...brief, company: name }, analysis, readCommittee(analysis?.committee));
-  }, [brief, report, name]);
   const t = tally(claims, responses);
 
   return (
@@ -127,7 +118,6 @@ export function DealRoomModule({ seller, territory, reportId, current, justRan }
               </div>
               <div className="flex flex-col gap-4">
                 <BoundaryCard report={report} />
-                {qualification && <QualificationCard qualification={qualification} sources={sources} />}
               </div>
             </div>
           ) : (
@@ -142,7 +132,6 @@ export function DealRoomModule({ seller, territory, reportId, current, justRan }
               </div>
               <div className="flex flex-col gap-4">
                 <PlanDiffCard rows={planDiff(claims, responses)} company={name} />
-                {qualification && <QualificationCard qualification={qualification} sources={sources} />}
                 <QuestionsCard {...claimQuestions(claims, responses)} />
                 <BoundaryCard report={report} />
               </div>

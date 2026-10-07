@@ -2,12 +2,12 @@ import type { ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Maximize2, MessageSquareQuote, Minimize2, Scissors, Target, Users, Zap } from "lucide-react";
 import type { ResearchSource } from "@/components/simulator/SourcesList";
-import { MoreFold, ReadMore } from "@/components/territory/Memo";
+import { Memo, MoreFold, ReadMore } from "@/components/territory/Memo";
 import { cx } from "@/components/territory/style";
-import { Eyebrow, FieldPill } from "@/components/territory/ui";
+import { FieldPill } from "@/components/territory/ui";
 import { SEATS, criticFor, distillLabel } from "@/lib/lenses";
 import { Cited, type AccountBrief } from "../AccountViews";
-import { card, label, title } from "./look";
+import { label } from "./look";
 import { POTENTIAL_LABEL, asList, criticParagraphs, seatPeople, stripMarks, type AccountAnalysis, type CriticResult, type Person } from "./model";
 import { SEAT_STYLE } from "./seatStyle";
 
@@ -39,10 +39,21 @@ interface Props {
   answer?: (seat: string, critic: CriticResult) => ReactNode;
 }
 
+const COUNT = ["One", "Two", "Three", "Four", "Five"];
+
+/** The line under the title while it's folded: "Five critic seats, Expand and Distill". */
+function lensPreview(seats: number, expand: boolean, distill: boolean) {
+  const parts = [seats > 0 && `${COUNT[seats - 1] ?? seats} critic seat${seats === 1 ? "" : "s"}`, expand && "Expand", distill && "Distill"].filter(
+    (p): p is string => !!p,
+  );
+  return parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}` : parts[0];
+}
+
 /**
  * "Explore one lens at a time" for an account: pick a seat to see that
  * critic's take and the questions they'd ask, or see the three ways in, or the
  * one thing that matters. Everything here comes from the saved run: no calls.
+ * A fold: open from 1024px, a title and one line on phones.
  */
 export function LensExplorer({ analysis, brief, sources, lens, onLens, seat, onSeat, answer }: Props) {
   const perspectives = Array.isArray(analysis?.perspectives) ? analysis!.perspectives : [];
@@ -56,14 +67,17 @@ export function LensExplorer({ analysis, brief, sources, lens, onLens, seat, onS
   if (!available.stress && !available.expand && !available.distill) return null;
   const shown = LENSES.filter((l) => available[l.id]);
   const active = available[lens] ? lens : shown[0].id;
+  const seats = SEATS.filter((s) => perspectives.some((p) => p.persona === s)).length;
 
   return (
-    <section aria-labelledby="lens-title" className={cx(card, "p-4 sm:p-6")}>
-      <Eyebrow>Seven agents · one at a time</Eyebrow>
-      <h3 id="lens-title" className={cx(title, "mt-1")}>
-        Explore one lens at a time
-      </h3>
-      <p className="mt-1 max-w-2xl text-[15px] leading-relaxed text-[#4A4F63]">
+    <Memo
+      level={3}
+      defaultOpen="wide"
+      eyebrow="Seven agents · one at a time"
+      title="Explore one lens at a time"
+      preview={lensPreview(seats, available.expand, available.distill)}
+    >
+      <p className="max-w-2xl text-[15px] leading-relaxed text-[#4A4F63]">
         Pressure-test the plan before the call: one seat, one angle, one answer at a time.
       </p>
 
@@ -112,7 +126,7 @@ export function LensExplorer({ analysis, brief, sources, lens, onLens, seat, onS
           )}
         </AnimatePresence>
       </div>
-    </section>
+    </Memo>
   );
 }
 
