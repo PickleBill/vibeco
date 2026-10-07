@@ -11,6 +11,7 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: (fn: string,
 
 import { omniStatus, toRow, type TerritoryRow } from "@/components/territory/model";
 import { AccountSwitcher, SELECT_AFTER } from "@/components/territory/AccountSwitcher";
+import { accountMeta } from "@/components/territory/accountMeta";
 import { diffRuns } from "@/components/territory/radar/diff";
 import { classifyTrigger, freshestTrigger, redactPeople, sourceDay } from "@/components/territory/radar/evidence";
 import { BLIP_GAP, placeBlips, radiusFor, toRadarAccount } from "@/components/territory/radar/model";
@@ -530,21 +531,47 @@ describe("AccountSwitcher", () => {
     expect(screen.queryByRole("combobox")).toBeNull();
   });
 
-  it("becomes a select grouped by segment past the threshold", () => {
+  it("becomes a searchable list grouped by segment past the threshold", () => {
+    // The popover and the list measure themselves; jsdom has no layout.
+    globalThis.ResizeObserver ??= class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof ResizeObserver;
+    Element.prototype.scrollIntoView ??= () => {};
     render(
       <MemoryRouter>
         <AccountSwitcher rows={rowsOf(12)} activeId="a4" hrefFor={(id) => `/for/omni/committee/${id}`} segments={SEGMENTS} />
         <Where />
       </MemoryRouter>,
     );
-    const select = screen.getByRole("combobox", { name: "Account" });
-    expect(select).toHaveValue("a4");
-    const groups = within(select).getAllByRole("group");
-    expect(groups.map((g) => g.getAttribute("label"))).toEqual(["Strategic · 5,000+ employees", "Enterprise · Under 5,000"]);
-    expect(within(groups[0]).getAllByRole("option")).toHaveLength(3);
-    expect(within(groups[1]).getByRole("option", { name: "Account E · Internal · Fit B" })).toBeInTheDocument();
-    fireEvent.change(select, { target: { value: "a7" } });
+    // A button with the current account; no native select.
+    const trigger = screen.getByRole("button", { name: "Account Account E" });
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+    const list = screen.getByRole("listbox");
+    const groups = within(list).getAllByRole("group");
+    expect(groups.map((g) => within(g).getAllByRole("option").length)).toEqual([3, 9]);
+    expect(within(list).getByText("Strategic")).toBeInTheDocument();
+    expect(within(list).getByText("Enterprise")).toBeInTheDocument();
+    // Each account with its motion and fit; the current one selected.
+    const current = within(groups[1]).getByRole("option", { name: /^Account E/ });
+    expect(current).toHaveTextContent("Account EInternal · Fit B");
+    expect(current).toHaveAttribute("aria-selected", "true");
+
+    // Search narrows the list; picking one goes to its view.
+    fireEvent.change(screen.getByRole("combobox", { name: "Search accounts" }), { target: { value: "account h" } });
+    expect(within(screen.getByRole("listbox")).getAllByRole("option").map((o) => o.textContent)).toEqual(["Account HInternal · Fit B"]);
+    fireEvent.click(screen.getByRole("option", { name: /^Account H/ }));
     expect(screen.getByTestId("where")).toHaveTextContent("/for/omni/committee/a7");
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  it("says motion and fit in one muted line, and leaves an unknown fit out", () => {
+    expect(accountMeta({ motion: "Both", fit: "A" })).toBe("Both · Fit A");
+    expect(accountMeta({ motion: "Unclear", fit: " " })).toBe("Unclear");
   });
 });
 
