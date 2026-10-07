@@ -211,7 +211,7 @@ describe("committee view", () => {
     expect(await screen.findByText(/Wait a minute, then try again/)).toBeInTheDocument();
   });
 
-  it("opens on the current account when the URL names none, and points on to its Deal Room", () => {
+  it("opens on the current account when the URL names none, and points on to run another account", () => {
     const seller = getSeller("omni")!;
     const entry = { company: "Acme Outfitters (acme.com)", reportId: ID };
     // Acme is second in the territory; the session's current account wins over the first.
@@ -223,7 +223,7 @@ describe("committee view", () => {
     );
     expect(screen.getByRole("heading", { level: 1, name: "Acme Outfitters’ buying room" })).toBeInTheDocument();
     const next = screen.getByRole("navigation", { name: "Next step" });
-    expect(within(next).getByRole("link", { name: "Build Acme Outfitters’ Deal Room brief" })).toHaveAttribute("href", `/for/omni/deal/${ID}`);
+    expect(within(next).getByRole("link", { name: "Run another account" })).toHaveAttribute("href", "/for/omni");
   });
 });
 

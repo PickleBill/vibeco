@@ -2,6 +2,7 @@ import { useId } from "react";
 import { ChevronDown, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { Segment, TerritorySegment } from "@/lib/sellers";
+import type { JustRan } from "./current";
 import { OMNI_TEXT, type TerritoryRow } from "./model";
 import { cx } from "./style";
 
@@ -28,7 +29,8 @@ function bySegment(rows: TerritoryRow[], segments: TerritorySegment[]): { key: s
  * Pick a territory account for a view that works on one account (committee,
  * deal room). A small territory is a row of chips; past eight accounts it's
  * a native select (type a letter to jump), grouped by segment, each option
- * with its motion and fit.
+ * with its motion and fit. A run from outside the territory opened this
+ * session comes first, as "Just ran: <Company>".
  */
 export function AccountSwitcher({
   rows,
@@ -37,6 +39,7 @@ export function AccountSwitcher({
   loading,
   label = "Account",
   segments = [],
+  justRan,
 }: {
   rows: TerritoryRow[];
   activeId?: string;
@@ -45,13 +48,17 @@ export function AccountSwitcher({
   label?: string;
   /** The territory's segments, for group names and order. */
   segments?: TerritorySegment[];
+  /** A run outside the territory, offered first (see current.ts). */
+  justRan?: JustRan;
 }) {
   const navigate = useNavigate();
   const selectId = useId();
   const spinner = loading && <Loader2 size={16} className="animate-spin text-muted-foreground" aria-label="Loading accounts" />;
+  const ran = justRan && !rows.some((r) => r.id === justRan.id) ? justRan : undefined;
+  const ranText = ran ? `Just ran: ${ran.name}` : "";
 
   if (rows.length > SELECT_AFTER) {
-    const active = rows.find((r) => r.id === activeId);
+    const active = rows.find((r) => r.id === activeId) ?? (ran?.id === activeId ? ran : undefined);
     return (
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <label htmlFor={selectId} className="font-mono text-[13px] text-muted-foreground">
@@ -65,6 +72,7 @@ export function AccountSwitcher({
             className="min-h-12 w-full cursor-pointer appearance-none truncate rounded-[10px] border border-foreground bg-white py-2 pl-3.5 pr-10 text-[15px] font-semibold text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             {!active && <option value="">{activeId ? "A saved run outside the territory" : "Choose an account…"}</option>}
+            {ran && <option value={ran.id}>{ranText}</option>}
             {bySegment(rows, segments).map((g) => {
               const options = g.rows.map((r) => (
                 <option key={r.id} value={r.id}>
@@ -91,7 +99,7 @@ export function AccountSwitcher({
   return (
     <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label={label}>
       <span className="font-mono text-[13px] text-muted-foreground">{label}</span>
-      {rows.map((r) => {
+      {[...(ran ? [{ id: ran.id, name: ranText, title: ranText }] : []), ...rows.map((r) => ({ id: r.id, name: r.name, title: optionText(r) }))].map((r) => {
         const on = r.id === activeId;
         return (
           <button
@@ -99,7 +107,7 @@ export function AccountSwitcher({
             type="button"
             role="radio"
             aria-checked={on}
-            title={optionText(r)}
+            title={r.title}
             onClick={() => navigate(hrefFor(r.id))}
             className={cx(
               "inline-flex min-h-11 items-center rounded-full border px-3.5 text-[15px] transition-colors lg:min-h-9 lg:px-3 lg:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",

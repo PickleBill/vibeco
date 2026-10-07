@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { MotionConfig, useReducedMotion } from "framer-motion";
 import type { MotionLabel } from "@/components/account/AccountViews";
 import type { Segment } from "@/lib/sellers";
@@ -12,6 +12,7 @@ import { defaultSeed, seedOptions, useSeedRow } from "../lookalikes/useSeed";
 import { datedSources, startOfDay } from "../radar/evidence";
 import { OmniRing } from "../radar/segments";
 import { MissingNote } from "../radar/States";
+import { Memo } from "../Memo";
 import { OMNI_TEXT, segmentsOf } from "../model";
 import { moduleHref } from "../nav";
 import { NextStep } from "../NextStep";
@@ -47,16 +48,16 @@ function Toggle({ on, onClick, children }: { on: boolean; onClick: () => void; c
 }
 
 /**
- * 05 · Lookalikes: start from a customer on the seller's public list, an
+ * 03 · Lookalikes: start from a customer on the seller's public list, an
  * account whose own run names Omni (or any territory account), read its
  * fingerprint from its saved run, and rank the rest of the territory by the
  * traits that matter, points shown per trait. Results filter by motion,
  * score and segment.
  */
-export function LookalikesModule({ seller, territory, reportId }: ModuleProps) {
+export function LookalikesModule({ seller, territory, reportId, justRan }: ModuleProps) {
   const navigate = useNavigate();
   const reduce = useReducedMotion();
-  const options = useMemo(() => seedOptions(seller, territory.rows), [seller, territory.rows]);
+  const options = useMemo(() => seedOptions(seller, territory.rows, justRan), [seller, territory.rows, justRan]);
   const seedId = reportId ?? defaultSeed(options);
   const seed = useSeedRow(seedId, territory.rows, options);
   const [motion, setMotion] = useState<MotionFilter>("Any");
@@ -109,7 +110,7 @@ export function LookalikesModule({ seller, territory, reportId }: ModuleProps) {
       <div data-tour="lookalikes-seed" className="mt-5 flex flex-wrap items-end gap-x-4 gap-y-3">
         <div role="group" aria-label="Start from a customer" className="flex flex-wrap items-center gap-2">
           {options
-            .filter((o) => o.kind === "customer")
+            .filter((o) => o.kind === "customer" || o.kind === "recent")
             .map((o) => {
               const on = o.reportId === seedId;
               return (
@@ -129,7 +130,7 @@ export function LookalikesModule({ seller, territory, reportId }: ModuleProps) {
                     {o.name}
                   </span>
                   <span className="text-[13px] font-medium text-[#4A4F63]">
-                    {!o.reportId ? "no saved run yet" : o.omni === "Likely" ? OMNI_TEXT.Likely.full : `On ${seller.name}'s public customer list`}
+                    {o.kind === "recent" ? "Just ran" : !o.reportId ? "no saved run yet" : o.omni === "Likely" ? OMNI_TEXT.Likely.full : `On ${seller.name}'s public customer list`}
                   </span>
                 </button>
               );
@@ -193,12 +194,8 @@ export function LookalikesModule({ seller, territory, reportId }: ModuleProps) {
             <FingerprintCard fp={seedFp} sources={datedSources(seed.row)} sellerName={seller.name} domain={seed.row.domain} />
           </div>
 
-          <details className="group mt-3 rounded-lg border border-border bg-white px-4 py-1">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-[15px] font-semibold [&::-webkit-details-marker]:hidden">
-              <ChevronDown size={16} aria-hidden className="transition-transform group-open:rotate-180 motion-reduce:transition-none" />
-              How the score works
-            </summary>
-            <div className="pb-3 text-[15px] text-[#4A4F63]">
+          <Memo className="mt-3" title="How the score works" count="five traits, out of 100">
+            <div className="text-[15px] text-[#4A4F63]">
               <p>
                 Each trait adds its points when it matches (✓), half when it partly matches (½), nothing otherwise (–). A trait the seed has no evidence for (?) adds nothing for
                 anyone. Out of 100:
@@ -214,7 +211,7 @@ export function LookalikesModule({ seller, territory, reportId }: ModuleProps) {
                 ))}
               </ul>
             </div>
-          </details>
+          </Memo>
 
           <section aria-label="Filters" className="mt-4 flex flex-wrap items-start gap-x-5 gap-y-3">
             <div role="group" aria-label="Motion" className="flex flex-wrap items-center gap-1.5">
@@ -305,7 +302,7 @@ export function LookalikesModule({ seller, territory, reportId }: ModuleProps) {
           )}
         </>
       )}
-      <NextStep seller={seller.id} from="lookalikes" />
+      <NextStep seller={seller.id} from="lookalikes" account={shown[0] ? { id: shown[0].fp.id, name: shown[0].fp.name } : seed.row && { id: seed.row.id, name: seed.row.name }} />
     </MotionConfig>
   );
 }

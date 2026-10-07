@@ -14,13 +14,13 @@ import { FieldPill, FitBadge } from "../ui";
 import type { ModuleProps } from "./types";
 
 /**
- * 03 · Committee: simulate one account's buying room. Five synthetic critics
+ * 04 · Committee: simulate one account's buying room. Five synthetic critics
  * take the seats, argue from the account's evidence in three rounds, and the
  * view shows who moved, the path to yes and what blocks it. The account comes
  * from the URL (/for/omni/committee/<id>), else the current account (the last
  * one opened, else the territory's first).
  */
-export function CommitteeModule({ seller, territory, reportId, current }: ModuleProps) {
+export function CommitteeModule({ seller, territory, reportId, current, justRan }: ModuleProps) {
   const accounts = seller.territory?.accounts ?? [];
   const activeId = reportId ?? current ?? accounts[0]?.reportId;
   const inTerritory = accounts.some((a) => a.reportId === activeId);
@@ -59,6 +59,7 @@ export function CommitteeModule({ seller, territory, reportId, current }: Module
           hrefFor={(id) => moduleHref(seller.id, "committee", id)}
           loading={territory.loading}
           segments={seller.territory?.segments}
+          justRan={justRan}
         />
       </div>
 
