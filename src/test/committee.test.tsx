@@ -210,6 +210,21 @@ describe("committee view", () => {
     fireEvent.click(screen.getByRole("button", { name: /Run the meeting/ }));
     expect(await screen.findByText(/Wait a minute, then try again/)).toBeInTheDocument();
   });
+
+  it("opens on the current account when the URL names none, and points on to its Deal Room", () => {
+    const seller = getSeller("omni")!;
+    const entry = { company: "Acme Outfitters (acme.com)", reportId: ID };
+    // Acme is second in the territory; the session's current account wins over the first.
+    const scoped = { ...seller, territory: { name: "Southeast", accounts: [{ company: "Relay (relaypro.com)", reportId: "relay" }, entry] } };
+    render(
+      <MemoryRouter>
+        <CommitteeModule seller={scoped} territory={{ rows: [toRow(entry, report(meeting))], loading: false, missing: [] }} current={ID} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("heading", { level: 1, name: "Acme Outfitters’ buying room" })).toBeInTheDocument();
+    const next = screen.getByRole("navigation", { name: "Next step" });
+    expect(within(next).getByRole("link", { name: "Build Acme Outfitters’ Deal Room brief" })).toHaveAttribute("href", `/for/omni/deal/${ID}`);
+  });
 });
 
 describe("committee model", () => {

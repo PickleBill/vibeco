@@ -102,7 +102,7 @@ export function AccountSwitcher({
             title={optionText(r)}
             onClick={() => navigate(hrefFor(r.id))}
             className={cx(
-              "inline-flex min-h-9 items-center rounded-full border px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "inline-flex min-h-11 items-center rounded-full border px-3.5 text-[15px] transition-colors lg:min-h-9 lg:px-3 lg:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               on ? "border-primary bg-brand-tint font-bold text-foreground" : "border-border bg-white font-medium text-[#4A4F63] hover:border-foreground/40 hover:text-foreground",
             )}
           >

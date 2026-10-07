@@ -8,18 +8,21 @@ import { possessive } from "../committee/model";
 import { CitedLine } from "../committee/parts";
 import { splitCompany } from "../model";
 import { moduleHref } from "../nav";
-import { Eyebrow, FieldPill, FitBadge } from "../ui";
+import { NextStep } from "../NextStep";
+import { PageHeader } from "../PageHeader";
+import { FieldPill, FitBadge } from "../ui";
 import type { ModuleProps } from "./types";
 
 /**
  * 03 · Committee: simulate one account's buying room. Five synthetic critics
  * take the seats, argue from the account's evidence in three rounds, and the
  * view shows who moved, the path to yes and what blocks it. The account comes
- * from the URL (/for/omni/committee/<id>), else the territory's first.
+ * from the URL (/for/omni/committee/<id>), else the current account (the last
+ * one opened, else the territory's first).
  */
-export function CommitteeModule({ seller, territory, reportId }: ModuleProps) {
+export function CommitteeModule({ seller, territory, reportId, current }: ModuleProps) {
   const accounts = seller.territory?.accounts ?? [];
-  const activeId = reportId ?? accounts[0]?.reportId;
+  const activeId = reportId ?? current ?? accounts[0]?.reportId;
   const inTerritory = accounts.some((a) => a.reportId === activeId);
   const row = territory.rows.find((r) => r.id === activeId);
 
@@ -44,15 +47,10 @@ export function CommitteeModule({ seller, territory, reportId }: ModuleProps) {
   const sources = Array.isArray(brief?.research?.sources) ? brief!.research!.sources : [];
 
   return (
-    <div className="mx-auto max-w-[1240px]">
-      <Eyebrow>Committee · synthetic</Eyebrow>
-      <h1 className="mt-2 font-display text-[2.1rem] font-bold leading-[1.08] tracking-[-0.02em] text-foreground sm:text-[2.6rem]">
-        {name ? `${possessive(name)} buying room` : "The buying room"}
-      </h1>
-      <p className="mt-3 max-w-[720px] text-base text-[#4A4F63] sm:text-[17px]">
-        Five synthetic critics take the seats a buying committee would. Every argument cites {name ? `${possessive(name)}` : "the account’s"} evidence, and every stance can
-        move.
-      </p>
+    <div>
+      <PageHeader eyebrow="Committee · synthetic" title={name ? `${possessive(name)} buying room` : "The buying room"}>
+        Five synthetic critics take the seats a buying committee would. Every argument cites {name ? possessive(name) : "the account’s"} evidence, and every stance can move.
+      </PageHeader>
 
       <div className="mt-4">
         <AccountSwitcher
@@ -74,9 +72,11 @@ export function CommitteeModule({ seller, territory, reportId }: ModuleProps) {
             </span>
           )}
           {trigger && (
-            <span className="inline-flex min-w-0 flex-wrap items-center gap-1.5 rounded-lg border border-border bg-white px-2 py-1 text-sm text-foreground">
-              <span className="font-mono text-xs text-muted-foreground">{trigger.date}</span>
-              <CitedLine text={trigger.text} sources={sources} />
+            <span className="inline-flex min-w-0 items-baseline gap-2 rounded-lg border border-border bg-white px-2.5 py-1.5 text-[15px] text-foreground">
+              <span className="shrink-0 font-mono text-xs text-muted-foreground">{trigger.date}</span>
+              <span className="min-w-0">
+                <CitedLine text={trigger.text} sources={sources} />
+              </span>
             </span>
           )}
         </div>
@@ -99,6 +99,8 @@ export function CommitteeModule({ seller, territory, reportId }: ModuleProps) {
           </div>
         )}
       </div>
+
+      <NextStep seller={seller.id} from="committee" account={report && activeId ? { id: activeId, name } : undefined} />
     </div>
   );
 }

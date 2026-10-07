@@ -16,7 +16,7 @@ import { card, linkBtn, primaryBtn, secondaryBtn, toggle } from "./explorer/look
 import { ResearchFeed } from "./explorer/ResearchFeed";
 import { TerritoryStrip } from "./explorer/TerritoryStrip";
 import { useAgentBoard } from "./explorer/useAgentBoard";
-import { loadReport, recentRuns, rememberReport, rememberRun, type RunRef, type SavedReport } from "./explorer/savedRuns";
+import { loadReport, ranAt, recentRuns, rememberReport, rememberRun, type RunRef, type SavedReport } from "./explorer/savedRuns";
 
 /**
  * Target-account express run: sources first, then the First-call plan, then
@@ -158,7 +158,7 @@ function HowItWorks() {
           <StatusTag status="Former" />
           <StatusTag status="Not found" />
         </div>
-        <p className="mt-2.5 text-sm leading-relaxed text-[#4A4F63]">
+        <p className="mt-2.5 text-[15px] leading-relaxed text-[#4A4F63]">
           A tool is Confirmed only when a source names it plainly at this company, checked in code. A job post that lists it as one option among
           several, or as a nice-to-have, doesn&rsquo;t count. Former means a source says the company moved off it.
         </p>
@@ -242,6 +242,10 @@ interface Props {
   initialReportId?: string;
   /** Inside the territory shell: no fixed site navbar to scroll clear of. */
   inShell?: boolean;
+  /** The run on screen once it's saved (a saved run opened, or a live run finished), or null when a live run starts. */
+  onRunChange?: (run: { id: string; company: string } | null) => void;
+  /** Stands in for the saved-run pills in the run bar (the territory's account picker). */
+  picker?: React.ReactNode;
 }
 
 /** "Relay (relaypro.com)" and "relay" are the same account. */
@@ -250,7 +254,7 @@ const sameAccount = (a: string, b: string) => {
   return norm(a) === norm(b);
 };
 
-const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, inShell }: Props) => {
+const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, inShell, onRunChange, picker }: Props) => {
   const [input, setInput] = useState(initialCompany);
   const [company, setCompany] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -271,6 +275,8 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, in
   const startRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+  /** The saved run on screen, so arriving at its id doesn't open it twice. */
+  const openedRef = useRef<string | null>(null);
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
@@ -311,6 +317,8 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, in
       rememberReport({ id, idea: name, brief: b, lovable_prompt: p, auto_analysis: critics, created_at: new Date().toISOString() });
       rememberRun(seller?.id, { company: name, reportId: id });
       setRecent(recentRuns(seller?.id));
+      openedRef.current = id;
+      onRunChange?.({ id, company: name });
     }
   };
 
@@ -335,6 +343,7 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, in
     setAnalysis(null);
     setSaved(null);
     reset();
+    onRunChange?.(null);
     startRef.current = performance.now();
     const mark = (s: Step) => setMarks((m) => ({ ...m, [s]: performance.now() - startRef.current }));
     scrollToResults();
@@ -420,17 +429,21 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, in
     if (report.auto_analysis) settle(report.auto_analysis, { replay: true });
     else reset();
     scrollToResults();
+    openedRef.current = report.id;
+    onRunChange?.({ id: report.id, company: report.idea });
   };
 
   // Arriving with a saved run to open (from the territory): show it at once.
-  const openedRef = useRef<string | null>(null);
   // Until it loads, a placeholder bar stands in for the intro (no flash of the full page).
   const [arriving, setArriving] = useState(!!initialReportId);
+  /** The saved run in the link couldn't be read: say so above the empty form. */
+  const [unreadable, setUnreadable] = useState(false);
   useEffect(() => {
     if (!initialReportId || openedRef.current === initialReportId) return;
     openedRef.current = initialReportId;
     loadReport(initialReportId).then((rep) => {
       if (rep && openedRef.current === initialReportId) openSaved(rep);
+      setUnreadable(!rep);
       setArriving(false);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- open once per id
@@ -466,9 +479,12 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, in
 
   const name = company.replace(/\s*\([^)]*\)\s*$/, "");
   const fallbackName = fallback?.company.replace(/\s*\([^)]*\)\s*$/, "");
+  // With a saved run open and its company still in the box, the button re-runs it live (secondary);
+  // type another company and it's the pink "Build the plan" again.
+  const rerun = !!saved && !running && sameAccount(input, saved.idea);
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    run(input);
+    run(rerun && saved ? saved.idea : input);
   };
   const field = (
     <>
@@ -485,7 +501,11 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, in
       />
     </>
   );
-  const buildButton = (
+  const buildButton = rerun ? (
+    <button type="submit" className={cx(secondaryBtn, "shrink-0")}>
+      <RotateCcw size={16} aria-hidden /> Run it live
+    </button>
+  ) : (
     <button type="submit" disabled={running || !cleanCompany(input)} className={cx(primaryBtn, "shrink-0 disabled:cursor-not-allowed")}>
       {running ? <Loader2 size={16} className="animate-spin" aria-hidden /> : null}
       {running ? "Working" : "Build the plan"}
@@ -508,6 +528,12 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, in
       )}
       {!started && !arriving && (
         <>
+          {unreadable && (
+            <p role="status" className="mb-6 rounded-xl border border-dotted border-[#9097A6] bg-card px-4 py-3 text-[15px] text-[#4A4F63]">
+              <span className="font-semibold text-foreground">That saved run couldn&rsquo;t be opened.</span> The link may be old. Type a company to run it live, or open a
+              saved run below.
+            </p>
+          )}
           <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-12">
             <div>
               {intro}
@@ -519,7 +545,7 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, in
                   <div className="flex min-w-0 flex-1 items-center gap-2 px-2">{field}</div>
                   {buildButton}
                 </div>
-                <p className="mt-2 text-sm text-[#4A4F63]">
+                <p className="mt-2 text-[15px] text-[#4A4F63]">
                   Add its domain when the name is a common word: <span className="font-mono">Relay (relaypro.com)</span>.
                 </p>
                 {seller && seller.examples.length > 0 && (
@@ -577,14 +603,12 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, in
 
               <div className="mt-3 border-t border-border pt-3" aria-live="polite">
                 {saved ? (
-                  <p className="flex flex-wrap items-center gap-x-3 text-[15px] text-[#4A4F63]">
-                    <span className="flex items-center gap-2">
-                      <History size={16} className="shrink-0 text-foreground" aria-hidden />
-                      Saved run, opened instantly from stored results.
+                  <p className="flex items-start gap-2 text-[15px] text-[#4A4F63]">
+                    <History size={16} className="mt-[3px] shrink-0 text-foreground" aria-hidden />
+                    <span>
+                      <span className="font-semibold text-foreground">Saved run{saved.created_at ? ` from ${ranAt(saved.created_at)}` : ""}.</span> Opened instantly from stored
+                      results, no AI calls. Type another company above to build a new plan.
                     </span>
-                    <button type="button" onClick={() => run(saved.idea)} className={linkBtn}>
-                      Run it live
-                    </button>
                   </p>
                 ) : (
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between lg:gap-8">
@@ -608,10 +632,14 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, in
                 )}
               </div>
 
-              {runs.length > 0 && (
-                <div className="mt-3 border-t border-border pt-3">
-                  <TerritoryStrip compact runs={runs} title={pinned.length ? "Saved runs" : "Your recent runs"} activeId={saved?.id} onOpen={openSaved} />
-                </div>
+              {picker ? (
+                <div className="mt-3 border-t border-border pt-3">{picker}</div>
+              ) : (
+                runs.length > 0 && (
+                  <div className="mt-3 border-t border-border pt-3">
+                    <TerritoryStrip compact runs={runs} title={pinned.length ? "Saved runs" : "Your recent runs"} activeId={saved?.id} onOpen={openSaved} />
+                  </div>
+                )
               )}
             </section>
 

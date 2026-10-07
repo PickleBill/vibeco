@@ -17,8 +17,10 @@ import { StatTile } from "../radar/pieces";
 import { RadarChart } from "../radar/RadarChart";
 import { SegmentFilter } from "../radar/segments";
 import { MissingNote, RadarEmpty, RadarLoading } from "../radar/States";
+import { NextStep } from "../NextStep";
+import { PageHeader } from "../PageHeader";
 import { cx, secondaryButton } from "../style";
-import { Eyebrow, Sheet, WorkbookTabs } from "../ui";
+import { Sheet, WorkbookTabs } from "../ui";
 import type { ModuleProps } from "./types";
 
 type Tab = "fresh" | "accounts";
@@ -73,8 +75,7 @@ export function RadarModule({ seller, territory }: ModuleProps) {
   if (!everyone.length && territory.loading) {
     return (
       <div>
-        <Eyebrow>Radar · {name}</Eyebrow>
-        <h1 className="mb-6 mt-2 font-display text-[2.1rem] font-bold leading-[1.08] tracking-[-0.02em] sm:text-[2.75rem]">Reading the territory</h1>
+        <PageHeader className="mb-6" eyebrow={`Radar · ${name}`} title="Reading the territory" />
         <RadarLoading loaded={territory.rows.length + territory.missing.length} total={total} />
       </div>
     );
@@ -82,8 +83,7 @@ export function RadarModule({ seller, territory }: ModuleProps) {
   if (!everyone.length) {
     return (
       <div>
-        <Eyebrow>Radar · {name}</Eyebrow>
-        <h1 className="mb-6 mt-2 font-display text-[2.1rem] font-bold leading-[1.08] tracking-[-0.02em] sm:text-[2.75rem]">Nothing on the radar</h1>
+        <PageHeader className="mb-6" eyebrow={`Radar · ${name}`} title="Nothing on the radar" />
         <MissingNote missing={territory.missing} shown={0} className="mb-5" />
         <RadarEmpty seller={seller.id} />
       </div>
@@ -114,14 +114,9 @@ export function RadarModule({ seller, territory }: ModuleProps) {
   return (
     <MotionConfig reducedMotion="user">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0 flex-[1_1_440px]">
-          <Eyebrow>
-            Radar · {where}
-            {latest ? ` · latest run ${ranAt(latest)}` : ""}
-          </Eyebrow>
-          <h1 className="mt-2 font-display text-[2.1rem] font-bold leading-[1.08] tracking-[-0.02em] sm:text-[2.75rem]">{headline}</h1>
-          <p className="mt-3 max-w-[660px] text-base text-[#4A4F63] sm:text-[17px]">{subline}</p>
-        </div>
+        <PageHeader className="min-w-0 flex-[1_1_440px]" eyebrow={`Radar · ${where}${latest ? ` · latest run ${ranAt(latest)}` : ""}`} title={headline}>
+          {subline}
+        </PageHeader>
         <div className="flex flex-wrap gap-2">
           <StatTile value={n} label={n === 1 ? "account" : "accounts"} />
           <StatTile value={moved || fresh} label={moved ? "moved" : "fresh triggers"} hot={(moved || fresh) > 0} />
@@ -199,6 +194,7 @@ export function RadarModule({ seller, territory }: ModuleProps) {
         </div>
       )}
       {territory.loading && <p className="mt-3 text-sm text-muted-foreground">Still reading {total - everyone.length - territory.missing.length} more saved run(s)…</p>}
+      <NextStep seller={seller.id} from="radar" account={accounts[0] && { id: accounts[0].row.id, name: accounts[0].row.name }} />
     </MotionConfig>
   );
 }
