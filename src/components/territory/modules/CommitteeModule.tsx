@@ -6,6 +6,7 @@ import { AccountSwitcher } from "../AccountSwitcher";
 import { CommitteeView } from "../committee/CommitteeView";
 import { possessive } from "../committee/model";
 import { CitedLine } from "../committee/parts";
+import { CompanyLogo } from "../company/CompanyLogo";
 import { splitCompany } from "../model";
 import { moduleHref } from "../nav";
 import { NextStep } from "../NextStep";
@@ -41,14 +42,19 @@ export function CommitteeModule({ seller, territory, reportId, current, justRan 
 
   const report = row?.report ?? (other?.id === activeId ? other.report : undefined);
   const waiting = report === undefined && (inTerritory ? territory.loading : !!activeId);
-  const name = row?.name ?? (report ? splitCompany(report.idea).name : "");
+  const company = row ?? (report ? splitCompany(report.idea) : undefined);
+  const name = company?.name ?? "";
   const brief = report?.brief;
   const trigger = whyNowItems(brief?.revenue_model).find((i) => i.date);
   const sources = Array.isArray(brief?.research?.sources) ? brief!.research!.sources : [];
 
   return (
     <div>
-      <PageHeader eyebrow="Committee · synthetic" title={name ? `${possessive(name)} buying room` : "The buying room"}>
+      <PageHeader
+        eyebrow="Committee · synthetic"
+        title={name ? `${possessive(name)} buying room` : "The buying room"}
+        logo={name ? <CompanyLogo domain={company?.domain} name={name} size={40} /> : undefined}
+      >
         Five synthetic critics take the seats a buying committee would. Every argument cites {name ? possessive(name) : "the account’s"} evidence, and every stance can move.
       </PageHeader>
 

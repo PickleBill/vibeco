@@ -6,7 +6,8 @@ import { dayLabel, TRIGGER_LABEL } from "../radar/evidence";
 import { MOTION_LINE } from "../radar/model";
 import { Chips } from "../radar/pieces";
 import { OmniRing, SegmentTag } from "../radar/segments";
-import { OMNI_TEXT } from "../model";
+import { CompanyName } from "../company/CompanyName";
+import { OMNI_TEXT, type TerritoryRow } from "../model";
 import type { Fingerprint } from "./model";
 
 function Pill({ k, children, status, ids, sources, struck }: { k: string; children: ReactNode; status?: string; ids?: number[]; sources: ResearchSource[]; struck?: boolean }) {
@@ -21,15 +22,16 @@ function Pill({ k, children, status, ids, sources, struck }: { k: string; childr
 }
 
 /** The seed's traits as pills, each with its evidence tag and sources. */
-export function FingerprintCard({ fp, sources, sellerName, domain }: { fp: Fingerprint; sources: ResearchSource[]; sellerName: string; domain?: string }) {
+export function FingerprintCard({ fp, row, seller, sources, sellerName }: { fp: Fingerprint; row: TerritoryRow; seller: string; sources: ResearchSource[]; sellerName: string }) {
   const toolIds = (t: { sources: number[] }[]) => [...new Set(t.flatMap((x) => x.sources))];
   return (
     <section aria-labelledby="fp-title" className="rounded-[14px] border border-foreground bg-white px-4 py-4 sm:px-[18px]">
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <h2 id="fp-title" className="font-display text-xl font-semibold">
-          {fp.name} · fingerprint
+        <h2 id="fp-title" className="inline-flex flex-wrap items-center gap-x-1.5 font-display text-xl font-semibold">
+          <CompanyName row={row} seller={seller} logo={28} />
+          <span>· fingerprint</span>
         </h2>
-        {domain && <span className="font-mono text-[13px] text-muted-foreground">{domain}</span>}
+        {row.domain && <span className="font-mono text-[13px] text-muted-foreground">{row.domain}</span>}
         {fp.segment && <SegmentTag segment={fp.segment} />}
         <span className="inline-flex items-center gap-1.5 text-sm text-[#4A4F63]">
           <OmniRing status={fp.omni} />
