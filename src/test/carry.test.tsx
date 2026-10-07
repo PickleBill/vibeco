@@ -146,7 +146,7 @@ describe("rail links", () => {
 
   it("walk the ?demo presenter bar through four steps on the first account, with the Deal Room off the path", () => {
     const step = page("/for/omni/account/relay?demo");
-    expect(screen.getByText("Demo · step 1 of 4 · Seven agents and a verdict")).toBeInTheDocument();
+    expect(screen.getByText("Demo · step 1 of 4 · Three whys, seven agents, a verdict")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Open the radar/ })).toHaveAttribute("href", "/for/omni/radar?demo");
     step.unmount();
     const radar = page("/for/omni/radar?demo");

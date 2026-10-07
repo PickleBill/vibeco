@@ -1,9 +1,13 @@
+import type { ReactNode } from "react";
+import { Loader2 } from "lucide-react";
 import type { ResearchSource } from "@/components/simulator/SourcesList";
+import { ReadMore } from "@/components/territory/Memo";
+import type { ThreeWhys } from "@/components/territory/qualification/model";
 import { cx } from "@/components/territory/style";
-import { Eyebrow, FieldPill } from "@/components/territory/ui";
+import { EvidenceTag, Eyebrow, FieldPill } from "@/components/territory/ui";
 import { Cited, GradeBox, type AccountBrief } from "../AccountViews";
 import { label } from "./look";
-import { monthLabel, stripMarks, whyNowItems } from "./model";
+import { monthLabel, stripMarks } from "./model";
 
 /** The fit grade, the motion it's for, and what it means (evidence and timing, not deal size). */
 function Fit({ fit }: { fit?: AccountBrief["fit"] }) {
@@ -20,9 +24,78 @@ function Fit({ fit }: { fit?: AccountBrief["fit"] }) {
   );
 }
 
+/** One of the three whys: a label, its evidence tag, and the text clamped to three lines. */
+function Why({ title, tag, children }: { title: string; tag?: string; children: ReactNode }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1.5 rounded-xl border border-border bg-background px-4 py-3.5">
+      <p className="flex flex-wrap items-center justify-between gap-2">
+        <span className={label}>{title}</span>
+        {tag && <EvidenceTag status={tag} className="h-6" />}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+const pendingLine = (
+  <p className="flex items-center gap-2 text-[15px] text-[#4A4F63]">
+    <Loader2 size={14} className="motion-safe:animate-spin text-foreground" aria-hidden /> Fills in when the agents finish
+  </p>
+);
+
+/**
+ * Why change, why now, why the seller: the pain and the seller's thesis are
+ * hypotheses from the agents (and the simulated meeting, once it has run);
+ * why now is the freshest dated trigger, verified by its source.
+ */
+function WhyStrip({ whys, pending, sellerName, sources }: { whys: ThreeWhys; pending?: boolean; sellerName?: string; sources: ResearchSource[] }) {
+  const cells: ReactNode[] = [];
+  if (whys.change || pending)
+    cells.push(
+      <Why key="change" title="Why change" tag={whys.change ? "Hypothesis" : undefined}>
+        {whys.change ? (
+          <ReadMore lines={3} className="text-[15px] leading-relaxed text-foreground">
+            <Cited text={whys.change} sources={sources} />
+          </ReadMore>
+        ) : (
+          pendingLine
+        )}
+      </Why>,
+    );
+  cells.push(
+    <Why key="now" title="Why now" tag={whys.now ? "Verified" : undefined}>
+      {whys.now ? (
+        <ReadMore lines={3} className="text-[15px] leading-relaxed text-foreground">
+          <span className="mr-1.5 font-mono text-[13px] font-semibold">{monthLabel(whys.now.date)}</span>
+          <Cited text={whys.now.text} sources={sources} />
+        </ReadMore>
+      ) : (
+        <p className="text-[15px] text-[#4A4F63]">No dated trigger in the sources. Ask what&rsquo;s changing this year.</p>
+      )}
+    </Why>,
+  );
+  if (whys.omni || pending)
+    cells.push(
+      <Why key="seller" title={`Why ${sellerName || "us"}`} tag={whys.omni ? "Hypothesis" : undefined}>
+        {whys.omni ? (
+          <ReadMore lines={3} className="text-[15px] leading-relaxed text-foreground">
+            <Cited text={whys.omni} sources={sources} />
+          </ReadMore>
+        ) : (
+          pendingLine
+        )}
+      </Why>,
+    );
+  return (
+    <div data-tour="whys" className={cx("mt-5 grid gap-3", cells.length === 3 ? "md:grid-cols-3" : cells.length === 2 ? "md:grid-cols-2" : "")}>
+      {cells}
+    </div>
+  );
+}
+
 /**
  * The answer first: who the account is to this seller, which way they'd sell,
- * how good the fit is, why now, and the one question to open with.
+ * how good the fit is, the three whys, and the one question to open with.
  */
 export function AccountHero({
   company,
@@ -30,20 +103,21 @@ export function AccountHero({
   brief,
   sources,
   sellerName,
+  whys,
+  whysPending,
 }: {
   company: string;
   domain?: string;
   brief: AccountBrief;
   sources: ResearchSource[];
   sellerName?: string;
+  whys: ThreeWhys;
+  /** The agents are still writing change and the seller's why. */
+  whysPending?: boolean;
 }) {
   const motion = brief.motion;
   const graded = brief.fit?.motion === "Embedded" ? "embedded" : "internal";
   const opener = stripMarks(motion?.[graded]?.question || brief.discovery_questions?.[0] || "");
-  // Dated triggers first; undated ones only when nothing is dated.
-  const items = whyNowItems(brief.revenue_model);
-  const dated = items.filter((w) => w.date);
-  const whyNow = (dated.length ? dated : items).slice(0, dated.length ? 3 : 2);
   const list = brief.customer_list;
   const role = (brief.start_with?.role ?? "").replace(/[.\s]+$/, "");
   return (
@@ -78,23 +152,7 @@ export function AccountHero({
           </p>
         )}
 
-        {whyNow.length > 0 && (
-          <div className="mt-5">
-            <p className={label}>Why now</p>
-            <ul className="mt-1.5 divide-y divide-border border-y border-border" aria-label="Why now">
-              {whyNow.map((w, i) => (
-                <li key={i} className="flex flex-col gap-0.5 py-2.5 sm:flex-row sm:items-baseline sm:gap-4">
-                  <span className={cx("w-24 shrink-0 font-mono text-[13px] font-semibold", w.date ? "text-foreground" : "text-[#6B7080]")}>
-                    {w.date ? monthLabel(w.date) : "Undated"}
-                  </span>
-                  <span className="min-w-0 text-[15px] leading-relaxed text-foreground">
-                    <Cited text={w.text} sources={sources} />
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        <WhyStrip whys={whys} pending={whysPending} sellerName={sellerName} sources={sources} />
 
         {(opener || role) && (
           <div className="mt-5 grid gap-x-6 gap-y-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)] lg:items-start">

@@ -16,10 +16,10 @@ import { HowItWorksButton, TourHost } from "./tour/TourHost";
  * the rail but off this path.
  */
 const DEMO_STEPS: { id: ModuleId; text: string; next: string; withAccount?: boolean }[] = [
-  { id: "account", text: "Seven agents and a verdict", next: "Open the radar", withAccount: true },
+  { id: "account", text: "Three whys, seven agents, a verdict", next: "Open the radar", withAccount: true },
   { id: "radar", text: "The territory at a glance", next: "Find lookalikes" },
   { id: "lookalikes", text: "More like this account", next: "Simulate its committee", withAccount: true },
-  { id: "committee", text: "The buying room, before the meeting", next: "Run your own account", withAccount: true },
+  { id: "committee", text: "The buying room and the MEDDPICC gaps", next: "Run your own account", withAccount: true },
 ];
 
 /**

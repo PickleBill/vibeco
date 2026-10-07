@@ -23,7 +23,7 @@ export function tourSteps(demo: string): TourStep[] {
       withAccount: true,
       target: "agents",
       title: "Run an account",
-      body: `${demo}’s saved run: seven agents read the account, then a verdict. Type any company to run it live.`,
+      body: `${demo}’s saved run: the three whys, seven agents and a verdict. Type any company to run it live.`,
     },
     {
       module: "radar",
@@ -43,7 +43,7 @@ export function tourSteps(demo: string): TourStep[] {
       withAccount: true,
       target: "committee",
       title: `Committee for ${demo}`,
-      body: "Press Run the meeting: five synthetic critics debate the deal. Then Take a seat and answer one.",
+      body: "Run the meeting: five synthetic critics debate the deal. Take a seat, then check MEDDPICC for gaps.",
     },
   ];
 }
