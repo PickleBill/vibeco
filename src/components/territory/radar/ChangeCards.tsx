@@ -51,7 +51,6 @@ export function ChangeCard({ account, seller, onFocus }: { account: RadarAccount
         <h3 id={`card-${row.id}`} className="mr-0.5 font-display text-xl font-semibold tracking-[-0.01em]">
           <CompanyName row={row} seller={seller} />
         </h3>
-        {row.domain && <span className="font-mono text-[13px] text-muted-foreground">{row.domain}</span>}
         <FieldPill>{row.motion}</FieldPill>
         <FitBadge grade={row.fit} />
         {changes.length > 0 ? <FreshPill>Changed since last run</FreshPill> : trigger && <FreshPill>Fresh trigger · {ageText(trigger.days)}</FreshPill>}
@@ -96,15 +95,13 @@ export function ChangeCard({ account, seller, onFocus }: { account: RadarAccount
         </div>
       )}
 
+      {/* Two ways on; the Deal Room is in Quick look and the rail. */}
       <div className="flex flex-wrap items-center gap-2.5">
         <Link to={moduleHref(seller, "account", row.id)} className={cx(primaryButton, "text-[15px]")}>
-          Open account
+          Open account <ArrowRight size={16} aria-hidden />
         </Link>
         <Link to={moduleHref(seller, "committee", row.id)} className={cx(secondaryButton, "text-[15px]")}>
-          Committee
-        </Link>
-        <Link to={moduleHref(seller, "deal", row.id)} className={cx(secondaryButton, "text-[15px]")}>
-          Deal Room
+          Committee <ArrowRight size={16} aria-hidden />
         </Link>
       </div>
     </article>

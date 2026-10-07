@@ -1,6 +1,6 @@
 // What the company logo and the company brief read from a territory row.
 import { monthLabel } from "@/components/account/explorer/model";
-import type { StackChip, TerritoryRow } from "../model";
+import type { TerritoryRow } from "../model";
 import { redactPeople } from "../radar/evidence";
 
 /** The public favicon service; it answers a 16px globe when it has nothing for the domain. */
@@ -22,36 +22,21 @@ export function initialsOf(name: string, max = 2): string {
     .toUpperCase();
 }
 
-/** "Oct 6, 2026" for the run's day. */
-export function runDay(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+/** The first sentence, for the brief's one-line why-now ("U.S." doesn't end one). */
+export function firstSentence(text: string): string {
+  return text.trim().split(/(?<=[.!?])(?<!\b[A-Z]\.)\s+(?=[A-Z0-9"“])/)[0];
 }
 
 export interface BriefFacts {
   line: string;
   why?: { month: string; text: string };
-  /** Up to five Confirmed tools, one per category and tool. */
-  stack: StackChip[];
-  sources: number;
-  day: string;
 }
 
 /** The few facts the brief shows, people's names turned into roles as on the radar. */
 export function briefFacts(row: TerritoryRow): BriefFacts {
   const redact = (t: string) => redactPeople(t, row.report.brief?.people);
-  const seen = new Set<string>();
-  const stack = row.stack.filter((s) => {
-    const key = `${s.category}|${s.tool}`.toLowerCase();
-    if (s.status !== "Confirmed" || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
   return {
     line: redact(row.line),
-    why: row.trigger ? { month: monthLabel(row.trigger.date), text: redact(row.trigger.text) } : undefined,
-    stack: stack.slice(0, 5),
-    sources: row.sources.length,
-    day: runDay(row.ranAt),
+    why: row.trigger ? { month: monthLabel(row.trigger.date), text: firstSentence(redact(row.trigger.text)) } : undefined,
   };
 }

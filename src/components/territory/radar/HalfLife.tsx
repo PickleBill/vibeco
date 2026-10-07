@@ -37,11 +37,10 @@ export function HalfLife({ accounts }: { accounts: RadarAccount[] }) {
 
   const recheck = dated.filter((x) => x.days > RECHECK_DAYS).length;
 
-  // Shut on phones (a title and a line), open from 1024px.
+  // Shut: a title and a line; every dated source opens on a tap.
   return (
     <Memo
       className="mt-8"
-      defaultOpen="wide"
       title="Evidence half-life"
       count={`${dated.length} dated source${dated.length === 1 ? "" : "s"}${recheck ? ` · ${recheck} to re-check` : ""}`}
       preview="Claims fade as their source ages. Fresh sources read bold; anything past six months asks to be re-checked before it goes on a call."

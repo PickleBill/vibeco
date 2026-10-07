@@ -285,12 +285,22 @@ describe("RadarModule", () => {
       </MemoryRouter>,
     );
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("1 of 2 accounts has a trigger in the last 60 days");
-    expect(screen.getByText(/nothing is marked as changed/)).toBeInTheDocument();
+    expect(screen.getByText("Each account's latest saved run, read for dated triggers.")).toBeInTheDocument();
+    // The counts live in the tabs and the radar's corners, not in stat tiles; no domains beside names.
+    expect(screen.queryByText("motion split")).toBeNull();
+    expect(screen.queryByText("relaypro.com")).toBeNull();
+    const radar = screen.getByRole("region", { name: "Territory radar" });
+    expect(within(radar).getByText("1 Internal, 0 Embedded, 1 Both")).toBeInTheDocument();
+    // The key to the marks is one tap away.
+    expect(within(radar).queryByText("Distance from center = trigger freshness")).toBeNull();
+    fireEvent.click(within(radar).getByRole("button", { name: "How to read the radar" }));
+    expect(within(radar).getByText("Distance from center = trigger freshness")).toBeInTheDocument();
     const fresh = screen.getByRole("region", { name: "What's fresh" });
     expect(within(fresh).getByRole("heading", { name: "Relay" })).toBeInTheDocument();
     expect(within(fresh).queryByRole("heading", { name: "AvidXchange" })).toBeNull();
     expect(within(fresh).getByText(/What powers Operational Insights/)).toBeInTheDocument();
     expect(within(fresh).getByRole("link", { name: "Committee" })).toHaveAttribute("href", "/for/omni/committee/r1");
+    expect(within(fresh).queryByRole("link", { name: "Deal Room" })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: /^AvidXchange · Internal · Fit B · trigger about \d+ months ago$/ }));
     const panel = screen.getByRole("region", { name: "AvidXchange" });
@@ -320,8 +330,9 @@ describe("RadarModule", () => {
       </MemoryRouter>,
     );
     const radar = screen.getByRole("region", { name: "Territory radar" });
-    expect(within(radar).getAllByRole("button")).toHaveLength(15);
-    expect(within(radar).getByText("Unclear")).toBeInTheDocument();
+    // Fifteen blips and the key's toggle.
+    expect(within(radar).getAllByRole("button", { name: /^Account / })).toHaveLength(15);
+    expect(within(radar).getByText("Unclear", { exact: false, selector: "span" })).toHaveTextContent("Unclear 3");
     fireEvent.click(screen.getByRole("tab", { name: /All accounts/ }));
     expect(screen.getAllByRole("row")).toHaveLength(16);
   });
@@ -460,17 +471,21 @@ describe("RadarModule segments", () => {
     expect(within(group).getByRole("radio", { name: /^All/ })).toHaveTextContent("5");
     expect(within(group).getByRole("radio", { name: /Enterprise/ })).toHaveTextContent("3");
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("1 of 2 Strategic accounts has a trigger in the last 60 days");
-    expect(within(screen.getByRole("region", { name: "Territory radar" })).getAllByRole("button")).toHaveLength(2);
+    // Blips are named "Account · segment · motion …"; the key's toggle isn't one.
+    const blips = () => within(screen.getByRole("region", { name: "Territory radar" })).getAllByRole("button", { name: / · / });
+    expect(blips()).toHaveLength(2);
     expect(screen.getByRole("tab", { name: /All accounts/ })).toHaveTextContent("2");
 
-    // Omni at the account: on the blip's name and in the radar's legend.
+    // Omni at the account: on the blip's name and in the radar's key (one tap away).
     expect(screen.getByRole("button", { name: /^Big Store · Strategic · Embedded · .* · Omni named in its job posts$/ })).toBeInTheDocument();
+    expect(screen.queryByText("On Omni's public customer list")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "How to read the radar" }));
     expect(screen.getByText("On Omni's public customer list")).toBeInTheDocument();
 
     fireEvent.click(within(group).getByRole("radio", { name: /Enterprise/ }));
     expect(screen.getByTestId("where")).toHaveTextContent("/for/omni?segment=enterprise");
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("1 of 3 Enterprise accounts has a trigger in the last 60 days");
-    expect(within(screen.getByRole("region", { name: "Territory radar" })).getAllByRole("button")).toHaveLength(3);
+    expect(blips()).toHaveLength(3);
 
     fireEvent.keyDown(within(group).getByRole("radio", { name: /Enterprise/ }), { key: "Home" });
     expect(screen.getByTestId("where").textContent).toBe("/for/omni");

@@ -121,8 +121,8 @@ export function SegmentFilter({
             >
               {o.label}
               <span className="font-mono text-xs font-semibold text-[#4A4F63]">{o.count}</span>
-              {o.note && <span className="hidden text-[13px] font-normal text-muted-foreground md:inline">{o.note}</span>}
-              {o.note && <span className="sr-only md:hidden">, {o.note}</span>}
+              {/* The note ("5,000+ employees") in the title, not on the pill. */}
+              {o.note && <span className="sr-only">, {o.note}</span>}
             </button>
           );
         })}

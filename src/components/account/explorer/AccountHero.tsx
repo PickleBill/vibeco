@@ -128,12 +128,9 @@ export function AccountHero({
           <Eyebrow>First-call plan{sellerName ? ` · for ${/^[aeiou]/i.test(sellerName) ? "an" : "a"} ${sellerName} seller` : ""}</Eyebrow>
           <div className="mt-1.5 flex items-center gap-3">
             <CompanyLogo domain={domain} name={company} size={40} />
-            <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-              <h2 id="hero-title" className="font-display text-[2rem] font-bold leading-[1.08] tracking-[-0.02em] text-foreground sm:text-[2.5rem]">
-                {company}
-              </h2>
-              {domain && <span className="font-mono text-sm text-[#4A4F63]">{domain}</span>}
-            </div>
+            <h2 id="hero-title" className="min-w-0 font-display text-[2rem] font-bold leading-[1.08] tracking-[-0.02em] text-foreground sm:text-[2.5rem]">
+              {company}
+            </h2>
           </div>
           {(motion?.label || (list && sellerName)) && (
             <div className="mt-3 flex flex-wrap items-center gap-2">

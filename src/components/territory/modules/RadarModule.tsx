@@ -1,8 +1,6 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { MotionConfig } from "framer-motion";
-import type { MotionLabel } from "@/components/account/AccountViews";
-import { ranAt } from "@/components/account/explorer/savedRuns";
 import type { Segment } from "@/lib/sellers";
 import { segmentFromParam, segmentsOf } from "../model";
 import { AccountsTable } from "../radar/AccountsTable";
@@ -13,7 +11,6 @@ import { startOfDay } from "../radar/evidence";
 import { FocusPanel } from "../radar/FocusPanel";
 import { HalfLife } from "../radar/HalfLife";
 import { byFreshness, FRESH_DAYS, toRadarAccount } from "../radar/model";
-import { StatTile } from "../radar/pieces";
 import { RadarChart } from "../radar/RadarChart";
 import { SegmentFilter } from "../radar/segments";
 import { MissingNote, RadarEmpty, RadarLoading } from "../radar/States";
@@ -25,15 +22,15 @@ import type { ModuleProps } from "./types";
 
 type Tab = "fresh" | "accounts";
 
-const MOTIONS: MotionLabel[] = ["Internal", "Embedded", "Both"];
-
 /**
  * 02 · Radar (/for/omni/radar): every account's latest saved run, read for what
  * is dated and fresh. Rings are trigger age, sectors are motions. "What's
  * fresh" holds a card per account worth a call this week; "All accounts" is
  * the whole territory as a sortable sheet. When an account has an earlier run,
  * the evidence-backed changes between the two lead. A segment filter
- * (?segment=strategic) narrows everything on the page to one segment.
+ * (?segment=strategic) narrows everything on the page to one segment. The
+ * first screen is the headline, the segments, the radar and the cards; the
+ * counts sit in the tabs and the radar's corners, the rest is a tap away.
  */
 export function RadarModule({ seller, territory }: ModuleProps) {
   const [params, setParams] = useSearchParams();
@@ -67,7 +64,6 @@ export function RadarModule({ seller, territory }: ModuleProps) {
   const fresh = accounts.filter((a) => a.trigger && a.trigger.days <= FRESH_DAYS).length;
   const moved = accounts.filter((a) => a.changes.length).length;
   const comparable = accounts.some((a) => a.row.previousId);
-  const latest = territory.rows.reduce<string | null>((a, r) => (!a || r.ranAt > a ? r.ranAt : a), null);
   const focus = accounts.find((a) => a.row.id === focusId);
   const where = segment ? `${name} · ${segment}` : name;
   const segmentNote = segments.find((s) => s.id === segment)?.note;
@@ -99,11 +95,7 @@ export function RadarModule({ seller, territory }: ModuleProps) {
       : fresh
         ? `${fresh} of ${n} ${noun(n)} ${fresh === 1 ? "has" : "have"} a trigger in the last ${FRESH_DAYS} days`
         : `${n} ${noun(n)}, none with a trigger in the last ${FRESH_DAYS} days`;
-  const subline = comparable
-    ? "Each account's latest run, compared with the run before it. Only changes a source backs count."
-    : "Each account's latest saved run, read for what is dated and fresh. No account has an earlier run to compare yet, so nothing is marked as changed.";
-  const split = Object.fromEntries(MOTIONS.map((m) => [m, accounts.filter((a) => a.row.motion === m).length])) as Record<MotionLabel, number>;
-  const unclear = accounts.filter((a) => a.row.motion === "Unclear").length;
+  const subline = comparable ? "Each account's latest run against the one before. Only changes a source backs count." : "Each account's latest saved run, read for dated triggers.";
   const subject = `${headline} · ${accounts
     .filter((a) => a.fresh)
     .slice(0, 3)
@@ -113,31 +105,9 @@ export function RadarModule({ seller, territory }: ModuleProps) {
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <PageHeader className="min-w-0 flex-[1_1_440px]" eyebrow={`Radar · ${where}${latest ? ` · latest run ${ranAt(latest)}` : ""}`} title={headline}>
-          {subline}
-        </PageHeader>
-        <div className="flex flex-wrap gap-2">
-          <StatTile value={n} label={n === 1 ? "account" : "accounts"} />
-          <StatTile value={moved || fresh} label={moved ? "moved" : "fresh triggers"} hot={(moved || fresh) > 0} />
-          <StatTile label="motion split">
-            <div className="flex items-baseline gap-3 font-mono leading-tight">
-              {MOTIONS.map((m) => (
-                <span key={m} className="flex items-baseline gap-1">
-                  <span className="text-2xl font-semibold">{split[m]}</span>
-                  <span className="text-xs text-[#4A4F63]">{m}</span>
-                </span>
-              ))}
-              {unclear > 0 && (
-                <span className="flex items-baseline gap-1">
-                  <span className="text-2xl font-semibold">{unclear}</span>
-                  <span className="text-xs text-[#4A4F63]">Unclear</span>
-                </span>
-              )}
-            </div>
-          </StatTile>
-        </div>
-      </div>
+      <PageHeader eyebrow={`Radar · ${where}`} title={headline}>
+        {subline}
+      </PageHeader>
 
       {segments.length > 0 && <SegmentFilter className="mt-5" segments={segments} counts={counts} total={everyone.length} value={segment} onChange={setSegment} />}
 

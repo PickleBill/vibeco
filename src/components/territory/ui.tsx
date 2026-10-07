@@ -70,11 +70,18 @@ export function SourceChip({ source, n, now }: { source?: ResearchSource; n: num
 
 // ─── Account pill pieces ───
 
-/** A field-style pill: "Aa Both". */
-export function FieldPill({ children, glyph = "Aa", className }: { children: ReactNode; glyph?: string; className?: string }) {
+/**
+ * A field-style tag: "Motion: Both". A glyph only where it carries meaning
+ * ("✓ On the list", "# Southeast"); none by default.
+ */
+export function FieldPill({ children, glyph, className }: { children: ReactNode; glyph?: string; className?: string }) {
   return (
     <span className={cx("inline-flex h-[26px] items-center gap-1.5 rounded-[4px] border border-[#D9D4C7] bg-white px-2 text-[13px] font-medium text-foreground", className)}>
-      <span className="font-mono text-xs text-muted-foreground">{glyph}</span>
+      {glyph && (
+        <span aria-hidden className="font-mono text-xs text-muted-foreground">
+          {glyph}
+        </span>
+      )}
       {children}
     </span>
   );
