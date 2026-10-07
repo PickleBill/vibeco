@@ -6,10 +6,11 @@ import { parseCompany } from "../_shared/match.ts";
 import { scanJobBoards } from "../_shared/stack-scan.ts";
 
 /**
- * Stack scan: reads a company's public Greenhouse, Lever or Ashby job board and
- * returns the data tools its posts name (plainly, or as one option among
- * several). The account lens runs the same scan inside simulate-idea's
- * research step; this endpoint exposes it on its own.
+ * Stack scan: reads a company's public Greenhouse, Lever or Ashby job board, or
+ * its Workday board when it's a known one, and returns the data tools its posts
+ * name (plainly, or as one option among several). The account lens runs the
+ * same scan inside simulate-idea's research step; this endpoint exposes it on
+ * its own.
  *
  * Input:  { company: "Chime" | "chime.com" | "Bandwidth (bandwidth.com)", domain?: "bandwidth.com" }
  * Output: { found, ats, board_url, company_name, total_jobs, scanned_jobs, tools[], posts[], ms, tried[] }

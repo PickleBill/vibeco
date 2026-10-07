@@ -137,7 +137,7 @@ describe("job-board scan card", () => {
 
   it("says so when there's no public board", () => {
     render(<ScanCard company="Guitar Center" scan={{ found: false, total_jobs: 0, scanned_jobs: 0, tools: [], ms: 120 }} />);
-    expect(screen.getByText(/No public Greenhouse, Lever or Ashby board found/)).toBeInTheDocument();
+    expect(screen.getByText(/No public Greenhouse, Lever, Ashby or known Workday board found/)).toBeInTheDocument();
   });
 });
 

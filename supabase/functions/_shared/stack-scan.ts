@@ -1,12 +1,14 @@
-// Stack scan: reads a company's public job board (Greenhouse, Lever or Ashby)
-// and lists the data tools its own data and engineering job posts name. These
-// are first-party sources, so a tool named here can be Confirmed. No API keys:
-// all three boards publish open JSON endpoints.
+// Stack scan: reads a company's public job board (Greenhouse, Lever, Ashby or
+// a known Workday board) and lists the data tools its own data and engineering
+// job posts name. These are first-party sources, so a tool named here can be
+// Confirmed. No API keys: all four boards publish open JSON endpoints.
 import { companyHits, squash } from "./match.ts";
 import { EMBEDDED_ROLE, labeledUnit, STACK_TOOLS, toolMentions, unitsOf, type StackCategory } from "./stack-tools.ts";
+import { workdayBoardFor, type WorkdayBoard } from "./workday-boards.ts";
 
-export type Ats = "greenhouse" | "lever" | "ashby";
-export const ATS_LABEL: Record<Ats, string> = { greenhouse: "Greenhouse", lever: "Lever", ashby: "Ashby" };
+export type Ats = "greenhouse" | "lever" | "ashby" | "workday";
+export const ATS_LABEL: Record<Ats, string> = { greenhouse: "Greenhouse", lever: "Lever", ashby: "Ashby", workday: "Workday" };
+export const ATS_IDS: Ats[] = ["greenhouse", "lever", "ashby", "workday"];
 
 export interface JobPost {
   title: string;
@@ -46,9 +48,11 @@ export interface StackScan {
   ats?: Ats;
   board?: string;
   board_url?: string;
-  /** The employer's name as the board gives it (Greenhouse), else as typed. */
+  /** The employer's name as the board gives it (Greenhouse, Workday), else as typed. */
   company_name?: string;
+  /** Open roles on the board (Workday: the total its unfiltered search reports). */
   total_jobs: number;
+  /** Posts read: every open role (up to 200), or on Workday the roles its searches surface (up to 16). */
   scanned_jobs: number;
   tools: ToolCount[];
   posts: ScannedPost[];
@@ -58,6 +62,10 @@ export interface StackScan {
 }
 
 const BUDGET_MS = 6500;
+// Workday needs two rounds (searches, then posting details). simulate-idea runs
+// the scan alongside the web searches, whose page-text budget is 8.5s, so this
+// cap stays under it; a typical Workday read takes 2 to 4s.
+const WORKDAY_BUDGET_MS = 8000;
 const MAX_SCANNED = 200;
 const DATA_ROLE = /\b(data|analytics?|analyst|BI|business intelligence|machine learning|ML|AI|insights?|reporting|scientist|statistic\w*|decision science)\b/i;
 const ENG_ROLE = /\b(engineer|engineering|developer|architect|platform)\b/i;
@@ -136,8 +144,14 @@ function slugsFor(company: string): string[] {
 
 // ─── Board fetchers ───
 
-async function getJson(url: string, signal: AbortSignal): Promise<unknown> {
-  const res = await fetch(url, { signal, headers: { accept: "application/json" } });
+async function getJson(url: string, signal: AbortSignal, opts: { body?: unknown; headers?: Record<string, string> } = {}): Promise<unknown> {
+  const headers = { accept: "application/json", ...opts.headers };
+  const res = await fetch(
+    url,
+    opts.body === undefined
+      ? { signal, headers }
+      : { signal, method: "POST", headers: { ...headers, "content-type": "application/json" }, body: JSON.stringify(opts.body) },
+  );
   if (!res.ok) {
     await res.body?.cancel();
     return undefined;
@@ -151,6 +165,8 @@ interface Board {
   url: string;
   name?: string;
   posts: JobPost[];
+  /** Open roles on the board, when it reports more than it sent (Workday). */
+  total?: number;
 }
 
 type Obj = Record<string, unknown>;
@@ -214,8 +230,156 @@ async function ashby(slug: string, signal: AbortSignal): Promise<Board | undefin
   };
 }
 
-const FETCHERS: Record<Ats, (slug: string, signal: AbortSignal) => Promise<Board | undefined>> = { greenhouse, lever, ashby };
-const ORDER: Ats[] = ["greenhouse", "ashby", "lever"];
+type SlugAts = Exclude<Ats, "workday">;
+const FETCHERS: Record<SlugAts, (slug: string, signal: AbortSignal) => Promise<Board | undefined>> = { greenhouse, lever, ashby };
+const ORDER: SlugAts[] = ["greenhouse", "ashby", "lever"];
+
+// ─── Workday ───
+// A Workday board can run to thousands of roles and has no feed worth paging
+// through, so the scan searches it for data-stack terms, reads the details of
+// the most relevant postings, and runs their text through the same checks as
+// any other board. A search match alone never counts: only a tool the
+// posting's own text names.
+
+/** Tool names first (a posting they surface likely names one), then role words. */
+export const WORKDAY_SEARCHES = [
+  "Snowflake", "Databricks", "BigQuery", "Redshift", "dbt", "Looker", "Tableau", "Power BI",
+  "data engineer", "analytics", "business intelligence",
+];
+const WORKDAY_TOOL_SEARCHES = 8;
+// Some Workday tenants answer 500 to the runtime's default "Accept-Language: *".
+const WORKDAY_HEADERS = { "accept-language": "en-US" };
+const WORKDAY_PAGE = 20; // the most one Workday search returns
+export const WORKDAY_DETAILS = 16;
+
+export interface WorkdayHit {
+  title: string;
+  path: string;
+  location?: string;
+  /** How many tool-name searches surfaced it. */
+  toolHits: number;
+  order: number;
+}
+
+/** Resolves when `p` settles or after `ms`, whichever comes first. */
+async function within(p: Promise<unknown>, ms: number): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  await Promise.race([p.catch(() => undefined), new Promise((r) => (timer = setTimeout(r, Math.max(0, ms))))]);
+  clearTimeout(timer);
+}
+
+const WORKDAY_GRACE_MS = 1000;
+
+/**
+ * Resolves once every promise settles, but never after `until` (epoch ms), and
+ * no later than `graceMs` after three quarters of them have: one slow request
+ * out of a dozen shouldn't hold up the scan.
+ */
+export function settle(promises: Promise<unknown>[], until: number, graceMs = WORKDAY_GRACE_MS): Promise<void> {
+  return new Promise((resolve) => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    let finished = false;
+    const finish = () => {
+      finished = true;
+      timers.forEach(clearTimeout);
+      resolve();
+    };
+    if (!promises.length) return finish();
+    timers.push(setTimeout(finish, Math.max(0, until - Date.now())));
+    const quorum = Math.ceil(promises.length * 0.75);
+    let done = 0;
+    for (const p of promises) {
+      p.catch(() => undefined).then(() => {
+        if (finished) return;
+        done += 1;
+        if (done === promises.length) finish();
+        else if (done === quorum) timers.push(setTimeout(finish, graceMs));
+      });
+    }
+  });
+}
+
+/**
+ * Which postings to read: ones a tool-name search surfaced come first, and
+ * within each group data and analytics titles before engineering before the
+ * rest; at most two with the same title (multi-location copies).
+ */
+export function pickWorkdayPosts(hits: WorkdayHit[], max = WORKDAY_DETAILS): WorkdayHit[] {
+  const tier = (h: WorkdayHit) => (h.toolHits ? 0 : 3) + (DATA_ROLE.test(h.title) ? 0 : ENG_ROLE.test(h.title) ? 1 : 2);
+  const sorted = [...hits].sort((a, b) => tier(a) - tier(b) || b.toolHits - a.toolHits || a.order - b.order);
+  const perTitle = new Map<string, number>();
+  const out: WorkdayHit[] = [];
+  for (const h of sorted) {
+    const key = h.title.toLowerCase().trim();
+    const n = perTitle.get(key) ?? 0;
+    if (n >= 2) continue;
+    perTitle.set(key, n + 1);
+    out.push(h);
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
+/**
+ * Read a known Workday board: an unfiltered search (for the board's size) and
+ * WORKDAY_SEARCHES in parallel, then up to WORKDAY_DETAILS posting details in
+ * parallel. Each round waits a second at most for its slowest requests, and
+ * whatever has arrived by `deadline` (epoch ms) is what gets scanned.
+ */
+export async function readWorkday(wd: WorkdayBoard, signal: AbortSignal, deadline: number): Promise<Board | undefined> {
+  const api = `https://${wd.host}/wday/cxs/${wd.tenant}/${wd.site}`;
+  const search = (searchText: string, limit = WORKDAY_PAGE) =>
+    getJson(`${api}/jobs`, signal, { body: { searchText, limit, offset: 0, appliedFacets: {} }, headers: WORKDAY_HEADERS })
+      .then((d) => d as Obj | undefined)
+      .catch(() => undefined);
+  // Searches get until two seconds before the deadline; the details get the rest.
+  const results: (Obj | undefined)[] = [];
+  const searches = [search("", 1), ...WORKDAY_SEARCHES.map((q) => search(q))].map((p, i) => p.then((d) => (results[i] = d)));
+  await settle(searches, deadline - 2000);
+  if (!results.some((r) => Array.isArray(r?.jobPostings))) return undefined;
+
+  const hits = new Map<string, WorkdayHit>();
+  results.slice(1).forEach((r, i) => {
+    for (const j of Array.isArray(r?.jobPostings) ? (r!.jobPostings as Obj[]) : []) {
+      const path = str(j.externalPath);
+      if (!path.startsWith("/") || !str(j.title)) continue;
+      const h = hits.get(path) ?? { title: str(j.title), path, location: str(j.locationsText) || undefined, toolHits: 0, order: hits.size };
+      if (i < WORKDAY_TOOL_SEARCHES) h.toolHits += 1;
+      hits.set(path, h);
+    }
+  });
+  // A search's total counts loose matches; the unfiltered search's is the board's size.
+  const total = typeof results[0]?.total === "number" ? (results[0].total as number) : hits.size;
+
+  const picked = pickWorkdayPosts([...hits.values()]);
+  const posts: (JobPost | undefined)[] = [];
+  const details = picked.map((h, i) =>
+    getJson(`${api}${h.path}`, signal, { headers: WORKDAY_HEADERS })
+      .then((d) => {
+        const info = (d as Obj | undefined)?.jobPostingInfo as Obj | undefined;
+        if (!info) return;
+        const externalUrl = str(info.externalUrl);
+        posts[i] = {
+          title: str(info.title) || h.title,
+          url: /^https:\/\//.test(externalUrl) ? externalUrl : `https://${wd.host}/${wd.site}${h.path}`,
+          text: htmlToText(str(info.jobDescription)),
+          location: str(info.location) || h.location,
+        };
+      })
+      .catch(() => undefined)
+  );
+  await settle(details, deadline);
+  // The same description posted for several locations counts once.
+  const seen = new Set<string>();
+  const read = posts.filter((p): p is JobPost => {
+    if (!p?.text) return false;
+    const key = `${p.title.toLowerCase()}\n${p.text.slice(0, 2000)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return { ats: "workday", slug: `${wd.tenant}/${wd.site}`, url: `https://${wd.host}/${wd.site}`, name: wd.company, posts: read, total };
+}
 
 /**
  * A slug can belong to a different employer ("mercury" on one board, another
@@ -273,7 +437,7 @@ export function scanBoard(board: Board, company: string, ms = 0, tried: string[]
     board: board.slug,
     board_url: board.url,
     company_name: board.name ?? company,
-    total_jobs: board.posts.length,
+    total_jobs: Math.max(board.total ?? 0, board.posts.length),
     scanned_jobs: scanned.length,
     tools: [...counts.values()].sort((a, b) => b.firm - a.firm || b.posts - a.posts || a.tool.localeCompare(b.tool)),
     posts,
@@ -282,29 +446,59 @@ export function scanBoard(board: Board, company: string, ms = 0, tried: string[]
   };
 }
 
-/** Find the company's public board and scan it. Never throws; gives up after ~6.5s. */
-export async function scanJobBoards(company: string, budgetMs = BUDGET_MS, domain?: string): Promise<StackScan> {
+/** Posts that name at least one tool: how much stack evidence a scan carries. */
+const evidence = (scan: StackScan) => scan.posts.filter((p) => p.tools.length > 0).length;
+
+/**
+ * Find the company's public board and scan it. Never throws. Greenhouse, Ashby
+ * and Lever boards are found by guessing slugs (gives up after ~6.5s); a
+ * Workday board only when the company is on the known-board list (~8s, run
+ * alongside the slug lookups). When both turn up, the one whose posts name
+ * more tools wins; on a tie, the slug board, which lists every open role
+ * rather than a search's sample.
+ */
+export async function scanJobBoards(company: string, budgetMs?: number, domain?: string): Promise<StackScan> {
   const t0 = Date.now();
+  const wd = workdayBoardFor(company, domain);
   const slugs = slugCandidates(company, domain);
-  if (!slugs.length) return emptyScan();
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), budgetMs);
+  if (!slugs.length && !wd) return emptyScan();
+  const budget = budgetMs ?? (wd ? WORKDAY_BUDGET_MS : BUDGET_MS);
+  // Separate controllers: finding a slug board cancels the other slug lookups, not the Workday read.
+  const slugController = new AbortController();
+  const wdController = new AbortController();
+  const timer = setTimeout(() => {
+    slugController.abort();
+    wdController.abort();
+  }, budget);
   const attempts = ORDER.flatMap((ats) => slugs.map((slug) => ({ ats, slug })));
-  const tried = attempts.map((a) => `${a.ats}:${a.slug}`);
-  // All lookups start at once; take the first verified board in preference
+  const tried = [...(wd ? [`workday:${wd.tenant}/${wd.site}`] : []), ...attempts.map((a) => `${a.ats}:${a.slug}`)];
+  // All slug lookups start at once; take the first verified board in preference
   // order (Greenhouse, Ashby, Lever) and cancel the rest.
-  const pending = attempts.map(({ ats, slug }) => FETCHERS[ats](slug, controller.signal).catch(() => undefined));
-  try {
+  const firstSlugBoard = async (): Promise<Board | undefined> => {
+    const pending = attempts.map(({ ats, slug }) => FETCHERS[ats](slug, slugController.signal).catch(() => undefined));
     for (const p of pending) {
       const board = await p;
       if (board && board.posts.length > 0 && belongsTo(board, company)) {
-        controller.abort();
-        return scanBoard(board, company, Date.now() - t0, tried);
+        slugController.abort();
+        return board;
       }
     }
-    return emptyScan(tried, Date.now() - t0);
+    return undefined;
+  };
+  try {
+    let slugBoard: Board | undefined;
+    const slugDone = firstSlugBoard().then((b) => (slugBoard = b), () => undefined);
+    const wdBoard = wd ? await readWorkday(wd, wdController.signal, t0 + budget - 150).catch(() => undefined) : undefined;
+    // With the Workday posts in hand, a slow slug lookup gets one more second, not the whole budget.
+    await (wdBoard?.posts.length ? within(slugDone, 1000) : slugDone);
+    const ms = Date.now() - t0;
+    const scans = [slugBoard, wdBoard].filter((b): b is Board => !!b && b.posts.length > 0).map((b) => scanBoard(b, company, ms, tried));
+    if (!scans.length) return emptyScan(tried, ms);
+    return scans.reduce((best, s) => (evidence(s) > evidence(best) ? s : best));
   } finally {
     clearTimeout(timer);
+    slugController.abort();
+    wdController.abort();
   }
 }
 
