@@ -60,8 +60,16 @@ export function splitCompany(typed: string): { name: string; domain?: string } {
 /** Citations and markdown off: "Raised $36M [2]." -> "Raised $36M." */
 export const plainText = (t?: string) => stripMarks(t ?? "").replace(/\s*\[[\d,\s]+\]/g, "").trim();
 
-/** Days from a "2026-09" or "2026-09-30" date to now (mid-month when only the month is known). */
+/**
+ * Days from a source date to now: "2026-09-30", "2026-09" (mid-month), or a
+ * search result's relative date ("2 months ago", "3 days ago").
+ */
 export function ageDays(date: string, now: Date = new Date()): number | null {
+  const rel = /^(\d+|an?)\s+(day|week|month|year)s?\s+ago/i.exec(date.trim());
+  if (rel) {
+    const n = /^\d/.test(rel[1]) ? Number(rel[1]) : 1;
+    return n * { day: 1, week: 7, month: 30, year: 365 }[rel[2].toLowerCase() as "day"];
+  }
   const m = /^(\d{4})-(\d{2})(?:-(\d{2}))?/.exec(date);
   if (!m) return null;
   const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, m[3] ? Number(m[3]) : 15));
