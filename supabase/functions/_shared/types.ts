@@ -298,6 +298,49 @@ export interface CommitteeResult {
   cached?: boolean;
 }
 
+// ─── suggest-accounts (companies like a seed, beyond the territory) ───
+
+export type SuggestMotion = "Internal" | "Embedded" | "Both";
+
+/** The account the suggestions should look like, read from its saved run. */
+export interface SuggestSeed {
+  name: string;
+  domain?: string;
+  motion: SuggestMotion | "Unclear";
+  /** One plain line on the account. */
+  line: string;
+  /** Data tools its sources confirm. */
+  tools: string[];
+}
+
+/** Checked input: names and domains already in the territory are never suggested. */
+export interface SuggestAccountsInput {
+  seed: SuggestSeed;
+  exclude: string[];
+  /** Default "Southeast US". */
+  region: string;
+  /** Default 6, at most 8. */
+  count: number;
+}
+
+/** One unresearched company: a hypothesis to check, never a fact. */
+export interface AccountSuggestion {
+  name: string;
+  /** Bare domain that answered over HTTPS. */
+  domain: string;
+  /** "City, ST", when the model gave one. */
+  hq?: string;
+  /** One short sentence phrased as a hypothesis; no digits. */
+  why: string;
+  motion_guess: SuggestMotion;
+}
+
+export interface SuggestAccountsResult {
+  suggestions: AccountSuggestion[];
+  model: string;
+  latencyMs: number;
+}
+
 export interface AltPromptInput {
   brief: BriefData;
   idea: string;

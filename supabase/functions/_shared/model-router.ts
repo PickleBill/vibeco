@@ -22,7 +22,8 @@ export type TaskType =
   | "bill-qa"               // bricker-os: corpus-grounded Q&A in Bill's voice
   | "account-brief"         // Target-account lens: brief + first-call plan in one express call
   | "critic-chat"           // Target-account lens: a critic answers the seller, live
-  | "committee-sim";        // Target-account lens: the five critics run one buying meeting
+  | "committee-sim"         // Target-account lens: the five critics run one buying meeting
+  | "suggest-accounts";     // Lookalikes: companies like a seed, beyond the territory (hypotheses)
 
 // ─── Model Selection ───
 
@@ -142,6 +143,13 @@ const ROUTING_TABLE: Record<TaskType, ModelCandidate[]> = {
   // brief, so Claude leads (committee-sim gives it 45s) and Flash is the fallback.
   "committee-sim": [
     { model: "anthropic/claude-sonnet-5", rationale: "Keeps every seat to the brief and its sources across a long, structured answer", cost: "high", speed: "medium" },
+    { model: "google/gemini-3-flash-preview", rationale: "Fast fallback if Claude is slow or unavailable", cost: "low", speed: "fast" },
+  ],
+  // Naming real companies from memory: the model most willing to leave out a
+  // company it isn't sure of leads (suggest-accounts gives it 25s); Flash is
+  // the fallback. Code drops excluded, repeated and unreachable domains after.
+  "suggest-accounts": [
+    { model: "anthropic/claude-sonnet-5", rationale: "Names fewer, real companies and keeps each reason a hypothesis", cost: "high", speed: "medium" },
     { model: "google/gemini-3-flash-preview", rationale: "Fast fallback if Claude is slow or unavailable", cost: "low", speed: "fast" },
   ],
   // Gateway-served models only. The retired ids this used to name

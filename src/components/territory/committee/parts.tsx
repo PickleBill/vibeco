@@ -101,7 +101,7 @@ export function Delta({ by, className }: { by: number; className?: string }) {
   return (
     <span
       className={cx(
-        "inline-flex h-[22px] shrink-0 items-center gap-0.5 rounded-full border px-1.5 font-mono text-xs font-semibold",
+        "inline-flex h-[22px] shrink-0 items-center gap-0.5 rounded-[4px] border px-1.5 font-mono text-xs font-semibold",
         by === 0 ? "border-dotted border-[#9097A6] text-[#4A4F63]" : "border-foreground bg-white text-foreground",
         className,
       )}
