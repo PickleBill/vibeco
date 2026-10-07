@@ -71,7 +71,7 @@ export function FingerprintCard({ fp, sources, sellerName, domain }: { fp: Finge
         </Pill>
       </ul>
       {fp.sellerTool && (
-        <p className="mt-3 text-sm text-[#4A4F63]">
+        <p className="mt-3 text-[15px] text-[#4A4F63]">
           {sellerName} itself is in the stack; it never counts toward the BI story when scoring.
         </p>
       )}

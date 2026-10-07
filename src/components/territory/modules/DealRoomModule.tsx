@@ -4,7 +4,8 @@ import { loadReport, type SavedReport } from "@/components/account/explorer/save
 import { AccountSwitcher } from "../AccountSwitcher";
 import { splitCompany } from "../model";
 import { moduleHref } from "../nav";
-import { Eyebrow } from "../ui";
+import { NextStep } from "../NextStep";
+import { PageHeader } from "../PageHeader";
 import { buildClaims, claimQuestions, planDiff, tally } from "../dealroom/claims";
 import { useDealRoom } from "../dealroom/hooks";
 import { ProspectBrief } from "../dealroom/ProspectBrief";
@@ -17,8 +18,8 @@ import type { ModuleProps } from "./types";
  * it; the answers come back here as discovery notes and a before/after of the
  * plan. A toggle shows exactly what the prospect sees, read-only.
  */
-export function DealRoomModule({ seller, territory, reportId }: ModuleProps) {
-  const activeId = reportId ?? territory.rows[0]?.id;
+export function DealRoomModule({ seller, territory, reportId, current }: ModuleProps) {
+  const activeId = reportId ?? current ?? territory.rows[0]?.id;
   const [report, setReport] = useState<SavedReport | null | undefined>(undefined);
   const [params, setParams] = useSearchParams();
   const view: DealView = params.get("view") === "seller" ? "seller" : "prospect";
@@ -54,12 +55,10 @@ export function DealRoomModule({ seller, territory, reportId }: ModuleProps) {
   const t = tally(claims, responses);
 
   return (
-    <div className="mx-auto max-w-6xl">
-      <Eyebrow>04 · Deal Room</Eyebrow>
-      <h1 className="mt-2 font-display text-[2.1rem] font-bold leading-[1.08] tracking-[-0.02em] sm:text-[2.75rem]">{name ? `A brief ${name} can correct` : "A brief the account can correct"}</h1>
-      <p className="mt-3 max-w-2xl text-base leading-relaxed text-[#4A4F63] sm:text-[17px]">
+    <div>
+      <PageHeader eyebrow="Deal Room · one shareable link" title={name ? `A brief ${name} can correct` : "A brief the account can correct"}>
         Share one link. The account sees only the public claims and their sources, marks each one right, fixes it or skips it, and the answers land here as discovery notes.
-      </p>
+      </PageHeader>
       <div className="mt-4">
         <AccountSwitcher
           rows={territory.rows}
@@ -99,7 +98,7 @@ export function DealRoomModule({ seller, territory, reportId }: ModuleProps) {
             <p className="font-mono text-[15px]" aria-live="polite">
               <b>{t.answered}</b> of {t.total} answered · {t.fix} correction{t.fix === 1 ? "" : "s"}
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-[15px] text-muted-foreground">
               {reachable === false
                 ? "Answer sync isn't reachable right now, so answers made on the account's device stay there."
                 : room?.updated_at
@@ -139,6 +138,8 @@ export function DealRoomModule({ seller, territory, reportId }: ModuleProps) {
           )}
         </>
       )}
+
+      <NextStep seller={seller.id} from="deal" account={brief && activeId ? { id: activeId, name } : undefined} />
     </div>
   );
 }
