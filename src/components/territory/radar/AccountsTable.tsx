@@ -1,59 +1,152 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { fitRank } from "../model";
+import type { TerritorySegment } from "@/lib/sellers";
+import { fitRank, omniRank } from "../model";
 import { moduleHref } from "../nav";
 import { cx } from "../style";
 import { FieldPill, FitBadge } from "../ui";
 import { dayLabel } from "./evidence";
 import type { RadarAccount } from "./model";
 import { Chips, StackPill } from "./pieces";
+import { OmniTag } from "./segments";
 
-type SortKey = "name" | "motion" | "fit" | "days";
+type SortKey = "name" | "segment" | "motion" | "fit" | "omni" | "days";
+type ColKey = SortKey | "trigger" | "stack" | "next" | "open";
 
 /** Stack chips per row before "+n more". */
 const STACK_CAP = 4;
 
-const COLS: { key: SortKey | "trigger" | "stack" | "next" | "open"; letter: string; label: string; sort?: SortKey; cls?: string }[] = [
-  { key: "name", letter: "A", label: "Account", sort: "name", cls: "w-[150px] xl:w-[170px]" },
-  { key: "motion", letter: "B", label: "Motion", sort: "motion", cls: "w-[96px] xl:w-[108px]" },
-  { key: "fit", letter: "C", label: "Fit", sort: "fit", cls: "w-[52px] xl:w-[60px]" },
-  { key: "trigger", letter: "D", label: "Freshest trigger" },
-  { key: "days", letter: "E", label: "Days since", sort: "days", cls: "w-[60px] xl:w-[78px]" },
-  { key: "stack", letter: "F", label: "Stack", cls: "w-[150px] xl:w-[170px]" },
-  { key: "next", letter: "G", label: "Next move", cls: "w-[150px] xl:w-[170px]" },
-  // Below xl the name (which opens the account in focus, with its links) stands in for Open.
-  { key: "open", letter: "H", label: "", cls: "hidden w-[76px] xl:table-cell" },
+// Widths step up at xl. Next move joins at 1400px and Open (with the row
+// numbers) at 2xl, so the sheet fits a presenter's 125% window without
+// scrolling; below that the name (which opens the account in focus, with its
+// links) stands in for Open.
+const COLS: { key: ColKey; label: string; sort?: SortKey; cls?: string }[] = [
+  { key: "name", label: "Account", sort: "name", cls: "w-[132px] xl:w-[150px]" },
+  { key: "segment", label: "Segment", sort: "segment", cls: "w-[92px] xl:w-[100px]" },
+  { key: "motion", label: "Motion", sort: "motion", cls: "w-[110px] xl:w-[114px]" },
+  { key: "fit", label: "Fit", sort: "fit", cls: "w-[48px] xl:w-[56px]" },
+  { key: "omni", label: "Omni", sort: "omni", cls: "w-[112px] xl:w-[128px]" },
+  { key: "trigger", label: "Freshest trigger" },
+  { key: "days", label: "Days since", sort: "days", cls: "w-[56px] xl:w-[72px]" },
+  { key: "stack", label: "Stack", cls: "w-[128px] xl:w-[160px]" },
+  { key: "next", label: "Next move", cls: "hidden w-[160px] min-[1400px]:table-cell" },
+  { key: "open", label: "", cls: "hidden w-[76px] 2xl:table-cell" },
 ];
-
-const sortValue = (a: RadarAccount, k: SortKey): string | number =>
-  k === "name" ? a.row.name.toLowerCase() : k === "motion" ? a.row.motion : k === "fit" ? fitRank(a.row.fit) : a.trigger?.days ?? Number.MAX_SAFE_INTEGER;
 
 /**
  * Every account as a spreadsheet: lettered columns, a frozen account column,
- * sortable headers (Account, Motion, Fit, Days since). The name opens the
- * account in focus; Open goes to the full run. Under xl the row numbers and
- * Open step aside so the sheet fits a presenter's 125% window; on a phone it
- * scrolls sideways in its box.
+ * sortable headers (Account, Segment, Motion, Fit, Omni, Days since). The
+ * name opens the account in focus; Open goes to the full run. On a phone it
+ * scrolls sideways in its box. The Segment column shows only when the
+ * territory is split into segments.
  */
 export function AccountsTable({
   accounts,
   seller,
+  segments = [],
   focusId,
   onFocus,
 }: {
   accounts: RadarAccount[];
   seller: string;
+  segments?: TerritorySegment[];
   focusId?: string | null;
   onFocus: (id: string) => void;
 }) {
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "days", dir: 1 });
+  const segOrder = (id?: string) => {
+    const i = segments.findIndex((s) => s.id === id);
+    return i < 0 ? segments.length : i;
+  };
+  const sortValue = (a: RadarAccount, k: SortKey): string | number =>
+    k === "name"
+      ? a.row.name.toLowerCase()
+      : k === "segment"
+        ? segOrder(a.row.segment)
+        : k === "motion"
+          ? a.row.motion
+          : k === "fit"
+            ? fitRank(a.row.fit)
+            : k === "omni"
+              ? omniRank(a.row.omni)
+              : a.trigger?.days ?? Number.MAX_SAFE_INTEGER;
   const rows = [...accounts].sort((a, b) => {
     const p = sortValue(a, sort.key);
     const q = sortValue(b, sort.key);
     return (p < q ? -sort.dir : p > q ? sort.dir : 0) || a.row.name.localeCompare(b.row.name);
   });
-  const label = COLS.find((c) => c.sort === sort.key)?.label.toLowerCase();
+  const cols = COLS.filter((c) => c.key !== "segment" || segments.length > 0).map((c, i) => ({ ...c, letter: String.fromCharCode(65 + i) }));
+  const label = cols.find((c) => c.sort === sort.key)?.label.toLowerCase();
   const pick = (key: SortKey) => setSort((s) => ({ key, dir: s.key === key ? (s.dir === 1 ? -1 : 1) : 1 }));
+  const note = (id?: string) => segments.find((s) => s.id === id)?.note;
+
+  const cell = (key: ColKey, a: RadarAccount) => {
+    const { row, trigger } = a;
+    switch (key) {
+      case "segment":
+        return row.segment ? (
+          <span title={note(row.segment) ? `${row.segment} · ${note(row.segment)}` : undefined} className="text-sm font-medium">
+            {row.segment}
+          </span>
+        ) : (
+          <span className="text-sm text-muted-foreground">—</span>
+        );
+      case "motion":
+        return <FieldPill>{row.motion}</FieldPill>;
+      case "fit":
+        return <FitBadge grade={row.fit} label={false} />;
+      case "omni":
+        return <OmniTag status={row.omni} quiet />;
+      case "trigger":
+        return trigger ? (
+          <div className="flex flex-col items-start gap-1.5">
+            <span className="line-clamp-3 text-sm leading-snug">{trigger.text}</span>
+            <span className="flex flex-wrap items-center gap-1.5">
+              <span className="font-mono text-xs text-[#4A4F63]">{dayLabel(trigger.date)}</span>
+              <Chips ids={trigger.sources.slice(0, 2)} sources={a.sources} />
+            </span>
+          </div>
+        ) : (
+          <span className="text-sm text-muted-foreground">No dated trigger found</span>
+        );
+      case "days":
+        return trigger ? trigger.days : "—";
+      case "stack":
+        return a.stack.length ? (
+          <span className="flex flex-wrap items-center gap-1.5">
+            {a.stack.slice(0, STACK_CAP).map((s) => (
+              <StackPill key={`${s.tool}-${s.status}`} chip={s} />
+            ))}
+            {a.stack.length > STACK_CAP && (
+              <span className="text-xs text-muted-foreground" title={a.stack.slice(STACK_CAP).map((s) => `${s.tool} (${s.status})`).join(", ")}>
+                +{a.stack.length - STACK_CAP} more
+              </span>
+            )}
+          </span>
+        ) : (
+          <span className="text-sm text-muted-foreground">Nothing confirmed</span>
+        );
+      case "next":
+        return <span className="line-clamp-3">{a.nextMove}</span>;
+      case "open":
+        return (
+          <Link
+            to={moduleHref(seller, "account", row.id)}
+            aria-label={`Open ${row.name}'s full run`}
+            className="flex min-h-11 w-full items-center justify-center rounded-lg border border-foreground bg-white text-[13px] font-bold hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Open
+          </Link>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const tdCls: Partial<Record<ColKey, string>> = {
+    days: "text-right font-mono text-[15px] font-semibold",
+    next: "text-sm leading-snug",
+  };
 
   return (
     <div>
@@ -63,15 +156,16 @@ export function AccountsTable({
         </p>
         <p className="font-mono text-xs text-muted-foreground">pink dot = trigger in the last 30 days</p>
       </div>
-      <div className="overflow-x-auto border-t border-border">
-        <table className="w-full min-w-[820px] table-fixed xl:min-w-[980px] border-collapse text-left text-[15px]">
+      {/* Positioned, so the cells' screen-reader text scrolls with the sheet instead of widening the page. */}
+      <div className="relative overflow-x-auto border-t border-border">
+        <table className="w-full min-w-[820px] table-fixed border-collapse text-left text-[15px] min-[1400px]:min-w-[1080px] 2xl:min-w-[1200px]">
           <caption className="sr-only">All accounts in the territory</caption>
           <thead>
             <tr className="border-b border-[#D9D4C7] bg-muted">
-              <th scope="col" className="sticky left-0 z-10 hidden w-10 border-r border-border bg-muted px-2 py-1.5 align-bottom font-mono text-xs font-normal text-muted-foreground xl:table-cell">
+              <th scope="col" className="sticky left-0 z-10 hidden w-10 border-r border-border bg-muted px-2 py-1.5 align-bottom font-mono text-xs font-normal text-muted-foreground 2xl:table-cell">
                 #
               </th>
-              {COLS.map((c, i) => {
+              {cols.map((c, i) => {
                 const on = c.sort === sort.key;
                 const head = (
                   <>
@@ -87,7 +181,7 @@ export function AccountsTable({
                     key={c.key}
                     scope="col"
                     aria-sort={c.sort ? (on ? (sort.dir === 1 ? "ascending" : "descending") : "none") : undefined}
-                    className={cx("border-r border-border p-0 align-bottom last:border-r-0", c.cls, i === 0 && "sticky left-0 z-10 bg-muted xl:left-10")}
+                    className={cx("border-r border-border p-0 align-bottom last:border-r-0", c.cls, i === 0 && "sticky left-0 z-10 bg-muted 2xl:left-10")}
                   >
                     {c.sort ? (
                       <button
@@ -107,13 +201,13 @@ export function AccountsTable({
           </thead>
           <tbody>
             {rows.map((a, i) => {
-              const { row, trigger } = a;
+              const { row } = a;
               const on = focusId === row.id;
               const bg = on ? "bg-brand-tint" : "bg-white";
               return (
                 <tr key={row.id} className={cx("border-b border-[#ECE8DE] align-top", bg)}>
-                  <td className="sticky left-0 z-10 hidden border-r border-[#ECE8DE] bg-background px-2 py-2.5 font-mono text-xs text-muted-foreground xl:table-cell">{i + 1}</td>
-                  <td className={cx("sticky left-0 z-10 border-r border-[#ECE8DE] px-2.5 py-2 xl:left-10", bg)}>
+                  <td className="sticky left-0 z-10 hidden border-r border-[#ECE8DE] bg-background px-2 py-2.5 font-mono text-xs text-muted-foreground 2xl:table-cell">{i + 1}</td>
+                  <td className={cx("sticky left-0 z-10 border-r border-[#ECE8DE] px-2.5 py-2 2xl:left-10", bg)}>
                     <button
                       type="button"
                       onClick={() => onFocus(row.id)}
@@ -127,54 +221,19 @@ export function AccountsTable({
                       {row.domain && <span className="pl-3.5 font-mono text-xs text-muted-foreground">{row.domain}</span>}
                     </button>
                   </td>
-                  <td className="border-r border-[#ECE8DE] px-2.5 py-2.5">
-                    <FieldPill>{row.motion}</FieldPill>
-                  </td>
-                  <td className="border-r border-[#ECE8DE] px-2.5 py-2.5">
-                    <FitBadge grade={row.fit} label={false} />
-                  </td>
-                  <td className="border-r border-[#ECE8DE] px-2.5 py-2.5">
-                    {trigger ? (
-                      <div className="flex flex-col items-start gap-1.5">
-                        <span className="line-clamp-3 text-sm leading-snug">{trigger.text}</span>
-                        <span className="flex flex-wrap items-center gap-1.5">
-                          <span className="font-mono text-xs text-[#4A4F63]">{dayLabel(trigger.date)}</span>
-                          <Chips ids={trigger.sources.slice(0, 2)} sources={a.sources} />
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">No dated trigger found</span>
-                    )}
-                  </td>
-                  <td className="border-r border-[#ECE8DE] px-2.5 py-2.5 text-right font-mono text-[15px] font-semibold">{trigger ? trigger.days : "—"}</td>
-                  <td className="border-r border-[#ECE8DE] px-2.5 py-2.5">
-                    {a.stack.length ? (
-                      <span className="flex flex-wrap items-center gap-1.5">
-                        {a.stack.slice(0, STACK_CAP).map((s) => (
-                          <StackPill key={`${s.tool}-${s.status}`} chip={s} />
-                        ))}
-                        {a.stack.length > STACK_CAP && (
-                          <span className="text-xs text-muted-foreground" title={a.stack.slice(STACK_CAP).map((s) => `${s.tool} (${s.status})`).join(", ")}>
-                            +{a.stack.length - STACK_CAP} more
-                          </span>
-                        )}
-                      </span>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">Nothing confirmed</span>
-                    )}
-                  </td>
-                  <td className="border-r border-[#ECE8DE] px-2.5 py-2.5 text-sm leading-snug">
-                    <span className="line-clamp-3">{a.nextMove}</span>
-                  </td>
-                  <td className="hidden px-2 py-2 xl:table-cell">
-                    <Link
-                      to={moduleHref(seller, "account", row.id)}
-                      aria-label={`Open ${row.name}'s full run`}
-                      className="flex min-h-11 w-full items-center justify-center rounded-lg border border-foreground bg-white text-[13px] font-bold hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  {cols.slice(1).map((c) => (
+                    <td
+                      key={c.key}
+                      className={cx(
+                        "border-r border-[#ECE8DE] last:border-r-0",
+                        c.key === "open" ? "hidden px-2 py-2 2xl:table-cell" : "px-2.5 py-2.5",
+                        c.key === "next" && "hidden min-[1400px]:table-cell",
+                        tdCls[c.key],
+                      )}
                     >
-                      Open
-                    </Link>
-                  </td>
+                      {cell(c.key, a)}
+                    </td>
+                  ))}
                 </tr>
               );
             })}

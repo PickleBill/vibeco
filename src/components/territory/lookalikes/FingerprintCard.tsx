@@ -5,6 +5,8 @@ import { EvidenceTag } from "../ui";
 import { dayLabel, TRIGGER_LABEL } from "../radar/evidence";
 import { MOTION_LINE } from "../radar/model";
 import { Chips } from "../radar/pieces";
+import { OmniRing, SegmentTag } from "../radar/segments";
+import { OMNI_TEXT } from "../model";
 import type { Fingerprint } from "./model";
 
 function Pill({ k, children, status, ids, sources, struck }: { k: string; children: ReactNode; status?: string; ids?: number[]; sources: ResearchSource[]; struck?: boolean }) {
@@ -28,8 +30,12 @@ export function FingerprintCard({ fp, sources, sellerName, domain }: { fp: Finge
           {fp.name} · fingerprint
         </h2>
         {domain && <span className="font-mono text-[13px] text-muted-foreground">{domain}</span>}
-        <span className="text-sm text-[#4A4F63]">
-          {fp.onList ? (
+        {fp.segment && <SegmentTag segment={fp.segment} />}
+        <span className="inline-flex items-center gap-1.5 text-sm text-[#4A4F63]">
+          <OmniRing status={fp.omni} />
+          {fp.omni === "Likely" ? (
+            OMNI_TEXT.Likely.full
+          ) : fp.onList ? (
             fp.listSource ? (
               <a href={fp.listSource} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">
                 On {sellerName}&rsquo;s public customer list

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { moduleHref } from "../nav";
 import { cx, secondaryButton } from "../style";
 import { FieldPill, FitBadge } from "../ui";
+import { OmniTag, SegmentTag } from "../radar/segments";
 import { TRAIT_LABEL, WEIGHTS, type Lookalike, type TraitScore } from "./model";
 
 const MARK: Record<TraitScore["match"], string> = { full: "✓", partial: "½", none: "–", unknown: "?" };
@@ -53,6 +54,8 @@ export const LookalikeCard = forwardRef<HTMLElement, { item: Lookalike; rank: nu
             {domain && <span className="font-mono text-xs text-muted-foreground">{domain}</span>}
             <FieldPill>{fp.motion}</FieldPill>
             <FitBadge grade={fp.fit} />
+            {fp.segment && <SegmentTag segment={fp.segment} />}
+            {fp.omni !== "None found" && <OmniTag status={fp.omni} />}
           </div>
         </div>
         <div className="shrink-0 text-right">

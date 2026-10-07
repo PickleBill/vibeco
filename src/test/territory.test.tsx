@@ -1,18 +1,19 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import type { AccountBrief, MotionLabel } from "@/components/account/AccountViews";
 import type { SavedReport } from "@/components/account/explorer/savedRuns";
-import type { SellerConfig } from "@/lib/sellers";
+import type { Segment, SellerConfig, TerritorySegment } from "@/lib/sellers";
 
 // Saved runs resolve through the shared-report RPC; the tests answer it from `runs`.
 const runs: Record<string, SavedReport> = {};
 const rpc = vi.fn(async (_fn: string, args: { _report_id: string }) => ({ data: runs[args._report_id] ?? null, error: null }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: (fn: string, args: { _report_id: string }) => rpc(fn, args) } }));
 
-import { toRow, type TerritoryRow } from "@/components/territory/model";
+import { omniStatus, toRow, type TerritoryRow } from "@/components/territory/model";
+import { AccountSwitcher, SELECT_AFTER } from "@/components/territory/AccountSwitcher";
 import { diffRuns } from "@/components/territory/radar/diff";
 import { classifyTrigger, freshestTrigger, redactPeople, sourceDay } from "@/components/territory/radar/evidence";
-import { placeBlips, toRadarAccount } from "@/components/territory/radar/model";
+import { BLIP_GAP, placeBlips, radiusFor, toRadarAccount } from "@/components/territory/radar/model";
 import { fingerprintOf, rankLookalikes, scoreLookalike, storyLine } from "@/components/territory/lookalikes/model";
 import { RadarModule } from "@/components/territory/modules/RadarModule";
 import { LookalikesModule } from "@/components/territory/modules/LookalikesModule";
@@ -381,5 +382,197 @@ describe("LookalikesModule", () => {
     );
     await waitFor(() => expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Accounts that look like Bandwidth"));
     expect(screen.getAllByRole("article")).toHaveLength(1);
+  });
+});
+
+// ─── Segments and Omni at the account ───
+
+describe("omniStatus", () => {
+  it("reads Omni at the account from the run's evidence", () => {
+    expect(omniStatus(run("a", "Acme", { onList: true }).brief)).toBe("Confirmed");
+    expect(omniStatus(run("b", "Acme", { stack: [["BI tools", "Omni", "Confirmed"]] }).brief)).toBe("Likely");
+    expect(omniStatus(run("c", "Acme", { stack: [["BI tools", "Omni Analytics", "Inferred"]] }).brief)).toBe("Likely");
+    expect(omniStatus(run("d", "Acme", { stack: [["Marketing", "Omnichannel personalization", "Confirmed"]] }).brief)).toBe("None found");
+    expect(omniStatus(run("e", "Acme", { stack: [["BI tools", "Omni", "Former"]] }).brief)).toBe("None found");
+    expect(omniStatus(run("f", "Acme").brief)).toBe("None found");
+    expect(omniStatus(undefined)).toBe("None found");
+  });
+
+  it("passes the segment and the Omni status through toRow", () => {
+    const r = run("k", "Kaseya (kaseya.com)", { stack: [["BI tools", "Omni", "Confirmed"]] });
+    expect(toRow({ company: r.idea, reportId: r.id, segment: "Strategic" }, r, NOW)).toMatchObject({ segment: "Strategic", omni: "Likely", name: "Kaseya" });
+    expect(toRow({ company: r.idea, reportId: r.id }, r, NOW).segment).toBeUndefined();
+  });
+});
+
+describe("radar placement in a big territory", () => {
+  it("keeps 40 blips apart without moving any off its ring", () => {
+    const motions = ["Internal", "Embedded", "Both"] as const;
+    const accounts = Array.from({ length: 40 }, (_, i) =>
+      toRadarAccount(rowOf(run(`b${i}`, `Big ${i}`, { motion: motions[i % 3], whyNow: i % 4 === 3 ? "" : `${recent(5 + ((i * 11) % 200))}: Raised money [1].` })), [], NOW),
+    );
+    const blips = placeBlips(accounts);
+    expect(blips).toHaveLength(40);
+    for (const b of blips) expect(Math.hypot(b.x - 200, b.y - 200)).toBeCloseTo(radiusFor(b.account.trigger?.days), 5);
+    let closest = Infinity;
+    blips.forEach((a, i) => blips.slice(i + 1).forEach((b) => (closest = Math.min(closest, Math.hypot(a.x - b.x, a.y - b.y)))));
+    expect(closest).toBeGreaterThanOrEqual(BLIP_GAP);
+  });
+});
+
+const SEGMENTS: TerritorySegment[] = [
+  { id: "Strategic", label: "Strategic", note: "5,000+ employees" },
+  { id: "Enterprise", label: "Enterprise", note: "Under 5,000" },
+];
+
+/** A territory split into segments: `segs[i]` for `reports[i]`. */
+function segmentedTerritory(reports: SavedReport[], segs: Segment[]) {
+  const accounts = reports.map((r, i) => ({ company: r.idea, reportId: r.id, segment: segs[i] }));
+  const rows = reports.map((r, i) => toRow(accounts[i], r));
+  return { seller: { ...seller, territory: { name: "Southeast", segments: SEGMENTS, accounts } }, territory: { rows, loading: false, missing: [] } };
+}
+
+function Where() {
+  const { pathname, search } = useLocation();
+  return <output data-testid="where">{`${pathname}${search}`}</output>;
+}
+
+describe("RadarModule segments", () => {
+  const reports = [
+    run("st1", "Big Bank (bigbank.example)", { whyNow: `${recent(4)}: Named a new Chief Data Officer [1].`, onList: true }),
+    run("st2", "Big Store (bigstore.example)", { motion: "Embedded", stack: [["BI tools", "Omni", "Confirmed", [2]]] }),
+    run("en1", "Small Co (smallco.example)", { whyNow: `${recent(10)}: Raised money [1].` }),
+    run("en2", "Mid Co (midco.example)", { motion: "Both", whyNow: "2025-06: Launched a product [1]." }),
+    run("en3", "Other Co (otherco.example)"),
+  ];
+  const segs: Segment[] = ["Strategic", "Strategic", "Enterprise", "Enterprise", "Enterprise"];
+
+  it("reads the segment from the URL and narrows every count to it", () => {
+    const { seller: s, territory } = segmentedTerritory(reports, segs);
+    render(
+      <MemoryRouter initialEntries={["/for/omni?segment=strategic"]}>
+        <RadarModule seller={s} territory={territory} />
+        <Where />
+      </MemoryRouter>,
+    );
+    const group = screen.getByRole("radiogroup", { name: "Segment" });
+    expect(within(group).getByRole("radio", { name: /Strategic/ })).toHaveAttribute("aria-checked", "true");
+    expect(within(group).getByRole("radio", { name: /^All/ })).toHaveTextContent("5");
+    expect(within(group).getByRole("radio", { name: /Enterprise/ })).toHaveTextContent("3");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("1 of 2 Strategic accounts has a trigger in the last 60 days");
+    expect(within(screen.getByRole("region", { name: "Territory radar" })).getAllByRole("button")).toHaveLength(2);
+    expect(screen.getByRole("tab", { name: /All accounts/ })).toHaveTextContent("2");
+
+    // Omni at the account: on the blip's name and in the radar's legend.
+    expect(screen.getByRole("button", { name: /^Big Store · Strategic · Embedded · .* · Omni named in its job posts$/ })).toBeInTheDocument();
+    expect(screen.getByText("On Omni's public customer list")).toBeInTheDocument();
+
+    fireEvent.click(within(group).getByRole("radio", { name: /Enterprise/ }));
+    expect(screen.getByTestId("where")).toHaveTextContent("/for/omni?segment=enterprise");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("1 of 3 Enterprise accounts has a trigger in the last 60 days");
+    expect(within(screen.getByRole("region", { name: "Territory radar" })).getAllByRole("button")).toHaveLength(3);
+
+    fireEvent.keyDown(within(group).getByRole("radio", { name: /Enterprise/ }), { key: "Home" });
+    expect(screen.getByTestId("where").textContent).toBe("/for/omni");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("2 of 5 accounts have a trigger in the last 60 days");
+  });
+
+  it("adds sortable Segment and Omni columns to the sheet", () => {
+    const { seller: s, territory } = segmentedTerritory(reports, segs);
+    render(
+      <MemoryRouter>
+        <RadarModule seller={s} territory={territory} />
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByRole("tab", { name: /All accounts/ }));
+    fireEvent.click(within(screen.getByRole("columnheader", { name: /Omni/ })).getByRole("button"));
+    const rows = screen.getAllByRole("row").slice(1);
+    expect(within(rows[0]).getAllByRole("cell")[1]).toHaveTextContent(/^Big Bank/);
+    expect(rows[0]).toHaveTextContent("On Omni's public customer list");
+    expect(within(rows[1]).getAllByRole("cell")[1]).toHaveTextContent(/^Big Store/);
+    expect(rows[2]).toHaveTextContent("Not on Omni's public customer list");
+    fireEvent.click(within(screen.getByRole("columnheader", { name: /Segment/ })).getByRole("button"));
+    expect(
+      screen
+        .getAllByRole("row")
+        .slice(1)
+        .map((r) => within(r).getAllByRole("cell")[2].textContent),
+    ).toEqual(["Strategic", "Strategic", "Enterprise", "Enterprise", "Enterprise"]);
+  });
+
+  it("says so when a segment has no runs yet", () => {
+    const { seller: s, territory } = segmentedTerritory(reports.slice(2), segs.slice(2));
+    render(
+      <MemoryRouter initialEntries={["/for/omni?segment=strategic"]}>
+        <RadarModule seller={s} territory={territory} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("No Strategic accounts on the radar yet");
+    fireEvent.click(screen.getByRole("button", { name: "Show all 3 accounts" }));
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("1 of 3 accounts has a trigger in the last 60 days");
+  });
+});
+
+describe("AccountSwitcher", () => {
+  const rowsOf = (n: number) =>
+    Array.from({ length: n }, (_, i) => {
+      const name = `Account ${String.fromCharCode(65 + i)}`;
+      return toRow({ company: name, reportId: `a${i}`, segment: i < 3 ? "Strategic" : "Enterprise" }, run(`a${i}`, name, { fit: "B" }));
+    });
+
+  it("is a row of chips for a small territory", () => {
+    render(
+      <MemoryRouter>
+        <AccountSwitcher rows={rowsOf(SELECT_AFTER)} activeId="a1" hrefFor={(id) => `/x/${id}`} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("radio", { name: "Account B" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.queryByRole("combobox")).toBeNull();
+  });
+
+  it("becomes a select grouped by segment past the threshold", () => {
+    render(
+      <MemoryRouter>
+        <AccountSwitcher rows={rowsOf(12)} activeId="a4" hrefFor={(id) => `/for/omni/committee/${id}`} segments={SEGMENTS} />
+        <Where />
+      </MemoryRouter>,
+    );
+    const select = screen.getByRole("combobox", { name: "Account" });
+    expect(select).toHaveValue("a4");
+    const groups = within(select).getAllByRole("group");
+    expect(groups.map((g) => g.getAttribute("label"))).toEqual(["Strategic · 5,000+ employees", "Enterprise · Under 5,000"]);
+    expect(within(groups[0]).getAllByRole("option")).toHaveLength(3);
+    expect(within(groups[1]).getByRole("option", { name: "Account E · Internal · Fit B" })).toBeInTheDocument();
+    fireEvent.change(select, { target: { value: "a7" } });
+    expect(screen.getByTestId("where")).toHaveTextContent("/for/omni/committee/a7");
+  });
+});
+
+describe("LookalikesModule seeds and segments", () => {
+  beforeEach(() => {
+    runs.gc = gc;
+  });
+
+  it("seeds from accounts whose run names Omni, and filters results by segment", async () => {
+    const named = run("named", "Named Co (named.example)", { motion: "Internal", stack: [["Warehouse", "Snowflake", "Confirmed"], ["BI tools", "Omni", "Confirmed"]] });
+    const { seller: s, territory } = segmentedTerritory([avid, band, named], ["Strategic", "Enterprise", "Enterprise"]);
+    render(
+      <MemoryRouter initialEntries={["/for/omni/lookalikes"]}>
+        <Routes>
+          <Route path="/for/:seller/:module?/:reportId?" element={<LookalikesModule seller={s} territory={territory} />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole("heading", { level: 1, name: "Accounts that look like Guitar Center" })).toBeInTheDocument();
+    const seeds = screen.getByRole("group", { name: "Start from a customer" });
+    expect(within(seeds).getByRole("button", { name: /^Named Co\s*Omni named in its job posts$/ })).toBeInTheDocument();
+    expect(screen.getAllByRole("article")).toHaveLength(3);
+
+    const seg = screen.getByRole("group", { name: "Segment" });
+    fireEvent.click(within(seg).getByRole("button", { name: /Strategic/ }));
+    expect(screen.getAllByRole("article")).toHaveLength(1);
+    expect(screen.getByRole("region", { name: "Ranked lookalikes · 1" })).toHaveTextContent("AvidXchange");
+    fireEvent.click(within(seg).getByRole("button", { name: /Enterprise/ }));
+    expect(screen.getAllByRole("article")).toHaveLength(2);
   });
 });

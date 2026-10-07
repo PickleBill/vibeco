@@ -154,22 +154,51 @@ export interface Blip {
   y: number;
 }
 
+/** How close two blip centres may sit, in chart units (the largest dot plus a little air). */
+export const BLIP_GAP = 22;
+
 /**
  * Blip positions: radius by trigger age; within its motion's sector, evenly
- * spaced, with accounts of similar age dealt to opposite halves so they
- * don't sit on top of each other.
+ * spaced, with accounts of similar age dealt to opposite halves. The radius
+ * is the data, so a blip that would land on another (a crowded ring in a big
+ * territory) slides along its ring, within its sector, to the nearest angle
+ * with room; when none has room, to the roomiest. Blips keep clear of the
+ * sector dividers.
  */
 export function placeBlips(accounts: RadarAccount[]): Blip[] {
   const secs = sectors(accounts.some((a) => a.row.motion === "Unclear"));
   const out: Blip[] = [];
+  // The ring ages and "today" sit on the chart; a blip on one counts as no room at all.
+  const fixed = [...RING_LABELS.map((l) => textBox(C, C - l.r, l.text, 1.15)), textBox(C, C + 20, "today", 1.15)].map((b) => ({ x0: b.x0 - 10, x1: b.x1 + 10, y0: b.y0 - 10, y1: b.y1 + 10 }));
+  const room = (p: { x: number; y: number }) =>
+    fixed.some((b) => p.x > b.x0 && p.x < b.x1 && p.y > b.y0 && p.y < b.y1) ? 0 : out.reduce((m, b) => Math.min(m, Math.hypot(p.x - b.x, p.y - b.y)), Infinity);
   for (const s of secs) {
     const mine = accounts.filter((a) => a.row.motion === s.motion).sort((a, b) => (a.trigger?.days ?? 9999) - (b.trigger?.days ?? 9999) || a.row.name.localeCompare(b.row.name));
     const n = mine.length;
     const half = Math.ceil(n / 2);
     mine.forEach((a, i) => {
       const slot = i % 2 === 0 ? i / 2 : half + (i - 1) / 2;
-      const deg = s.start + ((s.end - s.start) * (slot + 1)) / (n + 1);
-      const p = polar(radiusFor(a.trigger?.days), deg);
+      const r = radiusFor(a.trigger?.days);
+      // At least 10 units off each divider (more angle near the centre, where degrees are short).
+      const pad = Math.min((s.end - s.start) / 2, Math.max(3, (Math.asin(Math.min(1, 10 / r)) * 180) / Math.PI));
+      const lo = s.start + pad;
+      const hi = s.end - pad;
+      const ideal = Math.min(hi, Math.max(lo, s.start + ((s.end - s.start) * (slot + 1)) / (n + 1)));
+      let deg = ideal;
+      let best = room(polar(r, ideal));
+      if (best < BLIP_GAP) {
+        let near: number | undefined;
+        for (let d = lo; d <= hi; d += 1) {
+          const gap = room(polar(r, d));
+          if (gap >= BLIP_GAP && (near === undefined || Math.abs(d - ideal) < Math.abs(near - ideal))) near = d;
+          if (gap > best) {
+            best = gap;
+            deg = d;
+          }
+        }
+        if (near !== undefined) deg = near;
+      }
+      const p = polar(r, deg);
       out.push({ account: a, x: p.x, y: p.y });
     });
   }

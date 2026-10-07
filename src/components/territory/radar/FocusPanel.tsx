@@ -4,12 +4,14 @@ import { ArrowRight, X } from "lucide-react";
 import { useReducedMotion } from "framer-motion";
 import { AGENTS, relabelSeats, teaserFor } from "@/components/account/explorer/model";
 import { ranAt } from "@/components/account/explorer/savedRuns";
+import { OMNI_TEXT, omniLines } from "../model";
 import { moduleHref } from "../nav";
 import { cx, primaryButton, secondaryButton } from "../style";
 import { EvidenceTag, FieldPill, FitBadge } from "../ui";
 import { dayLabel } from "./evidence";
 import { MOTION_LINE, motionSources, shortText, type RadarAccount } from "./model";
 import { Chips } from "./pieces";
+import { OmniRing, SegmentTag } from "./segments";
 
 interface Claim {
   key: string;
@@ -36,7 +38,18 @@ function claimsFor(a: RadarAccount): Claim[] {
  * One account up close, opened from a blip, a card or a row: who it is, what
  * a source backs, and the seven agents and verdict stored with its run.
  */
-export function FocusPanel({ account, seller, sellerName, onClose }: { account: RadarAccount; seller: string; sellerName: string; onClose: () => void }) {
+export function FocusPanel({
+  account,
+  seller,
+  segmentNote,
+  onClose,
+}: {
+  account: RadarAccount;
+  seller: string;
+  /** "5,000+ employees", for the account's segment. */
+  segmentNote?: string;
+  onClose: () => void;
+}) {
   const ref = useRef<HTMLElement>(null);
   const reduce = useReducedMotion();
   const { row } = account;
@@ -68,20 +81,19 @@ export function FocusPanel({ account, seller, sellerName, onClose }: { account: 
           {row.name}
         </h2>
         {row.domain && <span className="font-mono text-[13px] text-[#4A4F63]">{row.domain}</span>}
+        {row.segment && <SegmentTag segment={row.segment} note={segmentNote} />}
         <FieldPill>Motion: {row.motion}</FieldPill>
         <FitBadge grade={row.fit} />
-        <span className="text-sm text-[#4A4F63]">
-          {list?.on_list ? (
-            list.source ? (
-              <a href={list.source} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">
-                On {sellerName}&rsquo;s public customer list
-              </a>
-            ) : (
-              `On ${sellerName}'s public customer list`
-            )
+        <span className={cx("inline-flex flex-wrap items-center gap-1.5 text-sm", row.omni === "None found" ? "text-[#4A4F63]" : "font-semibold text-foreground")}>
+          <OmniRing status={row.omni} />
+          {row.omni === "Confirmed" && list?.source ? (
+            <a href={list.source} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+              {OMNI_TEXT.Confirmed.full}
+            </a>
           ) : (
-            `Not on ${sellerName}'s public customer list`
+            <span>{OMNI_TEXT[row.omni].full}</span>
           )}
+          {row.omni === "Likely" && <Chips ids={[...new Set(omniLines(row.stack).flatMap((s) => s.sources))].slice(0, 2)} sources={account.sources} />}
         </span>
         <span className="flex-1" />
         <button type="button" onClick={onClose} className={cx(secondaryButton, "min-h-10 border-[#D9D4C7] px-3.5 text-sm")}>

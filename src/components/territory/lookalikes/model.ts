@@ -5,7 +5,8 @@
 // an embedded signal a source shows. Missing evidence never counts as a match.
 import type { MotionLabel } from "@/components/account/AccountViews";
 import { monthLabel } from "@/components/account/explorer/model";
-import type { TerritoryRow } from "../model";
+import type { Segment } from "@/lib/sellers";
+import type { OmniStatus, TerritoryRow } from "../model";
 import { freshestTrigger, isBI, isWarehouse, stackByTool, startOfDay, toolKey, TRIGGER_LABEL, type FreshTrigger, type TriggerKind } from "../radar/evidence";
 
 export interface Tool {
@@ -33,6 +34,9 @@ export interface Fingerprint {
   embeddedSources: number[];
   onList: boolean;
   listSource?: string;
+  /** Omni at the account, from the run's evidence (shown, never scored). */
+  omni: OmniStatus;
+  segment?: Segment;
   fit?: string;
 }
 
@@ -65,6 +69,8 @@ export function fingerprintOf(row: TerritoryRow, sellerName: string, now: Date =
     embeddedSources: [...new Set(embEvidence.map((e) => e.source).filter((n) => typeof n === "number"))],
     onList: row.onList,
     listSource: brief.customer_list?.source,
+    omni: row.omni,
+    segment: row.segment,
     fit: row.fit,
   };
 }
