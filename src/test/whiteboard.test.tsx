@@ -123,6 +123,10 @@ describe("the whiteboard", () => {
     expect(screen.queryByLabelText(/fee per paying account, low case/)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /Back to the riff/ }));
     expect(tier()).toHaveTextContent("$69.6K to $1.9M");
+    // A low case that loses money says so in words, not as a share over 100%.
+    fireEvent.change(screen.getByLabelText("Share who pay for the tier, low case"), { target: { value: "1" } });
+    expect(screen.getByText(/in the low case the tier earns less than Omni’s fee/)).toBeInTheDocument();
+    expect(screen.queryByText(/% of the tier/)).toBeNull();
   });
 
   it("riffs a real company through the function and shows its sources and known claims", async () => {

@@ -193,7 +193,7 @@ export interface CaseResult {
   tierArr: number;
   omniArr: number;
   keep: number;
-  /** The seller's share of the tier's revenue, 0..1 (0 when the tier makes nothing). */
+  /** The seller's fee as a share of the tier's revenue: above 1 when the fee is more than the tier earns, 0 when the tier makes nothing. */
   take: number;
 }
 
