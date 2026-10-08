@@ -114,11 +114,15 @@ export function PriceModel({ riff, seller, onChange }: { riff: PartnerRiff; sell
       </div>
       <p className="mt-2.5 text-[15px] text-[#4A4F63]">
         They keep <b className="text-foreground">{money(lowCase.keep)}</b> to <b className="text-foreground">{money(highCase.keep)}</b> a year after {seller}
-        {highCase.tierArr > 0 && (
-          <>
-            {" "}
-            ({seller} is {Math.round(lowCase.take * 100)}% to {Math.round(highCase.take * 100)}% of the tier)
-          </>
+        {lowCase.keep < 0 ? (
+          <>; in the low case the tier earns less than {seller}&rsquo;s fee</>
+        ) : (
+          highCase.tierArr > 0 && (
+            <>
+              {" "}
+              ({seller} is {Math.round(lowCase.take * 100)}% to {Math.round(highCase.take * 100)}% of the tier)
+            </>
+          )
         )}
         .
       </p>
