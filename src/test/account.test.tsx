@@ -206,7 +206,7 @@ describe("run mode tag", () => {
   it("says saved or live at the top of a result: the saved date, or the live clock and its time once done", () => {
     const { rerender } = render(<RunMode kind="saved" savedAt="2026-10-06T21:44:00Z" />);
     expect(screen.getByText(/^Saved run · Oct \d{1,2}, \d{1,2}:44 (AM|PM)$/)).toBeInTheDocument();
-    expect(screen.getByText("opened instantly, no AI calls")).toBeInTheDocument();
+    expect(screen.queryByText(/no AI calls/)).toBeNull();
     rerender(<RunMode kind="live" status="running" ms={23_400} />);
     expect(screen.getByText(/^Live run ·/)).toHaveTextContent("Live run · 0:23");
     rerender(<RunMode kind="live" status="running" ms={65_000} />);

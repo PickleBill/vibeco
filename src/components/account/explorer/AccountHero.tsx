@@ -7,7 +7,7 @@ import { ReadMore } from "@/components/territory/Memo";
 import { plainText } from "@/components/territory/model";
 import type { ThreeWhys } from "@/components/territory/qualification/model";
 import { cx } from "@/components/territory/style";
-import { EvidenceTag, Eyebrow, FieldPill } from "@/components/territory/ui";
+import { EvidenceTag, Eyebrow, FieldPill, HqLine } from "@/components/territory/ui";
 import { Cited, GradeBox, type AccountBrief } from "../AccountViews";
 import { label } from "./look";
 import { monthLabel, stripMarks } from "./model";
@@ -60,7 +60,6 @@ function Fit({ brief, sources }: { brief: AccountBrief; sources: ResearchSource[
             Fit {forMotion}
             <ChevronDown size={16} aria-hidden className="shrink-0 transition-transform group-data-[state=open]:rotate-180 motion-reduce:transition-none" />
           </span>
-          Evidence and timing, not deal size
           <span className="sr-only">. Why this grade?</span>
         </span>
       </PopoverTrigger>
@@ -170,6 +169,7 @@ function WhyStrip({ whys, pending, sellerName, sources }: { whys: ThreeWhys; pen
 export function AccountHero({
   company,
   domain,
+  hq,
   brief,
   sources,
   sellerName,
@@ -178,6 +178,8 @@ export function AccountHero({
 }: {
   company: string;
   domain?: string;
+  /** "Atlanta, GA", when the territory knows. */
+  hq?: string;
   brief: AccountBrief;
   sources: ResearchSource[];
   sellerName?: string;
@@ -201,8 +203,9 @@ export function AccountHero({
               {company}
             </h2>
           </div>
-          {(motion?.label || (list && sellerName)) && (
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+          {(hq || motion?.label || (list && sellerName)) && (
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+              <HqLine hq={hq} className="text-[15px]" />
               {motion?.label && <FieldPill>Motion: {motion.label}</FieldPill>}
               {list && sellerName && (
                 <FieldPill glyph={list.on_list ? "✓" : "○"}>

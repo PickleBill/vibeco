@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Loader2 } from "lucide-react";
-import { accountMeta } from "@/components/territory/accountMeta";
+import { fitMeta } from "@/components/territory/accountMeta";
 import { CompanyLogo } from "@/components/territory/company/CompanyLogo";
 import { splitCompany, toRow } from "@/components/territory/model";
 import { cx } from "@/components/territory/style";
@@ -10,7 +10,7 @@ import { loadReport, type RunRef, type SavedReport } from "./explorer/savedRuns"
 
 /**
  * Quick picks under the company box, two labeled rows: the seller's saved
- * runs as small cards (logo, name, motion and fit; open at once from stored
+ * runs as small cards (logo, name and fit grade; open at once from stored
  * data, no AI calls) and live examples as pills (a fresh run, about a
  * minute). Then one link to the rest of the territory. A saved run that
  * can't be read drops out of its row.
@@ -82,7 +82,7 @@ export function QuickPicks({
                   <CompanyLogo domain={domain} name={name} size={28} />
                   <span className="block w-full min-w-0">
                     <span className="block truncate text-[15px] font-semibold leading-tight text-foreground">{name}</span>
-                    <span className="mt-0.5 block h-5 truncate text-sm text-muted-foreground">{rep ? accountMeta(toRow(r, rep)) : ""}</span>
+                    <span className="mt-0.5 block h-5 truncate text-sm text-muted-foreground">{rep ? fitMeta(toRow(r, rep)) : ""}</span>
                   </span>
                   {opening === r.reportId && <Loader2 size={14} className="absolute right-2.5 top-2.5 animate-spin text-muted-foreground" aria-label="Opening" />}
                 </button>

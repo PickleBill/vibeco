@@ -267,7 +267,6 @@ function SeatTake({ critic, person, sources }: { critic: CriticResult; person?: 
           </ol>
         </div>
       )}
-      <p className="mt-4 text-sm text-muted-foreground">Synthetic critic, written from the brief and its sources. Not a real quote.</p>
     </article>
   );
 }

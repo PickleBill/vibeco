@@ -22,6 +22,8 @@ interface Props {
   analysis: AccountAnalysis | null;
   board: AgentBoardState;
   sellerName?: string;
+  /** Where the account is headquartered, when the territory knows ("Atlanta, GA"). */
+  hq?: string;
   /** Shown above the plan tabs (e.g. a note that the agents didn't finish). */
   notice?: ReactNode;
 }
@@ -32,7 +34,7 @@ interface Props {
  * desktop and shut to a line each on a phone. The same view serves a
  * live run (the board fills as agents finish) and a saved one (it replays).
  */
-export function AccountExplorer({ company: typed, brief, plan, analysis, board, sellerName, notice }: Props) {
+export function AccountExplorer({ company: typed, brief, plan, analysis, board, sellerName, hq, notice }: Props) {
   const sources = Array.isArray(brief.research?.sources) ? brief.research!.sources : [];
   // "Relay (relaypro.com)": the name heads the page, the domain sits beside it.
   const { name, domain } = splitCompany(typed);
@@ -75,7 +77,7 @@ export function AccountExplorer({ company: typed, brief, plan, analysis, board, 
   return (
     <MotionConfig reducedMotion="user">
       <div className="space-y-5 sm:space-y-6">
-        <AccountHero company={company} domain={domain} brief={brief} sources={sources} sellerName={sellerName} whys={whys} whysPending={!analysis && agentsRunning} />
+        <AccountHero company={company} domain={domain} hq={hq} brief={brief} sources={sources} sellerName={sellerName} whys={whys} whysPending={!analysis && agentsRunning} />
         <AgentBoard board={board} onOpen={analysis ? openAgent : undefined} />
         <VerdictCard synthesis={analysis?.synthesis} state={board.verdict} sources={sources} />
         <div ref={lensRef} className="scroll-mt-24">

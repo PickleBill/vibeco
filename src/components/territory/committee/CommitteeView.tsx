@@ -227,7 +227,6 @@ export function CommitteeView({ report, company, accountHref }: { report: SavedR
 
         {hasCritics && <TakeASeat brief={brief} critics={critics} sources={sources} company={company} initial={active?.main_blocker.seat} />}
 
-        <p className="border-t border-border pt-4 text-sm text-muted-foreground">Synthetic: a simulation from public sources and the five critics’ takes. Not a prediction.</p>
       </div>
     </MotionConfig>
   );

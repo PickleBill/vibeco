@@ -39,10 +39,6 @@ function OutcomeBand({ outcome, was }: { outcome: CommitteeResult["outcome"]; wa
         <span>50%</span>
         <span>100%</span>
       </div>
-      <p className="mt-2 text-[13px] text-muted-foreground">
-        Synthetic estimate from the simulated meeting, not a forecast. The account&rsquo;s evidence (fit, a dated trigger, the customer list) starts the odds; where the seats end
-        the meeting moves them.
-      </p>
     </div>
   );
 }

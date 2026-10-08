@@ -4,7 +4,7 @@ import { CompanyName } from "../company/CompanyName";
 import { Fold } from "../Memo";
 import type { TerritoryRow } from "../model";
 import { cx } from "../style";
-import { FieldPill, FitBadge } from "../ui";
+import { FieldPill, FitBadge, HqLine } from "../ui";
 import { SegmentTag } from "../radar/segments";
 import { TRAIT_LABEL, WEIGHTS, type Lookalike, type TraitScore } from "./model";
 
@@ -65,6 +65,7 @@ export const LookalikeCard = forwardRef<HTMLElement, { item: Lookalike; rank: nu
                 </button>
               )}
             </h3>
+            <HqLine hq={row?.hq} />
             <FieldPill>{fp.motion}</FieldPill>
             <FitBadge grade={fp.fit} />
             {fp.segment && <SegmentTag segment={fp.segment} />}

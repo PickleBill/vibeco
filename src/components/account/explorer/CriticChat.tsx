@@ -269,6 +269,10 @@ export function CriticChat({
                   send(text);
                 }
               }}
+              autoComplete="off"
+              data-1p-ignore=""
+              data-lpignore="true"
+              data-form-type="other"
               rows={2}
               maxLength={600}
               placeholder={turns.length ? "Answer the follow-up…" : "Your answer, as the seller…"}
@@ -279,10 +283,8 @@ export function CriticChat({
               Send
             </button>
           </div>
-          <p className="mt-1.5 text-sm text-muted-foreground">Enter sends · Shift+Enter for a new line</p>
         </form>
       )}
-      <p className="mt-3 text-sm text-muted-foreground">Synthetic critic. Nothing here is sent to anyone.</p>
     </section>
   );
 }

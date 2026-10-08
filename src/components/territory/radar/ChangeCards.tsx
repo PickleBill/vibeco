@@ -4,7 +4,7 @@ import { CompanyName } from "../company/CompanyName";
 import { ReadMore } from "../Memo";
 import { moduleHref } from "../nav";
 import { ageText, cx, primaryButton, secondaryButton } from "../style";
-import { EvidenceTag, FieldPill, FitBadge } from "../ui";
+import { EvidenceTag, FieldPill, FitBadge, HqLine } from "../ui";
 import { changeHeadline, type RunChange } from "./diff";
 import { agoText, dayLabel } from "./evidence";
 import type { RadarAccount } from "./model";
@@ -51,6 +51,7 @@ export function ChangeCard({ account, seller, onFocus }: { account: RadarAccount
         <h3 id={`card-${row.id}`} className="mr-0.5 font-display text-xl font-semibold tracking-[-0.01em]">
           <CompanyName row={row} seller={seller} />
         </h3>
+        <HqLine hq={row.hq} />
         <FieldPill>{row.motion}</FieldPill>
         <FitBadge grade={row.fit} />
         {changes.length > 0 ? <FreshPill>Changed since last run</FreshPill> : trigger && <FreshPill>Fresh trigger · {ageText(trigger.days)}</FreshPill>}

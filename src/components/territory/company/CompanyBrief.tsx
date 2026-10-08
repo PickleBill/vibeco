@@ -7,7 +7,7 @@ import type { TerritoryRow } from "../model";
 import { moduleHref } from "../nav";
 import { SegmentTag } from "../radar/segments";
 import { cx } from "../style";
-import { FieldPill, FitBadge } from "../ui";
+import { FieldPill, FitBadge, HqLine } from "../ui";
 import { CompanyLogo } from "./CompanyLogo";
 import { briefFacts } from "./model";
 
@@ -36,7 +36,10 @@ export function CompanyBrief({ row, seller, onNavigate }: { row: TerritoryRow; s
       >
         <div className="flex items-center gap-3 border-b border-border bg-muted py-2 pl-4 pr-2 sm:pl-5">
           <CompanyLogo domain={row.domain} name={row.name} size={40} />
-          <DialogTitle className="min-w-0 flex-1 font-display text-2xl font-bold leading-tight tracking-[-0.01em]">{row.name}</DialogTitle>
+          <div className="min-w-0 flex-1">
+            <DialogTitle className="font-display text-2xl font-bold leading-tight tracking-[-0.01em]">{row.name}</DialogTitle>
+            <HqLine hq={row.hq} />
+          </div>
           <DialogClose className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[8px] text-foreground transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <X size={20} aria-hidden />
             <span className="sr-only">Close</span>
@@ -95,8 +98,6 @@ export function CompanyBrief({ row, seller, onNavigate }: { row: TerritoryRow; s
               )}
             </div>
           </div>
-
-          <p className="text-xs text-muted-foreground">Unofficial. Built from public sources.</p>
         </div>
       </DialogPrimitive.Content>
     </DialogPortal>

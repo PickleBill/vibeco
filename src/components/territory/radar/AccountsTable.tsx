@@ -5,7 +5,7 @@ import { CompanyName } from "../company/CompanyName";
 import { fitRank, omniRank } from "../model";
 import { moduleHref } from "../nav";
 import { cx } from "../style";
-import { FieldPill, FitBadge } from "../ui";
+import { FieldPill, FitBadge, HqLine } from "../ui";
 import { dayLabel } from "./evidence";
 import type { RadarAccount } from "./model";
 import { Chips, StackPill } from "./pieces";
@@ -216,7 +216,12 @@ export function AccountsTable({
                     />
                     <span className="pointer-events-none relative flex items-center gap-1.5">
                       <span aria-hidden className={cx("h-2 w-2 shrink-0 rounded-full", a.pulse ? "bg-brand" : "bg-transparent")} />
-                      <CompanyName row={row} seller={seller} className="pointer-events-auto min-w-0 font-bold" />
+                      <CompanyName
+                        row={row}
+                        seller={seller}
+                        sub={row.hq ? <HqLine hq={row.hq} className="text-[13px]" /> : undefined}
+                        className="pointer-events-auto min-w-0 font-bold"
+                      />
                     </span>
                   </td>
                   {cols.slice(1).map((c) => (

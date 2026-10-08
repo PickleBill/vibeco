@@ -33,7 +33,7 @@ export function WhatIfPanel({
   return (
     <fieldset className="min-w-0 rounded-xl border border-border bg-white px-4 pb-4 pt-2">
       <legend className="px-1.5 text-[15px] font-bold text-foreground">
-        What if… <span className="font-normal text-muted-foreground">hypotheticals, not facts</span>
+        What if…
       </legend>
       <div className="flex flex-col gap-1">
         {options.map((o) => (

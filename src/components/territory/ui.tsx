@@ -10,6 +10,7 @@
 // - Actions do something: buttons (style.ts), or fully rounded pills for
 //   choices and quick picks (toggle in explorer/look.ts). Round means click.
 import type { ReactNode } from "react";
+import { MapPin } from "lucide-react";
 import type { ResearchSource } from "@/components/simulator/SourcesList";
 import { ageDays } from "./model";
 import { ageText, cx, freshness, type Freshness } from "./style";
@@ -97,6 +98,21 @@ export function FitBadge({ grade, label = true }: { grade?: string; label?: bool
   return (
     <span title="Fit: evidence and timing, not deal size" className="inline-flex h-[26px] items-center gap-1.5 rounded-[4px] border border-[#D9D4C7] bg-white pl-2 pr-1 text-[13px] font-medium">
       Fit {badge}
+    </span>
+  );
+}
+
+
+/** Where an account is headquartered, said quietly: a pin and "Atlanta, GA". Plain text, not a tag. */
+export function HqLine({ hq, className }: { hq?: string; className?: string }) {
+  if (!hq) return null;
+  return (
+    <span className={cx("inline-flex items-center gap-1 text-sm font-normal text-[#4A4F63]", className)}>
+      <MapPin size={13} aria-hidden className="shrink-0" />
+      <span>
+        <span className="sr-only">Headquarters: </span>
+        {hq}
+      </span>
     </span>
   );
 }

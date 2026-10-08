@@ -81,7 +81,7 @@ describe("Beyond the territory", () => {
     // No domains on the card: the one link researches it live.
     expect(first.queryByText(/cardlytics\.com/)).toBeNull();
     expect(first.getByRole("link", { name: /Research it live/ })).toHaveAttribute("href", "/for/omni/account?run=Cardlytics%20(cardlytics.com)");
-    expect(screen.getByText("AI suggestions, not researched yet. Each website answered when checked.")).toBeInTheDocument();
+    expect(screen.getByText("AI suggestions, not researched yet.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Find again" })).toBeInTheDocument();
 
     const [name, opts] = invoke.mock.calls[0] as [string, { body: { seed: BeyondSeed; exclude: string[] } }];

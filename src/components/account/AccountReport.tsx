@@ -4,7 +4,7 @@ import { HelmetProvider, Helmet } from "react-helmet-async";
 import { ArrowRight, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/copyToClipboard";
-import { getSeller } from "@/lib/sellers";
+import { getSeller, hqOf } from "@/lib/sellers";
 import { FieldPill } from "@/components/territory/ui";
 import type { AccountAnalysis, AccountBrief } from "./AccountViews";
 import { AccountExplorer } from "./explorer/AccountExplorer";
@@ -81,9 +81,8 @@ const AccountReport = ({ company, brief, plan, createdAt, analysis }: Props) => 
           <h1 className="sr-only">First-call plan: {company}</h1>
           <p className="mb-4 font-mono text-[13px] text-muted-foreground">
             Shared report · generated {generated}
-            {seller ? " · unofficial, built from public sources" : " · built from public sources"}
           </p>
-          <AccountExplorer company={company} brief={brief} plan={plan} analysis={analysis} board={board} sellerName={seller?.name} />
+          <AccountExplorer company={company} hq={hqOf(seller, { reportId: id, company })} brief={brief} plan={plan} analysis={analysis} board={board} sellerName={seller?.name} />
         </main>
 
         <footer className="border-t border-border">

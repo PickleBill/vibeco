@@ -168,8 +168,10 @@ export function BeyondTerritory({ seller, seed, rows, region }: { seller: string
             </ul>
             <p className="mt-2.5 text-[15px] text-[#4A4F63]">
               {state.grounded
-                ? `${state.funnel ? `Exa found ${state.funnel.found} companies on the web · ${state.funnel.inRegion} in the ${region ?? DEFAULT_REGION} · ${state.funnel.kept} kept. ` : "Found on the web with Exa. "}AI picked and phrased them; code checked the place and the website. Not researched yet.`
-                : "AI suggestions, not researched yet. Each website answered when checked."}
+                ? state.funnel
+                  ? `Exa found ${state.funnel.found} companies on the web · ${state.funnel.inRegion} in the ${region ?? DEFAULT_REGION} · ${state.funnel.kept} kept.`
+                  : "Found on the web with Exa."
+                : "AI suggestions, not researched yet."}
             </p>
           </>
         ) : (

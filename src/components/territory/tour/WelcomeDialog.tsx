@@ -63,7 +63,6 @@ export function WelcomeDialog({ open, sellerName, onClose, onTour }: { open: boo
               </button>
               <DialogClose className={cx(secondaryButton, "min-h-12 text-base")}>Explore on my own</DialogClose>
             </div>
-            <p className="text-[13px] text-muted-foreground">Unofficial. Not affiliated with {sellerName}.</p>
           </div>
 
           <DialogClose

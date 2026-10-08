@@ -45,7 +45,6 @@ export function HalfLife({ accounts }: { accounts: RadarAccount[] }) {
       count={`${dated.length} dated source${dated.length === 1 ? "" : "s"}${recheck ? ` · ${recheck} to re-check` : ""}`}
       preview="Claims fade as their source ages. Fresh sources read bold; anything past six months asks to be re-checked before it goes on a call."
     >
-      <p className="mb-1 font-mono text-[13px] text-muted-foreground">half-life 120d · re-check past 6mo</p>
       <p className="mb-4 max-w-[760px] text-base text-[#4A4F63]">
         Claims fade as their source ages. Fresh sources read bold; anything past six months asks to be re-checked before it goes on a call.{" "}
         {dated.length} of {all.length} sources carry a publish date; job posts and product pages rarely do.

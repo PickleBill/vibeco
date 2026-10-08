@@ -6,12 +6,12 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { ensureSession } from "@/lib/ensureSession";
 import { copyToClipboard } from "@/lib/copyToClipboard";
-import type { SellerConfig } from "@/lib/sellers";
+import { hqOf, type SellerConfig } from "@/lib/sellers";
 import type { BriefResearch } from "@/components/simulator/SourcesList";
 import { moduleHref } from "@/components/territory/nav";
 import { cx } from "@/components/territory/style";
 import { Eyebrow, LivePill } from "@/components/territory/ui";
-import { StatusTag, type AccountAnalysis, type AccountBrief } from "./AccountViews";
+import type { AccountAnalysis, AccountBrief } from "./AccountViews";
 import { AccountExplorer } from "./explorer/AccountExplorer";
 import { card, linkBtn, primaryBtn, secondaryBtn, toggle } from "./explorer/look";
 import { QuickPicks } from "./QuickPicks";
@@ -155,13 +155,6 @@ function HowItWorks() {
           </li>
         ))}
       </ol>
-      <p className="mt-5 flex flex-wrap items-center gap-2 border-t border-border pt-4 text-[15px] text-[#4A4F63]">
-        <StatusTag status="Confirmed" />
-        <StatusTag status="Inferred" />
-        <StatusTag status="Former" />
-        <StatusTag status="Not found" />
-        <span>Confirmed only when a source names it plainly.</span>
-      </p>
     </div>
   );
 }
@@ -510,6 +503,11 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, in
         placeholder="Company name or domain"
         autoComplete="off"
         spellCheck={false}
+        // Password managers: a company search, not a login or an address form.
+        data-1p-ignore=""
+        data-lpignore="true"
+        data-bwignore=""
+        data-form-type="other"
         maxLength={120}
         className="min-h-11 min-w-0 flex-1 bg-transparent text-base text-foreground placeholder:text-[#6B7080] focus:outline-none"
       />
@@ -558,9 +556,6 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, in
                   <div className="flex min-w-0 flex-1 items-center gap-2 px-2">{field}</div>
                   {buildButton}
                 </div>
-                <p className="mt-2 text-[15px] text-[#4A4F63]">
-                  Add its domain when the name is a common word: <span className="font-mono">Relay (relaypro.com)</span>.
-                </p>
                 {seller?.territory ? (
                   <QuickPicks
                     saved={pinned}
@@ -681,6 +676,7 @@ const AccountRunner = ({ seller, initialCompany = "", intro, initialReportId, in
                 <AccountExplorer
                   key={reportId ?? company}
                   company={company}
+                  hq={hqOf(seller, { reportId, company })}
                   brief={brief}
                   plan={plan}
                   analysis={analysis}
