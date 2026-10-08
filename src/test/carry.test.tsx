@@ -94,7 +94,7 @@ describe("current account", () => {
 
 describe("rail links", () => {
   it("run in the order run, radar, lookalikes, committee, deal room", () => {
-    expect(MODULES.map((m) => `${m.idx} ${m.label}`)).toEqual(["01 Run an account", "02 Radar", "03 Lookalikes", "04 Committee", "05 Deal Room"]);
+    expect(MODULES.map((m) => `${m.idx} ${m.label}`)).toEqual(["01 Run an account", "02 Radar", "03 Lookalikes", "04 Committee", "05 Whiteboard"]);
   });
 
   it("carry the account into the committee and deal room; run an account is always the empty form", () => {
@@ -130,7 +130,7 @@ describe("rail links", () => {
   it("follow the URL's account, then the session's, then the first", () => {
     // Looking at Bandwidth in the committee: the deal room opens on Bandwidth, not the first account.
     const first = page("/for/omni/committee/band");
-    expect(railLink(/Deal Room/)).toHaveAttribute("href", "/for/omni/deal/band");
+    expect(railLink(/Whiteboard/)).toHaveAttribute("href", "/for/omni/deal/band");
     expect(railLink(/Run an account/)).toHaveAttribute("href", "/for/omni");
     expect(railLink(/Radar/)).toHaveAttribute("href", "/for/omni/radar");
     expect(railLink(/Lookalikes/)).toHaveAttribute("href", "/for/omni/lookalikes");
@@ -139,7 +139,7 @@ describe("rail links", () => {
     // Later, on a view without an id: the session still has Bandwidth.
     const second = page("/for/omni/lookalikes");
     expect(railLink(/Committee/)).toHaveAttribute("href", "/for/omni/committee/band");
-    fireEvent.click(railLink(/Deal Room/));
+    fireEvent.click(railLink(/Whiteboard/));
     expect(screen.getByTestId("where")).toHaveTextContent("/for/omni/deal/band");
     second.unmount();
 

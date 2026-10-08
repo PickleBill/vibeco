@@ -9,7 +9,7 @@ export const MODULES: { id: ModuleId; idx: string; label: string; short: string;
   { id: "radar", idx: "02", label: "Radar", short: "Radar", hint: "What changed in the territory" },
   { id: "lookalikes", idx: "03", label: "Lookalikes", short: "Lookalikes", hint: "More like your customers" },
   { id: "committee", idx: "04", label: "Committee", short: "Committee", hint: "Simulate the buying room" },
-  { id: "deal", idx: "05", label: "Deal Room", short: "Deal Room", hint: "A brief they can correct" },
+  { id: "deal", idx: "05", label: "Whiteboard", short: "Whiteboard", hint: "Riff an embedded partnership" },
 ];
 
 /** The front door: /for/:seller opens on it. */
