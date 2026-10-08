@@ -77,6 +77,16 @@ Deno.test("gatherRiffSources: the profile first, then its own pages (off-site pa
     ],
   );
   assert(r.texts[1].includes("Employs 120 people."));
+  // A data vendor's revenue and funding estimates never reach the brief.
+  const est = await gatherRiffSources(
+    { name: "Relay", domain: "relaypro.com" },
+    {
+      ...deps,
+      companies: () =>
+        Promise.resolve([profile("Relay", "relaypro.com", { about: "Relay sells smart radios to frontline teams. Relay has annual revenue of $1M. It raised $70M in funding. Customers include hotels." })]),
+    },
+  );
+  assertEquals(est.texts[1].split(" Headquarters")[0], "Relay sells smart radios to frontline teams. Customers include hotels.");
   assert(r.texts[1].includes("Tech stack its company data lists: Snowflake, Looker."));
   // Nothing answers: no sources, and no throw.
   const none = await gatherRiffSources({ name: "Nobody" }, { companies: () => Promise.reject(new Error("x")), pages: () => Promise.reject(new Error("x")), scan: () => Promise.resolve(noScan) });
