@@ -280,7 +280,17 @@ function arr(v: unknown): unknown[] {
   return Array.isArray(v) ? v : [];
 }
 
-const obj = (v: unknown): Record<string, unknown> => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
+/** An object, including one a model sent as a JSON string; {} otherwise. */
+function obj(v: unknown): Record<string, unknown> {
+  if (typeof v === "string" && /^\s*\{/.test(v)) {
+    try {
+      v = JSON.parse(v);
+    } catch {
+      return {};
+    }
+  }
+  return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+}
 
 /** "30,000+" -> 30000; "30K" -> 30000; "2.5" -> 2.5. */
 function numbersIn(text: string): { value: number; checked: boolean }[] {
@@ -338,7 +348,7 @@ export function readRange(v: unknown, b: { min: number; max: number; def: RiffRa
   const nums = arr(v)
     .map((x) => (typeof x === "string" ? Number(x.replace(/[$,%\s]/g, "")) : Number(x)))
     .filter((x) => Number.isFinite(x));
-  if (!nums.length) return [...b.def] as RiffRange;
+  if (!nums.length || (nums.length >= 2 && Math.max(...nums.slice(0, 2)) <= b.min)) return [...b.def] as RiffRange;
   const clamp = (x: number) => Math.min(b.max, Math.max(b.min, x));
   const lo = clamp(Math.min(...nums.slice(0, 2)));
   const hi = clamp(Math.max(...nums.slice(0, 2)));
@@ -482,6 +492,13 @@ export function checkRiff(raw: unknown, research: Pick<RiffResearch, "sources" |
   };
 }
 
+/** A brief worth showing: a headline, something about the company or its product, and a next step that fits the verdict. */
+export function usable(riff: PartnerRiff | undefined | null): boolean {
+  if (!riff?.headline) return false;
+  if (!riff.situation.length && !riff.embedded_opportunity.length) return false;
+  return riff.embedded_fit.verdict === "not_a_fit" ? !!riff.internal_play : riff.embedded_opportunity.length > 0;
+}
+
 // ─── Saved riffs ───
 
 const TTL_DAYS = 14;
@@ -507,7 +524,7 @@ export function riffStore(db: Db): RiffStore {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (error || !data?.brief?.result) return null;
+      if (error || !data?.brief?.result || !usable(data.brief.result.riff)) return null;
       return { id: data.id, savedAt: data.created_at, result: data.brief.result as PartnerRiffResult };
     },
     async save(key, company, result) {
@@ -555,6 +572,10 @@ export async function partnerRiff(input: RiffInput, store: RiffStore | null, dep
         timeoutMs: TIMEOUTS[i] ?? 15_000,
       });
       const riff = checkRiff(raw, research, input);
+      if (!usable(riff)) {
+        console.error(`[partner-riff] ${model} returned an empty brief; keys: ${Object.keys(raw ?? {}).join(", ")}`);
+        throw new Error("The brief came back empty.");
+      }
       const result: PartnerRiffResult = { riff, sources: research.sources, model, latencyMs: Date.now() - started };
       const reportId = store ? await store.save(key, input.company, result).catch(() => null) : null;
       return { ...result, ...(reportId ? { reportId, savedAt: new Date().toISOString() } : {}) };
