@@ -23,7 +23,8 @@ export type TaskType =
   | "account-brief"         // Target-account lens: brief + first-call plan in one express call
   | "critic-chat"           // Target-account lens: a critic answers the seller, live
   | "committee-sim"         // Target-account lens: the five critics run one buying meeting
-  | "suggest-accounts";     // Lookalikes: companies like a seed, beyond the territory (hypotheses)
+  | "suggest-accounts"      // Lookalikes: companies like a seed, beyond the territory (hypotheses)
+  | "partner-riff";         // Whiteboard: how a company could embed the seller's analytics, priced and sized
 
 // ─── Model Selection ───
 
@@ -150,6 +151,14 @@ const ROUTING_TABLE: Record<TaskType, ModelCandidate[]> = {
   // the fallback. Code drops excluded, repeated and unreachable domains after.
   "suggest-accounts": [
     { model: "anthropic/claude-sonnet-5", rationale: "Names fewer, real companies and keeps each reason a hypothesis", cost: "high", speed: "medium" },
+    { model: "google/gemini-3-flash-preview", rationale: "Fast fallback if Claude is slow or unavailable", cost: "low", speed: "fast" },
+  ],
+  // One structured brief that has to stay inside its sources while still
+  // pitching an idea: Claude leads (partner-riff gives it 30s), Flash is the
+  // fallback. Sonnet 5.5 isn't served by the gateway yet (probe-models lists
+  // what is); switch here when it is.
+  "partner-riff": [
+    { model: "anthropic/claude-sonnet-5", rationale: "Keeps an inventive brief inside its sources; marks what it infers", cost: "high", speed: "medium" },
     { model: "google/gemini-3-flash-preview", rationale: "Fast fallback if Claude is slow or unavailable", cost: "low", speed: "fast" },
   ],
   // Gateway-served models only. The retired ids this used to name

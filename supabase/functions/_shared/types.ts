@@ -384,3 +384,68 @@ export interface AskBillResult {
   model: string;
   latencyMs: number;
 }
+
+// ─── Whiteboard: partnership riff ───
+
+export type RiffFit = "strong" | "possible" | "not_a_fit";
+export type RiffBasis = "known" | "inferred";
+export type RiffPricing = "platform_plus_per_customer" | "platform_plus_per_seat" | "custom";
+/** [low, high] */
+export type RiffRange = [number, number];
+
+export interface RiffAssumptions {
+  /** The company's own customers who could get the analytics. */
+  end_customers: RiffRange;
+  /** Share of them who pay for the analytics tier, in percent. */
+  premium_adoption_pct: RiffRange;
+  /** What the company charges each customer for the tier, per month. */
+  premium_price_per_customer_month: RiffRange;
+  /** People per customer account who'd use it. */
+  seats_per_customer: RiffRange;
+  /** Placeholders, not the seller's price list: the page lets you edit them. */
+  omni_platform_fee_year: RiffRange;
+  omni_per_customer_year: RiffRange;
+  omni_per_seat_year: RiffRange;
+}
+
+/** A one-screen brief on how a company could put the seller's analytics inside its own product. */
+export interface PartnerRiff {
+  company: string;
+  /** One sentence: the partnership idea. */
+  headline: string;
+  confidence: "high" | "medium" | "low";
+  /** "sources": cited web pages; "model-knowledge": none found, unverified; "illustrative": a made-up example. */
+  grounding: "sources" | "model-knowledge" | "illustrative";
+  embedded_fit: { verdict: RiffFit; why: string };
+  situation: { claim: string; basis: RiffBasis; sources: number[] }[];
+  embedded_opportunity: { surface: string; end_customer_sees: string; metrics: string[] }[];
+  integration: {
+    stack: { tool: string; status: "Confirmed" | "Inferred"; sources: number[] }[];
+    incumbent: { name: string; status: "Confirmed" | "Inferred"; sources: number[] } | null;
+    omni_fit: string;
+  };
+  gtm: { pricing_shape: RiffPricing; monetization: string[]; assumptions: RiffAssumptions; notes: Partial<Record<keyof RiffAssumptions, string>> };
+  swot: { strengths: string[]; weaknesses: string[]; opportunities: string[]; threats: string[] };
+  internal_play: string | null;
+  next_move: { who: string; first_question: string };
+}
+
+export interface RiffSource {
+  id: number;
+  title: string;
+  url: string;
+  /** "company" (its company profile), "site" (its own pages), "jobs" (its own job posts), "web". */
+  kind: "company" | "site" | "jobs" | "web";
+  snippet: string;
+}
+
+export interface PartnerRiffResult {
+  riff: PartnerRiff;
+  sources: RiffSource[];
+  model: string;
+  latencyMs: number;
+  /** Served from a saved riff of the same company (14 days). */
+  cached?: boolean;
+  savedAt?: string;
+  reportId?: string;
+}

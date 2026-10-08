@@ -71,4 +71,21 @@ export const OMNI: SellerProfile = {
     { name: "Uscreen", source: CASE("uscreen") },
     { name: "Zapnito", source: CASE("zapnito") },
   ],
+  // Public case studies only. Revenue mix, deal sizes and price lists are not
+  // public and stay out of the prompt and the page.
+  embedded: {
+    proof: [
+      // CASE("bamboohr"): "Launched a new Elite analytics product tier in 4 months, enabling self-serve reporting for 30K+ people at launch before quickly growing to 100K+ people"
+      { text: "BambooHR launched a new Elite analytics tier in 4 months: 30,000+ people at launch, 100,000+ since.", source: CASE("bamboohr") },
+      // CASE("standard-metrics"): "Within 2.5 months of selecting Omni, Standard Metrics moved from setting up their data warehouse to launching their branded Advanced Analytics offering"
+      { text: "Standard Metrics launched its branded Advanced Analytics offering 2.5 months after choosing Omni.", source: CASE("standard-metrics") },
+    ],
+    strengths: [
+      { text: "One semantic layer: metrics defined once and reused across every customer.", source: CASE("bamboohr") },
+      { text: "Each customer's own fields through dynamic schemas and the model extension API.", source: CASE("standard-metrics") },
+      { text: "Full design control, so the analytics look like the host product.", source: CASE("bamboohr") },
+      { text: "Granular permissions, down to the field, for each customer's data.", source: CASE("bamboohr") },
+      { text: "AI questions in plain language on the governed model.", source: CASE("standard-metrics") },
+    ],
+  },
 };

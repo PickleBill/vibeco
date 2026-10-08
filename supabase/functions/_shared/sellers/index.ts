@@ -45,6 +45,11 @@ export interface SellerProfile {
   biTools: string[];
   signals: string[];
   customers: SellerCustomer[];
+  /** The embedded motion's public proof: what customers shipped, and what made it work. Each with its source. */
+  embedded?: {
+    proof: { text: string; source: string }[];
+    strengths: { text: string; source: string }[];
+  };
 }
 
 const SELLERS: Record<string, SellerProfile> = { omni: OMNI };

@@ -158,3 +158,60 @@ export async function exaCompanies(query: string, numResults = 25, fetchImpl: ty
   if (!res.ok) throw new Error(`Exa search failed: ${res.status} ${(await res.text().catch(() => "")).slice(0, 200)}`);
   return readExaResults(await res.json());
 }
+
+/** One web page Exa found, with the passages that answer the search's own question. */
+export interface ExaPage {
+  title: string;
+  url: string;
+  domain: string;
+  /** "2026-09-14" when Exa knows when it was published. */
+  published?: string;
+  /** The highlights, joined; what the checks and the model read. */
+  text: string;
+}
+
+/** Exa's raw results read into pages; a page without a URL or any text is dropped. */
+export function readExaPages(data: unknown): ExaPage[] {
+  const results = (data as { results?: unknown } | null)?.results;
+  if (!Array.isArray(results)) return [];
+  return results.flatMap((r) => {
+    const x = (r ?? {}) as Record<string, unknown>;
+    const url = typeof x.url === "string" ? x.url : "";
+    const domain = bare(url);
+    const highlights = Array.isArray(x.highlights) ? x.highlights.filter((h): h is string => typeof h === "string") : [];
+    const text = [typeof x.summary === "string" ? x.summary : "", ...highlights].join("\n").replace(/[ \t]+/g, " ").trim();
+    if (!domain || !text) return [];
+    const title = (typeof x.title === "string" ? x.title : "").trim() || domain;
+    const published = typeof x.publishedDate === "string" ? x.publishedDate.slice(0, 10) : undefined;
+    return [{ title: title.slice(0, 160), url, domain, ...(published ? { published } : {}), text: text.slice(0, 2400) }];
+  });
+}
+
+/**
+ * Pages for a plain-language description, each with the passages that answer
+ * `highlight` (defaults to the query). `domains` keeps the search on the
+ * company's own site. Throws on a failed call (the caller carries on without).
+ */
+export async function exaPages(
+  query: string,
+  opts: { numResults?: number; domains?: string[]; highlight?: string; timeoutMs?: number } = {},
+  fetchImpl: typeof fetch = fetch,
+): Promise<ExaPage[]> {
+  const key = Deno.env.get("EXA_API_KEY");
+  if (!key) throw new Error("EXA_API_KEY is not set");
+  const res = await fetchImpl(EXA_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-api-key": key },
+    body: JSON.stringify({
+      query,
+      type: "auto",
+      numResults: opts.numResults ?? 5,
+      userLocation: "US",
+      ...(opts.domains?.length ? { includeDomains: opts.domains } : {}),
+      contents: { highlights: { query: opts.highlight ?? query, maxCharacters: 1600 } },
+    }),
+    signal: AbortSignal.timeout(opts.timeoutMs ?? EXA_TIMEOUT_MS),
+  });
+  if (!res.ok) throw new Error(`Exa search failed: ${res.status} ${(await res.text().catch(() => "")).slice(0, 200)}`);
+  return readExaPages(await res.json());
+}
