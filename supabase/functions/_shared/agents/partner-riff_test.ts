@@ -21,6 +21,7 @@ import {
   type RiffStore,
   SELLER_PLACEHOLDERS,
   tidy,
+  usable,
 } from "./partner-riff.ts";
 
 const profile = (name: string, domain: string, extra: Partial<ExaCompany> = {}): ExaCompany => ({
@@ -85,6 +86,7 @@ Deno.test("tidy, readRange and number checks", () => {
   assertEquals(readRange(["300", 50], { min: 1, max: 100, def: [5, 20] }), [50, 100]);
   assertEquals(readRange("junk", { min: 1, max: 100, def: [5, 20] }), [5, 20]);
   assertEquals(readRange([2.25, 7], { min: 1, max: 100, def: [5, 20] }), [2.3, 7]);
+  assertEquals(readRange([1, 1], { min: 1, max: 100, def: [5, 20] }), [5, 20]); // a placeholder of nothing
   const known = knownNumbers(["Serves 40,000 merchants.", "Launched in 4 months to 30,000+ people."]);
   assertEquals(dropUnsourced("Serves 40K merchants. Grew 300% last year. Launch in 4 months.", known), "Serves 40K merchants. Launch in 4 months.");
   // Small bare counts read as words and pass.
@@ -251,6 +253,42 @@ Deno.test({
       calls.push("x");
       const fallback = await partnerRiff({ ...input, fresh: true }, memoryStore(fresh), deps);
       assertEquals(fallback.model, "google/gemini-3-flash-preview");
+    });
+  },
+});
+
+Deno.test("checkRiff reads nested parts a model sent as JSON strings; an empty brief isn't usable", () => {
+  const stringly = {
+    ...modelRiff,
+    embedded_fit: JSON.stringify(modelRiff.embedded_fit),
+    integration: JSON.stringify(modelRiff.integration),
+    gtm: JSON.stringify(modelRiff.gtm),
+    swot: JSON.stringify(modelRiff.swot),
+    embedded_opportunity: JSON.stringify(modelRiff.embedded_opportunity),
+  };
+  const r = checkRiff(stringly, research, { name: "Dreamship", seller: OMNI });
+  assertEquals([r.embedded_fit.verdict, r.integration.stack.length, r.embedded_opportunity.length, r.swot.threats.length], ["strong", 2, 2, 2]);
+  assert(usable(r));
+  const empty = checkRiff({ headline: "Give its 40,000 merchants analytics." }, research, { name: "Dreamship", seller: OMNI });
+  assert(!usable(empty));
+  const pivot = checkRiff({ ...modelRiff, embedded_fit: { verdict: "not_a_fit", why: "No product." }, internal_play: null }, research, { name: "Dreamship", seller: OMNI });
+  assert(!usable(pivot)); // not a fit needs the internal play
+});
+
+Deno.test({
+  name: "partnerRiff: an empty brief from Claude falls through to Flash and isn't saved as Claude's",
+  ...sanitize,
+  fn: async () => {
+    const answer = (_url: string, body: Record<string, unknown>) =>
+      String(body.model).startsWith("anthropic/")
+        ? json({ content: [{ type: "tool_use", name: "write_partner_riff", input: { headline: "Give its merchants analytics." } }] })
+        : json({ choices: [{ message: { tool_calls: [{ function: { name: "write_partner_riff", arguments: JSON.stringify(modelRiff) } }] } }] });
+    await withGateway(answer, async () => {
+      const store = memoryStore();
+      const out = await partnerRiff(readRiffInput({ company: "Dreamship (dreamship.com)" }), store, deps);
+      assertEquals(out.model, "google/gemini-3-flash-preview");
+      assert(usable(out.riff));
+      assertEquals(store.saved, ["dreamship.com"]);
     });
   },
 });
