@@ -136,6 +136,7 @@ describe("the whiteboard", () => {
     expect(card.getAllByText("Known").length).toBeGreaterThan(0);
     expect(card.getByText(`${DREAMSHIP.sources.length} sources`)).toBeInTheDocument();
     expect(card.getByText("Live · 21s")).toBeInTheDocument();
+    expect(card.queryByText(/Saved riff/)).toBeNull();
     expect(within(card.getByRole("list", { name: "Sources" })).getAllByRole("link")).toHaveLength(DREAMSHIP.sources.length);
     // Remembered for next time, as a chip.
     expect(screen.getByRole("button", { name: "Dreamship" })).toBeInTheDocument();

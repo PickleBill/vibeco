@@ -132,7 +132,8 @@ export function RiffCard({ result, seller, onFresh, fresh }: { result: RiffResul
           <li>
             <FieldPill className={cx(riff.grounding !== "sources" && "border-dashed")}>{grounding}</FieldPill>
           </li>
-          {(result.example || when) && (
+          {/* Saved means opened from a save; a riff just run live says Live instead. */}
+          {(result.example || (when && !fresh)) && (
             <li>
               <FieldPill>{result.example ? "Made-up company" : `Saved riff · ${when}`}</FieldPill>
             </li>
