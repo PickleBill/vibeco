@@ -15,6 +15,7 @@ import { isOwnSite, mentionsCompany, parseCompany, squash } from "../match.ts";
 import { modelChain } from "../model-router.ts";
 import { asSeller, type SellerProfile } from "../sellers/index.ts";
 import { scanJobBoards, scanSources, type StackScan } from "../stack-scan.ts";
+import { toolsInText } from "../stack-tools.ts";
 import type { PartnerRiff, PartnerRiffResult, RiffAssumptions, RiffBasis, RiffFit, RiffPricing, RiffRange, RiffSource } from "../types.ts";
 
 export class RiffInputError extends Error {}
@@ -134,7 +135,7 @@ LANGUAGE RULE: RESPOND ONLY IN ENGLISH. Never use em dashes or en dashes; use co
 
 Rules:
 1. Use only the SOURCES and the seller facts below. Cite sources by number. A situation claim is "known" only when a cited source states it; otherwise it is "inferred".
-2. Never state revenue, funding, valuations, customer counts or prices unless a source states them. Numbers belong in gtm.assumptions as [low, high] ranges, each with a short note: the source number it comes from, or "placeholder" when no source gives it.
+2. Never state revenue, funding, valuations, customer counts or prices unless a source states them. Numbers belong in gtm.assumptions as [low, high] ranges, each with a short note: the source number it comes from, or "placeholder" when no source gives it. Quote a seller proof point only as written: that customer, its numbers, and what they measure.
 3. embedded_opportunity: 2 or 3 places inside the company's own product where analytics would live, named the way its users would know them, and what its customers would see there. metrics are short names with no numbers.
 4. integration.stack: only tools a source names. incumbent: a BI or embedded analytics vendor only when a source names it, else null. omni_fit: one sentence, using the seller strengths that matter here.
 5. gtm: the pricing shape that fits (a platform fee plus a fee per customer account, a platform fee plus a fee per seat, or custom), how the company could charge its own customers (a paid tier, usage), and assumptions for the company's side: end customers who could get the analytics, the share who would pay for the tier (percent), the tier's price per customer per month, and seats per customer account.
@@ -194,7 +195,7 @@ export const riffToolSchema = {
           description: "2 or 3 places in their product.",
           items: {
             type: "object",
-            properties: { surface: str("Where in their product, as their users know it."), end_customer_sees: str("What their customer sees there."), metrics: { type: "array", items: { type: "string" }, description: "2 to 4 metric names, no numbers." } },
+            properties: { surface: str("Where in their product, as their users know it: a short name, 2 to 5 words."), end_customer_sees: str("What their customer sees there."), metrics: { type: "array", items: { type: "string" }, description: "2 to 4 metric names, no numbers." } },
             required: ["surface", "end_customer_sees", "metrics"],
           },
         },
@@ -316,11 +317,11 @@ export function knownNumbers(texts: string[]): Set<number> {
 /** True when every checked number in the text is one a source contains. */
 export const numbersSourced = (text: string, known: Set<number>) => numbersIn(text).every((n) => !n.checked || known.has(n.value));
 
-/** Sentences with a number no source contains are dropped. */
-export function dropUnsourced(text: string, known: Set<number>): string {
+/** Sentences with a number no source contains, or that fail `held`, are dropped. */
+export function dropUnsourced(text: string, known: Set<number>, held: (sentence: string) => boolean = () => true): string {
   return text
     .split(/(?<=[.!?])\s+/)
-    .filter((s) => numbersSourced(s, known))
+    .filter((s) => numbersSourced(s, known) && held(s))
     .join(" ")
     .trim();
 }
@@ -371,16 +372,26 @@ export function checkRiff(raw: unknown, research: Pick<RiffResearch, "sources" |
   const known = knownNumbers([...Object.values(texts), ...proof]);
   const idsOf = (v: unknown) => [...new Set(arr(v).map(Number).filter((n) => Number.isInteger(n) && valid.has(n)))];
   const textOf = (srcIds: number[]) => srcIds.map((i) => texts[i] ?? "").join("\n");
-  const line = (v: unknown, max = 220) => dropUnsourced(tidy(v, max), known);
+  const names = (tool: string) => new RegExp(`\\b${tool.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+  // A line that names a seller customer quotes its proof: every number in it must be one that customer's proof holds
+  // ("4 to 6 month build cycles seen at BambooHR" goes; BambooHR launched in 4 months).
+  const proofHeld = (text: string) => {
+    const quoted = (seller.embedded?.proof ?? []).filter((p) => names(p.customer).test(text));
+    if (!quoted.length) return true;
+    const held = knownNumbers(quoted.map((p) => p.text));
+    return numbersIn(text).every((n) => held.has(n.value));
+  };
+  const ok = (text: string) => numbersSourced(text, known) && proofHeld(text);
+  const line = (v: unknown, max = 220) => dropUnsourced(tidy(v, max), known, proofHeld);
 
-  const situation = arr(r.situation)
+  const claims = arr(r.situation)
     .flatMap((x) => {
       const c = obj(x);
       const claim = tidy(c.claim, 200);
       if (!claim) return [];
       const cited = idsOf(c.sources);
       // A number no source holds is an invented fact: the claim goes.
-      if (!numbersSourced(claim, known)) return [];
+      if (!ok(claim)) return [];
       const held = cited.length > 0 && numbersSourced(claim, knownNumbers([textOf(cited)]));
       const basis: RiffBasis = c.basis === "known" && held ? "known" : "inferred";
       return [{ claim, basis, sources: cited }];
@@ -402,7 +413,6 @@ export function checkRiff(raw: unknown, research: Pick<RiffResearch, "sources" |
     .slice(0, 3);
 
   // Stack: what the company's own job posts name plainly, then the model's lines.
-  const names = (tool: string) => new RegExp(`\\b${tool.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
   const stack: PartnerRiff["integration"]["stack"] = [];
   const seen = new Set<string>();
   const jobId = sources.find((s) => s.kind === "jobs")?.id;
@@ -428,6 +438,14 @@ export function checkRiff(raw: unknown, research: Pick<RiffResearch, "sources" |
   const incNamed = incName ? idsOf(inc.sources).filter((i) => names(incName).test(texts[i] ?? "")) : [];
   const incumbent = incNamed.length ? { name: incName, status: incNamed.some(isOwn) ? ("Confirmed" as const) : ("Inferred" as const), sources: incNamed } : null;
 
+  // A claim about its tools is known only when its own pages or job posts confirm every tool it names.
+  const confirmed = new Set(stack.filter((t) => t.status === "Confirmed").map((t) => t.tool.toLowerCase()));
+  const unconfirmedTool = (claim: string) =>
+    toolsInText(claim).some(({ tool }) => !tool.signal && !confirmed.has(tool.name.toLowerCase())) ||
+    stack.some((t) => t.status !== "Confirmed" && names(t.tool).test(claim)) ||
+    (!!incumbent && incumbent.status !== "Confirmed" && names(incumbent.name).test(claim));
+  const situation = claims.map((c) => (c.basis === "known" && unconfirmedTool(c.claim) ? { ...c, basis: "inferred" as RiffBasis } : c));
+
   const g = obj(r.gtm);
   const a = obj(g.assumptions);
   const n = obj(g.notes);
@@ -452,7 +470,7 @@ export function checkRiff(raw: unknown, research: Pick<RiffResearch, "sources" |
   const quad = (v: unknown) =>
     arr(v)
       .map((x) => tidy(x, 140))
-      .filter((x) => x && numbersSourced(x, known))
+      .filter((x) => x && ok(x))
       .slice(0, 2);
   const sw = obj(r.swot);
 
@@ -481,7 +499,7 @@ export function checkRiff(raw: unknown, research: Pick<RiffResearch, "sources" |
       pricing_shape: VALID_SHAPE.includes(g.pricing_shape as RiffPricing) ? (g.pricing_shape as RiffPricing) : "platform_plus_per_customer",
       monetization: arr(g.monetization)
         .map((x) => tidy(x, 120))
-        .filter((x) => x && numbersSourced(x, known))
+        .filter((x) => x && ok(x))
         .slice(0, 3),
       assumptions,
       notes,
@@ -502,6 +520,8 @@ export function usable(riff: PartnerRiff | undefined | null): boolean {
 // ─── Saved riffs ───
 
 const TTL_DAYS = 14;
+/** The checks a saved riff passed. Raise it when the checks change: riffs saved under older ones run again. */
+export const RIFF_CHECKS = "2";
 
 export interface RiffStore {
   find(key: string, sinceIso: string): Promise<{ id: string; savedAt: string; result: PartnerRiffResult } | null>;
@@ -520,6 +540,7 @@ export function riffStore(db: Db): RiffStore {
         .select("id, created_at, brief")
         .eq("brief->>lens", "partner")
         .eq("brief->>key", key)
+        .eq("brief->>checks", RIFF_CHECKS)
         .gte("created_at", sinceIso)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -530,7 +551,7 @@ export function riffStore(db: Db): RiffStore {
     async save(key, company, result) {
       const { data, error } = await db
         .from("idea_reports")
-        .insert({ idea: company, title: `Whiteboard: ${company}`, brief: { lens: "partner", key, seller: "omni", company, result }, highlights: [] })
+        .insert({ idea: company, title: `Whiteboard: ${company}`, brief: { lens: "partner", key, seller: "omni", company, checks: RIFF_CHECKS, result }, highlights: [] })
         .select("id")
         .single();
       if (error) {

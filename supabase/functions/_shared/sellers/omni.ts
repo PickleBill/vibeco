@@ -76,9 +76,9 @@ export const OMNI: SellerProfile = {
   embedded: {
     proof: [
       // CASE("bamboohr"): "Launched a new Elite analytics product tier in 4 months, enabling self-serve reporting for 30K+ people at launch before quickly growing to 100K+ people"
-      { text: "BambooHR launched a new Elite analytics tier in 4 months: 30,000+ people at launch, 100,000+ since.", source: CASE("bamboohr") },
+      { customer: "BambooHR", text: "BambooHR launched a new Elite analytics tier in 4 months: 30,000+ people at launch, 100,000+ since.", source: CASE("bamboohr") },
       // CASE("standard-metrics"): "Within 2.5 months of selecting Omni, Standard Metrics moved from setting up their data warehouse to launching their branded Advanced Analytics offering"
-      { text: "Standard Metrics launched its branded Advanced Analytics offering 2.5 months after choosing Omni.", source: CASE("standard-metrics") },
+      { customer: "Standard Metrics", text: "Standard Metrics launched its branded Advanced Analytics offering 2.5 months after choosing Omni.", source: CASE("standard-metrics") },
     ],
     strengths: [
       { text: "One semantic layer: metrics defined once and reused across every customer.", source: CASE("bamboohr") },

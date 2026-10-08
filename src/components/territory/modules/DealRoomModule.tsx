@@ -10,15 +10,57 @@ import { buildClaims, claimQuestions, planDiff, tally } from "../dealroom/claims
 import { useDealRoom } from "../dealroom/hooks";
 import { ProspectBrief } from "../dealroom/ProspectBrief";
 import { BoundaryCard, DiscoveryNotes, PhoneFrame, PlanDiffCard, QuestionsCard, SellerControl, SharePanel, type DealView } from "../dealroom/SellerCards";
+import { WorkbookTabs } from "../ui";
+import { Whiteboard } from "../whiteboard/Whiteboard";
 import type { ModuleProps } from "./types";
 
+type Tab = "whiteboard" | "deal";
+
 /**
- * 05 · Deal Room (off the demo path): a brief the account can correct. The seller shares one link
+ * 05 · Whiteboard (off the demo path). Two tabs: the whiteboard, a partnership
+ * riff on any company (how it could put the seller's analytics inside its own
+ * product), and the Deal Room, a brief the account can correct.
+ */
+export function DealRoomModule(props: ModuleProps) {
+  const { seller, territory, reportId, current } = props;
+  const [params, setParams] = useSearchParams();
+  const tab: Tab = params.get("tab") === "deal" ? "deal" : "whiteboard";
+  const setTab = (t: Tab) =>
+    setParams(
+      (p) => {
+        const next = new URLSearchParams(p);
+        if (t === "deal") next.set("tab", "deal");
+        else next.delete("tab");
+        return next;
+      },
+      { replace: true },
+    );
+  const row = territory.rows.find((r) => r.id === (reportId ?? current));
+  return (
+    <div>
+      <WorkbookTabs
+        label="Whiteboard or Deal Room"
+        value={tab}
+        onChange={setTab}
+        tabs={[
+          { id: "whiteboard", label: "Whiteboard" },
+          { id: "deal", label: "Deal Room" },
+        ]}
+      />
+      <div className="pt-6">
+        {tab === "whiteboard" ? <Whiteboard seller={seller.name} account={row ? { name: row.name, typed: row.typed } : undefined} /> : <DealRoomPanel {...props} />}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The Deal Room: a brief the account can correct. The seller shares one link
  * (/deal/<id>); the account marks each public claim right, fixes it or skips
  * it; the answers come back here as discovery notes and a before/after of the
  * plan. A toggle shows exactly what the prospect sees, read-only.
  */
-export function DealRoomModule({ seller, territory, reportId, current, justRan }: ModuleProps) {
+function DealRoomPanel({ seller, territory, reportId, current, justRan }: ModuleProps) {
   const activeId = reportId ?? current ?? territory.rows[0]?.id;
   const [report, setReport] = useState<SavedReport | null | undefined>(undefined);
   const [params, setParams] = useSearchParams();
@@ -63,7 +105,7 @@ export function DealRoomModule({ seller, territory, reportId, current, justRan }
         <AccountSwitcher
           rows={territory.rows}
           activeId={activeId}
-          hrefFor={(id) => moduleHref(seller.id, "deal", id)}
+          hrefFor={(id) => `${moduleHref(seller.id, "deal", id)}?tab=deal`}
           loading={territory.loading}
           segments={seller.territory?.segments}
           justRan={justRan}

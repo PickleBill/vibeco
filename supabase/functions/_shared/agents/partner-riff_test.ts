@@ -16,7 +16,9 @@ import {
   pickProfile,
   readRange,
   readRiffInput,
+  RIFF_CHECKS,
   RiffInputError,
+  riffStore,
   type RiffDeps,
   type RiffStore,
   SELLER_PLACEHOLDERS,
@@ -177,6 +179,31 @@ Deno.test("checkRiff: known needs a source that holds it; invented numbers go; s
   assertEquals(r.grounding, "sources");
 });
 
+Deno.test("checkRiff: a seller proof point keeps its own numbers; a claim about tools is known only when its own pages confirm each one", () => {
+  const raw = {
+    ...modelRiff,
+    situation: [
+      { claim: "Its dashboard runs on Metabase.", basis: "known", sources: [2] },
+      { claim: "It runs Snowflake and Looker.", basis: "known", sources: [1] },
+      { claim: "Its dashboard runs on Metabase, with Snowflake underneath.", basis: "known", sources: [1, 2] },
+    ],
+    swot: {
+      ...modelRiff.swot,
+      opportunities: ["Could cut the 4 to 6 month build cycles seen in BambooHR and Standard Metrics launches.", "A paid tier, like the one BambooHR launched in 4 months."],
+    },
+    gtm: { ...modelRiff.gtm, monetization: ["An Elite tier like BambooHR's, for 30,000+ people at launch", "Standard Metrics shipped in 4 months"] },
+  };
+  // A 6 in the sources doesn't make it a proof point.
+  const withSix = { ...research, texts: { ...research.texts, 2: `${research.texts[2]} Refunds post within 6 months.` } };
+  const r = checkRiff(raw, withSix, { name: "Dreamship", seller: OMNI });
+  assertEquals(
+    r.situation.map((s) => s.basis),
+    ["known", "inferred", "inferred"],
+  );
+  assertEquals(r.swot.opportunities, ["A paid tier, like the one BambooHR launched in 4 months."]);
+  assertEquals(r.gtm.monetization, ["An Elite tier like BambooHR's, for 30,000+ people at launch"]);
+});
+
 Deno.test("checkRiff: no sources is low confidence and model knowledge; not a fit keeps one surface and the internal play", () => {
   const r = checkRiff(
     { ...modelRiff, embedded_fit: { verdict: "not_a_fit", why: "No customer data in the product." } },
@@ -291,4 +318,23 @@ Deno.test({
       assertEquals(store.saved, ["dreamship.com"]);
     });
   },
+});
+
+Deno.test("riffStore: finds only riffs saved under the current checks, and saves the version with the riff", async () => {
+  const calls: unknown[][] = [];
+  const db: Record<string, unknown> = {};
+  for (const m of ["from", "select", "eq", "gte", "order", "limit", "insert"]) {
+    db[m] = (...args: unknown[]) => {
+      calls.push([m, ...args]);
+      return db;
+    };
+  }
+  db.maybeSingle = () => Promise.resolve({ data: null, error: null });
+  db.single = () => Promise.resolve({ data: { id: "r9" }, error: null });
+  const store = riffStore(db);
+  assertEquals(await store.find("dreamship.com", "2026-10-01T00:00:00Z"), null);
+  assert(calls.some((c) => c[0] === "eq" && c[1] === "brief->>checks" && c[2] === RIFF_CHECKS));
+  assertEquals(await store.save("dreamship.com", "Dreamship", { riff: {}, sources: [] } as unknown as PartnerRiffResult), "r9");
+  const row = calls.find((c) => c[0] === "insert")?.[1] as { brief: { lens: string; key: string; checks: string } };
+  assertEquals([row.brief.lens, row.brief.key, row.brief.checks], ["partner", "dreamship.com", RIFF_CHECKS]);
 });

@@ -47,7 +47,7 @@ export interface SellerProfile {
   customers: SellerCustomer[];
   /** The embedded motion's public proof: what customers shipped, and what made it work. Each with its source. */
   embedded?: {
-    proof: { text: string; source: string }[];
+    proof: { customer: string; text: string; source: string }[];
     strengths: { text: string; source: string }[];
   };
 }

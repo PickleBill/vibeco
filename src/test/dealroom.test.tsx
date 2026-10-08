@@ -255,7 +255,7 @@ describe("Deal Room seller view", () => {
     rpc.mockResolvedValue({ data: report, error: null });
     invoke.mockResolvedValue({ data: { deal_room: dealRoom }, error: null });
     return render(
-      <MemoryRouter initialEntries={[`/for/omni/deal/${id}${search}`]}>
+      <MemoryRouter initialEntries={[`/for/omni/deal/${id}?tab=deal${search.replace(/^\?/, "&")}`]}>
         <DealRoomModule seller={seller} territory={{ rows: [row], loading: false, missing: [] }} reportId={id} />
       </MemoryRouter>,
     );
