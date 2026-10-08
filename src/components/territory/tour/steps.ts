@@ -1,5 +1,5 @@
 // The guided tour ("Demo in 2 minutes"): seven steps that tell the story on
-// the territory's first saved run (the demo account). The front door, then
+// the territory's first account (the demo account). The front door, then
 // the demo account's run (who they are, the agents and their verdict, a seat
 // to take), the radar, lookalikes seeded with it, and its committee, which
 // plays. Each step names the view it lives on and the data-tour target it
@@ -27,13 +27,14 @@ export interface TourStep {
   body: string;
 }
 
-/** One line on who a demo account is, from its saved run. Others get a plain line. */
+/** One line on who a demo account is, from its saved run's sources. Others get a plain line. */
 const WHO: Record<string, string> = {
-  Relay: "a Raleigh frontline-operations platform that just raised $36M",
+  Equifax: "Equifax, the Atlanta credit bureau, signed a $750M acquisition in July",
+  Relay: "Relay: a Raleigh frontline-operations platform that just raised $36M",
 };
 
 export interface TourContext {
-  /** The demo account's name ("Relay"). */
+  /** The demo account's name ("Equifax"). */
   demo: string;
   /** The seller's name ("Omni"). */
   seller: string;
@@ -71,7 +72,7 @@ export function tourSteps({ demo, seller, territory }: TourContext): TourStep[] 
       withAccount: true,
       target: "whys",
       title: "Who they are",
-      body: who ? `${demo}: ${who}. Then why change, why now, why ${seller}.` : `${demo}’s saved run. First, why change, why now, why ${seller}.`,
+      body: who ? `${who}. Then why change, why now, why ${seller}.` : `${demo}’s saved run. First, why change, why now, why ${seller}.`,
     },
     {
       module: "account",

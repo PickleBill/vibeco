@@ -56,7 +56,8 @@ describe("welcome card", () => {
     const first = page();
     fireEvent.click(screen.getByRole("button", { name: "How it works" }));
     expect(welcome()).toBeInTheDocument();
-    expect(screen.getByText("Unofficial. Not affiliated with Omni.")).toBeInTheDocument();
+    // The site footer carries the disclaimer; the card doesn't repeat it.
+    expect(screen.queryByText(/Not affiliated with/)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Explore on my own" }));
     expect(welcome()).not.toBeInTheDocument();
     first.unmount();
@@ -137,7 +138,7 @@ describe("guided tour", () => {
   it("says who the demo account is and counts the real territory", () => {
     page("/for/omni?tour");
     fireEvent.click(screen.getByRole("button", { name: /^Next/ }));
-    expect(screen.getByText("Relay: a Raleigh frontline-operations platform that just raised $36M. Then why change, why now, why Omni.")).toBeInTheDocument();
+    expect(screen.getByText("Equifax, the Atlanta credit bureau, signed a $750M acquisition in July. Then why change, why now, why Omni.")).toBeInTheDocument();
     for (let i = 0; i < 3; i++) fireEvent.click(screen.getByRole("button", { name: /^Next/ }));
     expect(screen.getByText(`${seller.territory!.accounts.length} Southeast accounts. Pink means a dated trigger in the last 60 days.`)).toBeInTheDocument();
   });

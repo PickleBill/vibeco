@@ -116,7 +116,6 @@ export function ResearchFeed({
             >
               <div className="h-full rounded-full bg-foreground transition-[width] duration-300 ease-out" style={{ width: `${pct}%` }} />
             </div>
-            <p className="mt-2 text-sm text-[#4A4F63]">Then code checks every stack claim against its source before anything is shown.</p>
           </div>
         )}
       </div>

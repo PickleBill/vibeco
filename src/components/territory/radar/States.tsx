@@ -23,7 +23,7 @@ export function RadarLoading({ loaded, total }: { loaded: number; total: number 
             <span key={w} className="block h-3.5 rounded bg-muted" style={{ width: `${w}%` }} />
           ))}
         </div>
-        <p className="text-sm text-[#4A4F63]">Cards appear as each account&rsquo;s run is read. Nothing is re-run; these are finished runs.</p>
+        <p className="text-sm text-[#4A4F63]">Cards appear as each account&rsquo;s run is read.</p>
       </div>
     </div>
   );

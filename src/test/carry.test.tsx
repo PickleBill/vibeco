@@ -220,21 +220,23 @@ describe("front door", () => {
     const pinName = pin.company.replace(/\s*\([^)]*\)\s*$/, "");
     open("/for/omni");
     const savedRow = await screen.findByRole("group", { name: "Saved · opens instantly" });
-    // A small card per saved run: its name, then its motion and fit once the run is read.
+    // A small card per saved run: its name, then its grade once the run is read (no motion here).
     const card = within(savedRow).getByRole("button", { name: new RegExp(`^${pinName}\\b`) });
-    await waitFor(() => expect(card).toHaveTextContent(`${pinName}Internal · Fit B`));
+    await waitFor(() => expect(card).toHaveTextContent(`${pinName}Fit B`));
+    expect(card).not.toHaveTextContent(/Internal|Embedded|Both/);
     const liveRow = screen.getByRole("group", { name: "Live · about a minute" });
     expect(within(liveRow).getAllByRole("button").map((b) => b.textContent)).toEqual(seller.examples);
     expect(screen.getByRole("link", { name: `All ${seller.territory!.accounts.length} territory accounts on the Radar` })).toHaveAttribute("href", "/for/omni/radar");
     // The big saved-run cards and the reading legend are gone from the front door.
     expect(screen.queryByText(/Saved runs · open instantly/)).toBeNull();
     expect(screen.queryByRole("list", { name: "How to read the page" })).toBeNull();
-    expect(screen.getByText("Confirmed only when a source names it plainly.")).toBeInTheDocument();
+    // No small print under the box or the steps.
+    expect(screen.queryByText(/Confirmed only when a source names it plainly/)).toBeNull();
+    expect(screen.queryByText(/Add its domain/)).toBeNull();
 
     // A saved card opens the run at once, tagged as saved, with no AI calls.
     fireEvent.click(card);
     expect(await screen.findByText(/^Saved run · /)).toBeInTheDocument();
-    expect(screen.getByText("opened instantly, no AI calls")).toBeInTheDocument();
     expect(invoke).not.toHaveBeenCalled();
     await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent(`/for/omni/account/${pin.reportId}`));
 

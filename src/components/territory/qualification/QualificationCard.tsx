@@ -92,7 +92,6 @@ export function QualificationCard({
             </li>
           ))}
         </ol>
-        <p className="border-t border-border px-4 py-3 text-sm text-muted-foreground sm:px-5">Gaps close on a call, not from research.</p>
       </Fold>
     </section>
   );

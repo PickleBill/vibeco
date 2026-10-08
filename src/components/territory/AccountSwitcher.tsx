@@ -73,10 +73,13 @@ export function AccountSwitcher({
       setOpen(false);
       if (id !== activeId) navigate(hrefFor(id));
     };
-    const entry = (id: string, name: string, domain: string | undefined, meta: string, text = name, motion = "") => (
-      <CommandItem key={id} value={id} keywords={[name, motion].filter(Boolean)} onSelect={pick} className={item}>
+    const entry = (id: string, name: string, domain: string | undefined, meta: string, text = name, motion = "", hq = "") => (
+      <CommandItem key={id} value={id} keywords={[name, motion, hq].filter(Boolean)} onSelect={pick} className={item}>
         <CompanyLogo domain={domain} name={name} size={20} />
-        <span className={cx("min-w-0 flex-1 truncate", id === activeId ? "font-bold" : "font-medium")}>{text}</span>
+        <span className="min-w-0 flex-1">
+          <span className={cx("block truncate", id === activeId ? "font-bold" : "font-medium")}>{text}</span>
+          {hq && <span className="block truncate text-[13px] font-normal text-muted-foreground">{hq}</span>}
+        </span>
         {meta && <span className="shrink-0 text-sm text-muted-foreground">{meta}</span>}
         <Check size={16} aria-hidden className={cx("shrink-0 text-foreground", id === activeId ? "opacity-100" : "opacity-0")} />
       </CommandItem>
@@ -106,7 +109,7 @@ export function AccountSwitcher({
             className="w-[var(--radix-popover-trigger-width)] min-w-[min(320px,calc(100vw-32px))] overflow-hidden rounded-[10px] border-border p-0 shadow-lg"
           >
             <Command label="Search accounts" filter={match} defaultValue={activeId}>
-              <CommandInput placeholder="Search accounts" className="h-12 text-base" />
+              <CommandInput placeholder="Search accounts" className="h-12 text-base" autoComplete="off" data-1p-ignore="" data-lpignore="true" data-bwignore="" data-form-type="other" />
               <CommandList className="max-h-[min(360px,calc(var(--radix-popover-content-available-height)-56px))] p-1">
                 <CommandEmpty className="px-3 py-6 text-center text-[15px] text-[#4A4F63]">No account matches.</CommandEmpty>
                 {ran && <CommandGroup className="p-0">{entry(ran.id, ran.name, undefined, "", ranText)}</CommandGroup>}
@@ -116,7 +119,7 @@ export function AccountSwitcher({
                     heading={g.label}
                     className="p-0 [&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2.5 [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.06em]"
                   >
-                    {g.rows.map((r) => entry(r.id, r.name, r.domain, accountMeta(r), r.name, r.motion))}
+                    {g.rows.map((r) => entry(r.id, r.name, r.domain, accountMeta(r), r.name, r.motion, r.hq))}
                   </CommandGroup>
                 ))}
               </CommandList>

@@ -79,6 +79,8 @@ export interface TerritoryRow {
   omni: OmniStatus;
   /** The territory segment, as configured for the seller. */
   segment?: Segment;
+  /** Where it's headquartered, "Atlanta, GA". */
+  hq?: string;
   /** One plain line on the account, citations dropped. */
   line: string;
   /** The freshest dated why-now item, if any. */
@@ -144,6 +146,7 @@ export function toRow(entry: TerritoryAccount, report: SavedReport, now: Date = 
     onList: !!brief.customer_list?.on_list,
     omni: omniStatus(brief),
     segment: entry.segment,
+    hq: entry.hq,
     line: plainText(brief.account_line),
     trigger: dated && age !== null ? { date: dated.date, text: plainText(dated.text), ageDays: age } : undefined,
     stack,

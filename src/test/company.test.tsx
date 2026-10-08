@@ -102,7 +102,8 @@ describe("CompanyName and the brief", () => {
     expect(within(dialog).getByRole("link", { name: /Open the run/ })).toHaveAttribute("href", "/for/omni/account/acme");
     expect(within(dialog).getByRole("link", { name: /Simulate its committee/ })).toHaveAttribute("href", "/for/omni/committee/acme");
     expect(within(dialog).getByRole("link", { name: /Find lookalikes/ })).toHaveAttribute("href", "/for/omni/lookalikes/acme");
-    expect(within(dialog).getByText("Unofficial. Built from public sources.")).toBeInTheDocument();
+    // The site footer says it's unofficial; the brief doesn't repeat it.
+    expect(within(dialog).queryByText(/Unofficial/)).toBeNull();
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("dialog")).toBeNull();

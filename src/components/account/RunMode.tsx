@@ -18,11 +18,10 @@ export function RunMode(
   if (props.kind === "saved") {
     const when = props.savedAt ? ranAt(props.savedAt) : "";
     return (
-      <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+      <p className="flex items-center">
         <FieldPill className="h-8 text-sm">
           Saved run{when ? ` · ${when}` : ""}
         </FieldPill>
-        <span className="text-sm text-muted-foreground">opened instantly, no AI calls</span>
       </p>
     );
   }

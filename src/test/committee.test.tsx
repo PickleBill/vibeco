@@ -116,7 +116,8 @@ describe("committee view", () => {
     expect(within(screen.getByRole("region", { name: /^Outcome/ })).getByText("Uphill")).toBeInTheDocument();
     expect(screen.getByText("Win the Head of Data on one shared model.")).toBeInTheDocument();
     expect(screen.getByText("A pilot scoped to one team.")).toBeInTheDocument();
-    expect(screen.getByText(/Synthetic estimate from the simulated meeting, not a forecast/)).toBeInTheDocument();
+    // The band says it's synthetic in its own label; no paragraph under it.
+    expect(screen.queryByText(/not a forecast/)).toBeNull();
     expect(screen.getByRole("meter", { name: "Head of Data stance" })).toHaveAttribute("aria-valuenow", "2");
     // Citations become source chips linking to the source.
     expect(screen.getAllByRole("link", { name: /1/ }).some((a) => a.getAttribute("href") === "https://example.com/job")).toBe(true);

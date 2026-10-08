@@ -543,7 +543,6 @@ export function StackTable({ lines, research }: { lines?: StackFeature[]; resear
         <h3 id="stack-title" className="font-mono text-[13px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
           Stack read
         </h3>
-        <p className="mt-0.5 text-sm text-[#4A4F63]">Confirmed lines are checked in code: the cited source must name the tool and the company.</p>
       </div>
       <ul className="divide-y divide-border">
         {lines.map((l, i) => (
