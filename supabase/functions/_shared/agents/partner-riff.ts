@@ -80,6 +80,15 @@ export function pickProfile(found: ExaCompany[], name: string, domain?: string):
 
 const snippetOf = (text: string) => text.replace(/\s+/g, " ").trim().slice(0, 240);
 
+/** Third-party revenue, funding and valuation figures are estimates: those sentences never reach the brief. */
+const ESTIMATE = /\b(?:revenues?|funding|raised|valuation|valued at|ARR|annual sales)\b/i;
+export const withoutEstimates = (text: string) =>
+  text
+    .split(/(?<=[.!?])\s+/)
+    .filter((s) => !ESTIMATE.test(s))
+    .join(" ")
+    .trim();
+
 /** The company's profile, its own product pages and its own job posts, numbered; whatever answers in time. */
 export async function gatherRiffSources(input: Pick<RiffInput, "name" | "domain">, deps: RiffDeps = LIVE): Promise<RiffResearch> {
   const { name, domain } = input;
@@ -110,7 +119,7 @@ export async function gatherRiffSources(input: Pick<RiffInput, "name" | "domain"
   };
   if (profile) {
     const facts = [
-      profile.about,
+      withoutEstimates(profile.about),
       profile.hq ? `Headquarters: ${profile.hq}.` : "",
       profile.employees ? `Employs ${profile.employees} people.` : "",
       profile.tools.length ? `Tech stack its company data lists: ${profile.tools.join(", ")}.` : "",
@@ -134,7 +143,7 @@ export function riffPrompt(input: Pick<RiffInput, "name" | "domain" | "seller">,
 LANGUAGE RULE: RESPOND ONLY IN ENGLISH. Never use em dashes or en dashes; use commas, colons or periods.
 
 Rules:
-1. Use only the SOURCES and the seller facts below. Cite sources by number. A situation claim is "known" only when a cited source states it; otherwise it is "inferred".
+1. Use only the SOURCES and the seller facts below. Cite sources by number. A situation claim is "known" only when a cited source states it; otherwise it is "inferred". Situation claims are about the company only; the seller facts never appear in them.
 2. Never state revenue, funding, valuations, customer counts or prices unless a source states them. Numbers belong in gtm.assumptions as [low, high] ranges, each with a short note: the source number it comes from, or "placeholder" when no source gives it. Quote a seller proof point only as written: that customer, its numbers, and what they measure.
 3. embedded_opportunity: 2 or 3 places inside the company's own product where analytics would live, named the way its users would know them, and what its customers would see there. metrics are short names with no numbers.
 4. integration.stack: only tools a source names. incumbent: a BI or embedded analytics vendor only when a source names it, else null. omni_fit: one sentence, using the seller strengths that matter here.
@@ -521,7 +530,7 @@ export function usable(riff: PartnerRiff | undefined | null): boolean {
 
 const TTL_DAYS = 14;
 /** The checks a saved riff passed. Raise it when the checks change: riffs saved under older ones run again. */
-export const RIFF_CHECKS = "2";
+export const RIFF_CHECKS = "3";
 
 export interface RiffStore {
   find(key: string, sinceIso: string): Promise<{ id: string; savedAt: string; result: PartnerRiffResult } | null>;
